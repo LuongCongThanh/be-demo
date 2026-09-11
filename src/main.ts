@@ -14,8 +14,8 @@ async function bootstrap() {
     );
     
     const config = new DocumentBuilder()
-        .setTitle('Todo List API')
-        .setDescription('API học NestJS cơ bản — CRUD Todo, lưu trữ qua PostgreSQL (Prisma)')
+        .setTitle('Ecommerce API')
+        .setDescription('API NestJS + PostgreSQL (Prisma)')
         .setVersion('1.0')
         .build();
     const document = SwaggerModule.createDocument(app, config);
