@@ -1,9 +1,8 @@
 # 13 — Testing (Unit + E2E)
 
-> ⬅️ Trước khi làm file này: xong [12-rate-limiting.md](./12-rate-limiting.md) (toàn bộ endpoint + guard + rate limit đã implement).
-> 📚 Tham chiếu chung: [00-overview.md](./00-overview.md).
+> Trước khi bắt đầu, đảm bảo bạn đã làm xong [12-rate-limiting.md](./12-rate-limiting.md) — toàn bộ endpoint, guard, và rate limit đã implement. Tham chiếu chung: [00-overview.md](./00-overview.md).
 
-**Goal:** Toàn bộ service có business logic (`AuthService`, `TokenService`, `PasswordService`) có unit test; toàn bộ flow `/auth/*` có e2e test (bắt buộc theo `doc/api-conventions.md`).
+Toàn bộ service có business logic (`AuthService`, `TokenService`, `PasswordService`) cần có unit test; toàn bộ flow `/auth/*` cần có e2e test — bắt buộc theo `doc/api-conventions.md`, không phải tuỳ chọn.
 
 > 📘 **Khái niệm — Unit test vs E2E test, vì sao cần cả 2?**
 >
@@ -18,11 +17,9 @@
 
 ---
 
-## Unit test
+## Bước 1 — Unit test
 
-**Files:** `src/auth/services/auth.service.spec.ts`, `src/auth/services/token.service.spec.ts`, `src/auth/services/password.service.spec.ts`
-
-**CLI:**
+Các file cần tạo: `src/auth/services/auth.service.spec.ts`, `src/auth/services/token.service.spec.ts`, `src/auth/services/password.service.spec.ts`. Lệnh dùng khi viết test:
 
 ```bash
 npm run test          # chạy 1 lần
@@ -30,9 +27,9 @@ npm run test:watch    # chạy lại tự động khi sửa code — dùng khi �
 npm run test:cov      # kèm coverage report
 ```
 
-**Implementation — ví dụ unit test cho `AuthService.register()`:**
-
 > 📘 **Khái niệm — `Test.createTestingModule` + `overrideProvider`:** NestJS cung cấp `@nestjs/testing` để dựng 1 "module giả lập" chỉ chứa provider cần test, thay các dependency thật (`PrismaService`, `MailService`...) bằng mock object (`jest.fn()`). Nhờ vậy test chạy độc lập, không cần DB/SMTP thật, và assert được chính xác "AuthService gọi đúng hàm nào với tham số nào".
+
+Ví dụ unit test cho `AuthService.register()`:
 
 ```ts
 // src/auth/services/auth.service.spec.ts
@@ -105,25 +102,21 @@ describe('AuthService.register', () => {
 });
 ```
 
-> Viết tương tự cho `TokenService` (assert xoá token cũ trước khi tạo mới, assert raw token không bị lưu vào DB) và `PasswordService` (assert `hash()` 2 lần cho ra 2 chuỗi khác nhau nhưng cùng `verify()` đúng — đã có ở [02-register.md STEP 5.2](./02-register.md)).
-
-**Acceptance Criteria:** unit test cho `AuthService`, `TokenService`, `PasswordService` pass, cover đủ các nhánh chính (happy path + lỗi domain: duplicate email, token hết hạn, password sai...).
+Viết tương tự cho `TokenService` (assert xoá token cũ trước khi tạo mới, assert raw token không bị lưu vào DB) và `PasswordService` (assert `hash()` 2 lần cho ra 2 chuỗi khác nhau nhưng cùng `verify()` đúng — đã tự thử ở [02-register.md](./02-register.md), Bước 2). Mục tiêu cuối cùng của bước này: unit test cho `AuthService`, `TokenService`, `PasswordService` pass, cover đủ các nhánh chính — happy path lẫn lỗi domain (duplicate email, token hết hạn, password sai...).
 
 ---
 
-## E2E test
+## Bước 2 — E2E test
 
-**Files:** `test/auth.e2e-spec.ts` (hoặc theo cấu trúc `test/` hiện có của repo)
-
-**CLI:**
+File cần tạo: `test/auth.e2e-spec.ts` (hoặc theo cấu trúc `test/` hiện có của repo). Lệnh chạy:
 
 ```bash
 npm run test:e2e   # đảm bảo DATABASE_URL trỏ DB test trước khi chạy, không phải DB dev
 ```
 
-**Implementation — ví dụ e2e test cho `POST /auth/register`:**
-
 > 📘 **Khái niệm — `supertest`:** thư viện gửi HTTP request thật tới app NestJS đã bootstrap trong bộ nhớ (không cần chạy `npm run start` riêng), rồi assert trên response thật (status code, body, header — kể cả `Set-Cookie`). Đây là cách duy nhất để test được toàn bộ pipeline Guard → Controller → Service → DB thật.
+
+Ví dụ e2e test cho `POST /auth/register`:
 
 ```ts
 // test/auth.e2e-spec.ts
@@ -195,9 +188,9 @@ describe('Auth (e2e)', () => {
 });
 ```
 
-> Viết tương tự cho `login` (assert `Set-Cookie` có đủ `HttpOnly`/`Secure`/`SameSite`, assert body không có `refreshToken`), `refresh` (rotation + reuse detection — gọi lại cookie cũ sau khi đã rotate phải nhận 401), `logout`/`logout-all`, `forgot-password`/`reset-password`, `RolesGuard`/`OwnershipGuard`.
+Viết tương tự cho `login` (assert `Set-Cookie` có đủ `HttpOnly`/`Secure`/`SameSite`, assert body không có `refreshToken`), `refresh` (rotation + reuse detection — gọi lại cookie cũ sau khi đã rotate phải nhận 401), `logout`/`logout-all`, `forgot-password`/`reset-password`, `RolesGuard`/`OwnershipGuard`.
 
-**Acceptance Criteria + bảng test matrix đầy đủ** (tham chiếu khi lập checklist, "✓" = bắt buộc có test case cho nhóm đó):
+Dùng bảng dưới đây để double-check không sót nhóm test nào khi review lại toàn bộ ("✓" = bắt buộc có ít nhất 1 test case, unit hoặc e2e tuỳ nhóm, cho ô đó):
 
 | Endpoint                             | Happy path | Validation | Auth | Security | Edge case |
 | ------------------------------------ | :--------: | :--------: | :--: | :------: | :-------: |
@@ -215,14 +208,9 @@ describe('Auth (e2e)', () => {
 | OwnershipGuard                       |     ✓      |     –      |  ✓   |    ✓     |     ✓     |
 | Rate limiting (per endpoint)         |     ✓      |     –      |  –   |    ✓     |     ✓     |
 
-"Security" = test riêng cho các rule ở [00-overview.md § 6. Security Rules](./00-overview.md) (không leak field, không lộ enumeration, rate limit hoạt động, reuse detection revoke đúng phạm vi...). Danh sách test case chi tiết từng endpoint đã liệt kê trong file tương ứng (vd [02-register.md](./02-register.md) mục **Tests**, [06-refresh-token.md](./06-refresh-token.md) mục **Tests**...) — dùng bảng này để double-check không sót nhóm nào khi review PR.
+"Security" = test riêng cho các rule ở [00-overview.md § 6. Security Rules](./00-overview.md) (không leak field, không lộ enumeration, rate limit hoạt động, reuse detection revoke đúng phạm vi...). Mỗi endpoint đã có sẵn danh sách case cụ thể ngay trong đoạn "tự kiểm tra" của file tương ứng (vd [02-register.md](./02-register.md), [06-refresh-token.md](./06-refresh-token.md)...) — bảng này chỉ để tra chéo cho khỏi sót nhóm.
 
-**Acceptance Criteria:**
-
-- [ ] `npm run test` pass, không có test bị skip không rõ lý do.
-- [ ] `npm run test:cov` đạt threshold coverage của project (xem `00-overview.md § Definition of Done`).
-- [ ] `npm run test:e2e` pass với DB test riêng (không trỏ nhầm DB dev/production).
-- [ ] Mỗi hàng "✓" trong bảng test matrix trên có ít nhất 1 test case tương ứng (unit hoặc e2e, tuỳ nhóm).
+Coi bước này là xong khi: `npm run test` pass không có test nào bị skip mà không rõ lý do; `npm run test:cov` đạt threshold coverage của project (xem [00-overview.md § Definition of Done](./00-overview.md)); `npm run test:e2e` pass với DB test riêng (không trỏ nhầm sang DB dev/production); và mỗi hàng "✓" trong bảng trên đã có ít nhất 1 test case tương ứng.
 
 ---
 

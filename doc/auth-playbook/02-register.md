@@ -1,21 +1,16 @@
 # 02 — Register (`POST /auth/register`)
 
-> ⬅️ Trước khi làm file này: xong [01-setup.md](./01-setup.md) (module đã scaffold, `PasswordService`/`TokenService` cơ bản, package đã cài, env đã có).
-> 📚 Tham chiếu chung (Decisions, Security Rules, Response DTO...): [00-overview.md](./00-overview.md).
+> Trước khi bắt đầu, đảm bảo bạn đã làm xong [01-setup.md](./01-setup.md) — module đã scaffold, `PasswordService`/`TokenService` cơ bản đã có, package đã cài, env đã sẵn. Cần tra thuật ngữ nào đó (DTO, transaction, hash...) thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại 1 quyết định thiết kế (vd vì sao register không tự động login) thì xem [00-overview.md](./00-overview.md).
 
-**Goal:** Tạo user CUSTOMER mới và gửi email verification, không lưu raw password/token.
-
-> STEP này gộp nhiều việc (DTO, hash password, sinh token, transaction, gửi mail, controller) nên được **tách thành 6 step con** — làm tuần tự 5.1 → 5.6, mỗi step con build/compile được trước khi sang step tiếp theo.
+Đây là endpoint đầu tiên bạn sẽ code trong toàn bộ flow Auth: tạo tài khoản CUSTOMER mới và gửi email xác thực, mà không bao giờ lưu password hay token ở dạng thô. Việc này gộp khá nhiều thứ — validate input, hash password, sinh token, ghi DB trong 1 transaction, gửi mail, rồi mới expose ra HTTP — nên bài này chia thành 6 bước nhỏ, làm xong bước nào build được bước đó rồi mới sang bước sau.
 
 ---
 
-## STEP 5.1 — RegisterDto — 🔴 Chưa làm
+## Bước 1 — Tạo "form đăng ký" (RegisterDto)
 
-**Goal:** Định nghĩa + validate dữ liệu client gửi lên khi đăng ký.
+Trước khi viết logic, bạn cần mô tả rõ ràng dữ liệu mà client phải gửi lên khi đăng ký: `email` và `password`. Trong NestJS, việc này làm qua 1 class gọi là DTO (Data Transfer Object).
 
-**Files:** `src/auth/dto/register.dto.ts`
-
-**CLI:**
+Tạo file `src/auth/dto/register.dto.ts`:
 
 ```powershell
 New-Item src/auth/dto/register.dto.ts -ItemType File   # PowerShell
@@ -25,9 +20,7 @@ New-Item src/auth/dto/register.dto.ts -ItemType File   # PowerShell
 touch src/auth/dto/register.dto.ts   # Bash (Git Bash/WSL)
 ```
 
-**Implementation:**
-
-> 📘 **Khái niệm — `class-validator` / `class-transformer`:** NestJS dùng `ValidationPipe` (thường bật global trong `main.ts`) để tự động validate request body dựa trên decorator từ package `class-validator` gắn lên DTO. Nếu input sai, Nest tự trả `400 Bad Request` **trước khi** code trong Controller/Service chạy — không cần tự viết `if` kiểm tra tay.
+NestJS có sẵn `ValidationPipe` (thường bật global trong `main.ts`) tự động đọc decorator gắn trên DTO này để kiểm tra input — nếu sai, Nest tự trả `400 Bad Request` **trước khi** code bạn viết trong Controller/Service kịp chạy, không cần tự viết `if` kiểm tra tay. Viết class sau:
 
 ```ts
 // src/auth/dto/register.dto.ts
@@ -53,22 +46,17 @@ export class RegisterDto {
 }
 ```
 
-**Acceptance Criteria:**
-
-- [ ] File compile được (`npm run build` không lỗi), chưa cần route nào gọi tới.
-- [ ] Import `RegisterDto` ở một file test tạm thời, tạo instance với `password: 'abc'` → thấy lỗi validate khi chạy qua `class-validator` (có thể để dành verify khi làm xong STEP 5.6, không bắt buộc viết test riêng ở đây).
+Chạy `npm run build` để chắc chắn file không lỗi cú pháp — bạn chưa gọi được route nào ở bước này cả, chỉ mới có "hình dạng" dữ liệu. Nếu muốn tin chắc validate hoạt động, thử tạo 1 instance với `password: 'abc'` ở đâu đó tạm thời và chạy qua `class-validator` — bạn sẽ thấy lỗi validate bật lên ngay; việc này để dành verify chính thức khi xong Bước 6.
 
 ---
 
-## STEP 5.2 — PasswordService (hash) — 🔴 Chưa làm
+## Bước 2 — Hash password (PasswordService)
 
-**Goal:** Hash password bằng argon2, không tự viết thuật toán hash tay.
-
-**Files:** `src/auth/services/password.service.ts` (đã scaffold rỗng ở 01-setup.md)
-
-**Implementation:**
+Không bao giờ được lưu password thô vào DB. Bước này viết phần hash — biến password thành 1 chuỗi không thể đảo ngược lại, chỉ dùng để so sánh.
 
 > 📘 **Khái niệm — vì sao dùng `argon2` thay vì `bcrypt` hay tự viết SHA-256?** Password không được hash bằng thuật toán hash "nhanh" thông thường (MD5, SHA-256) vì máy tính hiện đại thử được hàng tỷ hash/giây → brute-force dễ dàng. `argon2` (và `bcrypt`) là thuật toán **cố tình chậm và tốn RAM**, khiến brute-force tốn kém về thời gian/tiền bạc. `argon2` là thuật toán thắng cuộc thi Password Hashing Competition, được khuyến nghị hiện nay.
+
+Mở `src/auth/services/password.service.ts` (đã scaffold rỗng ở `01-setup.md`) và viết:
 
 ```ts
 // src/auth/services/password.service.ts
@@ -87,24 +75,18 @@ export class PasswordService {
 }
 ```
 
-> `argon2.hash()` tự sinh salt ngẫu nhiên và nhúng vào chuỗi hash trả về — không cần tự quản lý salt riêng.
-
-**Acceptance Criteria:**
-
-- [ ] Gọi `hash('Abc@1234')` 2 lần → 2 chuỗi hash **khác nhau** (do salt ngẫu nhiên), nhưng cả 2 đều `verify()` đúng với `'Abc@1234'`.
+`argon2.hash()` tự sinh salt ngẫu nhiên và nhúng vào chuỗi hash trả về, nên bạn không cần tự quản lý salt riêng. Muốn chắc chắn nó hoạt động đúng, gọi thử `hash('Abc@1234')` 2 lần — bạn sẽ thấy 2 chuỗi hash khác nhau (vì salt ngẫu nhiên mỗi lần), nhưng cả 2 vẫn `verify()` đúng lại với `'Abc@1234'` ban đầu.
 
 ---
 
-## STEP 5.3 — TokenService (tối thiểu cho email verification) — 🔴 Chưa làm
+## Bước 3 — Sinh token xác thực email (TokenService)
 
-**Goal:** Sinh token ngẫu nhiên + hash để lưu DB, đủ dùng cho Register. Bản đầy đủ (dùng chung cho reset-password/refresh) làm ở [01-setup.md § TokenService đầy đủ](./01-setup.md) — ở đây chỉ implement phần tối thiểu để STEP này chạy được.
-
-**Files:** `src/auth/services/token.service.ts` (đã scaffold rỗng ở 01-setup.md)
-
-**Implementation:**
+Sau khi tạo user, bạn cần gửi cho họ 1 link xác thực email, và link đó phải chứa 1 token không ai đoán được. Bước này viết phần tối thiểu để sinh token đó — bản đầy đủ dùng chung cho cả reset-password/refresh sẽ hoàn thiện ở [01-setup.md § TokenService đầy đủ](./01-setup.md), ở đây chỉ cần đủ cho Register chạy được.
 
 > 📘 **Khái niệm — vì sao token gửi qua email khác với token lưu trong DB?**
 > Nếu lưu thẳng token gốc (raw token) vào DB, ai đọc được DB (backup leak, SQL injection...) sẽ dùng được token đó luôn — giống hệt như lưu raw password. Cách làm đúng: sinh token ngẫu nhiên (`rawToken`), gửi `rawToken` qua email cho user, nhưng **chỉ lưu `hash(rawToken)`** vào DB. Khi user click link chứa `rawToken`, server hash lại và so khớp với `tokenHash` trong DB — không cần lưu bản gốc mà vẫn xác minh được.
+
+Mở `src/auth/services/token.service.ts` (đã scaffold rỗng ở `01-setup.md`) và viết:
 
 ```ts
 // src/auth/services/token.service.ts
@@ -144,23 +126,15 @@ export class TokenService {
 }
 ```
 
-> ⚠️ Tên model/field Prisma (`emailVerificationToken`, `userId`, `tokenHash`, `expiresAt`, `verifiedAt`) phải khớp `prisma/schema.prisma` — đối chiếu lại trước khi paste. Method `createPasswordResetToken`, `hashRawToken` (dùng ở verify/refresh) sẽ được thêm đầy đủ ở [01-setup.md](./01-setup.md).
-
-**Acceptance Criteria:**
-
-- [ ] File compile được, `createEmailVerificationToken()` gọi được từ 1 test tạm hoặc từ STEP 5.5 và tạo đúng 1 record trong bảng `email_verification_tokens`.
+⚠️ Trước khi paste, đối chiếu lại tên model/field Prisma (`emailVerificationToken`, `userId`, `tokenHash`, `expiresAt`, `verifiedAt`) với `prisma/schema.prisma` thật của bạn — tên có thể khác đôi chút. Method `createPasswordResetToken`, `hashRawToken` (dùng ở verify/refresh sau này) sẽ được thêm đầy đủ ở `01-setup.md`, chưa cần lo ở bước này. Kiểm tra nhanh: gọi `createEmailVerificationToken()` từ 1 chỗ test tạm — bạn sẽ thấy đúng 1 record mới xuất hiện trong bảng `email_verification_tokens`.
 
 ---
 
-## STEP 5.4 — MailService (gửi email verification) — 🔴 Chưa làm
+## Bước 4 — Gửi email xác thực (MailService)
 
-**Goal:** Gửi email chứa link verification, đứng ngoài `auth` module.
+`AuthService` sắp orchestrate flow register không nên tự biết cách gửi mail qua SMTP/SES/SendGrid nào — nó chỉ cần gọi `mailService.sendVerificationEmail(email, token)`. Tách riêng như vậy giúp sau này đổi provider gửi mail mà không đụng vào code auth (xem thêm [00-overview.md § Shared Services](./00-overview.md) về nguyên tắc không tạo interface/DI token thừa cho MVP).
 
-**Files:** `src/mail/mail.service.ts` (đã scaffold rỗng ở 01-setup.md)
-
-**Implementation:**
-
-> 📘 **Khái niệm — vì sao `MailService` là module riêng, không nằm trong `auth`?** `AuthService` không cần biết chi tiết gửi mail qua SMTP hay SES/SendGrid — nó chỉ cần gọi `mailService.sendVerificationEmail(email, token)`. Tách riêng giúp sau này đổi provider gửi mail mà không đụng vào code auth. Xem thêm [00-overview.md § Shared Services](./00-overview.md) về nguyên tắc không tạo interface/DI token thừa cho MVP.
+Mở `src/mail/mail.service.ts` (đã scaffold rỗng ở `01-setup.md`):
 
 ```ts
 // src/mail/mail.service.ts
@@ -187,23 +161,19 @@ export class MailService {
 }
 ```
 
-**Acceptance Criteria:**
-
-- [ ] File compile được. Gọi `sendVerificationEmail('a@b.com', 'xyz')` in ra log đúng nội dung, không throw lỗi.
+Với MVP, gọi thẳng hàm này chỉ in ra log console — đủ để bạn thấy flow chạy đúng trong lúc dev, chưa cần cấu hình SMTP thật. Gọi thử `sendVerificationEmail('a@b.com', 'xyz')` để chắc nó in log đúng và không throw lỗi gì.
 
 ---
 
-## STEP 5.5 — AuthService.register() — 🔴 Chưa làm
+## Bước 5 — Ghép mọi thứ lại trong AuthService.register()
 
-**Goal:** Orchestrate toàn bộ flow register: validate email chưa tồn tại → hash password → transaction tạo user+role+token → gửi mail sau khi commit.
-
-**Files:** `src/auth/services/auth.service.ts` (đã scaffold rỗng ở 01-setup.md)
-
-**Implementation:**
+Đây là bước "trái tim" của cả flow — nơi bạn điều phối (orchestrate) 4 bước trên theo đúng thứ tự: kiểm tra email chưa tồn tại → hash password → ghi User + role + token trong 1 transaction → gửi mail sau khi transaction đã commit xong.
 
 > 📘 **Khái niệm — DB transaction là gì, vì sao cần?** Một transaction gom nhiều thao tác ghi DB (tạo user, gán role, tạo token) thành **1 khối tất-cả-hoặc-không-gì-cả**: nếu bước giữa chừng lỗi (vd gán role fail), toàn bộ được rollback — không để lại user "mồ côi" không có role. Prisma cung cấp `prisma.$transaction(async (tx) => {...})`, bên trong dùng `tx.<model>` thay vì `prisma.<model>` để mọi query nằm trong cùng 1 transaction.
 >
 > 📘 **Khái niệm — vì sao gửi email PHẢI nằm ngoài transaction?** Gọi email (network call ra ngoài) có thể chậm hoặc treo. Nếu đặt trong transaction, DB phải giữ lock/connection chờ suốt thời gian đó — tốn tài nguyên và tăng nguy cơ deadlock. Quy tắc: transaction chỉ chứa thao tác DB, side-effect ngoài (email, gọi API khác...) luôn thực hiện **sau khi transaction đã commit**. Xem thêm [00-overview.md § Shared Services — Rule: Transaction không bọc external call](./00-overview.md).
+
+Mở `src/auth/services/auth.service.ts` (đã scaffold rỗng ở `01-setup.md`) và viết:
 
 ```ts
 // src/auth/services/auth.service.ts
@@ -257,7 +227,7 @@ export class AuthService {
       });
 
       // TokenService cũng cần chạy trong transaction này để rollback đồng bộ
-      // nếu có lỗi — nhưng TokenService ở STEP 5.3 tự inject PrismaService
+      // nếu có lỗi — nhưng TokenService ở Bước 3 tự inject PrismaService
       // riêng (không nhận `tx`). Cách đơn giản cho MVP: gọi thẳng
       // `tx.emailVerificationToken.create(...)` ở đây thay vì gọi qua
       // TokenService khi cần chung transaction — xem ghi chú bên dưới.
@@ -283,12 +253,12 @@ export class AuthService {
 
   /**
    * Helper tạo verification token TRONG transaction hiện tại (`tx`), tách khỏi
-   * TokenService.createEmailVerificationToken() (STEP 5.3) vì hàm đó tự mở
+   * TokenService.createEmailVerificationToken() (Bước 3) vì hàm đó tự mở
    * PrismaService riêng, không tham gia được transaction của Prisma Client
    * gốc. Đây là cách đơn giản cho MVP; nếu muốn tái sử dụng logic generate+hash
    * token của TokenService bên trong transaction, refactor TokenService để
    * nhận `tx` qua tham số thay vì tự inject `this.prisma` — cân nhắc khi làm
-   * TokenService đầy đủ ở 01-setup.md (không bắt buộc phải sửa ngay ở step này).
+   * TokenService đầy đủ ở `01-setup.md` (không bắt buộc phải sửa ngay ở bước này).
    */
   private async createVerificationTokenInTx(
     tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
@@ -308,22 +278,17 @@ export class AuthService {
 }
 ```
 
-> ⚠️ Đoạn `createVerificationTokenInTx` là do STEP 5.3 (`TokenService`) tự inject `PrismaService` riêng nên không tham gia chung transaction được với `AuthService.register()`. Đây là **giới hạn đã biết của bản MVP tối thiểu ở STEP 5.3** — chấp nhận trùng lặp code nhỏ để giữ transaction đúng, dọn lại (refactor `TokenService` nhận `tx`) khi làm TokenService đầy đủ ở [01-setup.md](./01-setup.md) nếu muốn.
+Đoạn `createVerificationTokenInTx` hơi vòng vèo — lý do là `TokenService` ở Bước 3 tự inject `PrismaService` riêng nên không tham gia chung transaction được với `register()` ở đây. Đây là giới hạn đã biết của bản MVP tối thiểu, chấp nhận trùng lặp code nhỏ để giữ transaction đúng; dọn lại (refactor `TokenService` nhận `tx`) là việc có thể làm sau khi hoàn thiện `TokenService` ở `01-setup.md`, không bắt buộc ngay.
 
-**Acceptance Criteria:**
-
-- [ ] Gọi `authService.register({ email, password })` với email mới → tạo đúng 1 User có role CUSTOMER + đúng 1 EmailVerificationToken, `passwordHash` không phải plain text.
-- [ ] Gọi lại với cùng email → ném `ConflictException` (409), không tạo thêm user.
+Thử gọi `authService.register({ email, password })` với 1 email mới — bạn sẽ thấy đúng 1 User được tạo với role CUSTOMER và đúng 1 EmailVerificationToken đi kèm, `passwordHash` không phải là chuỗi plain text bạn gõ vào. Gọi lại lần 2 với cùng email đó sẽ ném ra `ConflictException` và không có user thứ 2 nào được tạo thêm.
 
 ---
 
-## STEP 5.6 — AuthController (`POST /auth/register`) — 🔴 Chưa làm
+## Bước 6 — Mở endpoint HTTP (AuthController)
 
-**Goal:** Expose HTTP endpoint, trả đúng `RegisterResponseDto`.
+Bước cuối: expose flow trên ra thành route thật `POST /auth/register`, trả đúng dữ liệu cho phép (không có `passwordHash`, không tự động đăng nhập).
 
-**Files:** `src/auth/auth.controller.ts`, `src/auth/dto/register-response.dto.ts` (mới)
-
-**CLI:**
+Tạo file `src/auth/dto/register-response.dto.ts`:
 
 ```powershell
 New-Item src/auth/dto/register-response.dto.ts -ItemType File   # PowerShell
@@ -332,8 +297,6 @@ New-Item src/auth/dto/register-response.dto.ts -ItemType File   # PowerShell
 ```bash
 touch src/auth/dto/register-response.dto.ts   # Bash (Git Bash/WSL)
 ```
-
-**Implementation:**
 
 ```ts
 // src/auth/dto/register-response.dto.ts
@@ -348,6 +311,8 @@ export class RegisterResponseDto {
   // KHÔNG có accessToken/refreshToken — register không tự động login (quyết định #1)
 }
 ```
+
+Rồi nối vào `AuthController`:
 
 ```ts
 // src/auth/auth.controller.ts
@@ -370,24 +335,9 @@ export class AuthController {
 }
 ```
 
-> `@HttpCode(HttpStatus.CREATED)` set status `201` — mặc định `@Post()` của Nest trả `200` nếu không khai báo rõ.
+`@HttpCode(HttpStatus.CREATED)` đặt status `201` — mặc định `@Post()` của Nest trả `200` nếu không khai báo rõ.
 
-**Acceptance Criteria (toàn bộ flow — verify sau khi xong 5.1→5.6):**
-
-- [ ] 201 khi thành công.
-- [ ] 409 khi email đã tồn tại.
-- [ ] 400 khi input không hợp lệ (password không đủ policy...).
-- [ ] Password không bao giờ lưu raw — chỉ `passwordHash`.
-- [ ] Verification token không bao giờ lưu raw — chỉ `tokenHash`.
-- [ ] Response không chứa `passwordHash`.
-- [ ] Email verification được gửi đúng 1 lần sau khi transaction commit.
-
-**Tests:**
-
-- register success.
-- duplicate email → 409.
-- weak password → 400.
-- mail service throw lỗi → user vẫn được tạo (không rollback), lỗi được log.
+Đến đây bạn đã có 1 endpoint hoạt động đầy đủ. Gọi thử qua Postman/curl để tự xác nhận: gửi request hợp lệ phải nhận `201` cùng `{ id, email }`, không có field nào khác lộ ra; gửi lại đúng email đó lần nữa phải nhận `409`; gửi password yếu (vd thiếu ký tự đặc biệt) phải nhận `400`. Cũng nên thử trường hợp `MailService` giả lập throw lỗi (tạm sửa hàm để nó throw) — user vẫn phải được tạo bình thường, chỉ có dòng log lỗi xuất hiện, không có gì crash.
 
 ---
 

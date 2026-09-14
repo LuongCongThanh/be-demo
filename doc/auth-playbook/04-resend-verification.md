@@ -1,19 +1,14 @@
 # 04 — Resend Verification (`POST /auth/resend-verification`)
 
-> ⬅️ Trước khi làm file này: xong [03-verify-email.md](./03-verify-email.md) (`MessageResponseDto` đã tồn tại, `TokenService.createEmailVerificationToken()` đã có).
-> 📚 Tham chiếu chung (Decisions, Security Rules, Response DTO...): [00-overview.md](./00-overview.md).
+> Trước khi bắt đầu, đảm bảo bạn đã làm xong [03-verify-email.md](./03-verify-email.md) — `MessageResponseDto` đã tồn tại, `TokenService.createEmailVerificationToken()` đã có. Cần tra thuật ngữ thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định thiết kế thì xem [00-overview.md](./00-overview.md).
 
-**Goal:** Cho phép gửi lại email verification mà **không lộ thông tin email có tồn tại hay không** (quyết định #10).
+Endpoint này cho phép gửi lại email verification mà **không lộ thông tin email có tồn tại hay không** (quyết định #10). Chia thành 3 bước.
 
 ---
 
-## STEP 9.1 — ResendVerificationDto — 🔴 Chưa làm
+## Bước 1 — Mô tả dữ liệu client gửi lên (ResendVerificationDto)
 
-**Goal:** Định nghĩa dữ liệu client gửi lên (chỉ cần email).
-
-**Files:** `src/auth/dto/resend-verification.dto.ts`
-
-**CLI:**
+Client chỉ cần gửi đúng 1 field: email. Tạo file `src/auth/dto/resend-verification.dto.ts`:
 
 ```powershell
 New-Item src/auth/dto/resend-verification.dto.ts -ItemType File   # PowerShell
@@ -22,8 +17,6 @@ New-Item src/auth/dto/resend-verification.dto.ts -ItemType File   # PowerShell
 ```bash
 touch src/auth/dto/resend-verification.dto.ts   # Bash (Git Bash/WSL)
 ```
-
-**Implementation:**
 
 ```ts
 // src/auth/dto/resend-verification.dto.ts
@@ -37,21 +30,17 @@ export class ResendVerificationDto {
 }
 ```
 
-**Acceptance Criteria:**
-
-- [ ] File compile được.
+File này chỉ cần build không lỗi là xong.
 
 ---
 
-## STEP 9.2 — AuthService.resendVerification() — 🔴 Chưa làm
+## Bước 2 — Viết logic không lộ enumeration trong AuthService
 
-**Goal:** Tìm user theo email; dù tồn tại hay không, dù đã verify hay chưa — **luôn trả về đúng cùng 1 message**, chỉ khác nhau ở việc có tạo token mới + gửi mail hay không (client không phân biệt được).
-
-**Files:** `src/auth/services/auth.service.ts` (thêm method mới)
-
-**Implementation:**
+Đây là phần tinh tế nhất của endpoint này: dù email tồn tại hay không, dù đã verify hay chưa — bạn phải **luôn trả về đúng cùng 1 message**, chỉ khác nhau ở việc có tạo token mới + gửi mail hay không phía sau hậu trường (client không được phép phân biệt được 2 trường hợp này qua response).
 
 > 📘 **Khái niệm — "email enumeration" là gì, vì sao phải giấu?** Nếu response khác nhau tuỳ email tồn tại hay không (vd "Email không tồn tại" vs "Đã gửi lại email"), kẻ tấn công có thể dò ra **danh sách email đã đăng ký** bằng cách thử hàng loạt địa chỉ và quan sát response khác nhau — gọi là "user enumeration". Với `resend-verification` (khác với `register`, xem quyết định #10), ta chọn **luôn trả cùng 1 response** bất kể nhánh xử lý bên trong khác nhau thế nào.
+
+Mở `src/auth/services/auth.service.ts` và thêm method mới:
 
 ```ts
 // src/auth/services/auth.service.ts (thêm vào class AuthService đã có)
@@ -98,29 +87,20 @@ async resendVerification(
 }
 ```
 
-> ⚠️ Method này dùng `this.tokenService.createEmailVerificationToken()` (đã viết đầy đủ ở [01-setup.md § STEP 7](./01-setup.md)) — khác với `AuthService.register()` ([02-register.md](./02-register.md) STEP 5.5) phải tự viết `createVerificationTokenInTx` vì cần chung transaction. Ở đây không cần transaction (chỉ 1 write), nên gọi thẳng qua `TokenService` bình thường.
+⚠️ Method này dùng `this.tokenService.createEmailVerificationToken()` (đã viết đầy đủ ở 01-setup.md, phần TokenService đầy đủ) — khác với `AuthService.register()` (02-register.md, Bước 5) phải tự viết `createVerificationTokenInTx` vì cần chung transaction. Ở đây không cần transaction (chỉ 1 write), nên gọi thẳng qua `TokenService` bình thường.
 
-**Acceptance Criteria:**
-
-- [ ] Gọi với email tồn tại & chưa verify → trả `GENERIC_RESEND_MESSAGE`, tạo token mới, gọi `sendVerificationEmail`.
-- [ ] Gọi với email đã verified → trả **cùng** `GENERIC_RESEND_MESSAGE`, không tạo token, không gọi mail.
-- [ ] Gọi với email không tồn tại → trả **cùng** `GENERIC_RESEND_MESSAGE`, không tạo token, không gọi mail.
-- [ ] 3 case trên trả về response **giống hệt nhau về status code + message** — viết test so sánh trực tiếp, không chỉ đọc bằng mắt.
+Tự kiểm tra: gọi với email tồn tại & chưa verify phải trả `GENERIC_RESEND_MESSAGE`, tạo token mới, gọi `sendVerificationEmail`. Gọi với email đã verified, hoặc email không tồn tại luôn — cả 2 case này đều phải trả **cùng** `GENERIC_RESEND_MESSAGE`, không tạo token, không gọi mail. Điểm quan trọng nhất: 3 case trên phải trả về response **giống hệt nhau về status code + message** — đừng chỉ đọc bằng mắt, viết test so sánh trực tiếp mới chắc chắn.
 
 ---
 
-## STEP 9.3 — AuthController (`POST /auth/resend-verification`) — 🔴 Chưa làm
+## Bước 3 — Mở endpoint HTTP
 
-**Goal:** Expose HTTP endpoint.
-
-**Files:** `src/auth/auth.controller.ts` (thêm route mới)
-
-**Implementation:**
+Bước cuối, expose route `POST /auth/resend-verification`:
 
 ```ts
 // src/auth/auth.controller.ts (thêm import + route vào class AuthController đã có)
 import { ResendVerificationDto } from './dto/resend-verification.dto';
-import { MessageResponseDto } from './dto/message-response.dto'; // đã tạo ở 03-verify-email.md STEP 8.2
+import { MessageResponseDto } from './dto/message-response.dto'; // đã tạo ở 03-verify-email.md, Bước 2
 
 // ... trong class AuthController
 
@@ -133,17 +113,7 @@ async resendVerification(
 }
 ```
 
-**Acceptance Criteria (toàn bộ flow — verify sau khi xong 9.1→9.3):**
-
-- [ ] Response luôn cùng 1 dạng message/status bất kể email tồn tại hay không.
-- [ ] Email tồn tại & chưa verify → token mới được tạo, email được gửi.
-- [ ] Email đã verified → không tạo token mới, response vẫn giống case hợp lệ.
-
-**Tests:**
-
-- resend với email tồn tại & chưa verify.
-- resend với email đã verified.
-- resend với email không tồn tại → response không phân biệt được với case hợp lệ.
+Gọi thử toàn bộ flow (Bước 1 → 3) qua Postman/curl: response luôn cùng 1 dạng message/status bất kể email tồn tại hay không; email tồn tại & chưa verify thì token mới được tạo và email được gửi (xem log console); email đã verified thì không tạo token mới nhưng response vẫn y hệt case hợp lệ. Khi viết test chính thức ở [13-testing.md](./13-testing.md), nhớ cover đủ 3 nhánh: email tồn tại & chưa verify, email đã verified, và email không tồn tại — case cuối đặc biệt quan trọng vì response phải không phân biệt được với case hợp lệ.
 
 ---
 

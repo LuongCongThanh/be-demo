@@ -51,7 +51,7 @@
 
 ### Các khối xây dựng cơ bản
 
-- **Module** (`*.module.ts`) — 1 "hộp" gom nhóm Controller + Service liên quan tới nhau (vd toàn bộ auth nằm trong `AuthModule`). Xem `01-setup.md § STEP 4`.
+- **Module** (`*.module.ts`) — 1 "hộp" gom nhóm Controller + Service liên quan tới nhau (vd toàn bộ auth nằm trong `AuthModule`). Xem `01-setup.md, phần scaffold module`.
 - **Controller** (`*.controller.ts`) — nhận HTTP request, gọi Service xử lý, trả response. Không chứa business logic, chỉ điều hướng.
 - **Service / Provider** (`*.service.ts`) — nơi chứa logic thật (hash password, tạo user, gửi email...). Đánh dấu bằng `@Injectable()`. "Provider" là tên gọi tổng quát hơn trong NestJS cho bất kỳ class nào có thể được inject (Service là loại provider phổ biến nhất).
 - **Dependency Injection (DI)** — thay vì Controller tự `new AuthService()`, NestJS tự tạo và "tiêm" (inject) instance đó vào constructor. Lợi ích: dễ test (thay bằng mock), dễ tái sử dụng 1 instance cho toàn app.
@@ -83,7 +83,7 @@
 - **CSRF** (Cross-Site Request Forgery) — tấn công lừa browser của nạn nhân tự động gửi request (kèm cookie đăng nhập) tới 1 site khác mà nạn nhân không chủ ý. Xem `00-overview.md § Known Gaps`.
 - **Email/User enumeration** — kiểu tấn công dò ra danh sách email đã đăng ký bằng cách quan sát response khác nhau giữa "email tồn tại" và "email không tồn tại". Đây là lý do `forgot-password`/`resend-verification` luôn trả về đúng 1 dạng response — xem `04-resend-verification.md`.
 - **Rate limiting** — giới hạn số lần 1 client được gọi 1 endpoint trong 1 khoảng thời gian, chống spam/brute-force. Xem `12-rate-limiting.md`.
-- **Middleware** — đoạn code chạy trên **mọi** request trước khi tới route handler (khác Guard — Guard chỉ chạy trên route có khai báo dùng nó). Ví dụ `cookie-parser` là middleware đọc cookie cho mọi request — xem `06-refresh-token.md § STEP 12.1`.
+- **Middleware** — đoạn code chạy trên **mọi** request trước khi tới route handler (khác Guard — Guard chỉ chạy trên route có khai báo dùng nó). Ví dụ `cookie-parser` là middleware đọc cookie cho mọi request — xem `06-refresh-token.md, phần cài cookie-parser`.
 
 ## 4. Database & Prisma (ORM)
 
@@ -92,9 +92,9 @@
 - **Model** — 1 "bảng" trong ngôn ngữ Prisma, vd `User`, `Role`, `RefreshToken`. Prisma tự sinh ra các hàm `prisma.user.findUnique()`, `prisma.user.create()`... từ model này.
 - **Migration** — 1 bản ghi lại sự thay đổi cấu trúc DB (thêm bảng, thêm cột...) theo thời gian, để áp dụng đồng bộ giữa các môi trường (dev, staging, production). Playbook Auth này **không cần migration mới** vì schema đã có sẵn.
 - **Relation** — quan hệ giữa 2 model, vd `User` có nhiều `RefreshToken` (1-nhiều), hoặc `User` — `Role` qua bảng nối `UserRole` (nhiều-nhiều, vì 1 user có thể có nhiều role và 1 role gán cho nhiều user).
-- **Seed** — script tạo sẵn dữ liệu mẫu/dữ liệu khởi tạo bắt buộc (vd role `ADMIN`/`CUSTOMER`, tài khoản admin đầu tiên) khi setup DB mới. Xem `01-setup.md § STEP 1`.
-- **Transaction** — gom nhiều thao tác ghi DB thành 1 khối "tất cả hoặc không gì cả" — nếu 1 bước lỗi giữa chừng, mọi thay đổi trước đó bị rollback (huỷ), không để dữ liệu nửa vời. Xem `02-register.md § STEP 5.5`.
-- **`upsert`** — 1 thao tác Prisma: "nếu bản ghi theo điều kiện `where` đã tồn tại thì update, chưa có thì tạo mới" — dùng cho seed để chạy lại nhiều lần không tạo trùng. Xem `01-setup.md § STEP 1`.
+- **Seed** — script tạo sẵn dữ liệu mẫu/dữ liệu khởi tạo bắt buộc (vd role `ADMIN`/`CUSTOMER`, tài khoản admin đầu tiên) khi setup DB mới. Xem `01-setup.md, phần seed roles + admin bootstrap`.
+- **Transaction** — gom nhiều thao tác ghi DB thành 1 khối "tất cả hoặc không gì cả" — nếu 1 bước lỗi giữa chừng, mọi thay đổi trước đó bị rollback (huỷ), không để dữ liệu nửa vời. Xem `02-register.md, phần AuthService.register()`.
+- **`upsert`** — 1 thao tác Prisma: "nếu bản ghi theo điều kiện `where` đã tồn tại thì update, chưa có thì tạo mới" — dùng cho seed để chạy lại nhiều lần không tạo trùng. Xem `01-setup.md, phần seed roles + admin bootstrap`.
 - **Index / Unique constraint** — ràng buộc ở tầng DB đảm bảo 1 cột (vd `email`) không có 2 giá trị trùng nhau — Prisma dựa vào đây để `findUnique()` hoạt động.
 
 ## 5. Testing
@@ -108,7 +108,7 @@
 
 ## 6. Cấu hình & công cụ
 
-- **Environment variable (env var) / `.env`** — biến cấu hình đọc từ môi trường chạy (không hardcode trong code), lưu trong file `.env` (không commit lên git vì chứa secret thật) — có file mẫu `.env.example` (không chứa giá trị thật) để dev khác biết cần khai báo gì. Xem `01-setup.md § STEP 3`.
+- **Environment variable (env var) / `.env`** — biến cấu hình đọc từ môi trường chạy (không hardcode trong code), lưu trong file `.env` (không commit lên git vì chứa secret thật) — có file mẫu `.env.example` (không chứa giá trị thật) để dev khác biết cần khai báo gì. Xem `01-setup.md, phần env vars`.
 - **`ConfigService`** — service của NestJS (`@nestjs/config`) đọc `.env` và cung cấp lại qua dependency injection, thay vì gọi `process.env.XXX` trực tiếp khắp nơi trong code.
 - **Secret** — giá trị nhạy cảm (mật khẩu, khoá ký JWT...) không bao giờ được lộ ra ngoài (log, response, commit git).
 - **TTL** (Time To Live) — thời gian sống của 1 thứ gì đó trước khi hết hạn, vd access token TTL 15 phút, refresh token TTL 7 ngày.
@@ -151,7 +151,7 @@ flowchart TD
 
 Giải thích từng bước, theo đúng thứ tự chạy:
 
-1. **Middleware** — chạy **sớm nhất**, trên **mọi** request khớp pattern đã đăng ký (thường là toàn app), _không biết_ request đó cuối cùng sẽ vào Controller nào. Giống middleware thuần Express — vd `cookie-parser` (`app.use(cookieParser())`, xem `06-refresh-token.md § STEP 12.1`) đọc header `Cookie` và điền `request.cookies`, để các bước sau (Guard, Controller) dùng được.
+1. **Middleware** — chạy **sớm nhất**, trên **mọi** request khớp pattern đã đăng ký (thường là toàn app), _không biết_ request đó cuối cùng sẽ vào Controller nào. Giống middleware thuần Express — vd `cookie-parser` (`app.use(cookieParser())`, xem `06-refresh-token.md, phần cài cookie-parser`) đọc header `Cookie` và điền `request.cookies`, để các bước sau (Guard, Controller) dùng được.
 2. **Guard** — chạy sau Middleware, **biết rõ** Controller/route nào sắp được gọi (đọc được `@Roles()`, `@OwnedResource()` qua `Reflector`). Trả lời đúng 1 câu hỏi: "request này có được đi tiếp không?" — trả `true` thì đi tiếp, trả `false`/`throw` thì **dừng ngay tại đây**, các bước sau (kể cả Controller) không bao giờ chạy. Ví dụ: `JwtAuthGuard` (verify access token, gắn `request.user`), `RolesGuard` (check role), `OwnershipGuard` (check chủ resource) — xem `07-guards.md`. Nhiều Guard có thể xếp chồng (`@UseGuards(JwtAuthGuard, RolesGuard)`) — chạy **theo đúng thứ tự khai báo trong mảng**, guard sau có thể dựa vào dữ liệu guard trước đã gắn (vd `RolesGuard` cần `request.user` mà `JwtAuthGuard` đã gắn trước đó).
 3. **Interceptor (phần "before")** — chạy sau Guard, trước khi dữ liệu được validate. Có thể sửa/log request trước khi nó đi tiếp. Playbook Auth này không cần viết Interceptor riêng (không có STEP nào dùng tới), chỉ giải thích ở đây để bạn biết vị trí của nó trong chuỗi nếu gặp ở project khác.
 4. **Pipe** — chạy ngay trước khi dữ liệu (thường là `@Body()`) được truyền vào tham số của Controller method. Dùng để **validate** (kiểm tra hợp lệ, vd `ValidationPipe` tự đọc decorator trên DTO như `@IsEmail()` — xem mục 2) và **transform** (biến đổi kiểu dữ liệu, vd chuỗi `"123"` từ URL thành số `123`). Nếu Pipe thấy dữ liệu sai, nó `throw` ngay tại đây — Controller **không bao giờ được gọi** với dữ liệu sai.
@@ -217,16 +217,16 @@ flowchart TD
 
 > So sánh nhanh: mục **7.1** (Request Lifecycle) là vòng lặp **chạy đi chạy lại** cho mỗi request — nằm gọn trong ô "App đang chạy" ở giữa sơ đồ trên. Mục **7.2** (Application Lifecycle) chỉ chạy **đúng 1 lần** lúc bật app và **đúng 1 lần** lúc tắt app — bao quanh toàn bộ vòng lặp đó.
 
-- **`bootstrap()`** (trong `src/main.ts`) — tên quy ước (không bắt buộc, nhưng hầu như mọi project NestJS đều đặt tên này) cho hàm khởi động app: tạo app (`NestFactory.create(AppModule)`), gắn middleware/pipe **global** (áp dụng cho mọi route, khác với gắn `@UseGuards()` chỉ áp dụng cho 1 route/controller), rồi gọi `app.listen(port)`. Đây là nơi các đoạn code toàn cục như `app.use(cookieParser())` (STEP 12.1) hay `SwaggerModule.setup()` (STEP 14) được gắn vào — chạy đúng 1 lần lúc khởi động, không lặp lại mỗi request.
+- **`bootstrap()`** (trong `src/main.ts`) — tên quy ước (không bắt buộc, nhưng hầu như mọi project NestJS đều đặt tên này) cho hàm khởi động app: tạo app (`NestFactory.create(AppModule)`), gắn middleware/pipe **global** (áp dụng cho mọi route, khác với gắn `@UseGuards()` chỉ áp dụng cho 1 route/controller), rồi gọi `app.listen(port)`. Đây là nơi các đoạn code toàn cục như `app.use(cookieParser())` (06-refresh-token.md) hay `SwaggerModule.setup()` (14-swagger-and-wrapup.md) được gắn vào — chạy đúng 1 lần lúc khởi động, không lặp lại mỗi request.
 - **`OnModuleInit`/`OnApplicationBootstrap`/`OnModuleDestroy`/`OnApplicationShutdown`** — các interface NestJS cho phép 1 Service tự định nghĩa method chạy vào đúng thời điểm trên (implement interface rồi viết method cùng tên, vd `class PrismaService implements OnModuleInit { onModuleInit() { ... } }` — dùng phổ biến để mở kết nối DB lúc app khởi động, đóng kết nối lúc app tắt). Playbook Auth này không yêu cầu viết hook nào riêng, nhưng nếu bạn thấy `PrismaService` có sẵn trong repo dùng `onModuleInit()` để gọi `this.$connect()`, đây chính là lý do.
 - **DI container** — "bộ nhớ" nội bộ NestJS dùng để lưu và quản lý mọi instance của Service/Provider đã tạo, biết `AuthService` cần gì (`PrismaService`, `PasswordService`...) để tự động "lắp ráp" đúng thứ tự **ngay trong bước `NestFactory.create(AppModule)`** ở trên — trước khi `onModuleInit()` chạy. Bạn không tự thấy container này — chỉ khai `constructor(private readonly x: X)` là NestJS tự lo phần còn lại (xem Dependency Injection ở mục 2).
 - **Singleton (provider scope)** — mặc định, NestJS chỉ tạo **1 instance duy nhất** cho mỗi Service, dùng chung cho toàn app trong suốt vòng đời application (không tạo instance mới mỗi request) — đây là lý do Service không nên tự lưu state riêng cho từng request (state nên nằm trong tham số method hoặc DB), vì mọi request (dù chạy song song) đều dùng chung 1 instance.
 - **Global prefix** (`app.setGlobalPrefix('api')`) — tiền tố gắn thêm vào **mọi** route của app, vd route thật `/auth/login` trở thành `/api/auth/login`. Playbook nhắc đi nhắc lại phải kiểm tra `main.ts` có dòng này không trước khi hardcode `path: '/auth'` cho cookie (xem `05-login.md`) — nếu có global prefix mà quên cập nhật, cookie sẽ không gửi kèm đúng request.
-- **`Logger`** (`@nestjs/common`) — class ghi log tích hợp sẵn của NestJS (`new Logger(AuthService.name)`), dùng thay `console.log` để log có thêm ngữ cảnh (tên class, level: log/error/warn...). Dùng để log lỗi gửi mail thất bại mà không làm crash flow chính (xem `02-register.md § STEP 5.5`).
+- **`Logger`** (`@nestjs/common`) — class ghi log tích hợp sẵn của NestJS (`new Logger(AuthService.name)`), dùng thay `console.log` để log có thêm ngữ cảnh (tên class, level: log/error/warn...). Dùng để log lỗi gửi mail thất bại mà không làm crash flow chính (xem `02-register.md, phần AuthService.register()`).
 
 ## 8. Các cụm từ bảo mật/thiết kế khác gặp trong playbook
 
-- **Idempotent** — gọi lại nhiều lần cho cùng kết quả như gọi 1 lần, không tạo ra tác dụng phụ chồng chất. Seed script (`01-setup.md § STEP 1`) phải idempotent vì có thể chạy lại nhiều lần (mỗi lần deploy, mỗi lần setup máy mới).
+- **Idempotent** — gọi lại nhiều lần cho cùng kết quả như gọi 1 lần, không tạo ra tác dụng phụ chồng chất. Seed script (`01-setup.md, phần seed roles + admin bootstrap`) phải idempotent vì có thể chạy lại nhiều lần (mỗi lần deploy, mỗi lần setup máy mới).
 - **Replay protection** — chống việc dùng lại 1 thứ (token, request) đã dùng rồi. Ví dụ: verify-email token dùng 1 lần xong, gọi lại lần 2 với cùng token phải bị từ chối (xem `03-verify-email.md`) — đây chính là "chống replay".
 - **Brute-force** — kiểu tấn công thử **hàng loạt** giá trị (password, token...) cho tới khi trúng. Rate limiting (`12-rate-limiting.md`) và chọn thuật toán hash chậm (`argon2`, mục 3) đều là biện pháp chống brute-force.
 - **Phishing** — lừa người dùng tự nguyện cung cấp thông tin (password, OTP...) qua trang giả mạo/email giả. Nhắc tới trong playbook vì email bị lộ (qua enumeration) có thể là bước đầu để kẻ tấn công nhắm phishing có chủ đích.
@@ -244,7 +244,7 @@ flowchart TD
 - **Sliding window / Fixed window** (nhắc ở `12-rate-limiting.md`) — 2 thuật toán đếm request khác nhau cho rate limiting: "fixed window" chia thời gian thành khung cố định (vd mỗi phút tròn) và đếm lại từ 0 khi sang khung mới; "sliding window" đếm request trong **N giây gần nhất tính từ hiện tại** (khung trượt theo thời gian thực), chính xác hơn nhưng tốn tài nguyên hơn. `@nestjs/throttler` chọn thuật toán nào tuỳ version — không cần hiểu sâu công thức, chỉ cần biết khái niệm để đọc doc chính thức khi cần.
 - **Tracker** (rate limiting) — cách hệ thống "nhận diện ai đang gọi request" để đếm riêng cho từng người — mặc định theo IP, nhưng có thể custom theo email (xem `12-rate-limiting.md`).
 - **Wiring** — cách các thành phần (Module, Guard, Service...) được "đấu nối" với nhau (import đúng module, đăng ký đúng provider, gắn đúng Guard lên route). E2E test đặc biệt hữu ích để bắt lỗi "wiring sai" (vd quên đăng ký Guard) mà unit test (chạy cô lập, mock hết) không phát hiện được — xem `13-testing.md`.
-- **Bề mặt tấn công (attack surface)** — tổng số "cửa" mà kẻ tấn công có thể thử khai thác (endpoint public, biến env lộ, tính năng thừa...). Nhiều quyết định trong playbook nhằm giảm bề mặt tấn công, vd không tạo endpoint HTTP để tạo ADMIN (`01-setup.md § STEP 1`, quyết định #16).
+- **Bề mặt tấn công (attack surface)** — tổng số "cửa" mà kẻ tấn công có thể thử khai thác (endpoint public, biến env lộ, tính năng thừa...). Nhiều quyết định trong playbook nhằm giảm bề mặt tấn công, vd không tạo endpoint HTTP để tạo ADMIN (`01-setup.md, phần seed roles + admin bootstrap`, quyết định #16).
 
 ## 9. SOLID — 5 nguyên tắc thiết kế hướng đối tượng
 

@@ -1,13 +1,21 @@
 # 11 — Reset Password (`POST /auth/reset-password`)
 
-> ⬅️ Trước khi làm file này: xong [10-forgot-password.md](./10-forgot-password.md).
-> 📚 Tham chiếu chung (Decisions, Security Rules, Response DTO...): [00-overview.md](./00-overview.md).
+> Trước khi làm file này: xong [10-forgot-password.md](./10-forgot-password.md). Tham chiếu chung (Decisions, Security Rules, Response DTO...): [00-overview.md](./00-overview.md).
 
-**Goal:** Đặt lại password bằng token nhận từ email, thu hồi toàn bộ session cũ.
+Endpoint cuối cùng của flow quên mật khẩu: đặt lại password bằng token nhận từ email, đồng thời thu hồi toàn bộ session cũ. Chia thành 3 bước.
 
-**Files:** `src/auth/dto/reset-password.dto.ts`, `src/auth/services/auth.service.ts`, `src/auth/auth.controller.ts`
+> 📘 **Khái niệm — vì sao đổi password PHẢI revoke toàn bộ refresh token cũ?**
+> Nếu ai đó lấy được password cũ (hoặc chính user nghi ngờ tài khoản bị lộ) và tự đặt lại password mới, mọi thiết bị/trình duyệt đang đăng nhập bằng refresh token cũ **phải bị đăng xuất** — nếu không, kẻ đã chiếm được session trước đó (vd đánh cắp refresh token) vẫn tiếp tục dùng được dù password đã đổi. Đây là lý do reset-password luôn đi kèm "revoke toàn bộ refresh token của user" (giống hệt tinh thần "logout-all", xem [09-logout.md](./09-logout.md)) — reset-password là dấu hiệu bảo mật quan trọng hơn logout thông thường.
 
-**CLI:**
+---
+
+## Bước 1 — Mô tả dữ liệu client gửi lên (ResetPasswordDto)
+
+Client cần gửi 3 thứ: token nhận từ email, password mới, và confirmPassword để so khớp. Bước này dùng lại `IsStrongPassword()` đã viết ở [01-setup.md](./01-setup.md), phần password policy, cộng thêm 1 custom validator để so khớp `confirmPassword`.
+
+> 📘 **Khái niệm — `@ValidateIf` / custom validator so khớp 2 field:** `class-validator` validate từng field độc lập theo mặc định — để so sánh 2 field với nhau (password vs confirmPassword) cần 1 custom decorator đọc được toàn bộ object đang validate qua `ValidationArguments.object`.
+
+Tạo file `src/auth/dto/reset-password.dto.ts`:
 
 ```powershell
 New-Item src/auth/dto/reset-password.dto.ts -ItemType File   # PowerShell
@@ -17,137 +25,124 @@ New-Item src/auth/dto/reset-password.dto.ts -ItemType File   # PowerShell
 touch src/auth/dto/reset-password.dto.ts   # Bash (Git Bash/WSL)
 ```
 
-**Implementation:**
+```ts
+// src/auth/dto/reset-password.dto.ts
+import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsString,
+  Validate,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
+import { IsStrongPassword } from '../decorators/is-strong-password.decorator';
 
-> 📘 **Khái niệm — vì sao đổi password PHẢI revoke toàn bộ refresh token cũ?**
-> Nếu ai đó lấy được password cũ (hoặc chính user nghi ngờ tài khoản bị lộ) và tự đặt lại password mới, mọi thiết bị/trình duyệt đang đăng nhập bằng refresh token cũ **phải bị đăng xuất** — nếu không, kẻ đã chiếm được session trước đó (vd đánh cắp refresh token) vẫn tiếp tục dùng được dù password đã đổi. Đây là lý do reset-password luôn đi kèm "revoke toàn bộ refresh token của user" (giống hệt tinh thần "logout-all", xem [09-logout.md](./09-logout.md)) — reset-password là dấu hiệu bảo mật quan trọng hơn logout thông thường.
+@ValidatorConstraint({ name: 'MatchesPassword', async: false })
+class MatchesPasswordConstraint implements ValidatorConstraintInterface {
+  validate(confirmPassword: string, args: ValidationArguments) {
+    const dto = args.object as ResetPasswordDto;
+    return confirmPassword === dto.password;
+  }
+  defaultMessage() {
+    return 'confirmPassword phải khớp với password';
+  }
+}
 
-1. `ResetPasswordDto` — dùng lại `IsStrongPassword()` đã viết ở [01-setup.md § STEP 6](./01-setup.md), thêm custom validator so khớp `confirmPassword`:
+export class ResetPasswordDto {
+  @ApiProperty({ description: 'Raw token nhận được qua email' })
+  @IsString()
+  token: string;
 
-   > 📘 **Khái niệm — `@ValidateIf` / custom validator so khớp 2 field:** `class-validator` validate từng field độc lập theo mặc định — để so sánh 2 field với nhau (password vs confirmPassword) cần 1 custom decorator đọc được toàn bộ object đang validate qua `ValidationArguments.object`.
+  @ApiProperty({ example: 'NewAbc@1234' })
+  @IsString()
+  @IsStrongPassword()
+  password: string;
 
-   ```ts
-   // src/auth/dto/reset-password.dto.ts
-   import { ApiProperty } from '@nestjs/swagger';
-   import {
-     IsString,
-     Validate,
-     ValidationArguments,
-     ValidatorConstraint,
-     ValidatorConstraintInterface,
-   } from 'class-validator';
-   import { IsStrongPassword } from '../decorators/is-strong-password.decorator';
+  @ApiProperty({ example: 'NewAbc@1234' })
+  @IsString()
+  @Validate(MatchesPasswordConstraint)
+  confirmPassword: string;
+}
+```
 
-   @ValidatorConstraint({ name: 'MatchesPassword', async: false })
-   class MatchesPasswordConstraint implements ValidatorConstraintInterface {
-     validate(confirmPassword: string, args: ValidationArguments) {
-       const dto = args.object as ResetPasswordDto;
-       return confirmPassword === dto.password;
-     }
-     defaultMessage() {
-       return 'confirmPassword phải khớp với password';
-     }
-   }
+---
 
-   export class ResetPasswordDto {
-     @ApiProperty({ description: 'Raw token nhận được qua email' })
-     @IsString()
-     token: string;
+## Bước 2 — Viết AuthService.resetPassword()
 
-     @ApiProperty({ example: 'NewAbc@1234' })
-     @IsString()
-     @IsStrongPassword()
-     password: string;
+Đây là phần lõi: hash token nhận được để tra DB, kiểm tra còn hợp lệ không, rồi trong 1 transaction — đổi password mới, đánh dấu token đã dùng, và revoke toàn bộ refresh token cũ:
 
-     @ApiProperty({ example: 'NewAbc@1234' })
-     @IsString()
-     @Validate(MatchesPasswordConstraint)
-     confirmPassword: string;
-   }
-   ```
+```ts
+// src/auth/services/auth.service.ts (thêm method)
+import { BadRequestException } from '@nestjs/common';
 
-2. `AuthService.resetPassword()`:
+async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+  // 1. Hash raw token nhận từ client để so khớp với DB — không bao giờ query
+  //    DB bằng raw token (DB chỉ lưu tokenHash, xem 01-setup.md, phần TokenService).
+  const tokenHash = this.tokenService.hashRawToken(dto.token);
 
-   ```ts
-   // src/auth/services/auth.service.ts (thêm method)
-   import { BadRequestException } from '@nestjs/common';
+  const resetToken = await this.prisma.passwordResetToken.findUnique({
+    where: { tokenHash },
+  });
 
-   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
-     // 1. Hash raw token nhận từ client để so khớp với DB — không bao giờ query
-     //    DB bằng raw token (DB chỉ lưu tokenHash, xem 01-setup.md STEP 7).
-     const tokenHash = this.tokenService.hashRawToken(dto.token);
+  if (
+    !resetToken ||
+    resetToken.usedAt !== null ||
+    resetToken.expiresAt < new Date()
+  ) {
+    // Không phân biệt "không tồn tại" / "đã dùng" / "hết hạn" trong message
+    // trả về client — tránh lộ thông tin thừa, nhưng KHÔNG cần giấu như
+    // forgot-password (đây là bước sau khi đã có token, không phải dò email).
+    throw new BadRequestException('Token không hợp lệ hoặc đã hết hạn');
+  }
 
-     const resetToken = await this.prisma.passwordResetToken.findUnique({
-       where: { tokenHash },
-     });
+  const newPasswordHash = await this.passwordService.hash(dto.password);
 
-     if (
-       !resetToken ||
-       resetToken.usedAt !== null ||
-       resetToken.expiresAt < new Date()
-     ) {
-       // Không phân biệt "không tồn tại" / "đã dùng" / "hết hạn" trong message
-       // trả về client — tránh lộ thông tin thừa, nhưng KHÔNG cần giấu như
-       // forgot-password (đây là bước sau khi đã có token, không phải dò email).
-       throw new BadRequestException('Token không hợp lệ hoặc đã hết hạn');
-     }
+  // 2. Transaction: update password mới + đánh dấu token đã dùng + revoke
+  //    TOÀN BỘ refresh token của user (không chỉ 1 cái) — xem khái niệm ở trên.
+  await this.prisma.$transaction([
+    this.prisma.user.update({
+      where: { id: resetToken.userId },
+      data: { passwordHash: newPasswordHash },
+    }),
+    this.prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { usedAt: new Date() },
+    }),
+    this.prisma.refreshToken.updateMany({
+      where: { userId: resetToken.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
 
-     const newPasswordHash = await this.passwordService.hash(dto.password);
+  return { message: 'Password đã được đặt lại. Vui lòng đăng nhập lại.' };
+}
+```
 
-     // 2. Transaction: update password mới + đánh dấu token đã dùng + revoke
-     //    TOÀN BỘ refresh token của user (không chỉ 1 cái) — xem khái niệm ở trên.
-     await this.prisma.$transaction([
-       this.prisma.user.update({
-         where: { id: resetToken.userId },
-         data: { passwordHash: newPasswordHash },
-       }),
-       this.prisma.passwordResetToken.update({
-         where: { id: resetToken.id },
-         data: { usedAt: new Date() },
-       }),
-       this.prisma.refreshToken.updateMany({
-         where: { userId: resetToken.userId, revokedAt: null },
-         data: { revokedAt: new Date() },
-       }),
-     ]);
+`prisma.$transaction([...])` ở đây dùng dạng mảng, khác với dạng `$transaction(async (tx) => {...})` đã dùng ở [02-register.md](./02-register.md) — dạng mảng chạy nhiều query độc lập trong 1 transaction khi chúng **không phụ thuộc kết quả của nhau**. Ở đây cả 3 query đều đã biết sẵn `resetToken.userId`/`resetToken.id` từ bước tra token phía trên, không cần đọc lại giá trị vừa ghi, nên dùng dạng mảng cho gọn hơn.
 
-     return { message: 'Password đã được đặt lại. Vui lòng đăng nhập lại.' };
-   }
-   ```
+---
 
-   > `prisma.$transaction([...])` (dạng mảng, khác với dạng `$transaction(async (tx) => {...})` đã dùng ở [02-register.md](./02-register.md)) chạy nhiều query độc lập trong 1 transaction khi chúng **không phụ thuộc kết quả của nhau** — ở đây cả 3 query đều đã biết sẵn `resetToken.userId`/`resetToken.id` từ bước 1, không cần đọc lại giá trị vừa ghi, nên dùng dạng mảng cho gọn.
+## Bước 3 — Mở endpoint HTTP
 
-3. Controller — response qua `MessageResponseDto` dùng chung (đã tạo ở [03-verify-email.md § STEP 8.2](./03-verify-email.md)):
+Nối route vào `AuthController`, response qua `MessageResponseDto` dùng chung (đã tạo ở [03-verify-email.md](./03-verify-email.md)):
 
-   ```ts
-   // src/auth/auth.controller.ts (thêm import + route vào class đã có)
-   import { ResetPasswordDto } from './dto/reset-password.dto';
-   import { MessageResponseDto } from './dto/message-response.dto';
+```ts
+// src/auth/auth.controller.ts (thêm import + route vào class đã có)
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { MessageResponseDto } from './dto/message-response.dto';
 
-   // ... trong class AuthController
+// ... trong class AuthController
 
-   @Post('reset-password')
-   @HttpCode(HttpStatus.OK)
-   async resetPassword(
-     @Body() dto: ResetPasswordDto,
-   ): Promise<MessageResponseDto> {
-     return this.authService.resetPassword(dto);
-   }
-   ```
+@Post('reset-password')
+@HttpCode(HttpStatus.OK)
+async resetPassword(
+  @Body() dto: ResetPasswordDto,
+): Promise<MessageResponseDto> {
+  return this.authService.resetPassword(dto);
+}
+```
 
-**Acceptance Criteria:**
-
-- [ ] Reset thành công → password mới hoạt động (login được), password cũ không login được nữa.
-- [ ] Tất cả refresh token cũ của user bị revoke (verify qua [06-refresh-token.md](./06-refresh-token.md): gọi `/auth/refresh` với refresh token cũ → 401).
-- [ ] Token không tồn tại / hết hạn / đã dùng → 400.
-- [ ] Password mới không đủ policy hoặc không khớp `confirmPassword` → 400.
-
-**Tests:**
-
-- reset-password success + verify tất cả session cũ bị logout (refresh token cũ không dùng được).
-- reset-password với token hết hạn.
-- reset-password với token đã dùng (gọi lại lần 2 với cùng token đã dùng ở test trước → 400).
-- reset-password với `confirmPassword` không khớp `password` → 400.
+Tự kiểm tra toàn bộ flow: reset thành công thì password mới phải login được, password cũ thì không login được nữa; tất cả refresh token cũ của user phải bị revoke (verify bằng cách gọi `/auth/refresh` với refresh token cũ — xem [06-refresh-token.md](./06-refresh-token.md) — phải nhận `401`); token không tồn tại/hết hạn/đã dùng phải trả `400`; password mới không đủ policy hoặc không khớp `confirmPassword` cũng phải trả `400`. Khi viết test chính thức ở [13-testing.md](./13-testing.md), nhớ thêm case gọi lại lần 2 với cùng 1 token đã dùng ở lần trước — phải bị từ chối, không phải hành vi idempotent.
 
 ---
 
