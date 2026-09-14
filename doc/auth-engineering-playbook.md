@@ -281,7 +281,7 @@ Mỗi step theo khuôn: **Goal / Files / CLI / Implementation / Acceptance Crite
          passwordHash,
          status: 'ACTIVE',
          emailVerifiedAt: new Date(), // admin bootstrap không cần verify email
-         roles: { create: [{ roleId: adminRole.id }] },
+         userRoles: { create: [{ roleId: adminRole.id }] },
        },
      });
      console.log(`Đã tạo admin ${email}.`);
@@ -297,7 +297,7 @@ Mỗi step theo khuôn: **Goal / Files / CLI / Implementation / Acceptance Crite
      });
    ```
 
-   > ⚠️ Tên field/relation (`roles`, `roleId`, `status`, `emailVerifiedAt`...) phải khớp đúng với `../../prisma/schema.prisma` hiện tại — mở file schema đối chiếu trước khi paste code trên, sửa lại tên field nếu khác.
+   > ⚠️ Tên field/relation (`userRoles`, `roleId`, `status`, `emailVerifiedAt`...) phải khớp đúng với `../../prisma/schema.prisma` hiện tại — mở file schema đối chiếu trước khi paste code trên, sửa lại tên field nếu khác.
 
 3. Không tạo endpoint HTTP nào để tạo ADMIN — chỉ qua seed script (giảm bề mặt tấn công, quyết định #16).
 
@@ -752,7 +752,7 @@ export class AuthService {
           email: dto.email,
           passwordHash,
           status: 'ACTIVE',
-          roles: { create: [{ roleId: customerRole.id }] },
+          userRoles: { create: [{ roleId: customerRole.id }] },
         },
       });
 
@@ -1054,7 +1054,7 @@ touch src/auth/dto/login.dto.ts src/auth/dto/login-response.dto.ts   # Bash (Git
 **Implementation:**
 
 - TTL 15 phút (env `JWT_ACCESS_TTL`).
-- Payload: `sub` (userId), `email`, `roles` (mảng string từ `user_roles` → `roles.name` — KHÔNG hardcode enum vì role DB-driven, quyết định #6).
+- Payload: `sub` (userId), `email`, `roles` (mảng string từ `userRoles` → `role.name` — KHÔNG hardcode enum vì role DB-driven, quyết định #6).
 - **Không** nhét `passwordHash`, refresh token, hay dữ liệu cá nhân không cần thiết vào payload.
 
 **Acceptance Criteria:**

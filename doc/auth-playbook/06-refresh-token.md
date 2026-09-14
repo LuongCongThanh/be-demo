@@ -95,7 +95,7 @@ async refreshToken(rawRefreshToken: string | undefined): Promise<{
   const tokenHash = this.tokenService.hashRawToken(rawRefreshToken);
   const record = await this.prisma.refreshToken.findUnique({
     where: { tokenHash },
-    include: { user: { include: { roles: { include: { role: true } } } } },
+    include: { user: { include: { userRoles: { include: { role: true } } } } },
   });
 
   if (!record) {
@@ -126,7 +126,7 @@ async refreshToken(rawRefreshToken: string | undefined): Promise<{
     record.userId,
   );
 
-  const roles = record.user.roles.map((ur) => ur.role.name);
+  const roles = record.user.userRoles.map((ur) => ur.role.name);
   const accessToken = this.signAccessToken({
     id: record.user.id,
     email: record.user.email,

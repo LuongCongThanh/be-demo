@@ -106,7 +106,7 @@ async function main() {
       passwordHash,
       status: 'ACTIVE',
       emailVerifiedAt: new Date(), // admin bootstrap không cần verify email
-      roles: { create: [{ roleId: adminRole.id }] },
+      userRoles: { create: [{ roleId: adminRole.id }] },
     },
   });
   console.log(`Đã tạo admin ${email}.`);
@@ -122,7 +122,7 @@ main()
   });
 ```
 
-⚠️ Tên field/relation (`roles`, `roleId`, `status`, `emailVerifiedAt`...) phải khớp đúng với `prisma/schema.prisma` hiện tại — mở file schema đối chiếu trước khi paste code trên, sửa lại tên field nếu khác. Và đừng tạo endpoint HTTP nào để tạo ADMIN — chỉ qua seed script (giảm bề mặt tấn công, quyết định #16).
+⚠️ Tên field/relation (`userRoles`, `roleId`, `status`, `emailVerifiedAt`...) phải khớp đúng với `prisma/schema.prisma` hiện tại — mở file schema đối chiếu trước khi paste code trên, sửa lại tên field nếu khác. Và đừng tạo endpoint HTTP nào để tạo ADMIN — chỉ qua seed script (giảm bề mặt tấn công, quyết định #16).
 
 Chạy thử để kiểm tra:
 

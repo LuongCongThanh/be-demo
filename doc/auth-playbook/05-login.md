@@ -161,7 +161,7 @@ export class AuthService {
     return this.jwtService.sign({
       sub: user.id,
       email: user.email,
-      roles: user.roles, // mảng string từ roles.name — KHÔNG hardcode enum (quyết định #6)
+      roles: user.roles, // mảng string từ userRoles -> role.name — KHÔNG hardcode enum (quyết định #6)
     });
   }
 }
@@ -193,7 +193,7 @@ async login(dto: LoginDto): Promise<{
 }> {
   const user = await this.prisma.user.findUnique({
     where: { email: dto.email },
-    include: { roles: { include: { role: true } } },
+    include: { userRoles: { include: { role: true } } },
   });
 
   // Không tồn tại → lỗi generic, KHÔNG phân biệt với sai password.
@@ -218,7 +218,7 @@ async login(dto: LoginDto): Promise<{
     throw new UnauthorizedException('Email chưa được xác thực');
   }
 
-  const roles = user.roles.map((ur) => ur.role.name);
+  const roles = user.userRoles.map((ur) => ur.role.name);
   const accessToken = this.signAccessToken({
     id: user.id,
     email: user.email,
@@ -240,7 +240,7 @@ async login(dto: LoginDto): Promise<{
 }
 ```
 
-⚠️ Tên relation `roles: { include: { role: true } }` giả định schema dạng `User.roles -> UserRole -> Role` (bảng nối `user_roles`) — đối chiếu đúng tên relation/field thật trong `prisma/schema.prisma` (`fullName` cũng có thể không tồn tại nếu schema không có field này — bỏ dòng đó nếu vậy).
+⚠️ Tên relation `userRoles: { include: { role: true } }` giả định schema dạng `User.userRoles -> UserRole -> Role` (bảng nối `user_roles`) — đối chiếu đúng tên relation/field thật trong `prisma/schema.prisma` (`fullName` cũng có thể không tồn tại nếu schema không có field này — bỏ dòng đó nếu vậy).
 
 Để ý `login()` trả `rawRefreshToken` ra ngoài thay vì tự set cookie trong Service — vì **Service không nên biết về HTTP response/cookie**, đó là trách nhiệm của Controller (Bước 5). Giữ Service thuần business logic giúp unit test dễ hơn nhiều (không cần mock `Response`).
 

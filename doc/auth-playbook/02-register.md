@@ -222,7 +222,7 @@ export class AuthService {
           email: dto.email,
           passwordHash,
           status: 'ACTIVE',
-          roles: { create: [{ roleId: customerRole.id }] },
+          userRoles: { create: [{ roleId: customerRole.id }] },
         },
       });
 
