@@ -1,28 +1,31 @@
 # Auth & Authorization — Overview & Reference
 
 > Đây là file **tra cứu chung** — Scope, Decisions, Architecture, Security Rules, Shared Services, Testing Strategy, Definition of Done, Known Gaps. Các file `01-setup.md` → `14-swagger-and-wrapup.md` chứa hướng dẫn implement từng phần, và **link ngược lại đây** khi cần nhắc tới 1 decision/rule cụ thể — đọc file này trước khi bắt đầu code.
+>
+> 🆕 **Mới học backend?** Đọc [GLOSSARY.md](./GLOSSARY.md) trước — giải thích mọi thuật ngữ kỹ thuật xuất hiện xuyên suốt playbook (HTTP, JWT, DTO, Guard, ORM, transaction, hash...) bằng ngôn ngữ đơn giản. Các box "📘 Khái niệm" trong từng STEP giải thích _quyết định thiết kế_ (vì sao làm vậy); glossary giải thích _từ ngữ_ (chữ đó nghĩa là gì).
 
 ---
 
 ## Bản đồ file (đọc theo thứ tự)
 
-| #   | File                                                     | Nội dung                                                                                                   |
-| --- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 00  | `00-overview.md` (file này)                              | Scope, Decisions, Architecture, Security Rules, Shared Services, Testing, DoD, Known Gaps                  |
-| 01  | [01-setup.md](./01-setup.md)                             | CONTEXT.md, seed roles/admin, cài package, env vars, scaffold module, password policy, TokenService đầy đủ |
-| 02  | [02-register.md](./02-register.md)                       | `POST /auth/register` (6 step con 5.1–5.6)                                                                 |
-| 03  | [03-verify-email.md](./03-verify-email.md)               | `POST /auth/verify-email`                                                                                  |
-| 04  | [04-resend-verification.md](./04-resend-verification.md) | `POST /auth/resend-verification`                                                                           |
-| 05  | [05-login.md](./05-login.md)                             | `POST /auth/login` + sinh access token                                                                     |
-| 06  | [06-refresh-token.md](./06-refresh-token.md)             | `POST /auth/refresh` — rotation + reuse detection                                                          |
-| 07  | [07-guards.md](./07-guards.md)                           | `JwtAuthGuard`, `@CurrentUser()`, `RolesGuard`, `OwnershipGuard`                                           |
-| 08  | [08-me.md](./08-me.md)                                   | `GET /auth/me`                                                                                             |
-| 09  | [09-logout.md](./09-logout.md)                           | `POST /auth/logout` + `POST /auth/logout-all`                                                              |
-| 10  | [10-forgot-password.md](./10-forgot-password.md)         | `POST /auth/forgot-password`                                                                               |
-| 11  | [11-reset-password.md](./11-reset-password.md)           | `POST /auth/reset-password`                                                                                |
-| 12  | [12-rate-limiting.md](./12-rate-limiting.md)             | `@nestjs/throttler` cho các endpoint nhạy cảm                                                              |
-| 13  | [13-testing.md](./13-testing.md)                         | Unit test + E2E test                                                                                       |
-| 14  | [14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md)   | Swagger/OpenAPI, đồng bộ `doc/module-auth.md`, quality check cuối                                          |
+| #   | File                                                     | Nội dung                                                                                                                |
+| --- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 00  | `00-overview.md` (file này)                              | Scope, Decisions, Architecture, Security Rules, Shared Services, Testing, DoD, Known Gaps                               |
+| —   | [GLOSSARY.md](./GLOSSARY.md)                             | Giải thích thuật ngữ kỹ thuật (HTTP, NestJS, Auth/Security, Database, Testing, Tooling) — đọc trước nếu mới học backend |
+| 01  | [01-setup.md](./01-setup.md)                             | CONTEXT.md, seed roles/admin, cài package, env vars, scaffold module, password policy, TokenService đầy đủ              |
+| 02  | [02-register.md](./02-register.md)                       | `POST /auth/register` (6 step con 5.1–5.6)                                                                              |
+| 03  | [03-verify-email.md](./03-verify-email.md)               | `POST /auth/verify-email`                                                                                               |
+| 04  | [04-resend-verification.md](./04-resend-verification.md) | `POST /auth/resend-verification`                                                                                        |
+| 05  | [05-login.md](./05-login.md)                             | `POST /auth/login` + sinh access token                                                                                  |
+| 06  | [06-refresh-token.md](./06-refresh-token.md)             | `POST /auth/refresh` — rotation + reuse detection                                                                       |
+| 07  | [07-guards.md](./07-guards.md)                           | `JwtAuthGuard`, `@CurrentUser()`, `RolesGuard`, `OwnershipGuard`                                                        |
+| 08  | [08-me.md](./08-me.md)                                   | `GET /auth/me`                                                                                                          |
+| 09  | [09-logout.md](./09-logout.md)                           | `POST /auth/logout` + `POST /auth/logout-all`                                                                           |
+| 10  | [10-forgot-password.md](./10-forgot-password.md)         | `POST /auth/forgot-password`                                                                                            |
+| 11  | [11-reset-password.md](./11-reset-password.md)           | `POST /auth/reset-password`                                                                                             |
+| 12  | [12-rate-limiting.md](./12-rate-limiting.md)             | `@nestjs/throttler` cho các endpoint nhạy cảm                                                                           |
+| 13  | [13-testing.md](./13-testing.md)                         | Unit test + E2E test                                                                                                    |
+| 14  | [14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md)   | Swagger/OpenAPI, đồng bộ `doc/module-auth.md`, quality check cuối                                                       |
 
 > Bản gốc dạng 1 file duy nhất (trước khi tách folder) được giữ lại ở `auth-engineering-playbook.md` làm archive tham khảo — không dùng để code theo nữa, mọi cập nhật từ nay áp dụng vào folder `doc/auth-playbook/` này.
 
