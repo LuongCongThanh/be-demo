@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
@@ -36,27 +37,43 @@ export class AuthService {
     // open while argon2 runs.
     const passwordHash = await this.passwordService.hash(dto.password);
 
-    const { user, rawToken } = await this.prisma.$transaction(async (tx) => {
-      const customerRole = await tx.role.findUniqueOrThrow({
-        where: { name: 'CUSTOMER' },
-      });
+    let user: { id: string; email: string };
+    let rawToken: string;
+    try {
+      ({ user, rawToken } = await this.prisma.$transaction(async (tx) => {
+        const customerRole = await tx.role.findUniqueOrThrow({
+          where: { name: 'CUSTOMER' },
+        });
 
-      const createdUser = await tx.user.create({
-        data: {
-          email: dto.email,
-          passwordHash,
-          status: 'ACTIVE',
-          userRoles: { create: [{ roleId: customerRole.id }] },
-        },
-      });
+        const createdUser = await tx.user.create({
+          data: {
+            email: dto.email,
+            passwordHash,
+            status: 'ACTIVE',
+            userRoles: { create: [{ roleId: customerRole.id }] },
+          },
+        });
 
-      const rawTok = await this.tokenService.createEmailVerificationToken(
-        createdUser.id,
-        tx,
-      );
+        const rawTok = await this.tokenService.createEmailVerificationToken(
+          createdUser.id,
+          tx,
+        );
 
-      return { user: createdUser, rawToken: rawTok };
-    });
+        return { user: createdUser, rawToken: rawTok };
+      }));
+    } catch (err) {
+      // The findUnique check above only catches most duplicate-email
+      // registrations; two concurrent requests for the same email can both
+      // pass that check, so the DB's unique constraint is the real guard.
+      // Translate that race into the same 409 the pre-check produces.
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new ConflictException('Email is already in use');
+      }
+      throw err;
+    }
 
     // Sending email is an external call and must happen AFTER the
     // transaction has committed — never inside it (a slow/hanging SMTP call

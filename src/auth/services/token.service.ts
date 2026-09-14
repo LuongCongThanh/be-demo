@@ -43,21 +43,31 @@ export class TokenService {
    *
    * Pass `client` (e.g. the `tx` from an in-progress `prisma.$transaction`)
    * to run both writes inside that transaction instead of opening a new one.
+   * When no `client` is passed, the delete+create pair is wrapped in its own
+   * transaction so a failure between the two never leaves the user with zero
+   * valid tokens.
    */
   async createEmailVerificationToken(
     userId: string,
     client: EmailVerificationTokenClient = this.prisma,
   ): Promise<string> {
-    await client.emailVerificationToken.deleteMany({
-      where: { userId, verifiedAt: null },
-    });
-
     const { rawToken, tokenHash } = this.generate();
     const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
 
-    await client.emailVerificationToken.create({
-      data: { userId, tokenHash, expiresAt },
-    });
+    const write = async (c: EmailVerificationTokenClient) => {
+      await c.emailVerificationToken.deleteMany({
+        where: { userId, verifiedAt: null },
+      });
+      await c.emailVerificationToken.create({
+        data: { userId, tokenHash, expiresAt },
+      });
+    };
+
+    if (client === this.prisma) {
+      await this.prisma.$transaction((tx) => write(tx));
+    } else {
+      await write(client);
+    }
 
     return rawToken;
   }

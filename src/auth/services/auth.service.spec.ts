@@ -1,4 +1,5 @@
 import { ConflictException } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client.js';
 import { AuthService } from './auth.service.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
@@ -53,6 +54,32 @@ describe('AuthService.register', () => {
 
     expect(passwordService.hash).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('throws ConflictException when the DB unique constraint rejects a concurrent duplicate registration', async () => {
+    // The findUnique pre-check races with another request for the same
+    // email: both pass the check, then the transaction's tx.user.create
+    // hits the DB's unique constraint (Prisma P2002).
+    const { service, prisma } = createHarness();
+    prisma.$transaction.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    );
+
+    await expect(
+      service.register({ email: 'race@example.com', password: 'Abc@1234' }),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('rethrows other transaction errors unchanged', async () => {
+    const { service, prisma } = createHarness();
+    prisma.$transaction.mockRejectedValue(new Error('DB connection lost'));
+
+    await expect(
+      service.register({ email: 'new@example.com', password: 'Abc@1234' }),
+    ).rejects.toThrow('DB connection lost');
   });
 
   it('creates the user with a hashed password and the CUSTOMER role', async () => {
