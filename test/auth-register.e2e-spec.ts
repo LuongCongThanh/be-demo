@@ -7,6 +7,18 @@ import { configureApp } from '../src/bootstrap/configure-app.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-register.e2e-test.local';
 
+// fullName/phone are required on RegisterDto but not what most of these
+// tests are about — a shared valid payload keeps each request's own
+// overrides (the part that actually matters) visible at a glance.
+function validRegisterPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    password: 'Abc@1234',
+    fullName: 'Nguyen Van A',
+    phone: '0912345678',
+    ...overrides,
+  };
+}
+
 describe('Auth — POST /auth/register (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -46,7 +58,7 @@ describe('Auth — POST /auth/register (e2e)', () => {
 
     const res = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email, password: 'Abc@1234' })
+      .send(validRegisterPayload({ email }))
       .expect(201);
 
     expect(res.body).toEqual({ id: expect.any(String), email });
@@ -69,42 +81,61 @@ describe('Auth — POST /auth/register (e2e)', () => {
   it('returns 409 when the email is already registered', async () => {
     const email = `dup${Date.now()}${TEST_EMAIL_DOMAIN}`;
 
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({ email, password: 'Abc@1234' })
-      .expect(201);
+    await request(app.getHttpServer()).post('/auth/register').send(validRegisterPayload({ email })).expect(201);
 
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({ email, password: 'Abc@1234' })
-      .expect(409);
+    await request(app.getHttpServer()).post('/auth/register').send(validRegisterPayload({ email })).expect(409);
   });
 
   it('returns 400 when the password does not meet the policy', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({
-        email: `weak${Date.now()}${TEST_EMAIL_DOMAIN}`,
-        password: 'abc12345',
-      })
+      .send(
+        validRegisterPayload({
+          email: `weak${Date.now()}${TEST_EMAIL_DOMAIN}`,
+          password: 'abc12345',
+        }),
+      )
       .expect(400);
   });
 
   it('returns 400 for a malformed email', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: 'not-an-email', password: 'Abc@1234' })
+      .send(validRegisterPayload({ email: 'not-an-email' }))
+      .expect(400);
+  });
+
+  it('returns 400 when fullName is missing', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: `nofullname${Date.now()}${TEST_EMAIL_DOMAIN}`,
+        password: 'Abc@1234',
+        phone: '0912345678',
+      })
+      .expect(400);
+  });
+
+  it('returns 400 when phone is missing', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: `nophone${Date.now()}${TEST_EMAIL_DOMAIN}`,
+        password: 'Abc@1234',
+        fullName: 'Nguyen Van A',
+      })
       .expect(400);
   });
 
   it('returns 400 when the body has an unexpected extra field', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({
-        email: `extra${Date.now()}${TEST_EMAIL_DOMAIN}`,
-        password: 'Abc@1234',
-        isAdmin: true,
-      })
+      .send(
+        validRegisterPayload({
+          email: `extra${Date.now()}${TEST_EMAIL_DOMAIN}`,
+          isAdmin: true,
+        }),
+      )
       .expect(400);
   });
 });

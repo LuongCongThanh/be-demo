@@ -51,6 +51,8 @@ export class AuthService {
           data: {
             email: dto.email,
             passwordHash,
+            fullName: dto.fullName,
+            phone: dto.phone,
             status: 'ACTIVE',
             userRoles: { create: [{ roleId: customerRole.id }] },
           },
