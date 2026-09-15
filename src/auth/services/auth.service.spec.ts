@@ -59,13 +59,24 @@ function createHarness() {
 }
 
 describe('AuthService.register', () => {
+  // fullName/phone are required on RegisterDto but not what any of these
+  // tests are about — a shared valid payload keeps each test's own
+  // overrides (the part that actually matters) visible at a glance.
+  function validRegisterDto(overrides: Record<string, unknown> = {}) {
+    return {
+      email: 'new@example.com',
+      password: 'Abc@1234',
+      fullName: 'Nguyen Van A',
+      phone: '0912345678',
+      ...overrides,
+    };
+  }
+
   it('throws ConflictException when the email is already taken', async () => {
     const { service, prisma, passwordService } = createHarness();
     prisma.user.findUnique.mockResolvedValue({ id: 'existing-user' });
 
-    await expect(service.register({ email: 'taken@example.com', password: 'Abc@1234' })).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(service.register(validRegisterDto({ email: 'taken@example.com' }))).rejects.toThrow(ConflictException);
 
     expect(passwordService.hash).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -84,9 +95,7 @@ describe('AuthService.register', () => {
       }),
     );
 
-    await expect(service.register({ email: 'race@example.com', password: 'Abc@1234' })).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(service.register(validRegisterDto({ email: 'race@example.com' }))).rejects.toThrow(ConflictException);
   });
 
   it('rethrows a P2002 that is not on the `email` constraint unchanged', async () => {
@@ -101,25 +110,20 @@ describe('AuthService.register', () => {
     });
     prisma.$transaction.mockRejectedValue(tokenHashCollision);
 
-    await expect(service.register({ email: 'new@example.com', password: 'Abc@1234' })).rejects.toBe(tokenHashCollision);
+    await expect(service.register(validRegisterDto())).rejects.toBe(tokenHashCollision);
   });
 
   it('rethrows other transaction errors unchanged', async () => {
     const { service, prisma } = createHarness();
     prisma.$transaction.mockRejectedValue(new Error('DB connection lost'));
 
-    await expect(service.register({ email: 'new@example.com', password: 'Abc@1234' })).rejects.toThrow(
-      'DB connection lost',
-    );
+    await expect(service.register(validRegisterDto())).rejects.toThrow('DB connection lost');
   });
 
   it('creates the user with a hashed password and the CUSTOMER role', async () => {
     const { service, tx } = createHarness();
 
-    const result = await service.register({
-      email: 'new@example.com',
-      password: 'Abc@1234',
-    });
+    const result = await service.register(validRegisterDto());
 
     expect(tx.role.findUniqueOrThrow).toHaveBeenCalledWith({
       where: { name: 'CUSTOMER' },
@@ -128,6 +132,8 @@ describe('AuthService.register', () => {
       data: expect.objectContaining({
         email: 'new@example.com',
         passwordHash: 'hashed-password',
+        fullName: 'Nguyen Van A',
+        phone: '0912345678',
         status: 'ACTIVE',
         userRoles: { create: [{ roleId: 'role-customer' }] },
       }),
@@ -138,10 +144,7 @@ describe('AuthService.register', () => {
   it('creates an email verification token inside the same transaction', async () => {
     const { service, tokenService, tx } = createHarness();
 
-    await service.register({
-      email: 'new@example.com',
-      password: 'Abc@1234',
-    });
+    await service.register(validRegisterDto());
 
     expect(tokenService.createEmailVerificationToken).toHaveBeenCalledWith('user-1', tx);
   });
@@ -164,10 +167,7 @@ describe('AuthService.register', () => {
       callOrder.push('mail-sent');
     });
 
-    await service.register({
-      email: 'new@example.com',
-      password: 'Abc@1234',
-    });
+    await service.register(validRegisterDto());
 
     expect(callOrder).toEqual(['transaction-committed', 'mail-sent']);
     expect(mailService.sendVerificationEmail).toHaveBeenCalledWith('new@example.com', 'raw-token-abc');
@@ -177,10 +177,7 @@ describe('AuthService.register', () => {
     const { service, mailService, tx } = createHarness();
     mailService.sendVerificationEmail.mockRejectedValue(new Error('SMTP down'));
 
-    const result = await service.register({
-      email: 'new@example.com',
-      password: 'Abc@1234',
-    });
+    const result = await service.register(validRegisterDto());
 
     expect(result).toEqual({ id: 'user-1', email: 'new@example.com' });
     expect(tx.user.create).toHaveBeenCalledTimes(1);
@@ -189,10 +186,7 @@ describe('AuthService.register', () => {
   it('never returns the password hash', async () => {
     const { service } = createHarness();
 
-    const result = await service.register({
-      email: 'new@example.com',
-      password: 'Abc@1234',
-    });
+    const result = await service.register(validRegisterDto());
 
     expect(result).not.toHaveProperty('passwordHash');
   });
