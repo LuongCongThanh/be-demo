@@ -65,10 +65,16 @@ export class AuthService {
       // The findUnique check above only catches most duplicate-email
       // registrations; two concurrent requests for the same email can both
       // pass that check, so the DB's unique constraint is the real guard.
-      // Translate that race into the same 409 the pre-check produces.
+      // Translate that race into the same 409 the pre-check produces — but
+      // only when the violated constraint is actually `email`. The same
+      // transaction also creates an EmailVerificationToken with its own
+      // unique `tokenHash`, so a bare `code === 'P2002'` check would
+      // misreport a (vanishingly unlikely) tokenHash collision as "email
+      // already in use".
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
+        err.code === 'P2002' &&
+        (err.meta?.target as string[] | undefined)?.includes('email')
       ) {
         throw new ConflictException('Email is already in use');
       }

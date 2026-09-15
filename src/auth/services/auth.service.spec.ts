@@ -59,18 +59,39 @@ describe('AuthService.register', () => {
   it('throws ConflictException when the DB unique constraint rejects a concurrent duplicate registration', async () => {
     // The findUnique pre-check races with another request for the same
     // email: both pass the check, then the transaction's tx.user.create
-    // hits the DB's unique constraint (Prisma P2002).
+    // hits the DB's unique constraint (Prisma P2002) on `email`.
     const { service, prisma } = createHarness();
     prisma.$transaction.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
         code: 'P2002',
         clientVersion: 'test',
+        meta: { target: ['email'] },
       }),
     );
 
     await expect(
       service.register({ email: 'race@example.com', password: 'Abc@1234' }),
     ).rejects.toThrow(ConflictException);
+  });
+
+  it('rethrows a P2002 that is not on the `email` constraint unchanged', async () => {
+    // Same transaction also creates an EmailVerificationToken with its own
+    // unique `tokenHash`. A P2002 on that column must not be misreported
+    // as "email already in use".
+    const { service, prisma } = createHarness();
+    const tokenHashCollision = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed',
+      {
+        code: 'P2002',
+        clientVersion: 'test',
+        meta: { target: ['token_hash'] },
+      },
+    );
+    prisma.$transaction.mockRejectedValue(tokenHashCollision);
+
+    await expect(
+      service.register({ email: 'new@example.com', password: 'Abc@1234' }),
+    ).rejects.toBe(tokenHashCollision);
   });
 
   it('rethrows other transaction errors unchanged', async () => {
