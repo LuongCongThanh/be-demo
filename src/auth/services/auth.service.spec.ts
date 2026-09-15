@@ -11,7 +11,15 @@ function createHarness() {
 
   const tx = {
     role: { findUniqueOrThrow: vi.fn().mockResolvedValue(customerRole) },
-    user: { create: vi.fn().mockResolvedValue(createdUser) },
+    user: {
+      create: vi.fn().mockResolvedValue(createdUser),
+      update: vi.fn().mockResolvedValue({}),
+    },
+    emailVerificationToken: {
+      // count: 1 by default (the claim succeeds); tests override to 0 to
+      // simulate losing the race to a concurrent verifyEmail() call.
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
   };
 
   const prisma = {
@@ -21,16 +29,10 @@ function createHarness() {
     },
     emailVerificationToken: {
       findUnique: vi.fn().mockResolvedValue(null),
-      update: vi.fn().mockResolvedValue({}),
     },
-    // register() passes a callback (`tx => ...`); verifyEmail() passes an
-    // array of Promises. Support both shapes so one harness serves both.
-    $transaction: vi.fn(async (arg: unknown) => {
-      if (Array.isArray(arg)) {
-        return Promise.all(arg as Promise<unknown>[]);
-      }
-      return (arg as (tx: unknown) => unknown)(tx);
-    }),
+    // register() and verifyEmail() both pass a callback (`tx => ...`);
+    // the callback receives the same `tx` mock, shared across both flows.
+    $transaction: vi.fn(async (arg: unknown) => (arg as (tx: unknown) => unknown)(tx)),
   };
 
   const passwordService = {
@@ -245,19 +247,34 @@ describe('AuthService.verifyEmail', () => {
   });
 
   it('marks both the user and the token as verified in one transaction, then returns a success message', async () => {
-    const { service, prisma } = createHarness();
+    const { service, prisma, tx } = createHarness();
     prisma.emailVerificationToken.findUnique.mockResolvedValue(validRecord());
 
     const result = await service.verifyEmail({ token: 'raw-token' });
 
-    expect(prisma.user.update).toHaveBeenCalledWith({
+    // The claim (conditional updateMany) must run before, and its WHERE
+    // clause must re-check verifiedAt: null — that guard is what closes
+    // the race window between findUnique() and the transaction.
+    expect(tx.emailVerificationToken.updateMany).toHaveBeenCalledWith({
+      where: { id: 'token-1', verifiedAt: null },
+      data: { verifiedAt: expect.any(Date) },
+    });
+    expect(tx.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: { emailVerifiedAt: expect.any(Date) },
     });
-    expect(prisma.emailVerificationToken.update).toHaveBeenCalledWith({
-      where: { id: 'token-1' },
-      data: { verifiedAt: expect.any(Date) },
-    });
     expect(result).toEqual({ message: 'Email verified successfully' });
+  });
+
+  it('rejects as already-used, without touching User, when a concurrent request wins the race to claim the token first', async () => {
+    // Simulates the TOCTOU window between findUnique() (above) and the
+    // transaction: another request's conditional update already flipped
+    // verifiedAt, so this request's claim matches zero rows.
+    const { service, prisma, tx } = createHarness();
+    prisma.emailVerificationToken.findUnique.mockResolvedValue(validRecord());
+    tx.emailVerificationToken.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.verifyEmail({ token: 'raw-token' })).rejects.toThrow(BadRequestException);
+    expect(tx.user.update).not.toHaveBeenCalled();
   });
 });

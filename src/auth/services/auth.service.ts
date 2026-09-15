@@ -113,16 +113,32 @@ export class AuthService {
       throw new BadRequestException('Token has expired');
     }
 
-    await this.prisma.$transaction([
-      this.prisma.user.update({
+    // The findUnique() read above is not atomic with the update below, so
+    // two concurrent requests for the same token could both pass the
+    // record.verifiedAt check before either commits. Guard against that
+    // race by claiming the token with a conditional update (`verifiedAt:
+    // null` in the WHERE clause) inside the transaction: the DB itself
+    // enforces that only one caller can win. If we lose the race, undo
+    // nothing else and reject the same way an already-used token would.
+    const wonRace = await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.emailVerificationToken.updateMany({
+        where: { id: record.id, verifiedAt: null },
+        data: { verifiedAt: new Date() },
+      });
+      if (claimed.count === 0) {
+        return false;
+      }
+
+      await tx.user.update({
         where: { id: record.userId },
         data: { emailVerifiedAt: new Date() },
-      }),
-      this.prisma.emailVerificationToken.update({
-        where: { id: record.id },
-        data: { verifiedAt: new Date() },
-      }),
-    ]);
+      });
+      return true;
+    });
+
+    if (!wonRace) {
+      throw new BadRequestException('Token already used');
+    }
 
     return { message: 'Email verified successfully' };
   }
