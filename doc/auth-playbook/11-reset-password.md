@@ -4,8 +4,8 @@
 
 Endpoint cuối cùng của flow quên mật khẩu: đặt lại password bằng token nhận từ email, đồng thời thu hồi toàn bộ session cũ. Chia thành 3 bước.
 
-> 📘 **Khái niệm — vì sao đổi password PHẢI revoke toàn bộ refresh token cũ?**
-> Nếu ai đó lấy được password cũ (hoặc chính user nghi ngờ tài khoản bị lộ) và tự đặt lại password mới, mọi thiết bị/trình duyệt đang đăng nhập bằng refresh token cũ **phải bị đăng xuất** — nếu không, kẻ đã chiếm được session trước đó (vd đánh cắp refresh token) vẫn tiếp tục dùng được dù password đã đổi. Đây là lý do reset-password luôn đi kèm "revoke toàn bộ refresh token của user" (giống hệt tinh thần "logout-all", xem [09-logout.md](./09-logout.md)) — reset-password là dấu hiệu bảo mật quan trọng hơn logout thông thường.
+> 📘 **Khái niệm: vì sao đổi password PHẢI revoke toàn bộ refresh token cũ?**
+> Nếu ai đó lấy được password cũ (hoặc chính user nghi ngờ tài khoản bị lộ) và tự đặt lại password mới, mọi thiết bị/trình duyệt đang đăng nhập bằng refresh token cũ phải bị đăng xuất. Nếu không, kẻ đã chiếm được session trước đó (vd đánh cắp refresh token) vẫn tiếp tục dùng được dù password đã đổi. Đây là lý do reset-password luôn đi kèm "revoke toàn bộ refresh token của user" (giống hệt tinh thần "logout-all", xem [09-logout.md](./09-logout.md)): reset-password là dấu hiệu bảo mật quan trọng hơn logout thông thường.
 
 ---
 
@@ -13,7 +13,7 @@ Endpoint cuối cùng của flow quên mật khẩu: đặt lại password bằn
 
 Client cần gửi 3 thứ: token nhận từ email, password mới, và confirmPassword để so khớp. Bước này dùng lại `IsStrongPassword()` đã viết ở [01-setup.md](./01-setup.md), phần password policy, cộng thêm 1 custom validator để so khớp `confirmPassword`.
 
-> 📘 **Khái niệm — custom validator so khớp 2 field:** `class-validator` validate từng field độc lập theo mặc định — để so sánh 2 field với nhau (password vs confirmPassword) cần 1 custom decorator (`@Validate(SomeConstraint)`) đọc được toàn bộ object đang validate qua `ValidationArguments.object`, thay vì chỉ đọc giá trị của riêng field đó.
+> 📘 **Khái niệm: custom validator so khớp 2 field.** `class-validator` validate từng field độc lập theo mặc định. Để so sánh 2 field với nhau (password vs confirmPassword) cần 1 custom decorator (`@Validate(SomeConstraint)`) đọc được toàn bộ object đang validate qua `ValidationArguments.object`, thay vì chỉ đọc giá trị của riêng field đó.
 
 Tạo file `src/auth/dto/reset-password.dto.ts`:
 
@@ -69,7 +69,7 @@ export class ResetPasswordDto {
 
 ## Bước 2 — Viết AuthService.resetPassword()
 
-Đây là phần lõi: hash token nhận được để tra DB, kiểm tra còn hợp lệ không, rồi trong 1 transaction — đổi password mới, đánh dấu token đã dùng, và revoke toàn bộ refresh token cũ:
+Đây là phần lõi: hash token nhận được để tra DB, kiểm tra còn hợp lệ không, rồi trong 1 transaction đổi password mới, đánh dấu token đã dùng, và revoke toàn bộ refresh token cũ:
 
 ```ts
 // src/auth/services/auth.service.ts (thêm method)
@@ -118,7 +118,7 @@ async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
 }
 ```
 
-`prisma.$transaction([...])` ở đây dùng dạng mảng, khác với dạng `$transaction(async (tx) => {...})` đã dùng ở [02-register.md](./02-register.md) — dạng mảng chạy nhiều query độc lập trong 1 transaction khi chúng **không phụ thuộc kết quả của nhau**. Ở đây cả 3 query đều đã biết sẵn `resetToken.userId`/`resetToken.id` từ bước tra token phía trên, không cần đọc lại giá trị vừa ghi, nên dùng dạng mảng cho gọn hơn.
+`prisma.$transaction([...])` ở đây dùng dạng mảng, khác với dạng `$transaction(async (tx) => {...})` đã dùng ở [02-register.md](./02-register.md). Dạng mảng chạy nhiều query độc lập trong 1 transaction khi chúng không phụ thuộc kết quả của nhau. Ở đây cả 3 query đều đã biết sẵn `resetToken.userId`/`resetToken.id` từ bước tra token phía trên, không cần đọc lại giá trị vừa ghi, nên dùng dạng mảng cho gọn hơn.
 
 ---
 
@@ -142,7 +142,7 @@ async resetPassword(
 }
 ```
 
-Tự kiểm tra toàn bộ flow: reset thành công thì password mới phải login được, password cũ thì không login được nữa; tất cả refresh token cũ của user phải bị revoke (verify bằng cách gọi `/auth/refresh` với refresh token cũ — xem [06-refresh-token.md](./06-refresh-token.md) — phải nhận `401`); token không tồn tại/hết hạn/đã dùng phải trả `400`; password mới không đủ policy hoặc không khớp `confirmPassword` cũng phải trả `400`. Khi viết test chính thức ở [13-testing.md](./13-testing.md), nhớ thêm case gọi lại lần 2 với cùng 1 token đã dùng ở lần trước — phải bị từ chối, không phải hành vi idempotent.
+Tự kiểm tra toàn bộ flow: reset thành công thì password mới phải login được, password cũ thì không login được nữa; tất cả refresh token cũ của user phải bị revoke (verify bằng cách gọi `/auth/refresh` với refresh token cũ, xem [06-refresh-token.md](./06-refresh-token.md): phải nhận `401`); token không tồn tại/hết hạn/đã dùng phải trả `400`; password mới không đủ policy hoặc không khớp `confirmPassword` cũng phải trả `400`. Khi viết test chính thức ở [13-testing.md](./13-testing.md), nhớ thêm case gọi lại lần 2 với cùng 1 token đã dùng ở lần trước: phải bị từ chối, không phải hành vi idempotent.
 
 ---
 

@@ -1,8 +1,8 @@
 # 02 — Register (`POST /auth/register`)
 
-> Trước khi bắt đầu, đảm bảo bạn đã làm xong [01-setup.md](./01-setup.md) — module đã scaffold, `PasswordService`/`TokenService` cơ bản đã có, package đã cài, env đã sẵn. Cần tra thuật ngữ nào đó (DTO, transaction, hash...) thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại 1 quyết định thiết kế (vd vì sao register không tự động login) thì xem [00-overview.md](./00-overview.md).
+> Trước khi bắt đầu, đảm bảo bạn đã làm xong [01-setup.md](./01-setup.md): module đã scaffold, `PasswordService`/`TokenService` cơ bản đã có, package đã cài, env đã sẵn. Cần tra thuật ngữ nào đó (DTO, transaction, hash...) thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại 1 quyết định thiết kế (vd vì sao register không tự động login) thì xem [00-overview.md](./00-overview.md).
 
-Đây là endpoint đầu tiên bạn sẽ code trong toàn bộ flow Auth: tạo tài khoản CUSTOMER mới và gửi email xác thực, mà không bao giờ lưu password hay token ở dạng thô. Việc này gộp khá nhiều thứ — validate input, hash password, sinh token, ghi DB trong 1 transaction, gửi mail, rồi mới expose ra HTTP — nên bài này chia thành 6 bước nhỏ, làm xong bước nào build được bước đó rồi mới sang bước sau.
+Đây là endpoint đầu tiên bạn sẽ code trong toàn bộ flow Auth: tạo tài khoản CUSTOMER mới và gửi email xác thực, mà không bao giờ lưu password hay token ở dạng thô. Việc này gộp khá nhiều thứ: validate input, hash password, sinh token, ghi DB trong 1 transaction, gửi mail, rồi mới expose ra HTTP. Vì vậy bài này chia thành 6 bước nhỏ, làm xong bước nào build được bước đó rồi mới sang bước sau.
 
 ---
 
@@ -20,7 +20,7 @@ New-Item src/auth/dto/register.dto.ts -ItemType File   # PowerShell
 touch src/auth/dto/register.dto.ts   # Bash (Git Bash/WSL)
 ```
 
-NestJS có sẵn `ValidationPipe` (thường bật global trong `main.ts`) tự động đọc decorator gắn trên DTO này để kiểm tra input — nếu sai, Nest tự trả `400 Bad Request` **trước khi** code bạn viết trong Controller/Service kịp chạy, không cần tự viết `if` kiểm tra tay. Viết class sau:
+NestJS có sẵn `ValidationPipe` (thường bật global trong `main.ts`) tự động đọc decorator gắn trên DTO này để kiểm tra input. Nếu sai, Nest tự trả `400 Bad Request` trước khi code bạn viết trong Controller/Service kịp chạy, không cần tự viết `if` kiểm tra tay. Viết class sau:
 
 ```ts
 // src/auth/dto/register.dto.ts
@@ -46,15 +46,15 @@ export class RegisterDto {
 }
 ```
 
-Chạy `npm run build` để chắc chắn file không lỗi cú pháp — bạn chưa gọi được route nào ở bước này cả, chỉ mới có "hình dạng" dữ liệu. Nếu muốn tin chắc validate hoạt động, thử tạo 1 instance với `password: 'abc'` ở đâu đó tạm thời và chạy qua `class-validator` — bạn sẽ thấy lỗi validate bật lên ngay; việc này để dành verify chính thức khi xong Bước 6.
+Chạy `npm run build` để chắc chắn file không lỗi cú pháp. Bạn chưa gọi được route nào ở bước này cả, chỉ mới có "hình dạng" dữ liệu. Nếu muốn tin chắc validate hoạt động, thử tạo 1 instance với `password: 'abc'` ở đâu đó tạm thời và chạy qua `class-validator`: bạn sẽ thấy lỗi validate bật lên ngay. Việc này để dành verify chính thức khi xong Bước 6.
 
 ---
 
 ## Bước 2 — Hash password (PasswordService)
 
-Không bao giờ được lưu password thô vào DB. Bước này viết phần hash — biến password thành 1 chuỗi không thể đảo ngược lại, chỉ dùng để so sánh.
+Không bao giờ được lưu password thô vào DB. Bước này viết phần hash: biến password thành 1 chuỗi không thể đảo ngược lại, chỉ dùng để so sánh.
 
-> 📘 **Khái niệm — vì sao dùng `argon2` thay vì `bcrypt` hay tự viết SHA-256?** Password không được hash bằng thuật toán hash "nhanh" thông thường (MD5, SHA-256) vì máy tính hiện đại thử được hàng tỷ hash/giây → brute-force dễ dàng. `argon2` (và `bcrypt`) là thuật toán **cố tình chậm và tốn RAM**, khiến brute-force tốn kém về thời gian/tiền bạc. `argon2` là thuật toán thắng cuộc thi Password Hashing Competition, được khuyến nghị hiện nay.
+> 📘 **Khái niệm: vì sao dùng `argon2` thay vì `bcrypt` hay tự viết SHA-256?** Password không được hash bằng thuật toán hash "nhanh" thông thường (MD5, SHA-256) vì máy tính hiện đại thử được hàng tỷ hash/giây → brute-force dễ dàng. `argon2` (và `bcrypt`) là thuật toán cố tình chậm và tốn RAM, khiến brute-force tốn kém về thời gian/tiền bạc. `argon2` là thuật toán thắng cuộc thi Password Hashing Competition, được khuyến nghị hiện nay.
 
 Mở `src/auth/services/password.service.ts` (đã scaffold rỗng ở `01-setup.md`) và viết:
 
@@ -75,16 +75,16 @@ export class PasswordService {
 }
 ```
 
-`argon2.hash()` tự sinh salt ngẫu nhiên và nhúng vào chuỗi hash trả về, nên bạn không cần tự quản lý salt riêng. Muốn chắc chắn nó hoạt động đúng, gọi thử `hash('Abc@1234')` 2 lần — bạn sẽ thấy 2 chuỗi hash khác nhau (vì salt ngẫu nhiên mỗi lần), nhưng cả 2 vẫn `verify()` đúng lại với `'Abc@1234'` ban đầu.
+`argon2.hash()` tự sinh salt ngẫu nhiên và nhúng vào chuỗi hash trả về, nên bạn không cần tự quản lý salt riêng. Muốn chắc chắn nó hoạt động đúng, gọi thử `hash('Abc@1234')` 2 lần: bạn sẽ thấy 2 chuỗi hash khác nhau (vì salt ngẫu nhiên mỗi lần), nhưng cả 2 vẫn `verify()` đúng lại với `'Abc@1234'` ban đầu.
 
 ---
 
 ## Bước 3 — Sinh token xác thực email (TokenService)
 
-Sau khi tạo user, bạn cần gửi cho họ 1 link xác thực email, và link đó phải chứa 1 token không ai đoán được. Bước này viết phần tối thiểu để sinh token đó — bản đầy đủ dùng chung cho cả reset-password/refresh sẽ hoàn thiện ở [01-setup.md § TokenService đầy đủ](./01-setup.md), ở đây chỉ cần đủ cho Register chạy được.
+Sau khi tạo user, bạn cần gửi cho họ 1 link xác thực email, và link đó phải chứa 1 token không ai đoán được. Bước này viết phần tối thiểu để sinh token đó. Bản đầy đủ dùng chung cho cả reset-password/refresh sẽ hoàn thiện ở [01-setup.md § TokenService đầy đủ](./01-setup.md), ở đây chỉ cần đủ cho Register chạy được.
 
-> 📘 **Khái niệm — vì sao token gửi qua email khác với token lưu trong DB?**
-> Nếu lưu thẳng token gốc (raw token) vào DB, ai đọc được DB (backup leak, SQL injection...) sẽ dùng được token đó luôn — giống hệt như lưu raw password. Cách làm đúng: sinh token ngẫu nhiên (`rawToken`), gửi `rawToken` qua email cho user, nhưng **chỉ lưu `hash(rawToken)`** vào DB. Khi user click link chứa `rawToken`, server hash lại và so khớp với `tokenHash` trong DB — không cần lưu bản gốc mà vẫn xác minh được.
+> 📘 **Khái niệm: vì sao token gửi qua email khác với token lưu trong DB?**
+> Nếu lưu thẳng token gốc (raw token) vào DB, ai đọc được DB (backup leak, SQL injection...) sẽ dùng được token đó luôn, giống hệt như lưu raw password. Cách làm đúng: sinh token ngẫu nhiên (`rawToken`), gửi `rawToken` qua email cho user, nhưng chỉ lưu `hash(rawToken)` vào DB. Khi user click link chứa `rawToken`, server hash lại và so khớp với `tokenHash` trong DB, không cần lưu bản gốc mà vẫn xác minh được.
 
 Mở `src/auth/services/token.service.ts` (đã scaffold rỗng ở `01-setup.md`) và viết:
 
@@ -126,13 +126,13 @@ export class TokenService {
 }
 ```
 
-⚠️ Trước khi paste, đối chiếu lại tên model/field Prisma (`emailVerificationToken`, `userId`, `tokenHash`, `expiresAt`, `verifiedAt`) với `prisma/schema.prisma` thật của bạn — tên có thể khác đôi chút. Method `createPasswordResetToken`, `hashRawToken` (dùng ở verify/refresh sau này) sẽ được thêm đầy đủ ở `01-setup.md`, chưa cần lo ở bước này. Kiểm tra nhanh: gọi `createEmailVerificationToken()` từ 1 chỗ test tạm — bạn sẽ thấy đúng 1 record mới xuất hiện trong bảng `email_verification_tokens`.
+⚠️ Trước khi paste, đối chiếu lại tên model/field Prisma (`emailVerificationToken`, `userId`, `tokenHash`, `expiresAt`, `verifiedAt`) với `prisma/schema.prisma` thật của bạn: tên có thể khác đôi chút. Method `createPasswordResetToken`, `hashRawToken` (dùng ở verify/refresh sau này) sẽ được thêm đầy đủ ở `01-setup.md`, chưa cần lo ở bước này. Kiểm tra nhanh: gọi `createEmailVerificationToken()` từ 1 chỗ test tạm. Bạn sẽ thấy đúng 1 record mới xuất hiện trong bảng `email_verification_tokens`.
 
 ---
 
 ## Bước 4 — Gửi email xác thực (MailService)
 
-`AuthService` sắp orchestrate flow register không nên tự biết cách gửi mail qua SMTP/SES/SendGrid nào — nó chỉ cần gọi `mailService.sendVerificationEmail(email, token)`. Tách riêng như vậy giúp sau này đổi provider gửi mail mà không đụng vào code auth (xem thêm [00-overview.md § Shared Services](./00-overview.md) về nguyên tắc không tạo interface/DI token thừa cho MVP).
+`AuthService` sắp orchestrate flow register không nên tự biết cách gửi mail qua SMTP/SES/SendGrid nào, nó chỉ cần gọi `mailService.sendVerificationEmail(email, token)`. Tách riêng như vậy giúp sau này đổi provider gửi mail mà không đụng vào code auth (xem thêm [00-overview.md § Shared Services](./00-overview.md) về nguyên tắc không tạo interface/DI token thừa cho MVP).
 
 Mở `src/mail/mail.service.ts` (đã scaffold rỗng ở `01-setup.md`):
 
@@ -157,17 +157,17 @@ export class MailService {
 }
 ```
 
-Với MVP, gọi thẳng hàm này chỉ in ra log console — đủ để bạn thấy flow chạy đúng trong lúc dev, chưa cần cấu hình SMTP thật. Gọi thử `sendVerificationEmail('a@b.com', 'xyz')` để chắc nó in log đúng và không throw lỗi gì.
+Với MVP, gọi thẳng hàm này chỉ in ra log console: đủ để bạn thấy flow chạy đúng trong lúc dev, chưa cần cấu hình SMTP thật. Gọi thử `sendVerificationEmail('a@b.com', 'xyz')` để chắc nó in log đúng và không throw lỗi gì.
 
 ---
 
 ## Bước 5 — Ghép mọi thứ lại trong AuthService.register()
 
-Đây là bước "trái tim" của cả flow — nơi bạn điều phối (orchestrate) 4 bước trên theo đúng thứ tự: kiểm tra email chưa tồn tại → hash password → ghi User + role + token trong 1 transaction → gửi mail sau khi transaction đã commit xong.
+Đây là bước "trái tim" của cả flow: nơi bạn điều phối (orchestrate) 4 bước trên theo đúng thứ tự. Kiểm tra email chưa tồn tại, hash password, ghi User + role + token trong 1 transaction, rồi gửi mail sau khi transaction đã commit xong.
 
-> 📘 **Khái niệm — DB transaction là gì, vì sao cần?** Một transaction gom nhiều thao tác ghi DB (tạo user, gán role, tạo token) thành **1 khối tất-cả-hoặc-không-gì-cả**: nếu bước giữa chừng lỗi (vd gán role fail), toàn bộ được rollback — không để lại user "mồ côi" không có role. Prisma cung cấp `prisma.$transaction(async (tx) => {...})`, bên trong dùng `tx.<model>` thay vì `prisma.<model>` để mọi query nằm trong cùng 1 transaction.
+> 📘 **Khái niệm: DB transaction là gì, vì sao cần?** Một transaction gom nhiều thao tác ghi DB (tạo user, gán role, tạo token) thành 1 khối tất-cả-hoặc-không-gì-cả: nếu bước giữa chừng lỗi (vd gán role fail), toàn bộ được rollback, không để lại user "mồ côi" không có role. Prisma cung cấp `prisma.$transaction(async (tx) => {...})`, bên trong dùng `tx.<model>` thay vì `prisma.<model>` để mọi query nằm trong cùng 1 transaction.
 >
-> 📘 **Khái niệm — vì sao gửi email PHẢI nằm ngoài transaction?** Gọi email (network call ra ngoài) có thể chậm hoặc treo. Nếu đặt trong transaction, DB phải giữ lock/connection chờ suốt thời gian đó — tốn tài nguyên và tăng nguy cơ deadlock. Quy tắc: transaction chỉ chứa thao tác DB, side-effect ngoài (email, gọi API khác...) luôn thực hiện **sau khi transaction đã commit**. Xem thêm [00-overview.md § Shared Services — Rule: Transaction không bọc external call](./00-overview.md).
+> 📘 **Khái niệm: vì sao gửi email PHẢI nằm ngoài transaction?** Gọi email (network call ra ngoài) có thể chậm hoặc treo. Nếu đặt trong transaction, DB phải giữ lock/connection chờ suốt thời gian đó, tốn tài nguyên và tăng nguy cơ deadlock. Quy tắc: transaction chỉ chứa thao tác DB, side-effect ngoài (email, gọi API khác...) luôn thực hiện sau khi transaction đã commit. Xem thêm [00-overview.md § Shared Services § Rule: Transaction không bọc external call](./00-overview.md).
 
 Mở `src/auth/services/auth.service.ts` (đã scaffold rỗng ở `01-setup.md`) và viết:
 
@@ -271,9 +271,9 @@ export class AuthService {
 }
 ```
 
-Đoạn `createVerificationTokenInTx` hơi vòng vèo — lý do là `TokenService` ở Bước 3 tự inject `PrismaService` riêng nên không tham gia chung transaction được với `register()` ở đây. Đây là giới hạn đã biết của bản MVP tối thiểu, chấp nhận trùng lặp code nhỏ để giữ transaction đúng; dọn lại (refactor `TokenService` nhận `tx`) là việc có thể làm sau khi hoàn thiện `TokenService` ở `01-setup.md`, không bắt buộc ngay.
+Đoạn `createVerificationTokenInTx` hơi vòng vèo. Lý do là `TokenService` ở Bước 3 tự inject `PrismaService` riêng nên không tham gia chung transaction được với `register()` ở đây. Đây là giới hạn đã biết của bản MVP tối thiểu, chấp nhận trùng lặp code nhỏ để giữ transaction đúng; dọn lại (refactor `TokenService` nhận `tx`) là việc có thể làm sau khi hoàn thiện `TokenService` ở `01-setup.md`, không bắt buộc ngay.
 
-Thử gọi `authService.register({ email, password })` với 1 email mới — bạn sẽ thấy đúng 1 User được tạo với role CUSTOMER và đúng 1 EmailVerificationToken đi kèm, `passwordHash` không phải là chuỗi plain text bạn gõ vào. Gọi lại lần 2 với cùng email đó sẽ ném ra `ConflictException` và không có user thứ 2 nào được tạo thêm.
+Thử gọi `authService.register({ email, password })` với 1 email mới: bạn sẽ thấy đúng 1 User được tạo với role CUSTOMER và đúng 1 EmailVerificationToken đi kèm, `passwordHash` không phải là chuỗi plain text bạn gõ vào. Gọi lại lần 2 với cùng email đó sẽ ném ra `ConflictException` và không có user thứ 2 nào được tạo thêm.
 
 ---
 
@@ -328,9 +328,9 @@ export class AuthController {
 }
 ```
 
-`@HttpCode(HttpStatus.CREATED)` đặt status `201` — mặc định `@Post()` của Nest trả `200` nếu không khai báo rõ.
+`@HttpCode(HttpStatus.CREATED)` đặt status `201`: mặc định `@Post()` của Nest trả `200` nếu không khai báo rõ.
 
-Đến đây bạn đã có 1 endpoint hoạt động đầy đủ. Gọi thử qua Postman/curl để tự xác nhận: gửi request hợp lệ phải nhận `201` cùng `{ id, email }`, không có field nào khác lộ ra; gửi lại đúng email đó lần nữa phải nhận `409`; gửi password yếu (vd thiếu ký tự đặc biệt) phải nhận `400`. Cũng nên thử trường hợp `MailService` giả lập throw lỗi (tạm sửa hàm để nó throw) — user vẫn phải được tạo bình thường, chỉ có dòng log lỗi xuất hiện, không có gì crash.
+Đến đây bạn đã có 1 endpoint hoạt động đầy đủ. Gọi thử qua Postman/curl để tự xác nhận: gửi request hợp lệ phải nhận `201` cùng `{ id, email }`, không có field nào khác lộ ra; gửi lại đúng email đó lần nữa phải nhận `409`; gửi password yếu (vd thiếu ký tự đặc biệt) phải nhận `400`. Cũng nên thử trường hợp `MailService` giả lập throw lỗi (tạm sửa hàm để nó throw): user vẫn phải được tạo bình thường, chỉ có dòng log lỗi xuất hiện, không có gì crash.
 
 ---
 

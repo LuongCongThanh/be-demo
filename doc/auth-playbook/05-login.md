@@ -2,7 +2,7 @@
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [04-resend-verification.md](./04-resend-verification.md). Cần tra thuật ngữ thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định thiết kế thì xem [00-overview.md](./00-overview.md).
 
-Đây là endpoint xác thực user, trả Access Token trong response body + set Refresh Token qua cookie (quyết định #17). Phần sinh access token (đáng lẽ là 1 mục riêng trong bản playbook gốc) được gộp thẳng vào đây vì nó là 1 phần bắt buộc của login, không tách rời được. File này khá dài — đăng ký `JwtModule`, viết DTO, sinh access token, viết logic login, rồi set cookie ở Controller — nên chia thành 5 bước.
+Đây là endpoint xác thực user, trả Access Token trong response body + set Refresh Token qua cookie (quyết định #17). Phần sinh access token (đáng lẽ là 1 mục riêng trong bản playbook gốc) được gộp thẳng vào đây vì nó là 1 phần bắt buộc của login, không tách rời được. File này khá dài: đăng ký `JwtModule`, viết DTO, sinh access token, viết logic login, rồi set cookie ở Controller. Vì vậy chia thành 5 bước.
 
 ---
 
@@ -10,7 +10,7 @@
 
 Trước khi sinh được access token, `AuthService` cần có `JwtService` để inject vào.
 
-> 📘 **Khái niệm — `JwtModule.registerAsync()` là gì?** `@nestjs/jwt` cung cấp `JwtModule` — khi import vào `AuthModule`, Nest tự tạo và inject sẵn `JwtService` (có sẵn method `sign()`/`verify()`) cho mọi provider trong module. Dùng `registerAsync()` (thay vì `register()` tĩnh) vì secret/TTL phải đọc từ `ConfigService` — mà `ConfigService` chỉ có giá trị _sau khi_ Nest khởi tạo DI container, nên cần cấu hình "bất đồng bộ" qua factory function.
+> 📘 **Khái niệm: `JwtModule.registerAsync()` là gì?** `@nestjs/jwt` cung cấp `JwtModule`. Khi import vào `AuthModule`, Nest tự tạo và inject sẵn `JwtService` (có sẵn method `sign()`/`verify()`) cho mọi provider trong module. Dùng `registerAsync()` (thay vì `register()` tĩnh) vì secret/TTL phải đọc từ `ConfigService`; mà `ConfigService` chỉ có giá trị _sau khi_ Nest khởi tạo DI container, nên cần cấu hình "bất đồng bộ" qua factory function.
 
 Mở `src/auth/auth.module.ts` và thêm `JwtModule.registerAsync(...)`, đọc secret + TTL qua `ConfigService` chứ không hardcode:
 
@@ -42,9 +42,9 @@ import { TokenService } from './services/token.service';
 export class AuthModule {}
 ```
 
-⚠️ Nếu `AuthModule` hiện tại (từ 01-setup.md, Bước scaffold module) đã có `imports`/`providers` khác (vd `PrismaModule`, `MailModule`), giữ nguyên các dòng đó — chỉ thêm `JwtModule.registerAsync(...)` vào mảng `imports`.
+⚠️ Nếu `AuthModule` hiện tại (từ 01-setup.md, Bước scaffold module) đã có `imports`/`providers` khác (vd `PrismaModule`, `MailModule`), giữ nguyên các dòng đó, chỉ thêm `JwtModule.registerAsync(...)` vào mảng `imports`.
 
-Chạy `npm run build` để chắc không lỗi, rồi thử inject `JwtService` vào constructor `AuthService` (làm ở Bước 3) — nếu bước này đã đúng, sẽ không có lỗi "no provider found".
+Chạy `npm run build` để chắc không lỗi, rồi thử inject `JwtService` vào constructor `AuthService` (làm ở Bước 3). Nếu bước này đã đúng, sẽ không có lỗi "no provider found".
 
 ---
 
@@ -115,17 +115,17 @@ export class LoginResponseDto {
 }
 ```
 
-`AuthUserResponseDto` là DTO dùng chung — [08-me.md](./08-me.md) (`GET /auth/me`) sẽ tái sử dụng lại, không tạo trùng. Xong bước này, cả 3 file chỉ cần build không lỗi là đủ, chưa có logic gì để test.
+`AuthUserResponseDto` là DTO dùng chung: [08-me.md](./08-me.md) (`GET /auth/me`) sẽ tái sử dụng lại, không tạo trùng. Xong bước này, cả 3 file chỉ cần build không lỗi là đủ, chưa có logic gì để test.
 
 ---
 
 ## Bước 3 — Viết hàm sinh access token
 
-Trước khi viết `login()` đầy đủ, tách riêng phần sinh JWT access token thành 1 hàm helper — dùng lại được cả ở đây lẫn ở `06-refresh-token.md` sau này.
+Trước khi viết `login()` đầy đủ, tách riêng phần sinh JWT access token thành 1 hàm helper, dùng lại được cả ở đây lẫn ở `06-refresh-token.md` sau này.
 
-> 📘 **Khái niệm — JWT payload là gì, vì sao không nhét `passwordHash` vào?** JWT (JSON Web Token) gồm 3 phần: header, payload, signature. Payload là dữ liệu **ai cũng đọc được** nếu có token trong tay (chỉ mã hoá base64, không encrypt) — chữ ký (signature) chỉ đảm bảo payload không bị _sửa_, không đảm bảo payload được _giữ bí mật_. Vì vậy tuyệt đối không nhét `passwordHash`, refresh token, hay dữ liệu nhạy cảm vào payload — chỉ nhét thứ cần thiết để nhận diện user (`sub`, `email`, `roles`).
+> 📘 **Khái niệm: JWT payload là gì, vì sao không nhét `passwordHash` vào?** JWT (JSON Web Token) gồm 3 phần: header, payload, signature. Payload là dữ liệu **ai cũng đọc được** nếu có token trong tay (chỉ mã hoá base64, không encrypt). Chữ ký (signature) chỉ đảm bảo payload không bị _sửa_, không đảm bảo payload được _giữ bí mật_. Vì vậy tuyệt đối không nhét `passwordHash`, refresh token, hay dữ liệu nhạy cảm vào payload: chỉ nhét thứ cần thiết để nhận diện user (`sub`, `email`, `roles`).
 >
-> 📘 **Khái niệm — vì sao access token là "stateless"?** JWT tự chứa đủ thông tin để verify (không cần tra DB) — server chỉ cần verify chữ ký bằng secret là biết token hợp lệ hay không, không cần lưu session ở đâu. Ưu điểm: nhanh, không tốn DB. Nhược điểm: **không thể "xoá" 1 token đã phát hành** trước khi nó tự hết hạn — đây là lý do TTL access token phải ngắn (15 phút), xem 00-overview.md, phần Known Gaps § Access-token revocation tức thời.
+> 📘 **Khái niệm: vì sao access token là "stateless"?** JWT tự chứa đủ thông tin để verify (không cần tra DB). Server chỉ cần verify chữ ký bằng secret là biết token hợp lệ hay không, không cần lưu session ở đâu. Ưu điểm: nhanh, không tốn DB. Nhược điểm: **không thể "xoá" 1 token đã phát hành** trước khi nó tự hết hạn. Đây là lý do TTL access token phải ngắn (15 phút), xem 00-overview.md, phần Known Gaps § Access-token revocation tức thời.
 
 Bổ sung vào `src/auth/services/auth.service.ts`:
 
@@ -171,9 +171,9 @@ Kiểm tra nhanh: decode thử access token (vd bằng https://jwt.io hoặc `jw
 
 Đây là phần orchestrate chính: tìm user → check 2 trục trạng thái → verify password → sinh access token + refresh token.
 
-> 📘 **Khái niệm — vì sao "sai email" và "sai password" phải trả cùng 1 lỗi 401?** Nếu trả lỗi khác nhau ("Email không tồn tại" vs "Sai password"), kẻ tấn công dò được **email nào đã đăng ký** bằng cách thử login với password bất kỳ và đọc message — lại là user enumeration (xem 04-resend-verification.md). Login luôn trả `UnauthorizedException` chung chung cho cả 2 case.
+> 📘 **Khái niệm: vì sao "sai email" và "sai password" phải trả cùng 1 lỗi 401?** Nếu trả lỗi khác nhau ("Email không tồn tại" vs "Sai password"), kẻ tấn công dò được **email nào đã đăng ký** bằng cách thử login với password bất kỳ và đọc message: lại là user enumeration (xem 04-resend-verification.md). Login luôn trả `UnauthorizedException` chung chung cho cả 2 case.
 >
-> 📘 **Khái niệm — vì sao check 2 trục (`status` và `emailVerifiedAt`) tách biệt?** Theo quyết định #15 ([00-overview.md](./00-overview.md)), đây là 2 khái niệm độc lập: ADMIN có thể `BLOCKED` 1 tài khoản bất kể đã verify email hay chưa, và 1 tài khoản `ACTIVE` vẫn có thể chưa verify email. Login cần **cả hai** đúng mới cho qua (quyết định #1) — nhưng thông báo lỗi không được lộ chi tiết kiểu "email không tồn tại" cho case bị chặn.
+> 📘 **Khái niệm: vì sao check 2 trục (`status` và `emailVerifiedAt`) tách biệt?** Theo quyết định #15 ([00-overview.md](./00-overview.md)), đây là 2 khái niệm độc lập: ADMIN có thể `BLOCKED` 1 tài khoản bất kể đã verify email hay chưa, và 1 tài khoản `ACTIVE` vẫn có thể chưa verify email. Login cần **cả hai** đúng mới cho qua (quyết định #1). Nhưng thông báo lỗi không được lộ chi tiết kiểu "email không tồn tại" cho case bị chặn.
 
 ```ts
 // src/auth/services/auth.service.ts (thêm vào class AuthService)
@@ -240,9 +240,9 @@ async login(dto: LoginDto): Promise<{
 }
 ```
 
-⚠️ Tên relation `userRoles: { include: { role: true } }` giả định schema dạng `User.userRoles -> UserRole -> Role` (bảng nối `user_roles`) — đối chiếu đúng tên relation/field thật trong `prisma/schema.prisma` (`fullName` cũng có thể không tồn tại nếu schema không có field này — bỏ dòng đó nếu vậy).
+⚠️ Tên relation `userRoles: { include: { role: true } }` giả định schema dạng `User.userRoles -> UserRole -> Role` (bảng nối `user_roles`). Đối chiếu đúng tên relation/field thật trong `prisma/schema.prisma` (`fullName` cũng có thể không tồn tại nếu schema không có field này, bỏ dòng đó nếu vậy).
 
-Để ý `login()` trả `rawRefreshToken` ra ngoài thay vì tự set cookie trong Service — vì **Service không nên biết về HTTP response/cookie**, đó là trách nhiệm của Controller (Bước 5). Giữ Service thuần business logic giúp unit test dễ hơn nhiều (không cần mock `Response`).
+Để ý `login()` trả `rawRefreshToken` ra ngoài thay vì tự set cookie trong Service, vì **Service không nên biết về HTTP response/cookie**, đó là trách nhiệm của Controller (Bước 5). Giữ Service thuần business logic giúp unit test dễ hơn nhiều (không cần mock `Response`).
 
 Tự kiểm tra: login đúng email/password với account `ACTIVE` + đã verify phải trả `accessToken` + `rawRefreshToken` + `user`. Sai password hoặc email không tồn tại phải trả cùng 1 `UnauthorizedException` (401) với message giống hệt nhau. Account `BLOCKED` bị chặn với message khác case sai password (nhưng vẫn không lộ kiểu "email này tồn tại"). Email chưa verify cũng bị chặn.
 
@@ -252,7 +252,7 @@ Tự kiểm tra: login đúng email/password với account `ACTIVE` + đã verif
 
 Bước cuối: expose route `POST /auth/login`, trả access token trong body, set refresh token qua cookie `HttpOnly`+`Secure`+`SameSite`.
 
-> 📘 **Khái niệm — `@Res({ passthrough: true })` là gì, vì sao cần?** Bình thường NestJS tự lo việc set status code + serialize object trả về thành JSON response — bạn chỉ cần `return` 1 object trong method Controller. Nhưng để **set cookie**, bạn cần truy cập trực tiếp đối tượng `Response` của Express (`response.cookie(...)`). Nếu inject `@Res() response: Response` mà không có `passthrough: true`, Nest coi như bạn **tự quản lý toàn bộ response** — `return` trong method sẽ bị bỏ qua, bạn phải tự gọi `response.json(...)`/`response.send(...)` mới trả được dữ liệu. Thêm `{ passthrough: true }` giữ nguyên cơ chế tự động của Nest (vẫn `return` object bình thường) — bạn chỉ dùng `response` để làm thêm việc phụ (set cookie) trước khi Nest tự serialize.
+> 📘 **Khái niệm: `@Res({ passthrough: true })` là gì, vì sao cần?** Bình thường NestJS tự lo việc set status code + serialize object trả về thành JSON response. Bạn chỉ cần `return` 1 object trong method Controller. Nhưng để **set cookie**, bạn cần truy cập trực tiếp đối tượng `Response` của Express (`response.cookie(...)`). Nếu inject `@Res() response: Response` mà không có `passthrough: true`, Nest coi như bạn **tự quản lý toàn bộ response**. `return` trong method sẽ bị bỏ qua, bạn phải tự gọi `response.json(...)`/`response.send(...)` mới trả được dữ liệu. Thêm `{ passthrough: true }` giữ nguyên cơ chế tự động của Nest (vẫn `return` object bình thường). Bạn chỉ dùng `response` để làm thêm việc phụ (set cookie) trước khi Nest tự serialize.
 
 ```ts
 // src/auth/auth.controller.ts (thêm vào class AuthController)
@@ -298,7 +298,7 @@ export class AuthController {
 }
 ```
 
-Gọi thử toàn bộ flow (Bước 1 → 5) qua Postman/curl để tự xác nhận: login đúng phải trả body `{ accessToken, user }`, **không có `refreshToken` trong body**; cookie refresh token được set với đủ flag `HttpOnly` + `Secure` + `SameSite`; sai password / email không tồn tại trả cùng 1 loại lỗi 401; account `BLOCKED` bị chặn với lỗi khác biệt rõ so với sai password nhưng không lộ kiểu enumeration; email chưa verify bị chặn. Khi viết test chính thức ở [13-testing.md](./13-testing.md), case login success cần assert cả 2 chiều: response body không chứa `refreshToken`, và `Set-Cookie` header có đủ flag — không chỉ kiểm tra status code là đủ.
+Gọi thử toàn bộ flow (Bước 1 → 5) qua Postman/curl để tự xác nhận: login đúng phải trả body `{ accessToken, user }`, **không có `refreshToken` trong body**; cookie refresh token được set với đủ flag `HttpOnly` + `Secure` + `SameSite`; sai password / email không tồn tại trả cùng 1 loại lỗi 401; account `BLOCKED` bị chặn với lỗi khác biệt rõ so với sai password nhưng không lộ kiểu enumeration; email chưa verify bị chặn. Khi viết test chính thức ở [13-testing.md](./13-testing.md), case login success cần assert cả 2 chiều: response body không chứa `refreshToken`, và `Set-Cookie` header có đủ flag. Không chỉ kiểm tra status code là đủ.
 
 ---
 

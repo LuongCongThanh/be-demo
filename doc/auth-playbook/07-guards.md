@@ -1,19 +1,19 @@
 # 07 — Guards: JwtAuthGuard, RolesGuard, OwnershipGuard
 
-> Trước khi bắt đầu, đảm bảo bạn đã làm xong [06-refresh-token.md](./06-refresh-token.md) — access token đã sinh được, refresh token đã hoạt động. Cần tra thuật ngữ nào đó thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định thiết kế thì xem [00-overview.md](./00-overview.md).
+> Trước khi bắt đầu, đảm bảo bạn đã làm xong [06-refresh-token.md](./06-refresh-token.md): access token đã sinh được, refresh token đã hoạt động. Cần tra thuật ngữ nào đó thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định thiết kế thì xem [00-overview.md](./00-overview.md).
 
-File này xây 4 lớp bảo vệ route dùng chung cho toàn bộ endpoint cần đăng nhập: xác thực JWT (`JwtAuthGuard`), lấy user hiện tại (`@CurrentUser()`), kiểm tra role (`RolesGuard`), và kiểm tra quyền sở hữu resource (`OwnershipGuard`). Cả 4 việc này liên quan chặt tới nhau — đều chạy trong cùng 1 request pipeline (xem [00-overview.md § Architecture Overview](./00-overview.md)) — nên gộp vào 1 file, chia thành 4 bước.
+File này xây 4 lớp bảo vệ route dùng chung cho toàn bộ endpoint cần đăng nhập: xác thực JWT (`JwtAuthGuard`), lấy user hiện tại (`@CurrentUser()`), kiểm tra role (`RolesGuard`), và kiểm tra quyền sở hữu resource (`OwnershipGuard`). Cả 4 việc này liên quan chặt tới nhau: đều chạy trong cùng 1 request pipeline (xem [00-overview.md § Architecture Overview](./00-overview.md)), nên gộp vào 1 file, chia thành 4 bước.
 
 ---
 
 ## Bước 1 — JwtAuthGuard + JwtStrategy
 
-Đây là guard xác thực access token và gắn `CurrentUser` vào request — guard quan trọng nhất, mọi endpoint cần login đều đi qua nó.
+Đây là guard xác thực access token và gắn `CurrentUser` vào request. Đây là guard quan trọng nhất, mọi endpoint cần login đều đi qua nó.
 
-> 📘 **Khái niệm — Passport Strategy hoạt động thế nào?**
-> Passport (thư viện auth phổ biến, tích hợp vào Nest qua `@nestjs/passport`) làm việc theo mô hình **strategy**: mỗi strategy định nghĩa "lấy credential từ đâu" (ở đây: JWT trong header `Authorization: Bearer <token>`) và "verify credential đó ra sao". Bạn viết 1 class kế thừa `PassportStrategy(Strategy)`, override method `validate(payload)` — Passport tự động gọi `validate()` **sau khi** đã verify chữ ký + hạn JWT thành công, và **giá trị bạn `return` từ `validate()` chính là thứ được gắn vào `request.user`**. Nếu JWT sai chữ ký/hết hạn, Passport tự trả `401` mà không gọi tới `validate()`.
+> 📘 **Khái niệm: Passport Strategy hoạt động thế nào?**
+> Passport (thư viện auth phổ biến, tích hợp vào Nest qua `@nestjs/passport`) làm việc theo mô hình **strategy**: mỗi strategy định nghĩa "lấy credential từ đâu" (ở đây: JWT trong header `Authorization: Bearer <token>`) và "verify credential đó ra sao". Bạn viết 1 class kế thừa `PassportStrategy(Strategy)`, override method `validate(payload)`. Passport tự động gọi `validate()` sau khi đã verify chữ ký + hạn JWT thành công, và **giá trị bạn `return` từ `validate()` chính là thứ được gắn vào `request.user`**. Nếu JWT sai chữ ký/hết hạn, Passport tự trả `401` mà không gọi tới `validate()`.
 >
-> 📘 **Khái niệm — `AuthGuard('jwt')` là gì?** `@nestjs/passport` cung cấp sẵn 1 Guard tổng quát `AuthGuard(strategyName)` — truyền tên strategy (`'jwt'`, đặt tên khi khai báo `PassportStrategy(Strategy, 'jwt')` hoặc mặc định theo tên class) để nó biết dùng strategy nào. `JwtAuthGuard` chỉ là 1 class rỗng kế thừa `AuthGuard('jwt')` — tạo class riêng để dễ dùng `@UseGuards(JwtAuthGuard)` (thay vì `@UseGuards(AuthGuard('jwt'))` lặp lại chuỗi ma thuật ở nhiều nơi) và để sau này dễ override thêm logic nếu cần (vd custom lỗi 401).
+> 📘 **Khái niệm: `AuthGuard('jwt')` là gì?** `@nestjs/passport` cung cấp sẵn 1 Guard tổng quát `AuthGuard(strategyName)`: truyền tên strategy (`'jwt'`, đặt tên khi khai báo `PassportStrategy(Strategy, 'jwt')` hoặc mặc định theo tên class) để nó biết dùng strategy nào. `JwtAuthGuard` chỉ là 1 class rỗng kế thừa `AuthGuard('jwt')`. Tạo class riêng để dễ dùng `@UseGuards(JwtAuthGuard)` (thay vì `@UseGuards(AuthGuard('jwt'))` lặp lại chuỗi ma thuật ở nhiều nơi), và để sau này dễ override thêm logic nếu cần (vd custom lỗi 401).
 
 Mở `src/auth/strategies/jwt.strategy.ts` (đã scaffold rỗng ở [01-setup.md](./01-setup.md)) và viết:
 
@@ -69,7 +69,7 @@ Dùng trên route cần đăng nhập như sau:
 getMe(@CurrentUser() user: JwtPayload) { /* ... */ }
 ```
 
-⚠️ `JwtStrategy` phải được khai báo trong mảng `providers` của `AuthModule` (không phải chỉ tạo file) để Nest biết strategy `'jwt'` tồn tại — kiểm tra lại `auth.module.ts`.
+⚠️ `JwtStrategy` phải được khai báo trong mảng `providers` của `AuthModule` (không phải chỉ tạo file) để Nest biết strategy `'jwt'` tồn tại. Kiểm tra lại `auth.module.ts`.
 
 Tự kiểm tra: gửi request không có header `Authorization` phải nhận `401`. Access token hết hạn hoặc sai chữ ký cũng phải `401`. Access token hợp lệ thì `request.user` phải có đúng payload (`sub`, `email`, `roles`).
 
@@ -79,7 +79,7 @@ Tự kiểm tra: gửi request không có header `Authorization` phải nhận `
 
 Bước này viết 1 decorator để lấy user hiện tại từ request trong controller mà không cần tự inject `Request` thủ công mỗi lần.
 
-> 📘 **Khái niệm — param decorator custom (`createParamDecorator`) hoạt động ra sao?** Nest cho phép tự định nghĩa decorator dùng trên tham số của method controller (giống `@Body()`, `@Param()` có sẵn) bằng `createParamDecorator(factory)`. `factory` nhận `(data, ctx: ExecutionContext)` — `ctx.switchToHttp().getRequest()` lấy về đúng object `Request` của Express/Fastify đang xử lý request hiện tại. Vì `JwtAuthGuard` (Bước 1) đã chạy trước và gắn `request.user = payload`, decorator chỉ cần đọc lại `request.user` ra.
+> 📘 **Khái niệm: param decorator custom (`createParamDecorator`) hoạt động ra sao?** Nest cho phép tự định nghĩa decorator dùng trên tham số của method controller (giống `@Body()`, `@Param()` có sẵn) bằng `createParamDecorator(factory)`. `factory` nhận `(data, ctx: ExecutionContext)`: `ctx.switchToHttp().getRequest()` lấy về đúng object `Request` của Express/Fastify đang xử lý request hiện tại. Vì `JwtAuthGuard` (Bước 1) đã chạy trước và gắn `request.user = payload`, decorator chỉ cần đọc lại `request.user` ra.
 
 Mở `src/auth/decorators/current-user.decorator.ts` (đã scaffold rỗng ở `01-setup.md`) và viết:
 
@@ -104,17 +104,17 @@ getMe(@CurrentUser() user: JwtPayload): Promise<AuthUserResponseDto> {
 }
 ```
 
-⚠️ `@CurrentUser()` **phải** dùng sau `JwtAuthGuard` (guard chạy trước, gắn `request.user` trước khi decorator đọc) — nếu quên `@UseGuards(JwtAuthGuard)`, `request.user` sẽ là `undefined`.
+⚠️ `@CurrentUser()` **phải** dùng sau `JwtAuthGuard` (guard chạy trước, gắn `request.user` trước khi decorator đọc). Nếu quên `@UseGuards(JwtAuthGuard)`, `request.user` sẽ là `undefined`.
 
-Tự kiểm tra: dùng `@CurrentUser() user: JwtPayload` trong 1 controller có `@UseGuards(JwtAuthGuard)` — bạn phải nhận đúng user đang đăng nhập, không phải `undefined`.
+Tự kiểm tra: dùng `@CurrentUser() user: JwtPayload` trong 1 controller có `@UseGuards(JwtAuthGuard)`: bạn phải nhận đúng user đang đăng nhập, không phải `undefined`.
 
 ---
 
 ## Bước 3 — RolesGuard + `@Roles()`
 
-Bước này chặn route theo role, và phải tương thích với role model DB-driven (quyết định #6) — không hardcode enum.
+Bước này chặn route theo role, và phải tương thích với role model DB-driven (quyết định #6): không hardcode enum.
 
-> 📘 **Khái niệm — `SetMetadata` + `Reflector` dùng để "gắn nhãn" lên route rồi đọc lại trong Guard như thế nào?** `SetMetadata(key, value)` gắn 1 cặp key-value vào metadata của method/class (dùng cơ chế `reflect-metadata` của TypeScript) — `@Roles('ADMIN')` thực chất là gọi `SetMetadata('roles', ['ADMIN'])`. Guard không tự "thấy" được decorator này khi chạy — nó phải dùng `Reflector` (Nest tự inject được) gọi `reflector.getAllAndOverride<string[]>('roles', [ctx.getHandler(), ctx.getClass()])` để **đọc lại** giá trị đã gắn. Nếu route không có `@Roles(...)`, `Reflector` trả `undefined` → Guard cho qua (không giới hạn role).
+> 📘 **Khái niệm: `SetMetadata` + `Reflector` dùng để "gắn nhãn" lên route rồi đọc lại trong Guard như thế nào?** `SetMetadata(key, value)` gắn 1 cặp key-value vào metadata của method/class (dùng cơ chế `reflect-metadata` của TypeScript). `@Roles('ADMIN')` thực chất là gọi `SetMetadata('roles', ['ADMIN'])`. Guard không tự "thấy" được decorator này khi chạy. Nó phải dùng `Reflector` (Nest tự inject được) gọi `reflector.getAllAndOverride<string[]>('roles', [ctx.getHandler(), ctx.getClass()])` để đọc lại giá trị đã gắn. Nếu route không có `@Roles(...)`, `Reflector` trả `undefined` → Guard cho qua (không giới hạn role).
 
 Mở `src/auth/decorators/roles.decorator.ts` và viết:
 
@@ -169,9 +169,9 @@ Dùng trên route như sau:
 adminOnlyEndpoint() { /* ... */ }
 ```
 
-⚠️ Thứ tự `@UseGuards(JwtAuthGuard, RolesGuard)` quan trọng — `RolesGuard` cần `request.user` đã có (do `JwtAuthGuard` gắn vào), Nest chạy guard theo đúng thứ tự khai báo trong mảng.
+⚠️ Thứ tự `@UseGuards(JwtAuthGuard, RolesGuard)` quan trọng: `RolesGuard` cần `request.user` đã có (do `JwtAuthGuard` gắn vào); Nest chạy guard theo đúng thứ tự khai báo trong mảng.
 
-Tự kiểm tra: route có `@Roles('ADMIN')`, user không có role ADMIN phải nhận `403`; user có role ADMIN phải qua được. Thử seed thêm 1 role mới (vd `STAFF`) và dùng `@Roles('STAFF')` ở 1 route khác — nó phải hoạt động ngay lập tức, không cần sửa gì trong `RolesGuard`.
+Tự kiểm tra: route có `@Roles('ADMIN')`, user không có role ADMIN phải nhận `403`; user có role ADMIN phải qua được. Thử seed thêm 1 role mới (vd `STAFF`) và dùng `@Roles('STAFF')` ở 1 route khác. Nó phải hoạt động ngay lập tức, không cần sửa gì trong `RolesGuard`.
 
 ---
 
@@ -179,9 +179,9 @@ Tự kiểm tra: route có `@Roles('ADMIN')`, user không có role ADMIN phải 
 
 Bước cuối cùng: chặn user truy cập resource không thuộc về mình, tách biệt khỏi những business rule phức tạp hơn (xem [00-overview.md § Guard vs Service](./00-overview.md)).
 
-> 📘 **Khái niệm — vì sao `OwnershipGuard` cần 1 callback `fetch` thay vì tự biết cách query?** `OwnershipGuard` được viết 1 lần, dùng lại cho nhiều loại resource khác nhau (Order, Cart, Address...) — mỗi loại có bảng/điều kiện query khác nhau. Guard không thể tự "biết" cách lấy 1 `Order` khác cách lấy 1 `Cart`. Giải pháp MVP: decorator `@OwnedResource()` nhận kèm 1 **callback `fetch`** — hàm do người dùng guard (dev viết route Order/Cart sau này) tự định nghĩa cách query đúng resource đó, Guard chỉ gọi lại callback này rồi so `resource.userId` với `currentUser.id`.
+> 📘 **Khái niệm: vì sao `OwnershipGuard` cần 1 callback `fetch` thay vì tự biết cách query?** `OwnershipGuard` được viết 1 lần, dùng lại cho nhiều loại resource khác nhau (Order, Cart, Address...); mỗi loại có bảng/điều kiện query khác nhau. Guard không thể tự "biết" cách lấy 1 `Order` khác cách lấy 1 `Cart`. Giải pháp MVP: decorator `@OwnedResource()` nhận kèm 1 **callback `fetch`**: hàm do người dùng guard (dev viết route Order/Cart sau này) tự định nghĩa cách query đúng resource đó. Guard chỉ gọi lại callback này rồi so `resource.userId` với `currentUser.id`.
 >
-> ⚠️ **Giới hạn đã biết:** cách này khiến callback `fetch` bắt buộc biết cách gọi Prisma trực tiếp (coupling khá chặt), khác với thiết kế "guard hoàn toàn tách biệt khỏi tầng data". Đây là đánh đổi chấp nhận được cho MVP — xem hướng cải tiến ở [00-overview.md § Known Gaps](./00-overview.md).
+> ⚠️ **Giới hạn đã biết:** cách này khiến callback `fetch` bắt buộc biết cách gọi Prisma trực tiếp (coupling khá chặt), khác với thiết kế "guard hoàn toàn tách biệt khỏi tầng data". Đây là đánh đổi chấp nhận được cho MVP; xem hướng cải tiến ở [00-overview.md § Known Gaps](./00-overview.md).
 
 Mở `src/auth/decorators/owned-resource.decorator.ts` và viết:
 
@@ -255,9 +255,9 @@ Ví dụ cách dùng (áp dụng thật khi build Order module sau, đặt ở �
 getOrder(@Param('id') id: string) { /* ... */ }
 ```
 
-Auth module ở đây chỉ cung cấp `OwnershipGuard` + `@OwnedResource()` dạng generic — chưa có route nào dùng thật vì chưa có Order/Cart module. Bạn sẽ áp dụng cụ thể khi build Order module sau (xem [00-overview.md § 1. Scope](./00-overview.md), mục "Sau khi xong Auth MVP").
+Auth module ở đây chỉ cung cấp `OwnershipGuard` + `@OwnedResource()` dạng generic. Chưa có route nào dùng thật vì chưa có Order/Cart module. Bạn sẽ áp dụng cụ thể khi build Order module sau (xem [00-overview.md § 1. Scope](./00-overview.md), mục "Sau khi xong Auth MVP").
 
-Tự kiểm tra: guard này phải compile/chạy được dù chưa có route nào dùng tới — viết 1 route test nội bộ (hoặc để dành verify khi build Order module) để xác nhận user A không truy cập được resource của user B, và user có role ADMIN thì bypass được ownership check.
+Tự kiểm tra: guard này phải compile/chạy được dù chưa có route nào dùng tới. Viết 1 route test nội bộ (hoặc để dành verify khi build Order module) để xác nhận user A không truy cập được resource của user B, và user có role ADMIN thì bypass được ownership check.
 
 ---
 

@@ -1,19 +1,19 @@
 # 13 — Testing (Unit + E2E)
 
-> Trước khi bắt đầu, đảm bảo bạn đã làm xong [12-rate-limiting.md](./12-rate-limiting.md) — toàn bộ endpoint, guard, và rate limit đã implement. Tham chiếu chung: [00-overview.md](./00-overview.md).
+> Trước khi bắt đầu, đảm bảo bạn đã làm xong [12-rate-limiting.md](./12-rate-limiting.md): toàn bộ endpoint, guard, và rate limit đã implement. Tham chiếu chung: [00-overview.md](./00-overview.md).
 
-Toàn bộ service có business logic (`AuthService`, `TokenService`, `PasswordService`) cần có unit test; toàn bộ flow `/auth/*` cần có e2e test — bắt buộc theo `doc/api-conventions.md`, không phải tuỳ chọn.
+Toàn bộ service có business logic (`AuthService`, `TokenService`, `PasswordService`) cần có unit test; toàn bộ flow `/auth/*` cần có e2e test. Đây là yêu cầu bắt buộc theo `doc/api-conventions.md`, không phải tuỳ chọn.
 
-> 📘 **Khái niệm — Unit test vs E2E test, vì sao cần cả 2?**
+> 📘 **Khái niệm: Unit test vs E2E test, vì sao cần cả 2?**
 >
-> |             | Unit test                                                      | E2E test                                                                                                       |
-> | ----------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-> | Test cái gì | 1 class riêng lẻ (vd chỉ `AuthService`)                        | Toàn bộ flow HTTP thật, từ request tới response                                                                |
-> | Dependency  | Mock hết (Prisma, MailService...) — không đụng DB/network thật | Chạy với DB test thật, không mock                                                                              |
-> | Tốc độ      | Rất nhanh (không I/O thật)                                     | Chậm hơn (có I/O thật)                                                                                         |
-> | Bắt lỗi gì  | Logic sai trong 1 hàm (if/else sai, quên check case nào đó)    | Wiring sai giữa các lớp (DI thiếu, route không đúng, Guard không áp dụng, DTO không validate đúng như kỳ vọng) |
+> |             | Unit test                                                     | E2E test                                                                                                       |
+> | ----------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+> | Test cái gì | 1 class riêng lẻ (vd chỉ `AuthService`)                       | Toàn bộ flow HTTP thật, từ request tới response                                                                |
+> | Dependency  | Mock hết (Prisma, MailService...), không đụng DB/network thật | Chạy với DB test thật, không mock                                                                              |
+> | Tốc độ      | Rất nhanh (không I/O thật)                                    | Chậm hơn (có I/O thật)                                                                                         |
+> | Bắt lỗi gì  | Logic sai trong 1 hàm (if/else sai, quên check case nào đó)   | Wiring sai giữa các lớp (DI thiếu, route không đúng, Guard không áp dụng, DTO không validate đúng như kỳ vọng) |
 >
-> Unit test không bắt được lỗi kiểu "quên đăng ký Guard vào route" (vì mock hết, không chạy Guard thật) — đó là lý do auth (nơi Guard/pipeline bảo mật cực kỳ quan trọng) **bắt buộc phải có e2e test**, không thể chỉ dựa vào unit test.
+> Unit test không bắt được lỗi kiểu "quên đăng ký Guard vào route" (vì mock hết, không chạy Guard thật). Đó là lý do auth (nơi Guard/pipeline bảo mật cực kỳ quan trọng) bắt buộc phải có e2e test, không thể chỉ dựa vào unit test.
 
 ---
 
@@ -27,7 +27,7 @@ npm run test:watch    # chạy lại tự động khi sửa code — dùng khi �
 npm run test:cov      # kèm coverage report
 ```
 
-> 📘 **Khái niệm — `Test.createTestingModule` + `overrideProvider`:** NestJS cung cấp `@nestjs/testing` để dựng 1 "module giả lập" chỉ chứa provider cần test, thay các dependency thật (`PrismaService`, `MailService`...) bằng mock object (`jest.fn()`). Nhờ vậy test chạy độc lập, không cần DB/SMTP thật, và assert được chính xác "AuthService gọi đúng hàm nào với tham số nào".
+> 📘 **Khái niệm: `Test.createTestingModule` + `overrideProvider`?** NestJS cung cấp `@nestjs/testing` để dựng 1 "module giả lập" chỉ chứa provider cần test, thay các dependency thật (`PrismaService`, `MailService`...) bằng mock object (`jest.fn()`). Nhờ vậy test chạy độc lập, không cần DB/SMTP thật, và assert được chính xác "AuthService gọi đúng hàm nào với tham số nào".
 
 Ví dụ unit test cho `AuthService.register()`:
 
@@ -97,7 +97,7 @@ describe('AuthService.register', () => {
 });
 ```
 
-Viết tương tự cho `TokenService` (assert xoá token cũ trước khi tạo mới, assert raw token không bị lưu vào DB) và `PasswordService` (assert `hash()` 2 lần cho ra 2 chuỗi khác nhau nhưng cùng `verify()` đúng — đã tự thử ở [02-register.md](./02-register.md), Bước 2). Mục tiêu cuối cùng của bước này: unit test cho `AuthService`, `TokenService`, `PasswordService` pass, cover đủ các nhánh chính — happy path lẫn lỗi domain (duplicate email, token hết hạn, password sai...).
+Viết tương tự cho `TokenService` (assert xoá token cũ trước khi tạo mới, assert raw token không bị lưu vào DB) và `PasswordService` (assert `hash()` 2 lần cho ra 2 chuỗi khác nhau nhưng cùng `verify()` đúng; đã tự thử ở [02-register.md](./02-register.md), Bước 2). Mục tiêu cuối cùng của bước này: unit test cho `AuthService`, `TokenService`, `PasswordService` pass, cover đủ các nhánh chính, gồm cả happy path lẫn lỗi domain (duplicate email, token hết hạn, password sai...).
 
 ---
 
@@ -109,7 +109,7 @@ File cần tạo: `test/auth.e2e-spec.ts` (hoặc theo cấu trúc `test/` hiệ
 npm run test:e2e   # đảm bảo DATABASE_URL trỏ DB test trước khi chạy, không phải DB dev
 ```
 
-> 📘 **Khái niệm — `supertest`:** thư viện gửi HTTP request thật tới app NestJS đã bootstrap trong bộ nhớ (không cần chạy `npm run start` riêng), rồi assert trên response thật (status code, body, header — kể cả `Set-Cookie`). Đây là cách duy nhất để test được toàn bộ pipeline Guard → Controller → Service → DB thật.
+> 📘 **Khái niệm: `supertest`?** Thư viện gửi HTTP request thật tới app NestJS đã bootstrap trong bộ nhớ (không cần chạy `npm run start` riêng), rồi assert trên response thật (status code, body, header, kể cả `Set-Cookie`). Đây là cách duy nhất để test được toàn bộ pipeline Guard → Controller → Service → DB thật.
 
 Ví dụ e2e test cho `POST /auth/register`:
 
@@ -183,7 +183,7 @@ describe('Auth (e2e)', () => {
 });
 ```
 
-Viết tương tự cho `login` (assert `Set-Cookie` có đủ `HttpOnly`/`Secure`/`SameSite`, assert body không có `refreshToken`), `refresh` (rotation + reuse detection — gọi lại cookie cũ sau khi đã rotate phải nhận 401), `logout`/`logout-all`, `forgot-password`/`reset-password`, `RolesGuard`/`OwnershipGuard`.
+Viết tương tự cho `login` (assert `Set-Cookie` có đủ `HttpOnly`/`Secure`/`SameSite`, assert body không có `refreshToken`), `refresh` (rotation + reuse detection: gọi lại cookie cũ sau khi đã rotate phải nhận 401), `logout`/`logout-all`, `forgot-password`/`reset-password`, `RolesGuard`/`OwnershipGuard`.
 
 Dùng bảng dưới đây để double-check không sót nhóm test nào khi review lại toàn bộ ("✓" = bắt buộc có ít nhất 1 test case, unit hoặc e2e tuỳ nhóm, cho ô đó):
 
@@ -203,7 +203,7 @@ Dùng bảng dưới đây để double-check không sót nhóm test nào khi re
 | OwnershipGuard                       |     ✓      |     –      |  ✓   |    ✓     |     ✓     |
 | Rate limiting (per endpoint)         |     ✓      |     –      |  –   |    ✓     |     ✓     |
 
-"Security" = test riêng cho các rule ở [00-overview.md § 5. Security Rules](./00-overview.md) (không leak field, không lộ enumeration, rate limit hoạt động, reuse detection revoke đúng phạm vi...). Mỗi endpoint đã có sẵn danh sách case cụ thể ngay trong đoạn "tự kiểm tra" của file tương ứng (vd [02-register.md](./02-register.md), [06-refresh-token.md](./06-refresh-token.md)...) — bảng này chỉ để tra chéo cho khỏi sót nhóm.
+"Security" = test riêng cho các rule ở [00-overview.md § 5. Security Rules](./00-overview.md) (không leak field, không lộ enumeration, rate limit hoạt động, reuse detection revoke đúng phạm vi...). Mỗi endpoint đã có sẵn danh sách case cụ thể ngay trong đoạn "tự kiểm tra" của file tương ứng (vd [02-register.md](./02-register.md), [06-refresh-token.md](./06-refresh-token.md)...); bảng này chỉ để tra chéo cho khỏi sót nhóm.
 
 Coi bước này là xong khi: `npm run test` pass không có test nào bị skip mà không rõ lý do; `npm run test:cov` đạt threshold coverage của project (xem [00-overview.md § Definition of Done](./00-overview.md)); `npm run test:e2e` pass với DB test riêng (không trỏ nhầm sang DB dev/production); và mỗi hàng "✓" trong bảng trên đã có ít nhất 1 test case tương ứng.
 
