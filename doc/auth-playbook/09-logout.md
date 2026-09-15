@@ -51,7 +51,7 @@ async logout(
   // 05-login.md / 06-refresh-token.md — xem concept box phía trên.
   response.clearCookie(cookieName, { path: '/auth' });
 
-  return { message: 'Đã đăng xuất' };
+  return { message: 'Logged out' };
 }
 ```
 
@@ -89,7 +89,7 @@ async logoutAll(
   const cookieName = this.config.get<string>('REFRESH_TOKEN_COOKIE_NAME', 'refresh_token');
   response.clearCookie(cookieName, { path: '/auth' }); // path khớp Bước 1
 
-  return { message: 'Đã đăng xuất khỏi tất cả thiết bị' };
+  return { message: 'Logged out of all devices' };
 }
 ```
 

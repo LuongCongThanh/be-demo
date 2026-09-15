@@ -7,7 +7,7 @@ Giờ tất cả endpoint đã hoạt động, bước tiếp theo là giảm r�
 > 📘 **Khái niệm — `ThrottlerGuard`/`@Throttle()` hoạt động thế nào?**
 > `@nestjs/throttler` đếm số request tới 1 route trong 1 khoảng thời gian (`ttl`), theo 1 "key" nhận diện request (mặc định là IP — `req.ip`). Vượt quá `limit` request trong khoảng `ttl` đó → tự động trả `429 Too Many Requests`, code trong Controller/Service không chạy tới. Cơ chế đếm là dạng cửa sổ trượt/cố định tuỳ version package (v5+ dùng thuật toán khác v4) — không cần quan tâm chi tiết thuật toán cho MVP, chỉ cần biết: **mỗi route có thể có `ttl`/`limit` riêng qua decorator `@Throttle()`**, ghi đè lên default khai ở `ThrottlerModule.forRoot()`.
 >
-> ⚠️ **Mặc định tracker là IP, KHÔNG tự có per-email.** Muốn giới hạn "1 request / 60 giây / email" (như `forgot-password`/`resend-verification` bên dưới), phải tự viết 1 `Guard` kế thừa `ThrottlerGuard` và override cách sinh "tracker key" — tên method cụ thể **khác nhau giữa các major version của `@nestjs/throttler`** (`getTracker()` ở v4, cách khác ở v5+). **Chạy `npm ls @nestjs/throttler` để biết version đã cài ở [01-setup.md](./01-setup.md) (bước cài package), rồi đối chiếu lại API đúng version đó trong doc chính thức trước khi paste code override bên dưới** — code mẫu ở đây viết theo API v5 (`getTracker`/`generateKey` nhận thêm `req`), có thể cần chỉnh nếu repo cài version khác.
+> ⚠️ **Mặc định tracker là IP, KHÔNG tự có per-email.** Muốn giới hạn "1 request / 60 giây / email" (như `forgot-password`/`resend-verification` bên dưới), cách trực giác là viết 1 `Guard` kế thừa `ThrottlerGuard` và override cách sinh "tracker key" — nhưng cách đó khiến guard mới **cộng dồn** với guard global (Bước 2) thay vì thay thế nó (xem cảnh báo ⚠️ ở Bước 3), vì cả 2 đều đọc chung metadata theo tên throttler. Bài này viết `EmailThrottlerGuard` như 1 Guard độc lập, không kế thừa `ThrottlerGuard`, để tránh hẳn vấn đề đó — không phụ thuộc version `@nestjs/throttler` đã cài.
 
 ---
 
@@ -48,21 +48,80 @@ export class AppModule {}
 
 ## Bước 3 — Custom tracker theo email
 
-`login` chặn theo IP là đủ, nhưng `forgot-password`/`resend-verification` cần chặn theo **email** (vd để 2 IP khác nhau cùng spam 1 email vẫn bị chặn) — tracker mặc định của `@nestjs/throttler` không tự làm được việc này, bạn cần viết 1 Guard riêng kế thừa `ThrottlerGuard` và override cách sinh key:
+`login` chặn theo IP là đủ, nhưng `forgot-password`/`resend-verification` cần chặn theo **email** (vd để 2 IP khác nhau cùng spam 1 email vẫn bị chặn) — tracker mặc định của `@nestjs/throttler` không tự làm được việc này.
+
+> ⚠️ **Vì sao KHÔNG kế thừa `ThrottlerGuard` cho guard này?** Guard toàn cục (Bước 2, `ThrottlerGuard` tracker IP) và 1 guard riêng gắn ở route qua `@UseGuards(...)` **CỘNG DỒN, không ghi đè nhau** — NestJS chạy cả 2 guard cho cùng 1 route. Nếu `EmailThrottlerGuard` kế thừa `ThrottlerGuard` và dùng chung throttler `'default'` (qua `@Throttle({ default: {...} })`), cả 2 guard sẽ cùng đọc chung 1 metadata đó — route bị giới hạn _đồng thời_ theo cả IP (guard global) lẫn email (guard riêng), có thể chặn nhầm (vd 2 email khác nhau, cùng IP, bị guard global chặn ở request thứ 2 dù mỗi email đều chưa vượt limit). Tách sang throttler tên riêng hay dùng `@SkipThrottle()` đều không chắc an toàn (metadata theo tên throttler được mọi Guard cùng đọc, và 1 throttler mới khai ở `forRoot()` áp dụng cho **toàn bộ** route trong app, không chỉ 2 route này). Cách chắc chắn không đụng nhau: viết guard này **độc lập hoàn toàn**, không kế thừa `ThrottlerGuard`, tự quản lý bộ đếm riêng — không chia sẻ bất kỳ state/metadata nào với guard global.
 
 ```ts
 // src/auth/guards/email-throttler.guard.ts
-import { Injectable } from '@nestjs/common';
-import { ThrottlerGuard, ThrottlerRequest } from '@nestjs/throttler';
+import { CanActivate, ExecutionContext, Injectable, HttpException, HttpStatus } from '@nestjs/common';
 
+const LIMIT = 1;
+const TTL_MS = 60_000;
+
+/**
+ * Guard độc lập, KHÔNG kế thừa ThrottlerGuard — tự đếm request theo email
+ * bằng 1 Map in-memory riêng, không đụng gì tới guard global (Bước 2) hay
+ * cơ chế throttler/metadata chuẩn của @nestjs/throttler. Nhờ vậy nó không
+ * thể bị cộng dồn/xung đột với guard global dù cấu hình global thay đổi
+ * thế nào.
+ *
+ * ⚠️ Giới hạn đã biết:
+ * - Map chỉ tồn tại trong bộ nhớ của 1 process — nếu app chạy nhiều
+ *   instance (horizontal scaling) phía sau load balancer, mỗi instance
+ *   đếm riêng, limit thực tế sẽ lỏng hơn con số khai báo (vd 3 instance ~
+ *   giới hạn thực tế gần 3 lần). Chấp nhận được cho MVP; nếu cần đúng
+ *   tuyệt đối khi scale nhiều instance, thay Map bằng lưu trữ dùng chung
+ *   (vd Redis).
+ * - Key đếm gồm CẢ route lẫn email (`${route}:${email}`), KHÔNG chỉ email
+ *   — nếu chỉ dùng email làm key, guard này (dùng chung 1 instance
+ *   singleton cho mọi route gắn `@UseGuards(EmailThrottlerGuard)`) sẽ đếm
+ *   CHUNG 1 counter cho `forgot-password` và `resend-verification`, khiến
+ *   user gọi 2 API khác nhau với cùng email trong 60s bị chặn nhầm dù mỗi
+ *   API riêng lẻ chưa vượt limit.
+ * - `setInterval` dọn định kỳ các entry đã hết hạn — nếu không, Map phình
+ *   to dần vô hạn theo số lượng email/IP distinct đã từng gọi (rò rỉ bộ
+ *   nhớ khi chạy lâu dài với traffic thật), vì entry chỉ được ghi đè khi
+ *   đúng key đó có request mới, không tự bị xoá khi hết hạn mà không ai gọi lại.
+ */
 @Injectable()
-export class EmailThrottlerGuard extends ThrottlerGuard {
-  // Sinh key theo email đã normalize (lowercase, trim) thay vì theo IP.
-  // ⚠️ Chữ ký method/tên method chính xác phụ thuộc version @nestjs/throttler
-  // đã cài — kiểm tra lại theo `npm ls @nestjs/throttler` trước khi dùng.
-  protected async getTracker(req: Record<string, any>): Promise<string> {
+export class EmailThrottlerGuard implements CanActivate {
+  private readonly hits = new Map<string, { count: number; resetAt: number }>();
+
+  constructor() {
+    // Dọn entry hết hạn mỗi TTL_MS để Map không phình to vô hạn theo thời
+    // gian. unref() để không giữ process sống chỉ vì timer này (không cản
+    // graceful shutdown).
+    setInterval(() => {
+      const now = Date.now();
+      for (const [key, entry] of this.hits) {
+        if (entry.resetAt <= now) this.hits.delete(key);
+      }
+    }, TTL_MS).unref();
+  }
+
+  canActivate(context: ExecutionContext): boolean {
+    const req = context.switchToHttp().getRequest<Record<string, any>>();
     const email = (req.body?.email ?? '').toString().trim().toLowerCase();
-    return email || req.ip; // fallback về IP nếu body chưa có email (vd lỗi validate)
+    // Gồm cả route trong key — 2 route khác nhau dùng chung guard này
+    // (forgot-password, resend-verification) không được đếm chung 1 bucket.
+    const route = req.route?.path ?? req.url;
+    const key = `${route}:${email || req.ip}`; // fallback IP nếu body chưa có email
+
+    const now = Date.now();
+    const entry = this.hits.get(key);
+
+    if (!entry || entry.resetAt <= now) {
+      this.hits.set(key, { count: 1, resetAt: now + TTL_MS });
+      return true;
+    }
+
+    if (entry.count >= LIMIT) {
+      throw new HttpException('Too many requests', HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    entry.count += 1;
+    return true;
   }
 }
 ```
@@ -75,7 +134,7 @@ Giờ gắn threshold cụ thể cho từng endpoint theo quyết định #11. C
 
 ```ts
 // src/auth/auth.controller.ts
-import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { UseGuards } from '@nestjs/common';
 import { EmailThrottlerGuard } from './guards/email-throttler.guard';
 
@@ -86,15 +145,18 @@ export class AuthController {
   @Post('login')
   async login(/* ... */) {}
 
-  // forgot-password / resend-verification: 1 request / 60s / email — cần
-  // custom tracker theo email, không phải theo IP.
+  // forgot-password / resend-verification: 1 request / 60s / email — dùng
+  // EmailThrottlerGuard riêng (Bước 3), guard này tự quản lý limit/ttl nội
+  // bộ (không dùng @Throttle() vì nó không kế thừa ThrottlerGuard). Guard
+  // global (Bước 2, 20/phút/IP) vẫn chạy song song — CỐ Ý giữ lại, đây là
+  // lớp bảo vệ RỘNG bổ sung (chặn spam thô bạo từ 1 IP bất kể email), còn
+  // EmailThrottlerGuard là lớp CHẶT hơn nhắm riêng theo email. 2 lớp không
+  // xung đột vì độc lập hoàn toàn (xem cảnh báo ⚠️ ở Bước 3).
   @UseGuards(EmailThrottlerGuard)
-  @Throttle({ default: { limit: 1, ttl: 60_000 } })
   @Post('forgot-password')
   async forgotPassword(/* ... */) {}
 
   @UseGuards(EmailThrottlerGuard)
-  @Throttle({ default: { limit: 1, ttl: 60_000 } })
   @Post('resend-verification')
   async resendVerification(/* ... */) {}
 

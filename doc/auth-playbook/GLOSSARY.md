@@ -59,6 +59,7 @@
 - **DTO** (Data Transfer Object, `*.dto.ts`) — 1 class định nghĩa hình dạng dữ liệu request/response, vd `RegisterDto` có `email`, `password`. Gắn kèm decorator validate (`@IsEmail()`, `@MinLength()`...) để Nest tự kiểm tra input.
 - **Pipe / `ValidationPipe`** — đoạn code chạy để biến đổi/kiểm tra dữ liệu đầu vào trước khi vào Controller. `ValidationPipe` (bật global trong `main.ts`) tự động đọc decorator trên DTO và trả `400` nếu input sai — không cần tự viết `if` kiểm tra tay.
 - **Guard** (`*.guard.ts`) — đoạn code chạy **trước** khi request tới Controller, quyết định request có được đi tiếp hay không (return `true`/`false`, hoặc `throw`). Ví dụ: `JwtAuthGuard` chặn request không có token hợp lệ. Xem `07-guards.md`.
+- **Interceptor** (`*.interceptor.ts`) — đoạn code "bọc quanh" (wrap) Controller, chạy được cả **trước** (trước Pipe, có thể sửa/log request) lẫn **sau** (sau khi Controller `return`, có thể sửa/log response trước khi gửi về client) — khác Guard/Pipe chỉ chạy 1 chiều (trước). Playbook Auth này không cần viết Interceptor riêng, chỉ nhắc tên vì nó là 1 trong 3 "lớp" cùng nhóm với Guard/Pipe trong request lifecycle — xem mục 7.1.
 - **`ExecutionContext`** — object Guard/Interceptor/param decorator nhận được, chứa thông tin về request hiện tại (route nào, class nào, HTTP request gốc...). Gọi `context.switchToHttp().getRequest()` để lấy về `Request` (Express) từ đó.
 - **`Reflector` + `SetMetadata`** — cơ chế "gắn nhãn lên route rồi đọc lại trong Guard". `SetMetadata(key, value)` gắn dữ liệu vào metadata của method (vd `@Roles('ADMIN')` thực chất gọi `SetMetadata('roles', ['ADMIN'])`), `Reflector` dùng để đọc lại giá trị đó lúc Guard chạy. Xem `07-guards.md § RolesGuard`.
 - **Param decorator custom** (`createParamDecorator`) — cách tự định nghĩa decorator dùng trên tham số của method Controller, giống `@Body()`/`@Param()` có sẵn nhưng tự viết logic lấy dữ liệu (vd `@CurrentUser()` đọc `request.user`). Xem `07-guards.md`.
@@ -129,22 +130,17 @@ Mỗi request HTTP đi vào app đều chạy qua đúng 1 chuỗi các "lớp" 
 flowchart TD
     Start([Request đến]) --> MW["1 · Middleware<br/><i>vd cookie-parser</i>"]
     MW --> G["2 · Guard<br/><i>JwtAuthGuard, RolesGuard...</i>"]
-    G -- "chặn (false/throw)" --> Err["❌ 401 / 403<br/>dừng ngay, Controller<br/>KHÔNG BAO GIỜ chạy"]
+    G -- "chặn (false/throw)" --> EF["7 · Exception Filter<br/><i>biến lỗi thành status code chuẩn</i>"]
     G -- "cho qua (true)" --> IB["3 · Interceptor (before)"]
     IB --> P["4 · Pipe<br/><i>ValidationPipe</i>"]
-    P -- "input sai" --> Err2["❌ 400<br/>dừng ngay"]
+    P -- "input sai" --> EF
     P -- "input hợp lệ" --> C["5 · Controller handler"]
     C --> S["Service<br/><i>business logic</i>"]
-    S --> IA["6 · Interceptor (after)"]
+    S -- "throw exception" --> EF
+    S -- "return thành công" --> IA["6 · Interceptor (after)"]
     IA --> Resp([Response về client])
-
-    S -- "throw exception" --> EF["7 · Exception Filter<br/><i>biến lỗi thành status code chuẩn</i>"]
     EF --> Resp
-    Err -.-> Resp
-    Err2 -.-> Resp
 
-    style Err fill:#5a1f1f,stroke:#c0392b,color:#fff
-    style Err2 fill:#5a1f1f,stroke:#c0392b,color:#fff
     style EF fill:#5a4a1f,stroke:#d4a017,color:#fff
     style Resp fill:#1f4a2e,stroke:#2ecc71,color:#fff
 ```

@@ -40,7 +40,7 @@ export class RegisterDto {
   // RegisterDto hoạt động đúng ngay.
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, {
     message:
-      'Password phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt',
+      'Password must be at least 8 characters long and include uppercase, lowercase, a number, and a special character',
   })
   password: string;
 }
@@ -148,15 +148,11 @@ export class MailService {
     // MVP: log ra console thay vì gọi SMTP/SES thật — đủ để dev/test flow.
     // Khi có provider email thật, thay thân hàm này bằng lời gọi SDK tương ứng,
     // KHÔNG cần đổi chữ ký hàm hay chỗ gọi từ AuthService.
-    this.logger.log(
-      `[DEV] Gửi verification email tới ${to}: token=${rawToken}`,
-    );
+    this.logger.log(`[DEV] Sending verification email to ${to}: token=${rawToken}`);
   }
 
   async sendPasswordResetEmail(to: string, rawToken: string): Promise<void> {
-    this.logger.log(
-      `[DEV] Gửi reset-password email tới ${to}: token=${rawToken}`,
-    );
+    this.logger.log(`[DEV] Sending password reset email to ${to}: token=${rawToken}`);
   }
 }
 ```
@@ -202,7 +198,7 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new ConflictException('Email đã được sử dụng');
+      throw new ConflictException('Email already in use');
     }
 
     // 2. Hash password TRƯỚC transaction — hash không phụ thuộc DB, không cần
@@ -240,10 +236,7 @@ export class AuthService {
     try {
       await this.mailService.sendVerificationEmail(user.email, rawToken);
     } catch (err) {
-      this.logger.error(
-        `Gửi verification email thất bại cho ${user.email}`,
-        err as Error,
-      );
+      this.logger.error(`Failed to send verification email to ${user.email}`, err as Error);
       // Không throw lại — user vẫn được tạo, có thể resend-verification (03-verify-email.md/04-resend-verification.md).
     }
 

@@ -94,7 +94,7 @@ Tài liệu này mô tả cách implement **Authentication & Authorization MVP**
 
 ### Lỗi cần sửa kèm trong `doc/module-auth.md`
 
-- Bảng API tổng kết ở mục 26 thiếu dòng `POST /auth/logout-all`.
+- Bảng API tổng kết ở mục 4 thiếu dòng `POST /auth/logout-all`.
 - Xem thêm [Known Gaps](#10-known-gaps) để cập nhật đồng bộ 2 file.
 
 ---
@@ -133,7 +133,7 @@ OwnershipGuard        (kiểm tra resource.userId === currentUser.id, nếu rout
       ↓
 Controller
       ↓
-Service               (business rule sâu hơn ownership — xem quy tắc Guard vs Service ở mục 6)
+Service               (business rule sâu hơn ownership — xem quy tắc Guard vs Service ở mục 5)
 ```
 
 ### Thứ tự triển khai tổng quát (theo tên file trong `doc/auth-playbook/`)
@@ -179,7 +179,7 @@ Service               (business rule sâu hơn ownership — xem quy tắc Guard
 
 ---
 
-## 6. Security Rules
+## 5. Security Rules
 
 - Không lưu raw password.
 - Không lưu raw refresh/reset/verification token — chỉ lưu hash.
@@ -251,7 +251,7 @@ Không bao giờ trả: `passwordHash`, `refreshTokens`/refresh token thô (dù 
 
 ---
 
-## 7. Shared Services
+## 6. Shared Services
 
 | Service           | Trách nhiệm                                                                                       | Vị trí                                                        |
 | ----------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -325,7 +325,7 @@ Nếu gửi mail fail: log lại, **không rollback DB** — user đã tồn t�
 
 ---
 
-## 8. Testing Strategy
+## 7. Testing Strategy
 
 Theo `doc/api-conventions.md`: nhóm `auth` là **bắt buộc phải có e2e test**. Unit test bắt buộc cho mọi service có business logic (`AuthService`, `TokenService`, `PasswordService`).
 
@@ -345,11 +345,11 @@ Theo `doc/api-conventions.md`: nhóm `auth` là **bắt buộc phải có e2e te
 | OwnershipGuard                       |     ✓      |     –      |  ✓   |    ✓     |     ✓     |
 | Rate limiting (per endpoint)         |     ✓      |     –      |  –   |    ✓     |     ✓     |
 
-"Security" cột ở trên = test riêng cho các rule ở mục 6 (không leak field, không lộ enumeration, rate limit có hoạt động, reuse detection có revoke đúng phạm vi...). Chi tiết test case đầy đủ nằm trong [13-testing.md](./13-testing.md).
+"Security" cột ở trên = test riêng cho các rule ở mục 5 (không leak field, không lộ enumeration, rate limit có hoạt động, reuse detection có revoke đúng phạm vi...). Chi tiết test case đầy đủ nằm trong [13-testing.md](./13-testing.md).
 
 ---
 
-## 9. Definition of Done
+## 8. Definition of Done
 
 Auth MVP chỉ được coi là hoàn thành khi:
 
@@ -370,7 +370,7 @@ Auth MVP chỉ được coi là hoàn thành khi:
 - [ ] OwnershipGuard hoạt động (chỉ ownership, business rule để ở Service)
 - [ ] Rate limiting hoạt động trên `login`, `forgot-password`, `resend-verification`, `register`, `verify-email`, `refresh` (per-email tracking cho 2 endpoint cần custom, không phải default throttler)
 - [ ] Refresh token luôn nằm trong cookie `HttpOnly`+`Secure`+`SameSite`, không bao giờ xuất hiện trong response body/log
-- [ ] Mọi response `/auth/*` dùng đúng Response DTO ở bảng mục 6 (không có endpoint nào trả object nội bộ)
+- [ ] Mọi response `/auth/*` dùng đúng Response DTO ở bảng mục 5 (không có endpoint nào trả object nội bộ)
 - [ ] Không leak sensitive field (passwordHash, tokenHash...) qua bất kỳ response nào
 - [ ] Toàn bộ error response của `/auth/*` tuân theo error envelope chung `{ statusCode, message }` (theo `doc/api-conventions.md` §7 — lưu ý `PrismaExceptionFilter` global **chưa được implement** trong repo, là gap đã biết non-blocking; lỗi domain đã biết trước ở auth (409 email tồn tại, 401 sai credential...) phải tự ném exception có message rõ ràng ở service, không phó mặc cho filter chưa tồn tại)
 - [ ] Unit tests pass (`npm run test`)
@@ -386,7 +386,7 @@ Auth MVP chỉ được coi là hoàn thành khi:
 
 ---
 
-## 10. Known Gaps
+## 9. Known Gaps
 
 Các điểm cố ý để ngoài scope MVP này, ghi lại để không bị quên và không bị hiểu nhầm là thiếu sót:
 

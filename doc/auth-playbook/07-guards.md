@@ -88,12 +88,10 @@ Mở `src/auth/decorators/current-user.decorator.ts` (đã scaffold rỗng ở `
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { JwtPayload } from '../strategies/jwt.strategy';
 
-export const CurrentUser = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext): JwtPayload => {
-    const request = ctx.switchToHttp().getRequest();
-    return request.user;
-  },
-);
+export const CurrentUser = createParamDecorator((_data: unknown, ctx: ExecutionContext): JwtPayload => {
+  const request = ctx.switchToHttp().getRequest();
+  return request.user;
+});
 ```
 
 Dùng trong controller như sau:
@@ -142,10 +140,10 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     if (!requiredRoles || requiredRoles.length === 0) {
       return true; // route không khai @Roles(...) → không giới hạn
     }
@@ -196,33 +194,20 @@ export interface OwnedResourceOptions {
   /** Tên param trong route chứa id của resource, vd 'id' trong `/orders/:id`. */
   paramIdKey: string;
   /** Callback tự query resource theo id, trả về object có field `userId` (hoặc null nếu không tồn tại). */
-  fetch: (
-    id: string,
-    prisma: PrismaService,
-  ) => Promise<{ userId: string } | null>;
+  fetch: (id: string, prisma: PrismaService) => Promise<{ userId: string } | null>;
 }
 
 export const OWNED_RESOURCE_KEY = 'ownedResource';
-export const OwnedResource = (options: OwnedResourceOptions) =>
-  SetMetadata(OWNED_RESOURCE_KEY, options);
+export const OwnedResource = (options: OwnedResourceOptions) => SetMetadata(OWNED_RESOURCE_KEY, options);
 ```
 
 Rồi mở `src/auth/guards/ownership.guard.ts` và viết:
 
 ```ts
 // src/auth/guards/ownership.guard.ts
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import {
-  OWNED_RESOURCE_KEY,
-  OwnedResourceOptions,
-} from '../decorators/owned-resource.decorator';
+import { OWNED_RESOURCE_KEY, OwnedResourceOptions } from '../decorators/owned-resource.decorator';
 import { PrismaService } from '../../prisma/prisma.service'; // chỉnh path đúng repo
 import { JwtPayload } from '../strategies/jwt.strategy';
 
@@ -234,10 +219,7 @@ export class OwnershipGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const options = this.reflector.get<OwnedResourceOptions>(
-      OWNED_RESOURCE_KEY,
-      context.getHandler(),
-    );
+    const options = this.reflector.get<OwnedResourceOptions>(OWNED_RESOURCE_KEY, context.getHandler());
     if (!options) return true; // route không khai @OwnedResource(...) → không áp dụng
 
     const request = context.switchToHttp().getRequest();
@@ -253,7 +235,7 @@ export class OwnershipGuard implements CanActivate {
       throw new NotFoundException();
     }
     if (resource.userId !== user.sub) {
-      throw new ForbiddenException('Không có quyền truy cập resource này');
+      throw new ForbiddenException('You do not have permission to access this resource');
     }
     return true;
   }

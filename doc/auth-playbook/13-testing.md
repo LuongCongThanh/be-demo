@@ -70,18 +70,16 @@ describe('AuthService.register', () => {
     authService = moduleRef.get(AuthService);
   });
 
-  it('ném ConflictException khi email đã tồn tại', async () => {
+  it('throws ConflictException when email already exists', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'existing-user' });
 
-    await expect(
-      authService.register({ email: 'a@b.com', password: 'Abc@1234' }),
-    ).rejects.toThrow(ConflictException);
+    await expect(authService.register({ email: 'a@b.com', password: 'Abc@1234' })).rejects.toThrow(ConflictException);
 
     // Không được đi tiếp tới bước hash/transaction khi email đã tồn tại.
     expect(passwordService.hash).not.toHaveBeenCalled();
   });
 
-  it('tạo user + gửi mail khi email chưa tồn tại', async () => {
+  it('creates user and sends email when email does not exist', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
     prisma.$transaction.mockResolvedValue({
       user: { id: 'new-user', email: 'a@b.com' },
@@ -94,10 +92,7 @@ describe('AuthService.register', () => {
     });
 
     expect(result).toEqual({ id: 'new-user', email: 'a@b.com' });
-    expect(mailService.sendVerificationEmail).toHaveBeenCalledWith(
-      'a@b.com',
-      'raw-token-abc',
-    );
+    expect(mailService.sendVerificationEmail).toHaveBeenCalledWith('a@b.com', 'raw-token-abc');
   });
 });
 ```
@@ -154,7 +149,7 @@ describe('Auth (e2e)', () => {
     });
   });
 
-  it('POST /auth/register → 201 khi thành công', async () => {
+  it('POST /auth/register -> 201 on success', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/register')
       .send({ email: 'new-user@e2e-test.local', password: 'Abc@1234' })
@@ -167,7 +162,7 @@ describe('Auth (e2e)', () => {
     expect(res.body.passwordHash).toBeUndefined(); // Response DTO không leak field nhạy cảm
   });
 
-  it('POST /auth/register → 409 khi email đã tồn tại', async () => {
+  it('POST /auth/register -> 409 when email already exists', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
       .send({ email: 'dup@e2e-test.local', password: 'Abc@1234' })
@@ -179,7 +174,7 @@ describe('Auth (e2e)', () => {
       .expect(409);
   });
 
-  it('POST /auth/register → 400 khi password không đủ policy', async () => {
+  it('POST /auth/register -> 400 when password does not meet policy', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
       .send({ email: 'weak@e2e-test.local', password: 'abc12345' })
@@ -208,7 +203,7 @@ Dùng bảng dưới đây để double-check không sót nhóm test nào khi re
 | OwnershipGuard                       |     ✓      |     –      |  ✓   |    ✓     |     ✓     |
 | Rate limiting (per endpoint)         |     ✓      |     –      |  –   |    ✓     |     ✓     |
 
-"Security" = test riêng cho các rule ở [00-overview.md § 6. Security Rules](./00-overview.md) (không leak field, không lộ enumeration, rate limit hoạt động, reuse detection revoke đúng phạm vi...). Mỗi endpoint đã có sẵn danh sách case cụ thể ngay trong đoạn "tự kiểm tra" của file tương ứng (vd [02-register.md](./02-register.md), [06-refresh-token.md](./06-refresh-token.md)...) — bảng này chỉ để tra chéo cho khỏi sót nhóm.
+"Security" = test riêng cho các rule ở [00-overview.md § 5. Security Rules](./00-overview.md) (không leak field, không lộ enumeration, rate limit hoạt động, reuse detection revoke đúng phạm vi...). Mỗi endpoint đã có sẵn danh sách case cụ thể ngay trong đoạn "tự kiểm tra" của file tương ứng (vd [02-register.md](./02-register.md), [06-refresh-token.md](./06-refresh-token.md)...) — bảng này chỉ để tra chéo cho khỏi sót nhóm.
 
 Coi bước này là xong khi: `npm run test` pass không có test nào bị skip mà không rõ lý do; `npm run test:cov` đạt threshold coverage của project (xem [00-overview.md § Definition of Done](./00-overview.md)); `npm run test:e2e` pass với DB test riêng (không trỏ nhầm sang DB dev/production); và mỗi hàng "✓" trong bảng trên đã có ít nhất 1 test case tương ứng.
 

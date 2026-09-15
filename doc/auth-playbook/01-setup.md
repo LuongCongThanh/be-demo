@@ -87,15 +87,13 @@ async function main() {
   const email = process.env.ADMIN_BOOTSTRAP_EMAIL;
   const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
   if (!email || !password) {
-    throw new Error(
-      'Thiếu ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD trong .env',
-    );
+    throw new Error('Missing ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD in .env');
   }
 
   // 3. Idempotent: nếu admin đã tồn tại (theo email) thì bỏ qua, không tạo lại
   const existingAdmin = await prisma.user.findUnique({ where: { email } });
   if (existingAdmin) {
-    console.log(`Admin ${email} đã tồn tại, bỏ qua.`);
+    console.log(`Admin ${email} already exists, skipping.`);
     return;
   }
 
@@ -109,7 +107,7 @@ async function main() {
       userRoles: { create: [{ roleId: adminRole.id }] },
     },
   });
-  console.log(`Đã tạo admin ${email}.`);
+  console.log(`Created admin ${email}.`);
 }
 
 main()
@@ -312,9 +310,9 @@ Kiểm tra: `src/app.module.ts` đã import `AuthModule` và `MailModule`, và `
 
 ## Bước 5 — Password policy
 
-Password cần đáp ứng quyết định #9 (hoa + thường + số + ký tự đặc biệt, ≥ 8 ký tự) — dùng chung cho `RegisterDto` (02-register.md) và `ResetPasswordDto` (11-reset-password.md). Không cần tạo file riêng cho quy tắc này — viết trực tiếp vào từng DTO cần validate password, hoặc (khuyến nghị) tách thành 1 custom decorator dùng chung để không lặp code.
+Password cần đáp ứng quyết định #9 (hoa + thường + số + ký tự đặc biệt, ≥ 8 ký tự) — dùng chung cho `RegisterDto` (02-register.md) và `ResetPasswordDto` (11-reset-password.md). Vì đúng 1 rule này được dùng ở 2 DTO khác nhau, bước này **bắt buộc tách thành 1 custom decorator dùng chung** (`@IsStrongPassword()`) — không viết riêng lẻ vào từng DTO, để tránh copy-paste regex 2 lần.
 
-> 📘 **Khái niệm — vì sao nên tách thành decorator dùng chung thay vì copy-paste regex 2 lần?** `RegisterDto` và `ResetPasswordDto` đều cần đúng 1 rule password. Nếu copy `@Matches(regex)` vào 2 file, sau này đổi policy (vd tăng độ dài tối thiểu) phải nhớ sửa cả 2 chỗ — dễ sót. Gom vào 1 decorator dùng lại (`@IsStrongPassword()`) chỉ cần sửa 1 nơi.
+> 📘 **Khái niệm — vì sao bắt buộc tách thành decorator dùng chung thay vì copy-paste regex 2 lần?** `RegisterDto` và `ResetPasswordDto` đều cần đúng 1 rule password. Nếu copy `@Matches(regex)` vào 2 file, sau này đổi policy (vd tăng độ dài tối thiểu) phải nhớ sửa cả 2 chỗ — dễ sót, và 2 DTO có thể lệch nhau theo thời gian mà không ai để ý. Gom vào 1 decorator dùng lại chỉ cần sửa 1 nơi, đảm bảo 2 DTO luôn cùng 1 rule.
 
 Tạo file `src/auth/decorators/is-strong-password.decorator.ts`:
 
@@ -332,7 +330,7 @@ export function IsStrongPassword() {
     MinLength(8),
     Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, {
       message:
-        'Password phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt',
+        'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character',
     }),
   );
 }
@@ -354,7 +352,7 @@ export class RegisterDto {
 
 Nếu bạn đã lỡ viết trực tiếp `@MinLength(8)` + `@Matches(...)` vào `RegisterDto` ở `02-register.md`, quay lại thay bằng `@IsStrongPassword()` khi làm tới bước này — không bắt buộc làm ngay lập tức nếu `02-register.md` đã xong và chạy được, nhưng nên dọn lại trước khi làm `11-reset-password.md` để không copy-paste regex lần 2.
 
-Thử password `abc12345` (thiếu hoa + ký tự đặc biệt) — phải bị từ chối (`400`). Thử `Abc@1234` — phải hợp lệ. Và cả `RegisterDto` lẫn `ResetPasswordDto` nên dùng chung 1 decorator `IsStrongPassword()`, không có regex trùng lặp ở 2 nơi khác nhau.
+Thử password `abc12345` (thiếu hoa + ký tự đặc biệt) — phải bị từ chối (`400`). Thử `Abc@1234` — phải hợp lệ. Và cả `RegisterDto` lẫn `ResetPasswordDto` phải dùng chung 1 decorator `IsStrongPassword()`, không có regex trùng lặp ở 2 nơi khác nhau.
 
 ---
 

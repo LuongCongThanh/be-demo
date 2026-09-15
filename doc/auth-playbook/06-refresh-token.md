@@ -89,7 +89,7 @@ async refreshToken(rawRefreshToken: string | undefined): Promise<{
   newRawRefreshToken: string;
 }> {
   if (!rawRefreshToken) {
-    throw new UnauthorizedException('Thiếu refresh token');
+    throw new UnauthorizedException('Missing refresh token');
   }
 
   const tokenHash = this.tokenService.hashRawToken(rawRefreshToken);
@@ -99,7 +99,7 @@ async refreshToken(rawRefreshToken: string | undefined): Promise<{
   });
 
   if (!record) {
-    throw new UnauthorizedException('Refresh token không hợp lệ');
+    throw new UnauthorizedException('Invalid refresh token');
   }
 
   // --- Reuse detection (quyết định #3) ---
@@ -109,12 +109,12 @@ async refreshToken(rawRefreshToken: string | undefined): Promise<{
       data: { revokedAt: new Date() },
     });
     throw new UnauthorizedException(
-      'Refresh token đã bị thu hồi — toàn bộ phiên đăng nhập đã bị đăng xuất vì lý do bảo mật',
+      'Refresh token has been revoked — all login sessions have been logged out for security reasons',
     );
   }
 
   if (record.expiresAt < new Date()) {
-    throw new UnauthorizedException('Refresh token đã hết hạn');
+    throw new UnauthorizedException('Refresh token has expired');
   }
 
   // --- Rotation: revoke token cũ, tạo token mới ---
@@ -158,6 +158,10 @@ import { RefreshResponseDto } from './dto/refresh-response.dto';
 
 // ... trong class AuthController
 
+// Route này KHÔNG có @UseGuards(JwtAuthGuard) — cố ý, vì lúc gọi /auth/refresh
+// access token cũ thường đã hết hạn (đó chính là lý do cần refresh). Route tự
+// xác thực bằng refresh token đọc từ cookie (qua authService.refreshToken()),
+// không phụ thuộc JwtAuthGuard/access token còn hiệu lực hay không.
 @Post('refresh')
 @HttpCode(HttpStatus.OK)
 async refresh(

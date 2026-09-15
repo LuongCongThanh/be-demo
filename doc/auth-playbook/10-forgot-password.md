@@ -43,7 +43,7 @@ Thêm method mới vào `src/auth/services/auth.service.ts`, dùng chung `TokenS
 // src/auth/services/auth.service.ts (thêm method)
 async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
   const GENERIC_MESSAGE = {
-    message: 'Nếu email tồn tại, một link reset password đã được gửi.',
+    message: 'If the email exists, a password reset link has been sent.',
   };
 
   const user = await this.prisma.user.findUnique({
@@ -66,7 +66,7 @@ async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
     await this.mailService.sendPasswordResetEmail(user.email, rawToken);
   } catch (err) {
     this.logger.error(
-      `Gửi reset-password email thất bại cho ${user.email}`,
+      `Failed to send password reset email to ${user.email}`,
       err as Error,
     );
     // Không throw lại — vẫn trả message chung chung như case thành công,

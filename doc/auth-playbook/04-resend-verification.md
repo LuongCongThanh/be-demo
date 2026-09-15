@@ -49,7 +49,7 @@ import { ResendVerificationDto } from '../dto/resend-verification.dto';
 // ... trong class AuthService
 
 private static readonly GENERIC_RESEND_MESSAGE =
-  'Nếu email tồn tại và chưa xác thực, một email xác thực mới đã được gửi.';
+  'If the email exists and is not yet verified, a new verification email has been sent.';
 
 async resendVerification(
   dto: ResendVerificationDto,
@@ -76,7 +76,7 @@ async resendVerification(
     await this.mailService.sendVerificationEmail(user.email, rawToken);
   } catch (err) {
     this.logger.error(
-      `Gửi lại verification email thất bại cho ${user.email}`,
+      `Failed to resend verification email to ${user.email}`,
       err as Error,
     );
     // Không throw lại — vẫn trả message chung chung như case thành công,

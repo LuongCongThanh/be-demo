@@ -50,7 +50,7 @@ Chạy `npm run build` để chắc không lỗi, rồi thử inject `JwtService
 
 ## Bước 2 — Viết DTO cho input login và 2 response DTO
 
-Bạn cần 3 class: dữ liệu login client gửi lên, và 2 DTO response theo đúng allow-list ở [00-overview.md § 6](./00-overview.md).
+Bạn cần 3 class: dữ liệu login client gửi lên, và 2 DTO response theo đúng allow-list ở [00-overview.md § 5](./00-overview.md).
 
 ```powershell
 New-Item src/auth/dto/login.dto.ts -ItemType File   # PowerShell
@@ -153,11 +153,7 @@ export class AuthService {
    * liệu cá nhân không cần thiết (JWT payload không được mã hoá, ai cũng đọc
    * được nếu có token).
    */
-  private signAccessToken(user: {
-    id: string;
-    email: string;
-    roles: string[];
-  }): string {
+  private signAccessToken(user: { id: string; email: string; roles: string[] }): string {
     return this.jwtService.sign({
       sub: user.id,
       email: user.email,
@@ -198,7 +194,7 @@ async login(dto: LoginDto): Promise<{
 
   // Không tồn tại → lỗi generic, KHÔNG phân biệt với sai password.
   if (!user) {
-    throw new UnauthorizedException('Email hoặc password không đúng');
+    throw new UnauthorizedException('Invalid email or password');
   }
 
   const passwordValid = await this.passwordService.verify(
@@ -206,16 +202,16 @@ async login(dto: LoginDto): Promise<{
     dto.password,
   );
   if (!passwordValid) {
-    throw new UnauthorizedException('Email hoặc password không đúng');
+    throw new UnauthorizedException('Invalid email or password');
   }
 
   // Kiểm tra CẢ HAI trục (quyết định #15) — SAU khi đã xác nhận password
   // đúng, để không lộ thêm thông tin cho kẻ đoán sai password.
   if (user.status === 'BLOCKED') {
-    throw new UnauthorizedException('Tài khoản đã bị khoá');
+    throw new UnauthorizedException('Account is locked');
   }
   if (!user.emailVerifiedAt) {
-    throw new UnauthorizedException('Email chưa được xác thực');
+    throw new UnauthorizedException('Email is not verified');
   }
 
   const roles = user.userRoles.map((ur) => ur.role.name);
@@ -234,7 +230,11 @@ async login(dto: LoginDto): Promise<{
       email: user.email,
       fullName: user.fullName ?? null,
       roles,
-      emailVerified: true,
+      // Derive từ dữ liệu thật (không hardcode `true`): tại điểm này chắc
+      // chắn email đã verify (đã check ở trên), nhưng derive vẫn an toàn
+      // hơn — nếu logic check phía trên đổi mà quên sửa dòng này, hardcode
+      // `true` sẽ âm thầm trả sai, còn derive luôn phản ánh đúng trạng thái.
+      emailVerified: !!user.emailVerifiedAt,
     },
   };
 }
@@ -275,17 +275,10 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(
-    @Body() dto: LoginDto,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<LoginResponseDto> {
-    const { accessToken, rawRefreshToken, user } =
-      await this.authService.login(dto);
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response): Promise<LoginResponseDto> {
+    const { accessToken, rawRefreshToken, user } = await this.authService.login(dto);
 
-    const cookieName = this.config.get<string>(
-      'REFRESH_TOKEN_COOKIE_NAME',
-      'refresh_token',
-    );
+    const cookieName = this.config.get<string>('REFRESH_TOKEN_COOKIE_NAME', 'refresh_token');
     // ⚠️ path phải khớp ĐÚNG prefix route auth thực tế của app — nếu main.ts
     // có `app.setGlobalPrefix('api')`, route thật là `/api/auth/*` và path ở
     // đây PHẢI là '/api/auth', không phải '/auth' cứng nhắc. Kiểm tra main.ts

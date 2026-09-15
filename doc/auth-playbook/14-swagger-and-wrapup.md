@@ -44,10 +44,10 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  @ApiOperation({ summary: 'Đăng ký tài khoản CUSTOMER mới' })
+  @ApiOperation({ summary: 'Register a new CUSTOMER account' })
   @ApiResponse({ status: 201, type: RegisterResponseDto })
-  @ApiResponse({ status: 409, description: 'Email đã tồn tại' })
-  @ApiResponse({ status: 400, description: 'Input không hợp lệ' })
+  @ApiResponse({ status: 409, description: 'Email already exists' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     /* ... */
@@ -74,7 +74,7 @@ Kiểm tra 2 điều: mọi endpoint `/auth/*` phải xuất hiện trong Swagge
 
 Cập nhật `doc/module-auth.md` theo danh sách sau:
 
-- Bảng API tổng kết (mục 26) có đủ dòng `POST /auth/logout-all` — kiểm tra lại, có thể đã có sẵn từ trước (không phải do bước này), không cần sửa nếu đã đúng.
+- Bảng API tổng kết (mục 4) có đủ dòng `POST /auth/logout-all` — kiểm tra lại, có thể đã có sẵn từ trước (không phải do bước này), không cần sửa nếu đã đúng.
 - Bổ sung đoạn mô tả reuse detection (và giới hạn access-token không bị revoke ngay) vào mục liên quan tới refresh token.
 - Bổ sung đoạn admin bootstrap (mục mới, mô tả seed script tạo ADMIN — không có endpoint HTTP tạo ADMIN).
 - Làm rõ 2 trục trạng thái (Account status vs Email verification) ở mục mô tả User — tránh gộp mơ hồ như bản gốc.

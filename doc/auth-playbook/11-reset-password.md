@@ -13,7 +13,7 @@ Endpoint cuối cùng của flow quên mật khẩu: đặt lại password bằn
 
 Client cần gửi 3 thứ: token nhận từ email, password mới, và confirmPassword để so khớp. Bước này dùng lại `IsStrongPassword()` đã viết ở [01-setup.md](./01-setup.md), phần password policy, cộng thêm 1 custom validator để so khớp `confirmPassword`.
 
-> 📘 **Khái niệm — `@ValidateIf` / custom validator so khớp 2 field:** `class-validator` validate từng field độc lập theo mặc định — để so sánh 2 field với nhau (password vs confirmPassword) cần 1 custom decorator đọc được toàn bộ object đang validate qua `ValidationArguments.object`.
+> 📘 **Khái niệm — custom validator so khớp 2 field:** `class-validator` validate từng field độc lập theo mặc định — để so sánh 2 field với nhau (password vs confirmPassword) cần 1 custom decorator (`@Validate(SomeConstraint)`) đọc được toàn bộ object đang validate qua `ValidationArguments.object`, thay vì chỉ đọc giá trị của riêng field đó.
 
 Tạo file `src/auth/dto/reset-password.dto.ts`:
 
@@ -44,12 +44,12 @@ class MatchesPasswordConstraint implements ValidatorConstraintInterface {
     return confirmPassword === dto.password;
   }
   defaultMessage() {
-    return 'confirmPassword phải khớp với password';
+    return 'confirmPassword must match password';
   }
 }
 
 export class ResetPasswordDto {
-  @ApiProperty({ description: 'Raw token nhận được qua email' })
+  @ApiProperty({ description: 'Raw token received via email' })
   @IsString()
   token: string;
 
@@ -92,7 +92,7 @@ async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
     // Không phân biệt "không tồn tại" / "đã dùng" / "hết hạn" trong message
     // trả về client — tránh lộ thông tin thừa, nhưng KHÔNG cần giấu như
     // forgot-password (đây là bước sau khi đã có token, không phải dò email).
-    throw new BadRequestException('Token không hợp lệ hoặc đã hết hạn');
+    throw new BadRequestException('Invalid or expired token');
   }
 
   const newPasswordHash = await this.passwordService.hash(dto.password);
@@ -114,7 +114,7 @@ async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
     }),
   ]);
 
-  return { message: 'Password đã được đặt lại. Vui lòng đăng nhập lại.' };
+  return { message: 'Password has been reset. Please log in again.' };
 }
 ```
 
