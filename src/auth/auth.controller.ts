@@ -1,6 +1,15 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiConflictResponse, ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { VerifyEmailDto } from './dto/verify-email.dto.js';
+import { MessageResponseDto } from './dto/message-response.dto.js';
 import { AuthService } from './services/auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { RegisterResponseDto } from './dto/register-response.dto.js';
@@ -23,9 +32,10 @@ export class AuthController {
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email address' })
-  @ApiCreatedResponse({ description: 'Email verified successfully' })
-  @ApiBadRequestResponse({ description: 'Invalid token' })
-  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<{ message: string }> {
+  @ApiOkResponse({ type: MessageResponseDto, description: 'Email verified successfully' })
+  @ApiNotFoundResponse({ description: 'Token not found' })
+  @ApiBadRequestResponse({ description: 'Token already used or expired' })
+  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<MessageResponseDto> {
     return this.authService.verifyEmail(dto);
   }
 }

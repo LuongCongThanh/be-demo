@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, Logger, NotFoundExc
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { VerifyEmailDto } from '../dto/verify-email.dto.js';
+import { MessageResponseDto } from '../dto/message-response.dto.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
 import { MailService } from '../../mail/mail.service.js';
@@ -93,7 +94,7 @@ export class AuthService {
     return { id: user.id, email: user.email };
   }
 
-  async verifyEmail(dto: VerifyEmailDto): Promise<{ message: string }> {
+  async verifyEmail(dto: VerifyEmailDto): Promise<MessageResponseDto> {
     const tokenHash = this.tokenService.hashRawToken(dto.token);
 
     const record = await this.prisma.emailVerificationToken.findUnique({
