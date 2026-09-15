@@ -31,10 +31,10 @@ export class AuthController {
 
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify email address' })
+  @ApiOperation({ summary: 'Verify email address using the 6-digit code sent by email' })
   @ApiOkResponse({ type: MessageResponseDto, description: 'Email verified successfully' })
-  @ApiNotFoundResponse({ description: 'Token not found' })
-  @ApiBadRequestResponse({ description: 'Token already used or expired' })
+  @ApiNotFoundResponse({ description: 'Invalid email or code' })
+  @ApiBadRequestResponse({ description: 'Code already used or expired' })
   async verifyEmail(@Body() dto: VerifyEmailDto): Promise<MessageResponseDto> {
     return this.authService.verifyEmail(dto);
   }

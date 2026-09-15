@@ -8,7 +8,7 @@
 
 ## Bước 1 — Tạo "form đăng ký" (RegisterDto)
 
-Trước khi viết logic, bạn cần mô tả rõ ràng dữ liệu mà client phải gửi lên khi đăng ký: `email` và `password`. Trong NestJS, việc này làm qua 1 class gọi là DTO (Data Transfer Object).
+Trước khi viết logic, bạn cần mô tả rõ ràng dữ liệu mà client phải gửi lên khi đăng ký: `email`, `password`, `fullName` và `phone`. Trong NestJS, việc này làm qua 1 class gọi là DTO (Data Transfer Object).
 
 Tạo file `src/auth/dto/register.dto.ts`:
 
@@ -25,28 +25,37 @@ NestJS có sẵn `ValidationPipe` (thường bật global trong `main.ts`) tự 
 ```ts
 // src/auth/dto/register.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
+import { IsStrongPassword } from '../decorators/is-strong-password.decorator.js';
 
 export class RegisterDto {
   @ApiProperty({ example: 'user@example.com' })
   @IsEmail()
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'Abc@1234' })
   @IsString()
-  @MinLength(8)
-  // Áp dụng luôn password policy (quyết định #9) — chi tiết đầy đủ về pattern
-  // và test case ở 01-setup.md § Password policy, ở đây dùng luôn để
-  // RegisterDto hoạt động đúng ngay.
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, {
-    message:
-      'Password must be at least 8 characters long and include uppercase, lowercase, a number, and a special character',
-  })
-  password: string;
+  // Áp dụng luôn password policy (quyết định #9). Decorator này bọc đúng
+  // pattern/test case đã mô tả ở 01-setup.md § Password policy, không lặp
+  // lại @Matches thủ công ở từng DTO.
+  @IsStrongPassword()
+  password!: string;
+
+  @ApiProperty({ example: 'John Doe' })
+  @IsNotEmpty()
+  @IsString()
+  fullName!: string;
+
+  @ApiProperty({ example: '0912345678' })
+  @IsString()
+  @Matches(/^[0-9+\-\s]{8,15}$/, { message: 'phone must be a valid phone number' })
+  phone!: string;
 }
 ```
 
-Chạy `npm run build` để chắc chắn file không lỗi cú pháp. Bạn chưa gọi được route nào ở bước này cả, chỉ mới có "hình dạng" dữ liệu. Nếu muốn tin chắc validate hoạt động, thử tạo 1 instance với `password: 'abc'` ở đâu đó tạm thời và chạy qua `class-validator`: bạn sẽ thấy lỗi validate bật lên ngay. Việc này để dành verify chính thức khi xong Bước 6.
+`fullName`/`phone` là 2 field **bắt buộc**, không phải optional: nếu thiếu hoặc rỗng, `ValidationPipe` chặn ngay ở tầng DTO với `400 Bad Request`, request không chạm tới `AuthController`/`AuthService`. `fullName` chỉ cần `@IsNotEmpty()` (không trim khoảng trắng thừa hay giới hạn ký tự đặc biệt ở MVP này); `phone` dùng `@Matches()` với pattern chấp nhận số, `+`, `-`, khoảng trắng, dài 8–15 ký tự — đủ lỏng để nhận cả số nội địa và số có mã quốc gia, không cố phân biệt định dạng theo từng nước.
+
+Chạy `npm run build` để chắc chắn file không lỗi cú pháp. Bạn chưa gọi được route nào ở bước này cả, chỉ mới có "hình dạng" dữ liệu. Nếu muốn tin chắc validate hoạt động, thử tạo 1 instance thiếu `fullName` hoặc `phone` sai định dạng và chạy qua `class-validator`: bạn sẽ thấy lỗi validate bật lên ngay. Việc này để dành verify chính thức khi xong Bước 6.
 
 ---
 
@@ -79,18 +88,20 @@ export class PasswordService {
 
 ---
 
-## Bước 3 — Sinh token xác thực email (TokenService)
+## Bước 3 — Sinh mã xác thực email (TokenService)
 
-Sau khi tạo user, bạn cần gửi cho họ 1 link xác thực email, và link đó phải chứa 1 token không ai đoán được. Bước này viết phần tối thiểu để sinh token đó. Bản đầy đủ dùng chung cho cả reset-password/refresh sẽ hoàn thiện ở [01-setup.md § TokenService đầy đủ](./01-setup.md), ở đây chỉ cần đủ cho Register chạy được.
+Sau khi tạo user, bạn cần gửi cho họ 1 mã xác thực email (OTP 6 số) không ai đoán được trong thời gian ngắn. Bước này viết phần tối thiểu để sinh mã đó. Bản đầy đủ dùng chung cho cả reset-password/refresh sẽ hoàn thiện ở [01-setup.md § TokenService đầy đủ](./01-setup.md), ở đây chỉ cần đủ cho Register chạy được.
 
-> 📘 **Khái niệm: vì sao token gửi qua email khác với token lưu trong DB?**
-> Nếu lưu thẳng token gốc (raw token) vào DB, ai đọc được DB (backup leak, SQL injection...) sẽ dùng được token đó luôn, giống hệt như lưu raw password. Cách làm đúng: sinh token ngẫu nhiên (`rawToken`), gửi `rawToken` qua email cho user, nhưng chỉ lưu `hash(rawToken)` vào DB. Khi user click link chứa `rawToken`, server hash lại và so khớp với `tokenHash` trong DB, không cần lưu bản gốc mà vẫn xác minh được.
+> 📘 **Khái niệm: vì sao mã gửi qua email khác với giá trị lưu trong DB?**
+> Nếu lưu thẳng mã gốc (raw code) vào DB, ai đọc được DB (backup leak, SQL injection...) sẽ dùng được mã đó luôn, giống hệt như lưu raw password. Cách làm đúng: sinh mã ngẫu nhiên (`rawCode`), gửi `rawCode` qua email cho user, nhưng chỉ lưu `hash(rawCode)` vào DB. Khi user nhập mã vào form verify, server hash lại và so khớp với `tokenHash` trong DB, không cần lưu bản gốc mà vẫn xác minh được.
+>
+> 📘 **Khái niệm: vì sao dùng mã 6 số thay vì chuỗi ngẫu nhiên dài (raw token)?** Mã 6 số dễ đọc/gõ tay hơn (user nhận mail, tự nhập vào form), phù hợp UX kiểu OTP. Đánh đổi: không gian chỉ còn 1 triệu khả năng (so với 2^256 của token 32-byte hex), nên phải bù lại bằng thời hạn ngắn (10 phút, so với 24h của token cũ) và bắt buộc endpoint verify nhận kèm `email` để giới hạn phạm vi so khớp (xem `03-verify-email.md`).
 
 Mở `src/auth/services/token.service.ts` (đã scaffold rỗng ở `01-setup.md`) và viết:
 
 ```ts
 // src/auth/services/token.service.ts
-import { randomBytes, createHash } from 'crypto';
+import { randomInt, createHash } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service'; // chỉnh lại path đúng với vị trí PrismaService trong repo
 
@@ -98,30 +109,31 @@ import { PrismaService } from '../../prisma/prisma.service'; // chỉnh lại pa
 export class TokenService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Sinh token ngẫu nhiên (raw) + hash SHA-256 của nó. */
-  private generate(): { rawToken: string; tokenHash: string } {
-    const rawToken = randomBytes(32).toString('hex');
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
-    return { rawToken, tokenHash };
+  /** Sinh mã 6 số ngẫu nhiên (raw) + hash SHA-256 của nó. */
+  private generate(): { rawCode: string; tokenHash: string } {
+    const rawCode = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const tokenHash = createHash('sha256').update(rawCode).digest('hex');
+    return { rawCode, tokenHash };
   }
 
   /**
    * Tạo Email Verification Token mới cho user — xoá token cũ chưa dùng trước
-   * (quyết định #8), trả về rawToken để gửi qua email (không lưu raw vào DB).
+   * (quyết định #8), trả về rawCode (mã 6 số) để gửi qua email (không lưu
+   * raw vào DB).
    */
   async createEmailVerificationToken(userId: string): Promise<string> {
     await this.prisma.emailVerificationToken.deleteMany({
       where: { userId, verifiedAt: null },
     });
 
-    const { rawToken, tokenHash } = this.generate();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h, đủ dùng cho MVP
+    const { rawCode, tokenHash } = this.generate();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 phút — ngắn vì không gian mã chỉ 1 triệu khả năng
 
     await this.prisma.emailVerificationToken.create({
       data: { userId, tokenHash, expiresAt },
     });
 
-    return rawToken;
+    return rawCode;
   }
 }
 ```
@@ -139,25 +151,87 @@ Mở `src/mail/mail.service.ts` (đã scaffold rỗng ở `01-setup.md`):
 ```ts
 // src/mail/mail.service.ts
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import nodemailer, { type Transporter } from 'nodemailer';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
+  private readonly transporter: Transporter | null;
+  private readonly from: string;
 
-  async sendVerificationEmail(to: string, rawToken: string): Promise<void> {
-    // MVP: log ra console thay vì gọi SMTP/SES thật — đủ để dev/test flow.
-    // Khi có provider email thật, thay thân hàm này bằng lời gọi SDK tương ứng,
-    // KHÔNG cần đổi chữ ký hàm hay chỗ gọi từ AuthService.
-    this.logger.log(`[DEV] Sending verification email to ${to}: token=${rawToken}`);
+  constructor(private readonly config: ConfigService) {
+    const host = this.config.get<string>('SMTP_HOST');
+    const port = this.config.get<string>('SMTP_PORT');
+    const user = this.config.get<string>('SMTP_USER');
+    const pass = this.config.get<string>('SMTP_PASS');
+
+    this.from = this.config.get<string>('SMTP_FROM', 'no-reply@example.com');
+
+    // Chỉ tạo transporter thật khi đủ 4 biến SMTP_*. Thiếu 1 trong 4 → coi
+    // như "chưa cấu hình", rơi về nhánh log-only bên dưới. Nhờ vậy local
+    // dev/CI không cần credential thật vẫn chạy được, không throw lỗi khi
+    // thiếu env.
+    this.transporter =
+      host && port && user && pass
+        ? nodemailer.createTransport({
+            host,
+            port: Number(port),
+            secure: Number(port) === 465, // 465 = implicit TLS; 587/25 dùng STARTTLS
+            auth: { user, pass },
+          })
+        : null;
+
+    if (!this.transporter) {
+      this.logger.warn(
+        'SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS not fully set — emails will only be logged, not actually sent. See .env.example.',
+      );
+    }
   }
 
-  async sendPasswordResetEmail(to: string, rawToken: string): Promise<void> {
-    this.logger.log(`[DEV] Sending password reset email to ${to}: token=${rawToken}`);
+  async sendVerificationEmail(to: string, code: string): Promise<void> {
+    if (!this.transporter) {
+      // Dev/CI fallback: chưa cấu hình SMTP, không thử gửi thật.
+      // KHÔNG log code (quy tắc bảo mật, 00-overview.md §5) — đó là 1
+      // secret còn dùng được để verify. Chỉ log việc "sẽ gửi" là đủ.
+      this.logger.log(`[DEV] Would send verification email to ${to}`);
+      return;
+    }
+
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: 'Verify your email address',
+      html: `<p>Your email verification code is:</p><p style="font-size:24px;font-weight:bold">${code}</p><p>This code expires in 10 minutes.</p>`,
+      text: `Your email verification code is: ${code} (expires in 10 minutes)`,
+    });
   }
 }
 ```
 
-Với MVP, gọi thẳng hàm này chỉ in ra log console: đủ để bạn thấy flow chạy đúng trong lúc dev, chưa cần cấu hình SMTP thật. Gọi thử `sendVerificationEmail('a@b.com', 'xyz')` để chắc nó in log đúng và không throw lỗi gì.
+**Vì sao code như vậy:**
+
+- Gọi provider SMTP qua `nodemailer` (package thật, không tự viết lại SMTP protocol). `ConfigService` (NestJS) đọc `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM` từ `.env` — 5 biến này cần thêm vào `.env.example`, xem mẫu:
+
+  ```env
+  # SMTP for transactional email (verify-email code, forgot-password links).
+  # Leave all 4 unset to keep emails logged only (no real send) — that's the
+  # default, safe for local dev/CI without real credentials.
+  # For local testing with a real inbox-like view (nothing gets delivered to
+  # a real recipient), https://mailtrap.io gives free sandbox SMTP creds.
+  SMTP_HOST=
+  SMTP_PORT=
+  SMTP_USER=
+  SMTP_PASS=
+  SMTP_FROM=no-reply@example.com
+  ```
+
+- **Fallback log-only khi thiếu SMTP\_\*:** nếu 1 trong 4 biến `SMTP_HOST/PORT/USER/PASS` trống, `transporter` là `null` và hàm chỉ log `[DEV] Would send verification email to ...`, không throw lỗi. Local dev/CI chạy được ngay không cần tài khoản SMTP thật; chỉ khi deploy thật (hoặc muốn test bằng inbox giả như Mailtrap) mới cần điền đủ 4 biến.
+- **`secure: Number(port) === 465`**: cổng `465` dùng TLS ngay từ đầu kết nối (implicit TLS); cổng `587`/`25` dùng STARTTLS (bắt đầu plain, nâng cấp lên TLS sau) nên `secure` phải là `false`. Đặt sai sẽ khiến kết nối SMTP thất bại hoặc bị provider từ chối.
+- **Mã xác thực gửi thẳng trong nội dung mail** (không phải link): đây chính là `code` (raw 6 số) sinh ra ở `TokenService` (Bước 3), gửi thẳng cho user qua email, KHÔNG lưu vào DB (chỉ `tokenHash` được lưu — xem lại nguyên tắc ở Bước 3). User tự đọc mã từ mail, nhập vào form của frontend, frontend gọi `POST /auth/verify-email` với `{ email, code }` — chi tiết luồng verify ở [03-verify-email.md](./03-verify-email.md).
+- Không log `code` ở nhánh fallback: log là nơi dễ bị đọc lại (file log, log aggregator...), log ra mã thô coi như phát tán chính secret mà toàn bộ cơ chế "chỉ lưu hash" đang cố bảo vệ.
+
+Gọi thử `sendVerificationEmail('a@b.com', '123456')` khi chưa set `SMTP_*`: bạn sẽ thấy dòng log `[DEV] Would send verification email to a@b.com`, không throw lỗi, không thấy `123456` (raw code) xuất hiện ở đâu trong log. Muốn thấy email thật được gửi, tạo tài khoản sandbox ở [mailtrap.io](https://mailtrap.io), điền 4 biến `SMTP_*` vào `.env`, gọi lại — email sẽ xuất hiện trong inbox sandbox của Mailtrap (không gửi tới địa chỉ thật).
 
 ---
 
@@ -208,7 +282,7 @@ export class AuthService {
 
     // 3. Transaction: tạo user + gán role CUSTOMER + tạo verification token.
     //    Dùng `tx` (không phải `this.prisma`) bên trong để cùng 1 transaction.
-    const { user, rawToken } = await this.prisma.$transaction(async (tx) => {
+    const { user, rawCode } = await this.prisma.$transaction(async (tx) => {
       const customerRole = await tx.role.findUniqueOrThrow({
         where: { name: 'CUSTOMER' },
       });
@@ -217,6 +291,8 @@ export class AuthService {
         data: {
           email: dto.email,
           passwordHash,
+          fullName: dto.fullName, // bắt buộc, validate ở RegisterDto Bước 1
+          phone: dto.phone, // bắt buộc, validate ở RegisterDto Bước 1
           status: 'ACTIVE',
           userRoles: { create: [{ roleId: customerRole.id }] },
         },
@@ -227,14 +303,14 @@ export class AuthService {
       // riêng (không nhận `tx`). Cách đơn giản cho MVP: gọi thẳng
       // `tx.emailVerificationToken.create(...)` ở đây thay vì gọi qua
       // TokenService khi cần chung transaction — xem ghi chú bên dưới.
-      const rawTok = await this.createVerificationTokenInTx(tx, createdUser.id);
+      const code = await this.createVerificationTokenInTx(tx, createdUser.id);
 
-      return { user: createdUser, rawToken: rawTok };
+      return { user: createdUser, rawCode: code };
     });
 
     // 4. Gửi mail SAU khi transaction đã commit — không rollback nếu fail.
     try {
-      await this.mailService.sendVerificationEmail(user.email, rawToken);
+      await this.mailService.sendVerificationEmail(user.email, rawCode);
     } catch (err) {
       this.logger.error(`Failed to send verification email to ${user.email}`, err as Error);
       // Không throw lại — user vẫn được tạo, có thể resend-verification (03-verify-email.md/04-resend-verification.md).
@@ -257,23 +333,25 @@ export class AuthService {
     tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
     userId: string,
   ): Promise<string> {
-    const { randomBytes, createHash } = await import('crypto');
-    const rawToken = randomBytes(32).toString('hex');
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const { randomInt, createHash } = await import('crypto');
+    const rawCode = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const tokenHash = createHash('sha256').update(rawCode).digest('hex');
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await tx.emailVerificationToken.create({
       data: { userId, tokenHash, expiresAt },
     });
 
-    return rawToken;
+    return rawCode;
   }
 }
 ```
 
 Đoạn `createVerificationTokenInTx` hơi vòng vèo. Lý do là `TokenService` ở Bước 3 tự inject `PrismaService` riêng nên không tham gia chung transaction được với `register()` ở đây. Đây là giới hạn đã biết của bản MVP tối thiểu, chấp nhận trùng lặp code nhỏ để giữ transaction đúng; dọn lại (refactor `TokenService` nhận `tx`) là việc có thể làm sau khi hoàn thiện `TokenService` ở `01-setup.md`, không bắt buộc ngay.
 
-Thử gọi `authService.register({ email, password })` với 1 email mới: bạn sẽ thấy đúng 1 User được tạo với role CUSTOMER và đúng 1 EmailVerificationToken đi kèm, `passwordHash` không phải là chuỗi plain text bạn gõ vào. Gọi lại lần 2 với cùng email đó sẽ ném ra `ConflictException` và không có user thứ 2 nào được tạo thêm.
+⚠️ `fullName`/`phone` là cột **bắt buộc** (`NOT NULL`) trên model `User` trong `prisma/schema.prisma` (không có `?` sau kiểu), nên cần migration Prisma tương ứng nếu bảng `users` đã có data cũ chưa có 2 cột này (`npx prisma migrate dev`). Vì cả 2 field đã validate bắt buộc ở `RegisterDto` (Bước 1), `dto.fullName`/`dto.phone` ở đây luôn có giá trị hợp lệ, không cần check `null`/`undefined` lại lần nữa trong service.
+
+Thử gọi `authService.register({ email, password, fullName, phone })` với 1 email mới: bạn sẽ thấy đúng 1 User được tạo với role CUSTOMER, đủ `fullName`/`phone` và đúng 1 EmailVerificationToken đi kèm, `passwordHash` không phải là chuỗi plain text bạn gõ vào. Gọi lại lần 2 với cùng email đó sẽ ném ra `ConflictException` và không có user thứ 2 nào được tạo thêm.
 
 ---
 
@@ -330,7 +408,18 @@ export class AuthController {
 
 `@HttpCode(HttpStatus.CREATED)` đặt status `201`: mặc định `@Post()` của Nest trả `200` nếu không khai báo rõ.
 
-Đến đây bạn đã có 1 endpoint hoạt động đầy đủ. Gọi thử qua Postman/curl để tự xác nhận: gửi request hợp lệ phải nhận `201` cùng `{ id, email }`, không có field nào khác lộ ra; gửi lại đúng email đó lần nữa phải nhận `409`; gửi password yếu (vd thiếu ký tự đặc biệt) phải nhận `400`. Cũng nên thử trường hợp `MailService` giả lập throw lỗi (tạm sửa hàm để nó throw): user vẫn phải được tạo bình thường, chỉ có dòng log lỗi xuất hiện, không có gì crash.
+Đến đây bạn đã có 1 endpoint hoạt động đầy đủ. Body hợp lệ giờ cần đủ 4 field:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "Abc@1234",
+  "fullName": "John Doe",
+  "phone": "0912345678"
+}
+```
+
+Gọi thử qua Postman/curl để tự xác nhận: gửi request hợp lệ phải nhận `201` cùng `{ id, email }`, không có field nào khác lộ ra (không có `fullName`/`phone`/`passwordHash`); gửi lại đúng email đó lần nữa phải nhận `409`; gửi password yếu (vd thiếu ký tự đặc biệt) phải nhận `400`; thiếu `fullName` hoặc gửi `phone` sai định dạng (vd `"abc"`) cũng phải nhận `400`. Cũng nên thử trường hợp `MailService` không có `SMTP_*` (mặc định lúc dev): user vẫn phải được tạo bình thường, chỉ có dòng log `[DEV] Would send verification email to ...` xuất hiện, không có gì crash.
 
 ---
 

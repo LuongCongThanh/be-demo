@@ -1,8 +1,8 @@
-import { randomBytes, createHash } from 'node:crypto';
+import { randomInt, createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+const EMAIL_VERIFICATION_TTL_MS = 10 * 60 * 1000; // 10 min — short-lived since it's a guessable 6-digit code
 
 /**
  * Subset of the Prisma client this service needs — matches both
@@ -13,9 +13,10 @@ const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 type EmailVerificationTokenClient = Pick<PrismaService, 'emailVerificationToken'>;
 
 /**
- * Generates and hashes one-time tokens (currently: email verification).
+ * Generates and hashes one-time tokens (currently: email verification, sent
+ * to the user as a 6-digit code).
  *
- * The raw token is only ever returned to the caller (to be emailed to the
+ * The raw code is only ever returned to the caller (to be emailed to the
  * user) — the database always stores a SHA-256 hash of it, never the raw
  * value, the same way passwords are never stored raw.
  */
@@ -23,10 +24,10 @@ type EmailVerificationTokenClient = Pick<PrismaService, 'emailVerificationToken'
 export class TokenService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private generate(): { rawToken: string; tokenHash: string } {
-    const rawToken = randomBytes(32).toString('hex');
-    const tokenHash = this.hashRawToken(rawToken);
-    return { rawToken, tokenHash };
+  private generate(): { rawCode: string; tokenHash: string } {
+    const rawCode = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const tokenHash = this.hashRawToken(rawCode);
+    return { rawCode, tokenHash };
   }
 
   hashRawToken(rawToken: string): string {
@@ -48,7 +49,7 @@ export class TokenService {
     userId: string,
     client: EmailVerificationTokenClient = this.prisma,
   ): Promise<string> {
-    const { rawToken, tokenHash } = this.generate();
+    const { rawCode, tokenHash } = this.generate();
     const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
 
     const write = async (c: EmailVerificationTokenClient) => {
@@ -66,6 +67,6 @@ export class TokenService {
       await write(client);
     }
 
-    return rawToken;
+    return rawCode;
   }
 }

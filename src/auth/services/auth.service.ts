@@ -9,6 +9,11 @@ import { MailService } from '../../mail/mail.service.js';
 import { RegisterDto } from '../dto/register.dto.js';
 import { RegisterResponseDto } from '../dto/register-response.dto.js';
 
+// 6-digit codes only have 1,000,000 possibilities, so unlike the old 32-byte
+// raw token, they're brute-forceable within the expiry window unless wrong
+// guesses are capped.
+const MAX_VERIFY_ATTEMPTS = 5;
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -40,9 +45,9 @@ export class AuthService {
     const passwordHash = await this.passwordService.hash(dto.password);
 
     let user: { id: string; email: string };
-    let rawToken: string;
+    let rawCode: string;
     try {
-      ({ user, rawToken } = await this.prisma.$transaction(async (tx) => {
+      ({ user, rawCode } = await this.prisma.$transaction(async (tx) => {
         const customerRole = await tx.role.findUniqueOrThrow({
           where: { name: 'CUSTOMER' },
         });
@@ -58,9 +63,9 @@ export class AuthService {
           },
         });
 
-        const rawTok = await this.tokenService.createEmailVerificationToken(createdUser.id, tx);
+        const code = await this.tokenService.createEmailVerificationToken(createdUser.id, tx);
 
-        return { user: createdUser, rawToken: rawTok };
+        return { user: createdUser, rawCode: code };
       }));
     } catch (err) {
       // The findUnique check above only catches most duplicate-email
@@ -88,7 +93,7 @@ export class AuthService {
     // does not roll back or fail the request: the user was created
     // successfully and can use "resend verification" to get a new email.
     try {
-      await this.mailService.sendVerificationEmail(user.email, rawToken);
+      await this.mailService.sendVerificationEmail(user.email, rawCode);
     } catch (err) {
       this.logger.error(`Failed to send verification email to ${user.email}`, err as Error);
     }
@@ -97,25 +102,49 @@ export class AuthService {
   }
 
   async verifyEmail(dto: VerifyEmailDto): Promise<MessageResponseDto> {
-    const tokenHash = this.tokenService.hashRawToken(dto.token);
-
-    const record = await this.prisma.emailVerificationToken.findUnique({
-      where: { tokenHash },
-    });
+    // The code alone (6 digits, only 1,000,000 possibilities) isn't unique
+    // enough to safely identify a record on its own — unlike the old
+    // 32-byte raw token — so look up the user's own pending code by userId
+    // first (there's at most one, since createEmailVerificationToken()
+    // deletes any prior unverified one), then compare hashes locally. This
+    // also lets a wrong guess still be counted against `attempts`, which a
+    // tokenHash-based lookup couldn't do (a wrong code just matches no row).
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const record = user
+      ? await this.prisma.emailVerificationToken.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: 'desc' },
+        })
+      : null;
 
     if (!record) {
-      throw new NotFoundException('Token not found');
+      // Same error whether the email doesn't exist or has no pending code —
+      // don't leak which one it was.
+      throw new NotFoundException('Invalid email or code');
     }
     if (record.verifiedAt) {
-      // Replay protection: token đã dùng rồi, gọi lại lần 2 phải bị reject
+      // Replay protection: code đã dùng rồi, gọi lại lần 2 phải bị reject
       // (không phải hành vi idempotent).
-      throw new BadRequestException('Token already used');
+      throw new BadRequestException('Code already used');
     }
     if (record.expiresAt < new Date()) {
-      throw new BadRequestException('Token has expired');
+      throw new BadRequestException('Code has expired');
+    }
+    if (record.attempts >= MAX_VERIFY_ATTEMPTS) {
+      throw new BadRequestException('Too many attempts. Request a new code.');
     }
 
-    // The findUnique() read above is not atomic with the update below, so
+    if (this.tokenService.hashRawToken(dto.code) !== record.tokenHash) {
+      // Count the wrong guess even though the code is invalid — this is
+      // what bounds brute-forcing a 6-digit code within its expiry window.
+      await this.prisma.emailVerificationToken.update({
+        where: { id: record.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new NotFoundException('Invalid email or code');
+    }
+
+    // The findFirst() read above is not atomic with the update below, so
     // two concurrent requests for the same token could both pass the
     // record.verifiedAt check before either commits. Guard against that
     // race by claiming the token with a conditional update (`verifiedAt:
@@ -139,7 +168,7 @@ export class AuthService {
     });
 
     if (!wonRace) {
-      throw new BadRequestException('Token already used');
+      throw new BadRequestException('Code already used');
     }
 
     return { message: 'Email verified successfully' };
