@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
 import { AuthService } from './auth.service.js';
 import { PasswordService } from './password.service.js';
@@ -11,14 +11,28 @@ function createHarness() {
 
   const tx = {
     role: { findUniqueOrThrow: vi.fn().mockResolvedValue(customerRole) },
-    user: { create: vi.fn().mockResolvedValue(createdUser) },
+    user: {
+      create: vi.fn().mockResolvedValue(createdUser),
+      update: vi.fn().mockResolvedValue({}),
+    },
+    emailVerificationToken: {
+      // count: 1 by default (the claim succeeds); tests override to 0 to
+      // simulate losing the race to a concurrent verifyEmail() call.
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
   };
 
   const prisma = {
-    user: { findUnique: vi.fn().mockResolvedValue(null) },
-    $transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
-      callback(tx),
-    ),
+    user: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue({}),
+    },
+    emailVerificationToken: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
+    // register() and verifyEmail() both pass a callback (`tx => ...`);
+    // the callback receives the same `tx` mock, shared across both flows.
+    $transaction: vi.fn(async (arg: unknown) => (arg as (tx: unknown) => unknown)(tx)),
   };
 
   const passwordService = {
@@ -27,6 +41,7 @@ function createHarness() {
 
   const tokenService = {
     createEmailVerificationToken: vi.fn().mockResolvedValue('raw-token-abc'),
+    hashRawToken: vi.fn((rawToken: string) => `hash-of-${rawToken}`),
   };
 
   const mailService = {
@@ -48,9 +63,9 @@ describe('AuthService.register', () => {
     const { service, prisma, passwordService } = createHarness();
     prisma.user.findUnique.mockResolvedValue({ id: 'existing-user' });
 
-    await expect(
-      service.register({ email: 'taken@example.com', password: 'Abc@1234' }),
-    ).rejects.toThrow(ConflictException);
+    await expect(service.register({ email: 'taken@example.com', password: 'Abc@1234' })).rejects.toThrow(
+      ConflictException,
+    );
 
     expect(passwordService.hash).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -69,9 +84,9 @@ describe('AuthService.register', () => {
       }),
     );
 
-    await expect(
-      service.register({ email: 'race@example.com', password: 'Abc@1234' }),
-    ).rejects.toThrow(ConflictException);
+    await expect(service.register({ email: 'race@example.com', password: 'Abc@1234' })).rejects.toThrow(
+      ConflictException,
+    );
   });
 
   it('rethrows a P2002 that is not on the `email` constraint unchanged', async () => {
@@ -79,28 +94,23 @@ describe('AuthService.register', () => {
     // unique `tokenHash`. A P2002 on that column must not be misreported
     // as "email already in use".
     const { service, prisma } = createHarness();
-    const tokenHashCollision = new Prisma.PrismaClientKnownRequestError(
-      'Unique constraint failed',
-      {
-        code: 'P2002',
-        clientVersion: 'test',
-        meta: { target: ['token_hash'] },
-      },
-    );
+    const tokenHashCollision = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: 'test',
+      meta: { target: ['token_hash'] },
+    });
     prisma.$transaction.mockRejectedValue(tokenHashCollision);
 
-    await expect(
-      service.register({ email: 'new@example.com', password: 'Abc@1234' }),
-    ).rejects.toBe(tokenHashCollision);
+    await expect(service.register({ email: 'new@example.com', password: 'Abc@1234' })).rejects.toBe(tokenHashCollision);
   });
 
   it('rethrows other transaction errors unchanged', async () => {
     const { service, prisma } = createHarness();
     prisma.$transaction.mockRejectedValue(new Error('DB connection lost'));
 
-    await expect(
-      service.register({ email: 'new@example.com', password: 'Abc@1234' }),
-    ).rejects.toThrow('DB connection lost');
+    await expect(service.register({ email: 'new@example.com', password: 'Abc@1234' })).rejects.toThrow(
+      'DB connection lost',
+    );
   });
 
   it('creates the user with a hashed password and the CUSTOMER role', async () => {
@@ -133,29 +143,23 @@ describe('AuthService.register', () => {
       password: 'Abc@1234',
     });
 
-    expect(tokenService.createEmailVerificationToken).toHaveBeenCalledWith(
-      'user-1',
-      tx,
-    );
+    expect(tokenService.createEmailVerificationToken).toHaveBeenCalledWith('user-1', tx);
   });
 
   it('sends the verification email after the transaction commits', async () => {
     const { service, mailService, prisma } = createHarness();
     const callOrder: string[] = [];
-    prisma.$transaction.mockImplementation(
-      async (callback: (tx: unknown) => unknown) => {
-        const result = await callback({
-          role: { findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'r' }) },
-          user: {
-            create: vi
-              .fn()
-              .mockResolvedValue({ id: 'user-1', email: 'new@example.com' }),
-          },
-        });
-        callOrder.push('transaction-committed');
-        return result;
-      },
-    );
+    prisma.$transaction.mockImplementation(async (arg: unknown) => {
+      const callback = arg as (tx: unknown) => unknown;
+      const result = await callback({
+        role: { findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'r' }) },
+        user: {
+          create: vi.fn().mockResolvedValue({ id: 'user-1', email: 'new@example.com' }),
+        },
+      });
+      callOrder.push('transaction-committed');
+      return result;
+    });
     mailService.sendVerificationEmail.mockImplementation(async () => {
       callOrder.push('mail-sent');
     });
@@ -166,10 +170,7 @@ describe('AuthService.register', () => {
     });
 
     expect(callOrder).toEqual(['transaction-committed', 'mail-sent']);
-    expect(mailService.sendVerificationEmail).toHaveBeenCalledWith(
-      'new@example.com',
-      'raw-token-abc',
-    );
+    expect(mailService.sendVerificationEmail).toHaveBeenCalledWith('new@example.com', 'raw-token-abc');
   });
 
   it('still creates the user even if sending the verification email fails', async () => {
@@ -194,5 +195,86 @@ describe('AuthService.register', () => {
     });
 
     expect(result).not.toHaveProperty('passwordHash');
+  });
+});
+
+describe('AuthService.verifyEmail', () => {
+  function validRecord(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'token-1',
+      userId: 'user-1',
+      tokenHash: 'hash-of-raw-token',
+      verifiedAt: null,
+      expiresAt: new Date(Date.now() + 60_000), // 1 minute in the future
+      ...overrides,
+    };
+  }
+
+  it('hashes the raw token before looking it up, never queries by raw token', async () => {
+    const { service, prisma, tokenService } = createHarness();
+    prisma.emailVerificationToken.findUnique.mockResolvedValue(validRecord());
+
+    await service.verifyEmail({ token: 'raw-token' });
+
+    expect(tokenService.hashRawToken).toHaveBeenCalledWith('raw-token');
+    expect(prisma.emailVerificationToken.findUnique).toHaveBeenCalledWith({
+      where: { tokenHash: 'hash-of-raw-token' },
+    });
+  });
+
+  it('throws NotFoundException when the token does not exist', async () => {
+    const { service, prisma } = createHarness();
+    prisma.emailVerificationToken.findUnique.mockResolvedValue(null);
+
+    await expect(service.verifyEmail({ token: 'bogus' })).rejects.toThrow(NotFoundException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('throws BadRequestException on replay: a token already verified must be rejected, not treated as idempotent', async () => {
+    const { service, prisma } = createHarness();
+    prisma.emailVerificationToken.findUnique.mockResolvedValue(validRecord({ verifiedAt: new Date() }));
+
+    await expect(service.verifyEmail({ token: 'raw-token' })).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('throws BadRequestException when the token has expired', async () => {
+    const { service, prisma } = createHarness();
+    prisma.emailVerificationToken.findUnique.mockResolvedValue(validRecord({ expiresAt: new Date(Date.now() - 1000) }));
+
+    await expect(service.verifyEmail({ token: 'raw-token' })).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('marks both the user and the token as verified in one transaction, then returns a success message', async () => {
+    const { service, prisma, tx } = createHarness();
+    prisma.emailVerificationToken.findUnique.mockResolvedValue(validRecord());
+
+    const result = await service.verifyEmail({ token: 'raw-token' });
+
+    // The claim (conditional updateMany) must run before, and its WHERE
+    // clause must re-check verifiedAt: null — that guard is what closes
+    // the race window between findUnique() and the transaction.
+    expect(tx.emailVerificationToken.updateMany).toHaveBeenCalledWith({
+      where: { id: 'token-1', verifiedAt: null },
+      data: { verifiedAt: expect.any(Date) },
+    });
+    expect(tx.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { emailVerifiedAt: expect.any(Date) },
+    });
+    expect(result).toEqual({ message: 'Email verified successfully' });
+  });
+
+  it('rejects as already-used, without touching User, when a concurrent request wins the race to claim the token first', async () => {
+    // Simulates the TOCTOU window between findUnique() (above) and the
+    // transaction: another request's conditional update already flipped
+    // verifiedAt, so this request's claim matches zero rows.
+    const { service, prisma, tx } = createHarness();
+    prisma.emailVerificationToken.findUnique.mockResolvedValue(validRecord());
+    tx.emailVerificationToken.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.verifyEmail({ token: 'raw-token' })).rejects.toThrow(BadRequestException);
+    expect(tx.user.update).not.toHaveBeenCalled();
   });
 });

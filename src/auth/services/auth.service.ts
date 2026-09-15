@@ -1,6 +1,8 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { VerifyEmailDto } from '../dto/verify-email.dto.js';
+import { MessageResponseDto } from '../dto/message-response.dto.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
 import { MailService } from '../../mail/mail.service.js';
@@ -54,10 +56,7 @@ export class AuthService {
           },
         });
 
-        const rawTok = await this.tokenService.createEmailVerificationToken(
-          createdUser.id,
-          tx,
-        );
+        const rawTok = await this.tokenService.createEmailVerificationToken(createdUser.id, tx);
 
         return { user: createdUser, rawToken: rawTok };
       }));
@@ -89,12 +88,58 @@ export class AuthService {
     try {
       await this.mailService.sendVerificationEmail(user.email, rawToken);
     } catch (err) {
-      this.logger.error(
-        `Failed to send verification email to ${user.email}`,
-        err as Error,
-      );
+      this.logger.error(`Failed to send verification email to ${user.email}`, err as Error);
     }
 
     return { id: user.id, email: user.email };
+  }
+
+  async verifyEmail(dto: VerifyEmailDto): Promise<MessageResponseDto> {
+    const tokenHash = this.tokenService.hashRawToken(dto.token);
+
+    const record = await this.prisma.emailVerificationToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!record) {
+      throw new NotFoundException('Token not found');
+    }
+    if (record.verifiedAt) {
+      // Replay protection: token đã dùng rồi, gọi lại lần 2 phải bị reject
+      // (không phải hành vi idempotent).
+      throw new BadRequestException('Token already used');
+    }
+    if (record.expiresAt < new Date()) {
+      throw new BadRequestException('Token has expired');
+    }
+
+    // The findUnique() read above is not atomic with the update below, so
+    // two concurrent requests for the same token could both pass the
+    // record.verifiedAt check before either commits. Guard against that
+    // race by claiming the token with a conditional update (`verifiedAt:
+    // null` in the WHERE clause) inside the transaction: the DB itself
+    // enforces that only one caller can win. If we lose the race, undo
+    // nothing else and reject the same way an already-used token would.
+    const wonRace = await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.emailVerificationToken.updateMany({
+        where: { id: record.id, verifiedAt: null },
+        data: { verifiedAt: new Date() },
+      });
+      if (claimed.count === 0) {
+        return false;
+      }
+
+      await tx.user.update({
+        where: { id: record.userId },
+        data: { emailVerifiedAt: new Date() },
+      });
+      return true;
+    });
+
+    if (!wonRace) {
+      throw new BadRequestException('Token already used');
+    }
+
+    return { message: 'Email verified successfully' };
   }
 }

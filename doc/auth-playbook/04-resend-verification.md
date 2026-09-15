@@ -1,6 +1,6 @@
 # 04 — Resend Verification (`POST /auth/resend-verification`)
 
-> Trước khi bắt đầu, đảm bảo bạn đã làm xong [03-verify-email.md](./03-verify-email.md) — `MessageResponseDto` đã tồn tại, `TokenService.createEmailVerificationToken()` đã có. Cần tra thuật ngữ thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định thiết kế thì xem [00-overview.md](./00-overview.md).
+> Trước khi bắt đầu, đảm bảo bạn đã làm xong [03-verify-email.md](./03-verify-email.md): `MessageResponseDto` đã tồn tại, `TokenService.createEmailVerificationToken()` đã có. Cần tra thuật ngữ thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định thiết kế thì xem [00-overview.md](./00-overview.md).
 
 Endpoint này cho phép gửi lại email verification mà **không lộ thông tin email có tồn tại hay không** (quyết định #10). Chia thành 3 bước.
 
@@ -36,9 +36,9 @@ File này chỉ cần build không lỗi là xong.
 
 ## Bước 2 — Viết logic không lộ enumeration trong AuthService
 
-Đây là phần tinh tế nhất của endpoint này: dù email tồn tại hay không, dù đã verify hay chưa — bạn phải **luôn trả về đúng cùng 1 message**, chỉ khác nhau ở việc có tạo token mới + gửi mail hay không phía sau hậu trường (client không được phép phân biệt được 2 trường hợp này qua response).
+Đây là phần tinh tế nhất của endpoint này: dù email tồn tại hay không, dù đã verify hay chưa, bạn phải luôn trả về đúng cùng 1 message. Chỉ khác nhau ở việc có tạo token mới và gửi mail hay không phía sau hậu trường; client không được phép phân biệt được 2 trường hợp này qua response.
 
-> 📘 **Khái niệm — "email enumeration" là gì, vì sao phải giấu?** Nếu response khác nhau tuỳ email tồn tại hay không (vd "Email không tồn tại" vs "Đã gửi lại email"), kẻ tấn công có thể dò ra **danh sách email đã đăng ký** bằng cách thử hàng loạt địa chỉ và quan sát response khác nhau — gọi là "user enumeration". Với `resend-verification` (khác với `register`, xem quyết định #10), ta chọn **luôn trả cùng 1 response** bất kể nhánh xử lý bên trong khác nhau thế nào.
+> 📘 **Khái niệm: "email enumeration" là gì, vì sao phải giấu?** Nếu response khác nhau tuỳ email tồn tại hay không (vd "Email không tồn tại" vs "Đã gửi lại email"), kẻ tấn công có thể dò ra danh sách email đã đăng ký. Cách làm là thử hàng loạt địa chỉ và quan sát response khác nhau, gọi là "user enumeration". Với `resend-verification` (khác với `register`, xem quyết định #10), ta chọn **luôn trả cùng 1 response** bất kể nhánh xử lý bên trong khác nhau thế nào.
 
 Mở `src/auth/services/auth.service.ts` và thêm method mới:
 
@@ -49,7 +49,7 @@ import { ResendVerificationDto } from '../dto/resend-verification.dto';
 // ... trong class AuthService
 
 private static readonly GENERIC_RESEND_MESSAGE =
-  'Nếu email tồn tại và chưa xác thực, một email xác thực mới đã được gửi.';
+  'If the email exists and is not yet verified, a new verification email has been sent.';
 
 async resendVerification(
   dto: ResendVerificationDto,
@@ -76,7 +76,7 @@ async resendVerification(
     await this.mailService.sendVerificationEmail(user.email, rawToken);
   } catch (err) {
     this.logger.error(
-      `Gửi lại verification email thất bại cho ${user.email}`,
+      `Failed to resend verification email to ${user.email}`,
       err as Error,
     );
     // Không throw lại — vẫn trả message chung chung như case thành công,
@@ -87,9 +87,9 @@ async resendVerification(
 }
 ```
 
-⚠️ Method này dùng `this.tokenService.createEmailVerificationToken()` (đã viết đầy đủ ở 01-setup.md, phần TokenService đầy đủ) — khác với `AuthService.register()` (02-register.md, Bước 5) phải tự viết `createVerificationTokenInTx` vì cần chung transaction. Ở đây không cần transaction (chỉ 1 write), nên gọi thẳng qua `TokenService` bình thường.
+⚠️ Method này dùng `this.tokenService.createEmailVerificationToken()` (đã viết đầy đủ ở 01-setup.md, phần TokenService đầy đủ). Khác với `AuthService.register()` (02-register.md, Bước 5) phải tự viết `createVerificationTokenInTx` vì cần chung transaction, ở đây không cần transaction (chỉ 1 write), nên gọi thẳng qua `TokenService` bình thường.
 
-Tự kiểm tra: gọi với email tồn tại & chưa verify phải trả `GENERIC_RESEND_MESSAGE`, tạo token mới, gọi `sendVerificationEmail`. Gọi với email đã verified, hoặc email không tồn tại luôn — cả 2 case này đều phải trả **cùng** `GENERIC_RESEND_MESSAGE`, không tạo token, không gọi mail. Điểm quan trọng nhất: 3 case trên phải trả về response **giống hệt nhau về status code + message** — đừng chỉ đọc bằng mắt, viết test so sánh trực tiếp mới chắc chắn.
+Tự kiểm tra: gọi với email tồn tại & chưa verify phải trả `GENERIC_RESEND_MESSAGE`, tạo token mới, gọi `sendVerificationEmail`. Gọi với email đã verified, hoặc email không tồn tại luôn: cả 2 case này đều phải trả cùng `GENERIC_RESEND_MESSAGE`, không tạo token, không gọi mail. Điểm quan trọng nhất: 3 case trên phải trả về response **giống hệt nhau** về status code và message. Đừng chỉ đọc bằng mắt, viết test so sánh trực tiếp mới chắc chắn.
 
 ---
 
@@ -113,7 +113,7 @@ async resendVerification(
 }
 ```
 
-Gọi thử toàn bộ flow (Bước 1 → 3) qua Postman/curl: response luôn cùng 1 dạng message/status bất kể email tồn tại hay không; email tồn tại & chưa verify thì token mới được tạo và email được gửi (xem log console); email đã verified thì không tạo token mới nhưng response vẫn y hệt case hợp lệ. Khi viết test chính thức ở [13-testing.md](./13-testing.md), nhớ cover đủ 3 nhánh: email tồn tại & chưa verify, email đã verified, và email không tồn tại — case cuối đặc biệt quan trọng vì response phải không phân biệt được với case hợp lệ.
+Gọi thử toàn bộ flow (Bước 1 → 3) qua Postman/curl: response luôn cùng 1 dạng message/status bất kể email tồn tại hay không; email tồn tại & chưa verify thì token mới được tạo và email được gửi (xem log console); email đã verified thì không tạo token mới nhưng response vẫn y hệt case hợp lệ. Khi viết test chính thức ở [13-testing.md](./13-testing.md), nhớ cover đủ 3 nhánh: email tồn tại & chưa verify, email đã verified, và email không tồn tại. Case cuối đặc biệt quan trọng vì response phải không phân biệt được với case hợp lệ.
 
 ---
 

@@ -10,10 +10,7 @@ const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
  * (tx) => ...)` callbacks, so callers can pass `tx` to keep token creation
  * inside an existing transaction instead of opening a second one.
  */
-type EmailVerificationTokenClient = Pick<
-  PrismaService,
-  'emailVerificationToken'
->;
+type EmailVerificationTokenClient = Pick<PrismaService, 'emailVerificationToken'>;
 
 /**
  * Generates and hashes one-time tokens (currently: email verification).

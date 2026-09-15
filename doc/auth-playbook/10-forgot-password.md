@@ -1,11 +1,11 @@
 # 10 — Forgot Password (`POST /auth/forgot-password`)
 
-> Trước khi làm file này: xong [09-logout.md](./09-logout.md) — guards, login, refresh, logout phải chạy được trước. Tham chiếu chung (Decisions, Security Rules, Response DTO...): [00-overview.md](./00-overview.md).
+> Trước khi làm file này: xong [09-logout.md](./09-logout.md). Guards, login, refresh, logout phải chạy được trước. Tham chiếu chung (Decisions, Security Rules, Response DTO...): [00-overview.md](./00-overview.md).
 
 Endpoint này cho phép user yêu cầu reset password, mà không lộ thông tin email có tồn tại trong hệ thống hay không (quyết định #10). Chia thành 3 bước: DTO, logic service, rồi controller.
 
-> 📘 **Khái niệm — vì sao response phải "chung chung" (không tiết lộ email có tồn tại hay không)?**
-> Nếu `forgot-password` trả lỗi khác nhau tuỳ email có tồn tại hay không (vd "email không tồn tại" vs "đã gửi link reset"), kẻ tấn công có thể dò ra **danh sách email đã đăng ký** bằng cách thử hàng loạt — gọi là **email/user enumeration**. Đây là thông tin nhạy cảm vì email trùng với tài khoản ngân hàng/mạng xã hội khác, phục vụ tấn công phishing có chủ đích. Vì vậy `forgot-password` (và `resend-verification`, xem [04-resend-verification.md](./04-resend-verification.md)) luôn trả **đúng 1 dạng response** dù email có tồn tại hay không — khác với `register`, nơi 409 rõ ràng lại chấp nhận được vì UX cần biết "email đã dùng, đăng nhập thay vì đăng ký" (quyết định #10).
+> 📘 **Khái niệm: vì sao response phải "chung chung" (không tiết lộ email có tồn tại hay không)?**
+> Nếu `forgot-password` trả lỗi khác nhau tuỳ email có tồn tại hay không (vd "email không tồn tại" vs "đã gửi link reset"), kẻ tấn công có thể dò ra danh sách email đã đăng ký bằng cách thử hàng loạt. Hành vi này gọi là **email/user enumeration**. Đây là thông tin nhạy cảm vì email trùng với tài khoản ngân hàng/mạng xã hội khác, phục vụ tấn công phishing có chủ đích. Vì vậy `forgot-password` (và `resend-verification`, xem [04-resend-verification.md](./04-resend-verification.md)) luôn trả đúng 1 dạng response dù email có tồn tại hay không, khác với `register`, nơi 409 rõ ràng lại chấp nhận được vì UX cần biết "email đã dùng, đăng nhập thay vì đăng ký" (quyết định #10).
 
 ---
 
@@ -43,7 +43,7 @@ Thêm method mới vào `src/auth/services/auth.service.ts`, dùng chung `TokenS
 // src/auth/services/auth.service.ts (thêm method)
 async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
   const GENERIC_MESSAGE = {
-    message: 'Nếu email tồn tại, một link reset password đã được gửi.',
+    message: 'If the email exists, a password reset link has been sent.',
   };
 
   const user = await this.prisma.user.findUnique({
@@ -66,7 +66,7 @@ async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
     await this.mailService.sendPasswordResetEmail(user.email, rawToken);
   } catch (err) {
     this.logger.error(
-      `Gửi reset-password email thất bại cho ${user.email}`,
+      `Failed to send password reset email to ${user.email}`,
       err as Error,
     );
     // Không throw lại — vẫn trả message chung chung như case thành công,
@@ -78,7 +78,7 @@ async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
 }
 ```
 
-Tự kiểm tra: gọi với email tồn tại phải thấy token mới xuất hiện trong `password_reset_tokens` và mail được gửi (xem log `MailService` ở môi trường dev). Gọi với email không tồn tại thì không được tạo token nào, nhưng response phải giống hệt case tồn tại — so sánh cả status code lẫn body chứ không chỉ đọc bằng mắt. Gọi 2 lần liên tiếp cho cùng 1 email thì DB chỉ còn đúng 1 password reset token hợp lệ (token cũ bị xoá trước khi tạo mới). Thử luôn trường hợp gửi mail lỗi (tạm cho `sendPasswordResetEmail` throw) — response vẫn phải trả về message thành công như bình thường, chỉ có dòng log lỗi xuất hiện.
+Tự kiểm tra: gọi với email tồn tại phải thấy token mới xuất hiện trong `password_reset_tokens` và mail được gửi (xem log `MailService` ở môi trường dev). Gọi với email không tồn tại thì không được tạo token nào, nhưng response phải giống hệt case tồn tại: so sánh cả status code lẫn body chứ không chỉ đọc bằng mắt. Gọi 2 lần liên tiếp cho cùng 1 email thì DB chỉ còn đúng 1 password reset token hợp lệ (token cũ bị xoá trước khi tạo mới). Thử luôn trường hợp gửi mail lỗi (tạm cho `sendPasswordResetEmail` throw). Response vẫn phải trả về message thành công như bình thường, chỉ có dòng log lỗi xuất hiện.
 
 ---
 
