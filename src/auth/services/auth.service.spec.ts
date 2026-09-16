@@ -29,7 +29,7 @@ function createHarness() {
     },
     emailVerificationToken: {
       findFirst: vi.fn().mockResolvedValue(null),
-      update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     // register() and verifyEmail() both pass a callback (`tx => ...`);
     // the callback receives the same `tx` mock, shared across both flows.
@@ -283,8 +283,8 @@ describe('AuthService.verifyEmail', () => {
     await expect(service.verifyEmail({ email: 'user@example.com', code: 'wrong-code' })).rejects.toThrow(
       NotFoundException,
     );
-    expect(prisma.emailVerificationToken.update).toHaveBeenCalledWith({
-      where: { id: 'token-1' },
+    expect(prisma.emailVerificationToken.updateMany).toHaveBeenCalledWith({
+      where: { id: 'token-1', attempts: { lt: 5 } },
       data: { attempts: { increment: 1 } },
     });
     expect(prisma.$transaction).not.toHaveBeenCalled();

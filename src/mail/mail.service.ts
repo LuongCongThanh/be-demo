@@ -3,11 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import nodemailer, { type Transporter } from 'nodemailer';
 
 /**
- * Sends transactional emails over SMTP (nodemailer). Falls back to logging
- * only (no real send) when SMTP_* env vars aren't fully set, so local dev
- * and CI keep working without real credentials — see .env.example for how
- * to point this at a real provider (Mailtrap sandbox for local testing, or
- * your production SMTP/SES/SendGrid relay).
+ * Gửi transactional email qua SMTP (nodemailer). Fallback về chỉ log (không
+ * gửi thật) khi các biến SMTP_* chưa được set đủ, để local dev và CI vẫn
+ * chạy được mà không cần credentials thật — xem .env.example để trỏ tới
+ * provider thật (Mailtrap sandbox để test local, hoặc SMTP/SES/SendGrid
+ * relay production).
  */
 @Injectable()
 export class MailService {
@@ -42,9 +42,9 @@ export class MailService {
 
   async sendVerificationEmail(to: string, code: string): Promise<void> {
     if (!this.transporter) {
-      // Dev/CI fallback: no SMTP configured, don't attempt a real send.
-      // Never log the raw code itself (security rule, doc/auth-playbook/00-overview.md §5) —
-      // it's a live, usable verification secret.
+      // Fallback dev/CI: chưa cấu hình SMTP, không thử gửi thật.
+      // Không bao giờ log raw code (quy tắc bảo mật, doc/auth-playbook/00-overview.md §5) —
+      // đây là verification secret còn dùng được.
       this.logger.log(`[DEV] Would send verification email to ${to}`);
       return;
     }
