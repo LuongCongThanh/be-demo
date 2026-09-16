@@ -5,6 +5,7 @@ import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { PasswordService } from '../src/auth/services/password.service.js';
 import { configureApp } from '../src/bootstrap/configure-app.js';
+import { createTestUser } from './support/create-test-user.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-login.e2e-test.local';
 const VALID_PASSWORD = 'Abc@1234';
@@ -47,20 +48,17 @@ describe('Auth — POST /auth/login (e2e)', () => {
     emailSuffix: string,
     overrides: { status?: 'ACTIVE' | 'BLOCKED'; emailVerifiedAt?: Date | null } = {},
   ) {
-    const email = `${emailSuffix}${Date.now()}${Math.random().toString(36).slice(2)}${TEST_EMAIL_DOMAIN}`;
-    const customerRole = await prisma.role.findUniqueOrThrow({ where: { name: 'CUSTOMER' } });
     const passwordHash = await passwordService.hash(VALID_PASSWORD);
 
-    return prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        fullName: 'Nguyen Van A',
-        phone: '0912345678',
-        status: overrides.status ?? 'ACTIVE',
-        emailVerifiedAt: overrides.emailVerifiedAt === undefined ? new Date() : overrides.emailVerifiedAt,
-        userRoles: { create: [{ roleId: customerRole.id }] },
-      },
+    return createTestUser(prisma, {
+      emailDomain: TEST_EMAIL_DOMAIN,
+      emailSuffix,
+      passwordHash,
+      status: overrides.status,
+      // Login cần email đã verify theo mặc định để test happy-path không
+      // phải tự truyền overrides mỗi lần — chỉ case cố tình test "chưa
+      // verify" mới truyền `emailVerifiedAt: null`.
+      emailVerifiedAt: overrides.emailVerifiedAt === undefined ? new Date() : overrides.emailVerifiedAt,
     });
   }
 

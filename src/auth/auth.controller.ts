@@ -1,7 +1,8 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -17,10 +18,14 @@ import { VerifyEmailDto } from './dto/verify-email.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { LoginResponseDto } from './dto/login-response.dto.js';
 import { RefreshResponseDto } from './dto/refresh-response.dto.js';
+import { AuthUserResponseDto } from './dto/auth-user-response.dto.js';
 import { MessageResponseDto } from './dto/message-response.dto.js';
 import { AuthService } from './services/auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { RegisterResponseDto } from './dto/register-response.dto.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { CurrentUser } from './decorators/current-user.decorator.js';
+import type { JwtPayload } from './strategies/jwt.strategy.js';
 
 // Phải khớp đúng path prefix route auth thực tế của app (main.ts hiện không
 // set global prefix, nên route thật là '/auth/*'). Dùng chung cho mọi nơi
@@ -94,6 +99,16 @@ export class AuthController {
     this.setRefreshTokenCookie(response, newRawRefreshToken);
 
     return { accessToken };
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get the currently authenticated user' })
+  @ApiOkResponse({ type: AuthUserResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Missing, invalid, or expired access token' })
+  getMe(@CurrentUser() user: JwtPayload): Promise<AuthUserResponseDto> {
+    return this.authService.getMe(user.sub);
   }
 
   private getRefreshTokenCookieName(): string {

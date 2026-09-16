@@ -7,6 +7,7 @@ import { PrismaService } from '../src/prisma/prisma.service.js';
 import { TokenService } from '../src/auth/services/token.service.js';
 import { MAX_VERIFY_ATTEMPTS } from '../src/auth/services/auth.service.js';
 import { configureApp } from '../src/bootstrap/configure-app.js';
+import { createTestUser } from './support/create-test-user.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-verify-email.e2e-test.local';
 
@@ -51,21 +52,7 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
   });
 
   async function createUser(emailSuffix: string) {
-    const email = `${emailSuffix}${Date.now()}${Math.random().toString(36).slice(2)}${TEST_EMAIL_DOMAIN}`;
-    const customerRole = await prisma.role.findUniqueOrThrow({ where: { name: 'CUSTOMER' } });
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash: 'irrelevant-for-this-test',
-        fullName: 'Nguyen Van A',
-        phone: '0912345678',
-        status: 'ACTIVE',
-        userRoles: { create: [{ roleId: customerRole.id }] },
-      },
-    });
-
-    return user;
+    return createTestUser(prisma, { emailDomain: TEST_EMAIL_DOMAIN, emailSuffix });
   }
 
   async function createCodeFor(userId: string, overrides: { verifiedAt?: Date; expiresAt?: Date } = {}) {
