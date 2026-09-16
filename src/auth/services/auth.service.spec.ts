@@ -1,6 +1,7 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '../../generated/prisma/client.js';
-import { AuthService, MAX_VERIFY_ATTEMPTS } from './auth.service.js';
+import { AuthService, GENERIC_RESEND_MESSAGE, MAX_VERIFY_ATTEMPTS } from './auth.service.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
 import { MailService } from '../../mail/mail.service.js';
@@ -38,15 +39,21 @@ function createHarness() {
 
   const passwordService = {
     hash: vi.fn().mockResolvedValue('hashed-password'),
+    verify: vi.fn().mockResolvedValue(true),
   };
 
   const tokenService = {
     createEmailVerificationToken: vi.fn().mockResolvedValue('raw-code-abc'),
     hashRawToken: vi.fn((rawCode: string) => `hash-of-${rawCode}`),
+    createRefreshToken: vi.fn().mockResolvedValue('raw-refresh-token-abc'),
   };
 
   const mailService = {
     sendVerificationEmail: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const jwtService = {
+    sign: vi.fn().mockReturnValue('signed-access-token'),
   };
 
   const service = new AuthService(
@@ -54,9 +61,10 @@ function createHarness() {
     passwordService as unknown as PasswordService,
     tokenService as unknown as TokenService,
     mailService as unknown as MailService,
+    jwtService as unknown as JwtService,
   );
 
-  return { service, prisma, tx, passwordService, tokenService, mailService };
+  return { service, prisma, tx, passwordService, tokenService, mailService, jwtService };
 }
 
 describe('AuthService.register', () => {
@@ -340,5 +348,139 @@ describe('AuthService.verifyEmail', () => {
       BadRequestException,
     );
     expect(tx.user.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthService.resendVerification', () => {
+  const existingUser = { id: 'user-1', email: 'user@example.com', emailVerifiedAt: null };
+
+  it('returns the generic message without creating a token when the email does not exist', async () => {
+    const { service, prisma, tokenService, mailService } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    const result = await service.resendVerification({ email: 'nobody@example.com' });
+
+    expect(result).toEqual({ message: GENERIC_RESEND_MESSAGE });
+    expect(tokenService.createEmailVerificationToken).not.toHaveBeenCalled();
+    expect(mailService.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+
+  it('returns the same generic message without creating a token when the email is already verified', async () => {
+    // Same response as "email does not exist" on purpose — this is what
+    // hides enumeration; a test change here should be a deliberate one.
+    const { service, prisma, tokenService, mailService } = createHarness();
+    prisma.user.findUnique.mockResolvedValue({ ...existingUser, emailVerifiedAt: new Date() });
+
+    const result = await service.resendVerification({ email: 'user@example.com' });
+
+    expect(result).toEqual({ message: GENERIC_RESEND_MESSAGE });
+    expect(tokenService.createEmailVerificationToken).not.toHaveBeenCalled();
+    expect(mailService.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+
+  it('creates a new token and emails it when the user exists and is not yet verified', async () => {
+    const { service, prisma, tokenService, mailService } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(existingUser);
+    tokenService.createEmailVerificationToken.mockResolvedValue('fresh-code');
+
+    const result = await service.resendVerification({ email: 'user@example.com' });
+
+    expect(tokenService.createEmailVerificationToken).toHaveBeenCalledWith('user-1');
+    expect(mailService.sendVerificationEmail).toHaveBeenCalledWith('user@example.com', 'fresh-code');
+    expect(result).toEqual({ message: GENERIC_RESEND_MESSAGE });
+  });
+
+  it('still returns the generic message even if sending the email fails', async () => {
+    const { service, prisma, mailService } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(existingUser);
+    mailService.sendVerificationEmail.mockRejectedValue(new Error('SMTP down'));
+
+    const result = await service.resendVerification({ email: 'user@example.com' });
+
+    expect(result).toEqual({ message: GENERIC_RESEND_MESSAGE });
+  });
+});
+
+describe('AuthService.login', () => {
+  // Shared valid user shape — tests override only the field that actually
+  // matters for that case, keeping it visible at a glance (same pattern as
+  // validRegisterDto()/validRecord() above).
+  function validLoginUser(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'user-1',
+      email: 'user@example.com',
+      fullName: 'Nguyen Van A',
+      passwordHash: 'hashed',
+      status: 'ACTIVE',
+      emailVerifiedAt: new Date(),
+      userRoles: [{ role: { name: 'CUSTOMER' } }],
+      ...overrides,
+    };
+  }
+
+  it('throws UnauthorizedException when the email does not exist', async () => {
+    const { service, prisma, passwordService } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    await expect(service.login({ email: 'nobody@example.com', password: 'Abc@1234' })).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(passwordService.verify).not.toHaveBeenCalled();
+  });
+
+  it('throws the exact same error as "email does not exist" when the password is wrong', async () => {
+    // Same error/message on purpose — this is what hides which case
+    // happened (enumeration hiding), see 05-login.md.
+    const { service, prisma, passwordService } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(validLoginUser());
+    passwordService.verify.mockResolvedValue(false);
+
+    await expect(service.login({ email: 'user@example.com', password: 'wrong' })).rejects.toThrow(
+      new UnauthorizedException('Invalid email or password'),
+    );
+  });
+
+  it('throws a distinct error, checked only after the password is confirmed correct, when the account is BLOCKED', async () => {
+    const { service, prisma, passwordService } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(validLoginUser({ status: 'BLOCKED' }));
+
+    await expect(service.login({ email: 'user@example.com', password: 'Abc@1234' })).rejects.toThrow(
+      new UnauthorizedException('Account is locked'),
+    );
+    expect(passwordService.verify).toHaveBeenCalled();
+  });
+
+  it('throws when the account is ACTIVE but the email is not yet verified', async () => {
+    const { service, prisma } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(validLoginUser({ emailVerifiedAt: null }));
+
+    await expect(service.login({ email: 'user@example.com', password: 'Abc@1234' })).rejects.toThrow(
+      new UnauthorizedException('Email is not verified'),
+    );
+  });
+
+  it('returns an access token, a raw refresh token, and the user (without passwordHash) on success', async () => {
+    const { service, prisma, tokenService, jwtService } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(validLoginUser());
+    tokenService.createRefreshToken.mockResolvedValue('raw-refresh-token-xyz');
+    jwtService.sign.mockReturnValue('signed-access-token-xyz');
+
+    const result = await service.login({ email: 'user@example.com', password: 'Abc@1234' });
+
+    expect(jwtService.sign).toHaveBeenCalledWith({ sub: 'user-1', email: 'user@example.com', roles: ['CUSTOMER'] });
+    expect(tokenService.createRefreshToken).toHaveBeenCalledWith('user-1');
+    // toEqual pins the exact shape below, so it also proves passwordHash is
+    // absent — no separate not.toHaveProperty() assertion needed.
+    expect(result).toEqual({
+      accessToken: 'signed-access-token-xyz',
+      rawRefreshToken: 'raw-refresh-token-xyz',
+      user: {
+        id: 'user-1',
+        email: 'user@example.com',
+        fullName: 'Nguyen Van A',
+        roles: ['CUSTOMER'],
+        emailVerified: true,
+      },
+    });
   });
 });

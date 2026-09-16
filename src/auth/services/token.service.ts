@@ -1,5 +1,7 @@
-import { randomInt, createHash } from 'node:crypto';
+import { randomInt, randomBytes, createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import ms from 'ms';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 const EMAIL_VERIFICATION_TTL_MS = 10 * 60 * 1000; // 10 phút — ngắn vì là code 6 chữ số dễ đoán
@@ -13,21 +15,31 @@ const EMAIL_VERIFICATION_TTL_MS = 10 * 60 * 1000; // 10 phút — ngắn vì là
 type EmailVerificationTokenClient = Pick<PrismaService, 'emailVerificationToken'>;
 
 /**
- * Sinh và hash các one-time token (hiện tại: email verification, gửi cho
- * user dưới dạng code 6 chữ số).
+ * Sinh và hash các one-time token: email verification (code 6 chữ số) và
+ * refresh token (chuỗi hex 32-byte ngẫu nhiên, quyết định #18).
  *
- * Raw code chỉ được trả về cho caller (để gửi email cho user) — DB luôn lưu
- * hash SHA-256 của nó, không bao giờ lưu giá trị gốc, giống cách password
- * không bao giờ lưu raw.
+ * Raw token chỉ được trả về cho caller (để gửi email / set cookie) — DB luôn
+ * lưu hash SHA-256 của nó, không bao giờ lưu giá trị gốc, giống cách
+ * password không bao giờ lưu raw.
  */
 @Injectable()
 export class TokenService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   private generate(): { rawCode: string; tokenHash: string } {
     const rawCode = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const tokenHash = this.hashRawToken(rawCode);
     return { rawCode, tokenHash };
+  }
+
+  /** Sinh chuỗi hex 32-byte ngẫu nhiên (raw) + hash SHA-256 — dùng cho refresh token (không cần user gõ tay, xem quyết định #18). */
+  private generateOpaqueToken(): { rawToken: string; tokenHash: string } {
+    const rawToken = randomBytes(32).toString('hex');
+    const tokenHash = this.hashRawToken(rawToken);
+    return { rawToken, tokenHash };
   }
 
   hashRawToken(rawToken: string): string {
@@ -68,5 +80,19 @@ export class TokenService {
     }
 
     return rawCode;
+  }
+
+  /** Tạo refresh token mới (chuỗi hex 32-byte), TTL đọc từ `REFRESH_TOKEN_TTL` — không hardcode số ngày. */
+  async createRefreshToken(userId: string): Promise<string> {
+    const { rawToken, tokenHash } = this.generateOpaqueToken();
+    const ttl = this.config.get<string>('REFRESH_TOKEN_TTL', '7d') as ms.StringValue;
+    await this.prisma.refreshToken.create({
+      data: { userId, tokenHash, expiresAt: this.expiryFromNow(ttl) },
+    });
+    return rawToken;
+  }
+
+  private expiryFromNow(ttl: ms.StringValue): Date {
+    return new Date(Date.now() + ms(ttl));
   }
 }

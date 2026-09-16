@@ -1,5 +1,9 @@
 import { TokenService } from './token.service.js';
 
+function createConfigMock() {
+  return { get: vi.fn((_key: string, defaultValue?: unknown) => defaultValue) };
+}
+
 function createPrismaMock() {
   const prisma = {
     emailVerificationToken: {
@@ -14,7 +18,7 @@ function createPrismaMock() {
 describe('TokenService', () => {
   it('deletes unverified tokens for the user before creating a new one', async () => {
     const prisma = createPrismaMock();
-    const service = new TokenService(prisma as never);
+    const service = new TokenService(prisma as never, createConfigMock() as never);
 
     await service.createEmailVerificationToken('user-1');
 
@@ -28,7 +32,7 @@ describe('TokenService', () => {
 
   it('creates a token record with a hash, not the raw code', async () => {
     const prisma = createPrismaMock();
-    const service = new TokenService(prisma as never);
+    const service = new TokenService(prisma as never, createConfigMock() as never);
 
     const rawCode = await service.createEmailVerificationToken('user-1');
 
@@ -42,7 +46,7 @@ describe('TokenService', () => {
 
   it('returns a different raw code on every call', async () => {
     const prisma = createPrismaMock();
-    const service = new TokenService(prisma as never);
+    const service = new TokenService(prisma as never, createConfigMock() as never);
 
     const first = await service.createEmailVerificationToken('user-1');
     const second = await service.createEmailVerificationToken('user-1');
@@ -53,7 +57,7 @@ describe('TokenService', () => {
   it('wraps delete+create in a transaction when no client is passed, so a failed create never leaves zero tokens', async () => {
     const prisma = createPrismaMock();
     prisma.emailVerificationToken.create.mockRejectedValue(new Error('DB write failed'));
-    const service = new TokenService(prisma as never);
+    const service = new TokenService(prisma as never, createConfigMock() as never);
 
     await expect(service.createEmailVerificationToken('user-1')).rejects.toThrow('DB write failed');
 
@@ -62,7 +66,7 @@ describe('TokenService', () => {
 
   it('does not open a nested transaction when called with an existing tx client', async () => {
     const prisma = createPrismaMock();
-    const service = new TokenService(prisma as never);
+    const service = new TokenService(prisma as never, createConfigMock() as never);
     const tx = {
       emailVerificationToken: {
         deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
