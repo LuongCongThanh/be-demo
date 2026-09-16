@@ -57,4 +57,25 @@ export class MailService {
       text: `Your email verification code is: ${code} (expires in 10 minutes)`,
     });
   }
+
+  async sendPasswordResetEmail(to: string, rawToken: string): Promise<void> {
+    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    const resetLink = `${frontendUrl}/reset-password?token=${rawToken}`;
+
+    if (!this.transporter) {
+      // Fallback dev/CI: chưa cấu hình SMTP, không thử gửi thật.
+      // Không bao giờ log raw token (quy tắc bảo mật, doc/auth-playbook/00-overview.md §5) —
+      // đây là password reset secret còn dùng được.
+      this.logger.log(`[DEV] Would send password reset email to ${to}`);
+      return;
+    }
+
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: 'Reset your password',
+      html: `<p>Click the link below to reset your password:</p><p><a href="${resetLink}">${resetLink}</a></p><p>This link expires in 1 hour.</p>`,
+      text: `Reset your password: ${resetLink} (expires in 1 hour)`,
+    });
+  }
 }

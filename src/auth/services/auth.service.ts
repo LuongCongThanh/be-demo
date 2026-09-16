@@ -10,6 +10,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { ResendVerificationDto } from '../dto/resend-verification.dto.js';
+import { ForgotPasswordDto } from '../dto/forgot-password.dto.js';
+import { ResetPasswordDto } from '../dto/reset-password.dto.js';
 import { VerifyEmailDto } from '../dto/verify-email.dto.js';
 import { LoginDto } from '../dto/login.dto.js';
 import { AuthUserResponseDto } from '../dto/auth-user-response.dto.js';
@@ -30,6 +32,11 @@ export const MAX_VERIFY_ATTEMPTS = 5;
 // vì hard-code lại chuỗi, tránh lệch nhau khi message đổi.
 export const GENERIC_RESEND_MESSAGE =
   'If the email exists and is not yet verified, a new verification email has been sent.';
+
+// Cùng tinh thần GENERIC_RESEND_MESSAGE ở trên — message chung cho
+// forgotPassword() dù email tồn tại hay không, chống enumeration (quyết
+// định #10).
+export const GENERIC_FORGOT_PASSWORD_MESSAGE = 'If the email exists, a password reset link has been sent.';
 
 export interface LoginResult {
   accessToken: string;
@@ -116,7 +123,10 @@ export class AuthService {
     // không bao giờ đặt trong transaction (SMTP chậm/treo sẽ giữ lock DB).
     // Lỗi ở đây chỉ log lại, không rollback hay fail request: user đã tạo
     // thành công và có thể dùng "resend verification" để nhận code mới.
-    await this.sendVerificationEmailBestEffort(user.email, rawCode);
+    await this.sendBestEffort(
+      () => this.mailService.sendVerificationEmail(user.email, rawCode),
+      `Failed to send verification email to ${user.email}`,
+    );
 
     return { id: user.id, email: user.email };
   }
@@ -169,15 +179,24 @@ export class AuthService {
       throw new NotFoundException('Invalid email or code');
     }
 
-    // Read findFirst() ở trên không atomic với update bên dưới, nên 2 request
-    // đồng thời cho cùng 1 token đều có thể pass check record.verifiedAt
-    // trước khi cái nào commit. Chống race này bằng cách "claim" token qua
-    // conditional update (`verifiedAt: null` trong WHERE) trong transaction:
-    // DB tự đảm bảo chỉ 1 caller thắng. Nếu thua race, không cần undo gì
-    // thêm, reject giống như token đã dùng rồi.
-    const wonRace = await this.prisma.$transaction(async (tx) => {
+    const wonRace = await this.claimEmailVerification(record.id, record.userId);
+    if (!wonRace) {
+      throw new BadRequestException('Code already used');
+    }
+
+    return { message: 'Email verified successfully' };
+  }
+
+  // Read findFirst() ở caller không atomic với update ở đây, nên 2 request
+  // đồng thời cho cùng 1 token đều có thể pass check record.verifiedAt trước
+  // khi cái nào commit. Chống race này bằng cách "claim" token qua conditional
+  // update (`verifiedAt: null` trong WHERE) trong transaction: DB tự đảm bảo
+  // chỉ 1 caller thắng. Nếu thua race, không cần undo gì thêm, reject giống
+  // như token đã dùng rồi.
+  private async claimEmailVerification(tokenId: string, userId: string): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
       const claimed = await tx.emailVerificationToken.updateMany({
-        where: { id: record.id, verifiedAt: null },
+        where: { id: tokenId, verifiedAt: null },
         data: { verifiedAt: new Date() },
       });
       if (claimed.count === 0) {
@@ -185,17 +204,11 @@ export class AuthService {
       }
 
       await tx.user.update({
-        where: { id: record.userId },
+        where: { id: userId },
         data: { emailVerifiedAt: new Date() },
       });
       return true;
     });
-
-    if (!wonRace) {
-      throw new BadRequestException('Code already used');
-    }
-
-    return { message: 'Email verified successfully' };
   }
 
   async resendVerification(dto: ResendVerificationDto): Promise<MessageResponseDto> {
@@ -208,7 +221,10 @@ export class AuthService {
     }
 
     const rawCode = await this.tokenService.createEmailVerificationToken(user.id);
-    await this.sendVerificationEmailBestEffort(user.email, rawCode);
+    await this.sendBestEffort(
+      () => this.mailService.sendVerificationEmail(user.email, rawCode),
+      `Failed to send verification email to ${user.email}`,
+    );
 
     return { message: GENERIC_RESEND_MESSAGE };
   }
@@ -278,8 +294,6 @@ export class AuthService {
     // rõ ràng token đã lộ. Revoke TOÀN BỘ session của user, không chỉ token
     // này, buộc login lại ở mọi thiết bị.
     if (record.revokedAt) {
-      // revokedAt != null nghĩa là token này đã bị rotation trước đó — ai đó
-      // đang dùng lại 1 bản sao cũ, dấu hiệu rõ ràng token đã lộ.
       return this.revokeAllSessionsAsReuseDetected(record.userId);
     }
 
@@ -321,6 +335,96 @@ export class AuthService {
     );
   }
 
+  async forgotPassword(dto: ForgotPasswordDto): Promise<MessageResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    // Không tồn tại → vẫn trả message giống hệt case hợp lệ, KHÔNG throw 404
+    // (chống enumeration, quyết định #10).
+    if (!user) {
+      return { message: GENERIC_FORGOT_PASSWORD_MESSAGE };
+    }
+
+    const rawToken = await this.tokenService.createPasswordResetToken(user.id);
+    await this.sendBestEffort(
+      () => this.mailService.sendPasswordResetEmail(user.email, rawToken),
+      `Failed to send password reset email to ${user.email}`,
+    );
+
+    return { message: GENERIC_FORGOT_PASSWORD_MESSAGE };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<MessageResponseDto> {
+    // Hash raw token nhận từ client để so khớp với DB — không bao giờ query
+    // DB bằng raw token (DB chỉ lưu tokenHash).
+    const tokenHash = this.tokenService.hashRawToken(dto.token);
+
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!resetToken || resetToken.usedAt !== null || resetToken.expiresAt < new Date()) {
+      // Không phân biệt "không tồn tại" / "đã dùng" / "hết hạn" trong message
+      // trả về client — tránh lộ thông tin thừa.
+      throw new BadRequestException('Invalid or expired token');
+    }
+
+    const newPasswordHash = await this.passwordService.hash(dto.password);
+
+    const wonRace = await this.claimPasswordReset(resetToken.id, resetToken.userId, newPasswordHash);
+    if (!wonRace) {
+      throw new BadRequestException('Invalid or expired token');
+    }
+
+    return { message: 'Password has been reset. Please log in again.' };
+  }
+
+  // "Claim" token bằng conditional update (usedAt: null trong WHERE) để đóng
+  // race window giữa findUnique() ở caller và update này — cùng lý do như
+  // claimEmailVerification() ở trên. Chỉ khi claim thắng mới update password
+  // mới + revoke TOÀN BỘ refresh token của user (không chỉ 1 cái, giống
+  // logout-all — xem 11-reset-password.md).
+  private async claimPasswordReset(tokenId: string, userId: string, newPasswordHash: string): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.passwordResetToken.updateMany({
+        where: { id: tokenId, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      if (claimed.count === 0) {
+        return false;
+      }
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { passwordHash: newPasswordHash },
+      });
+      await tx.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      return true;
+    });
+  }
+
+  async logout(rawRefreshToken: string): Promise<void> {
+    const tokenHash = this.tokenService.hashRawToken(rawRefreshToken);
+
+    // Revoke đúng 1 refresh token (nếu tồn tại và chưa revoke) — không throw
+    // lỗi nếu không tìm thấy, để tránh lộ thông tin token có hợp lệ hay không.
+    await this.prisma.refreshToken.updateMany({
+      where: { tokenHash, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  async logoutAll(userId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
   async getMe(userId: string): Promise<AuthUserResponseDto> {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
@@ -356,14 +460,15 @@ export class AuthService {
     return { accessToken, roles };
   }
 
-  // Lỗi gửi mail chỉ log lại, không throw — caller (register/resendVerification)
-  // đã hoàn tất phần việc chính của mình (tạo user / tạo code mới), gửi mail
-  // thất bại không nên làm fail cả request đó.
-  private async sendVerificationEmailBestEffort(email: string, rawCode: string): Promise<void> {
+  // Dùng chung cho mọi lần gửi mail "best effort": lỗi chỉ log lại, không
+  // throw — caller (register/resendVerification/forgotPassword) đã hoàn tất
+  // phần việc chính của mình (tạo user / tạo token mới), gửi mail thất bại
+  // không nên làm fail cả request đó.
+  private async sendBestEffort(send: () => Promise<void>, errorMessage: string): Promise<void> {
     try {
-      await this.mailService.sendVerificationEmail(email, rawCode);
+      await send();
     } catch (err) {
-      this.logger.error(`Failed to send verification email to ${email}`, err as Error);
+      this.logger.error(errorMessage, err as Error);
     }
   }
 }

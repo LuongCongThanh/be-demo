@@ -10,6 +10,10 @@ function createPrismaMock() {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       create: vi.fn().mockResolvedValue({}),
     },
+    passwordResetToken: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      create: vi.fn().mockResolvedValue({}),
+    },
     refreshToken: {
       create: vi.fn().mockResolvedValue({}),
     },
@@ -81,6 +85,50 @@ describe('TokenService', () => {
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(tx.emailVerificationToken.create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('TokenService.createPasswordResetToken', () => {
+  it('deletes unused password reset tokens for the user before creating a new one', async () => {
+    const prisma = createPrismaMock();
+    const service = new TokenService(prisma as never, createConfigMock() as never);
+
+    await service.createPasswordResetToken('user-1');
+
+    expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', usedAt: null },
+    });
+    expect(prisma.passwordResetToken.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.passwordResetToken.create.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('creates a token record with a hash, not the raw token, expiring in 1 hour', async () => {
+    const prisma = createPrismaMock();
+    const service = new TokenService(prisma as never, createConfigMock() as never);
+
+    const before = Date.now();
+    const rawToken = await service.createPasswordResetToken('user-1');
+    const after = Date.now();
+
+    expect(rawToken).toMatch(/^[0-9a-f]{64}$/); // 32-byte opaque token, hex-encoded
+    const createCall = prisma.passwordResetToken.create.mock.calls[0][0];
+    expect(createCall.data.userId).toBe('user-1');
+    expect(createCall.data.tokenHash).not.toBe(rawToken);
+    expect(createCall.data.tokenHash).toMatch(/^[0-9a-f]{64}$/); // sha256 hex
+    const expiresAt = createCall.data.expiresAt as Date;
+    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + 60 * 60 * 1000);
+    expect(expiresAt.getTime()).toBeLessThanOrEqual(after + 60 * 60 * 1000);
+  });
+
+  it('returns a different raw token on every call', async () => {
+    const prisma = createPrismaMock();
+    const service = new TokenService(prisma as never, createConfigMock() as never);
+
+    const first = await service.createPasswordResetToken('user-1');
+    const second = await service.createPasswordResetToken('user-1');
+
+    expect(first).not.toBe(second);
   });
 });
 

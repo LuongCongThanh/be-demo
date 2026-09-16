@@ -1,10 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { MailService } from '../src/mail/mail.service.js';
+import { EmailThrottlerGuard } from '../src/auth/guards/email-throttler.guard.js';
 import { configureApp } from '../src/bootstrap/configure-app.js';
+
+const ALWAYS_ALLOW = { canActivate: () => true };
 
 const TEST_EMAIL_DOMAIN = '@auth-register-flow.e2e-test.local';
 
@@ -28,6 +32,16 @@ describe('Auth — full register flow (e2e)', () => {
       // straight from the call args instead of an inbox API.
       .overrideProvider(MailService)
       .useValue(mailService)
+      // Not testing rate limiting here — this file exercises several
+      // /auth/* routes across multiple requests per test. `ThrottlerGuard`
+      // must be overridden as its own provider, not via overrideGuard()/
+      // overrideProvider(APP_GUARD) — APP_GUARD is a `multi: true` token
+      // (see src/app.module.ts), so that would only ADD a stub guard
+      // alongside the real one instead of replacing it.
+      .overrideProvider(ThrottlerGuard)
+      .useValue(ALWAYS_ALLOW)
+      .overrideGuard(EmailThrottlerGuard)
+      .useValue(ALWAYS_ALLOW)
       .compile();
 
     app = moduleFixture.createNestApplication();

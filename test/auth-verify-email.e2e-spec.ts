@@ -1,13 +1,11 @@
 import { randomInt } from 'node:crypto';
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { TokenService } from '../src/auth/services/token.service.js';
 import { MAX_VERIFY_ATTEMPTS } from '../src/auth/services/auth.service.js';
-import { configureApp } from '../src/bootstrap/configure-app.js';
 import { createTestUser } from './support/create-test-user.js';
+import { createTestApp } from './support/create-test-app.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-verify-email.e2e-test.local';
 
@@ -21,13 +19,9 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
   let tokenService: TokenService;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    configureApp(app);
-    await app.init();
+    const created = await createTestApp();
+    app = created.app;
+    const moduleFixture = created.moduleFixture;
 
     prisma = moduleFixture.get(PrismaService);
     tokenService = moduleFixture.get(TokenService);

@@ -82,6 +82,22 @@ export class TokenService {
     return rawCode;
   }
 
+  /**
+   * Tạo password reset token mới, xoá trước mọi token reset chưa dùng của
+   * user (quyết định #8, tránh dư hơn 1 token hợp lệ cùng lúc). TTL cố định
+   * 1 giờ (không đọc từ config, khác refresh token) — xem 01-setup.md.
+   */
+  async createPasswordResetToken(userId: string): Promise<string> {
+    await this.prisma.passwordResetToken.deleteMany({
+      where: { userId, usedAt: null },
+    });
+    const { rawToken, tokenHash } = this.generateOpaqueToken();
+    await this.prisma.passwordResetToken.create({
+      data: { userId, tokenHash, expiresAt: this.expiryFromNow('1h') },
+    });
+    return rawToken;
+  }
+
   /** Tạo refresh token mới (chuỗi hex 32-byte), TTL đọc từ `REFRESH_TOKEN_TTL` — không hardcode số ngày. */
   async createRefreshToken(userId: string): Promise<string> {
     const { rawToken, tokenHash } = this.generateOpaqueToken();
