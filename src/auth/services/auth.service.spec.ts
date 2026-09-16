@@ -32,6 +32,12 @@ function createHarness() {
       findFirst: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
+    refreshToken: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      // count: 1 by default (the rotation claim succeeds); tests override to
+      // 0 to simulate losing the race to a concurrent /auth/refresh call.
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
     // register() and verifyEmail() both pass a callback (`tx => ...`);
     // the callback receives the same `tx` mock, shared across both flows.
     $transaction: vi.fn(async (arg: unknown) => (arg as (tx: unknown) => unknown)(tx)),
@@ -481,6 +487,120 @@ describe('AuthService.login', () => {
         roles: ['CUSTOMER'],
         emailVerified: true,
       },
+    });
+  });
+});
+
+describe('AuthService.refreshToken', () => {
+  // Shared valid record shape — tests override only the field that actually
+  // matters for that case (same pattern as validLoginUser() above).
+  function validRefreshTokenRecord(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'token-1',
+      userId: 'user-1',
+      revokedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      user: { id: 'user-1', email: 'user@example.com', userRoles: [] },
+      ...overrides,
+    };
+  }
+
+  it('throws UnauthorizedException when no raw token is given', async () => {
+    const { service } = createHarness();
+
+    await expect(service.refreshToken(undefined)).rejects.toThrow(new UnauthorizedException('Missing refresh token'));
+  });
+
+  it('throws UnauthorizedException when the token hash matches no record', async () => {
+    const { service, prisma, tokenService } = createHarness();
+    prisma.refreshToken.findUnique.mockResolvedValue(null);
+    tokenService.hashRawToken.mockReturnValue('hash-of-unknown-token');
+
+    await expect(service.refreshToken('unknown-token')).rejects.toThrow(
+      new UnauthorizedException('Invalid refresh token'),
+    );
+    expect(prisma.refreshToken.findUnique).toHaveBeenCalledWith({
+      where: { tokenHash: 'hash-of-unknown-token' },
+      include: { user: { include: { userRoles: { include: { role: true } } } } },
+    });
+  });
+
+  it('detects reuse of an already-revoked token: rejects and revokes every other session of that user', async () => {
+    // A revokedAt != null means this exact token already went through
+    // rotation once — someone else presenting it again means it leaked.
+    const { service, prisma } = createHarness();
+    prisma.refreshToken.findUnique.mockResolvedValue(validRefreshTokenRecord({ revokedAt: new Date() }));
+
+    await expect(service.refreshToken('reused-token')).rejects.toThrow(
+      new UnauthorizedException(
+        'Refresh token has been revoked — all login sessions have been logged out for security reasons',
+      ),
+    );
+    expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', revokedAt: null },
+      data: { revokedAt: expect.any(Date) },
+    });
+  });
+
+  it('throws UnauthorizedException when the token has expired', async () => {
+    const { service, prisma } = createHarness();
+    prisma.refreshToken.findUnique.mockResolvedValue(
+      validRefreshTokenRecord({ expiresAt: new Date(Date.now() - 1000) }),
+    );
+
+    await expect(service.refreshToken('expired-token')).rejects.toThrow(
+      new UnauthorizedException('Refresh token has expired'),
+    );
+  });
+
+  it('treats losing the rotation-claim race as reuse: rejects and revokes every other session too', async () => {
+    // Simulates 2 concurrent /auth/refresh calls with the same valid token:
+    // both pass the revokedAt/expiresAt checks above before either commits,
+    // but the conditional updateMany's WHERE re-checks revokedAt: null at
+    // write time, so only one of them actually claims it — this one loses
+    // (matches zero rows).
+    const { service, prisma } = createHarness();
+    prisma.refreshToken.findUnique.mockResolvedValue(validRefreshTokenRecord());
+    prisma.refreshToken.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.refreshToken('valid-token')).rejects.toThrow(
+      new UnauthorizedException(
+        'Refresh token has been revoked — all login sessions have been logged out for security reasons',
+      ),
+    );
+    expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+      where: { id: 'token-1', revokedAt: null },
+      data: { revokedAt: expect.any(Date) },
+    });
+    // Losing the claim must still cascade to revoking every other session —
+    // same consequence as genuine reuse detection above.
+    expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', revokedAt: null },
+      data: { revokedAt: expect.any(Date) },
+    });
+  });
+
+  it('rotates: revokes the presented token and returns a new access token + new raw refresh token', async () => {
+    const { service, prisma, tokenService, jwtService } = createHarness();
+    prisma.refreshToken.findUnique.mockResolvedValue(
+      validRefreshTokenRecord({
+        user: { id: 'user-1', email: 'user@example.com', userRoles: [{ role: { name: 'CUSTOMER' } }] },
+      }),
+    );
+    tokenService.createRefreshToken.mockResolvedValue('new-raw-refresh-token');
+    jwtService.sign.mockReturnValue('new-signed-access-token');
+
+    const result = await service.refreshToken('valid-token');
+
+    expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+      where: { id: 'token-1', revokedAt: null },
+      data: { revokedAt: expect.any(Date) },
+    });
+    expect(tokenService.createRefreshToken).toHaveBeenCalledWith('user-1');
+    expect(jwtService.sign).toHaveBeenCalledWith({ sub: 'user-1', email: 'user@example.com', roles: ['CUSTOMER'] });
+    expect(result).toEqual({
+      accessToken: 'new-signed-access-token',
+      newRawRefreshToken: 'new-raw-refresh-token',
     });
   });
 });

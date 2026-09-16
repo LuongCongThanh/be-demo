@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Res } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   ApiBadRequestResponse,
@@ -10,12 +10,13 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import ms from 'ms';
 import { ResendVerificationDto } from './dto/resend-verification.dto.js';
 import { VerifyEmailDto } from './dto/verify-email.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { LoginResponseDto } from './dto/login-response.dto.js';
+import { RefreshResponseDto } from './dto/refresh-response.dto.js';
 import { MessageResponseDto } from './dto/message-response.dto.js';
 import { AuthService } from './services/auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
@@ -77,9 +78,30 @@ export class AuthController {
     return { accessToken, user };
   }
 
+  // Route này KHÔNG có JwtAuthGuard — cố ý, vì lúc gọi /auth/refresh access
+  // token cũ thường đã hết hạn (đó chính là lý do cần refresh). Route tự xác
+  // thực bằng refresh token đọc từ cookie, không phụ thuộc access token.
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Rotate the refresh token cookie and issue a new access token' })
+  @ApiOkResponse({ type: RefreshResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Missing, invalid, expired, or reused refresh token' })
+  async refresh(@Req() request: Request, @Res({ passthrough: true }) response: Response): Promise<RefreshResponseDto> {
+    const rawRefreshToken = request.cookies?.[this.getRefreshTokenCookieName()] as string | undefined;
+
+    const { accessToken, newRawRefreshToken } = await this.authService.refreshToken(rawRefreshToken);
+
+    this.setRefreshTokenCookie(response, newRawRefreshToken);
+
+    return { accessToken };
+  }
+
+  private getRefreshTokenCookieName(): string {
+    return this.config.get<string>('REFRESH_TOKEN_COOKIE_NAME', 'refresh_token');
+  }
+
   private setRefreshTokenCookie(response: Response, rawRefreshToken: string): void {
-    const cookieName = this.config.get<string>('REFRESH_TOKEN_COOKIE_NAME', 'refresh_token');
-    response.cookie(cookieName, rawRefreshToken, {
+    response.cookie(this.getRefreshTokenCookieName(), rawRefreshToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
