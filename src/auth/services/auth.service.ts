@@ -36,6 +36,11 @@ export interface LoginResult {
   user: { id: string; email: string; fullName: string; roles: string[]; emailVerified: boolean };
 }
 
+export interface RefreshTokenResult {
+  accessToken: string;
+  newRawRefreshToken: string;
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -233,8 +238,7 @@ export class AuthService {
       throw new UnauthorizedException('Email is not verified');
     }
 
-    const roles = user.userRoles.map((ur) => ur.role.name);
-    const accessToken = this.signAccessToken({ id: user.id, email: user.email, roles });
+    const { accessToken, roles } = this.signAccessToken(user);
     const rawRefreshToken = await this.tokenService.createRefreshToken(user.id);
 
     return {
@@ -253,18 +257,86 @@ export class AuthService {
     };
   }
 
-  /**
-   * Sinh JWT access token. Payload chỉ chứa thông tin cần để nhận diện user
-   * (sub = userId, email, roles) — KHÔNG nhét passwordHash/refresh token/dữ
-   * liệu cá nhân không cần thiết (JWT payload không được mã hoá, ai cũng đọc
-   * được nếu có token).
-   */
-  private signAccessToken(user: { id: string; email: string; roles: string[] }): string {
-    return this.jwtService.sign({
-      sub: user.id,
-      email: user.email,
-      roles: user.roles,
+  async refreshToken(rawRefreshToken: string | undefined): Promise<RefreshTokenResult> {
+    if (!rawRefreshToken) {
+      throw new UnauthorizedException('Missing refresh token');
+    }
+
+    const tokenHash = this.tokenService.hashRawToken(rawRefreshToken);
+    const record = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+      include: { user: { include: { userRoles: { include: { role: true } } } } },
     });
+
+    if (!record) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Reuse detection (quyết định #3): revokedAt != null nghĩa là token này
+    // đã bị rotation trước đó — ai đó đang dùng lại 1 bản sao cũ, dấu hiệu
+    // rõ ràng token đã lộ. Revoke TOÀN BỘ session của user, không chỉ token
+    // này, buộc login lại ở mọi thiết bị.
+    if (record.revokedAt) {
+      // revokedAt != null nghĩa là token này đã bị rotation trước đó — ai đó
+      // đang dùng lại 1 bản sao cũ, dấu hiệu rõ ràng token đã lộ.
+      return this.revokeAllSessionsAsReuseDetected(record.userId);
+    }
+
+    if (record.expiresAt < new Date()) {
+      throw new UnauthorizedException('Refresh token has expired');
+    }
+
+    // Rotation: "claim" quyền xoay vòng bằng conditional update, đóng race
+    // window giữa findUnique() ở trên và update này. Chỉ request nào update
+    // trúng đúng 1 dòng (revokedAt vẫn còn null tại thời điểm ghi) mới thắng
+    // và được cấp token mới; request thua coi như gặp reuse.
+    const claimed = await this.prisma.refreshToken.updateMany({
+      where: { id: record.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    if (claimed.count === 0) {
+      // Thua race: 1 request khác đã claim token này trước — từ góc nhìn
+      // của request này, token đã bị "dùng" bởi ai đó khác, coi như reuse.
+      return this.revokeAllSessionsAsReuseDetected(record.userId);
+    }
+
+    const newRawRefreshToken = await this.tokenService.createRefreshToken(record.userId);
+    const { accessToken } = this.signAccessToken(record.user);
+
+    return { accessToken, newRawRefreshToken };
+  }
+
+  // Revoke TOÀN BỘ session của user (không chỉ 1 token) rồi reject —
+  // dùng chung cho cả 2 tình huống được coi là reuse: token có revokedAt
+  // != null thật sự, và thua race khi claim quyền rotation (quyết định #3).
+  private async revokeAllSessionsAsReuseDetected(userId: string): Promise<never> {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    throw new UnauthorizedException(
+      'Refresh token has been revoked — all login sessions have been logged out for security reasons',
+    );
+  }
+
+  /**
+   * Derive role names rồi sinh JWT access token trong 1 bước — dùng chung
+   * cho login() và refreshToken() (cả 2 đều có sẵn `user` kèm `userRoles`
+   * qua Prisma include), tránh lặp lại `.map()` + gọi sign() ở từng nơi.
+   *
+   * Payload JWT chỉ chứa thông tin cần để nhận diện user (sub = userId,
+   * email, roles) — KHÔNG nhét passwordHash/refresh token/dữ liệu cá nhân
+   * không cần thiết (JWT payload không được mã hoá, ai cũng đọc được nếu có
+   * token).
+   */
+  private signAccessToken(user: { id: string; email: string; userRoles: { role: { name: string } }[] }): {
+    accessToken: string;
+    roles: string[];
+  } {
+    const roles = user.userRoles.map((ur) => ur.role.name);
+    const accessToken = this.jwtService.sign({ sub: user.id, email: user.email, roles });
+    return { accessToken, roles };
   }
 
   // Lỗi gửi mail chỉ log lại, không throw — caller (register/resendVerification)
