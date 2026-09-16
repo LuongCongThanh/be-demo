@@ -31,7 +31,11 @@ async function fetchOpenApiSpec(): Promise<unknown> {
 
 function convertToPostmanCollection(openApiSpec: unknown): Promise<object> {
   return new Promise((resolve, reject) => {
-    convert({ type: 'json', data: openApiSpec as never }, {}, (err, result) => {
+    // requestParametersResolution mặc định là 'Schema' — tự sinh giá trị mẫu
+    // từ kiểu dữ liệu (vd. "<string>") thay vì dùng `example` khai trong
+    // @ApiProperty({ example: ... }), nên request body trên Postman sẽ khác
+    // hẳn giá trị hiển thị trên Swagger UI nếu không set option này.
+    convert({ type: 'json', data: openApiSpec as never }, { requestParametersResolution: 'Example' }, (err, result) => {
       if (err || !result) {
         reject(err ?? new Error('openapi-to-postmanv2 returned no result'));
         return;
