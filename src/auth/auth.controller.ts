@@ -8,6 +8,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { ResendVerificationDto } from './dto/resend-verification.dto.js';
 import { VerifyEmailDto } from './dto/verify-email.dto.js';
 import { MessageResponseDto } from './dto/message-response.dto.js';
 import { AuthService } from './services/auth.service.js';
@@ -37,5 +38,14 @@ export class AuthController {
   @ApiBadRequestResponse({ description: 'Code already used or expired' })
   async verifyEmail(@Body() dto: VerifyEmailDto): Promise<MessageResponseDto> {
     return this.authService.verifyEmail(dto);
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend the email verification code' })
+  @ApiOkResponse({ type: MessageResponseDto, description: 'A new verification email has been sent (if applicable)' })
+  @ApiBadRequestResponse({ description: 'Invalid input' })
+  async resendVerification(@Body() dto: ResendVerificationDto): Promise<MessageResponseDto> {
+    return this.authService.resendVerification(dto);
   }
 }

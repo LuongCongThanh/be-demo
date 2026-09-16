@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { ResendVerificationDto } from '../dto/resend-verification.dto.js';
 import { VerifyEmailDto } from '../dto/verify-email.dto.js';
 import { MessageResponseDto } from '../dto/message-response.dto.js';
 import { PasswordService } from './password.service.js';
@@ -17,6 +18,8 @@ export const MAX_VERIFY_ATTEMPTS = 5;
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private static readonly GENERIC_RESEND_MESSAGE =
+    'If the email exists and is not yet verified, a new verification email has been sent.';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -171,5 +174,24 @@ export class AuthService {
     }
 
     return { message: 'Email verified successfully' };
+  }
+
+  async resendVerification(dto: ResendVerificationDto): Promise<MessageResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user || user.emailVerifiedAt) {
+      return { message: AuthService.GENERIC_RESEND_MESSAGE };
+    }
+
+    const rawCode = await this.tokenService.createEmailVerificationToken(user.id);
+    try {
+      await this.mailService.sendVerificationEmail(user.email, rawCode);
+    } catch (err) {
+      this.logger.error(`Failed to resend verification email to ${user.email}`, err as Error);
+    }
+
+    return { message: AuthService.GENERIC_RESEND_MESSAGE };
   }
 }
