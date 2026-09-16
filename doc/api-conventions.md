@@ -573,6 +573,15 @@ findOne(@Param('id', ParseUUIDPipe) id: string) { ... }
 
 Không bắt buộc phải có `CategoryResponseDto` riêng nếu resource trả thẳng Prisma type (§11.a) — khi đó `type:` có thể trỏ vào 1 class khai lại field cho Swagger đọc (Prisma type không tự mang metadata OpenAPI).
 
+**Đồng bộ sang Postman:** không tạo/sửa request thủ công trong Postman collection. Swagger (`/api-json`) là nguồn chuẩn duy nhất — sau khi thêm/sửa API (đủ decorator Swagger ở trên), chạy:
+
+```bash
+npm run start:dev                # app phải đang chạy để có /api-json
+npm run postman:sync             # fetch OpenAPI spec → convert → PUT lên Postman collection
+```
+
+Cần set `POSTMAN_API_KEY` và `POSTMAN_COLLECTION_ID` trong `.env` (xem `.env.example`). Script ở `scripts/sync-postman-collection.ts`, ghi đè toàn bộ nội dung collection trên Postman bằng spec hiện tại — không dùng cho collection có chứa request/example thủ công cần giữ lại.
+
 ### 13. Pagination cho `findAll()`
 
 ```ts
