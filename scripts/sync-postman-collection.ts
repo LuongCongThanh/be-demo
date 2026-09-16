@@ -19,6 +19,12 @@ if (!POSTMAN_API_KEY || !POSTMAN_COLLECTION_ID) {
   process.exit(1);
 }
 
+// Gán lại vào biến đã narrow kiểu (khác scope với guard ở trên) để truyền
+// tường minh qua tham số cho các hàm bên dưới, thay vì đọc ngầm từ biến
+// module-level — tránh phải ép kiểu `as string` mất an toàn kiểu.
+const postmanApiKey: string = POSTMAN_API_KEY;
+const postmanCollectionId: string = POSTMAN_COLLECTION_ID;
+
 async function fetchOpenApiSpec(): Promise<unknown> {
   const res = await fetch(OPENAPI_URL);
   if (!res.ok) {
@@ -49,12 +55,12 @@ function convertToPostmanCollection(openApiSpec: unknown): Promise<object> {
   });
 }
 
-async function pushToPostman(collection: object): Promise<void> {
-  const res = await fetch(`https://api.getpostman.com/collections/${POSTMAN_COLLECTION_ID}`, {
+async function pushToPostman(collection: object, apiKey: string, collectionId: string): Promise<void> {
+  const res = await fetch(`https://api.getpostman.com/collections/${collectionId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'X-Api-Key': POSTMAN_API_KEY as string,
+      'X-Api-Key': apiKey,
     },
     body: JSON.stringify({ collection }),
   });
@@ -72,8 +78,8 @@ async function main() {
   console.log('Converting to Postman collection format...');
   const collection = await convertToPostmanCollection(openApiSpec);
 
-  console.log(`Pushing to Postman collection ${POSTMAN_COLLECTION_ID}...`);
-  await pushToPostman(collection);
+  console.log(`Pushing to Postman collection ${postmanCollectionId}...`);
+  await pushToPostman(collection, postmanApiKey, postmanCollectionId);
 
   console.log('Done — Postman collection is in sync with the current API.');
 }

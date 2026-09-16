@@ -5,6 +5,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { TokenService } from '../src/auth/services/token.service.js';
+import { MAX_VERIFY_ATTEMPTS } from '../src/auth/services/auth.service.js';
 import { configureApp } from '../src/bootstrap/configure-app.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-verify-email.e2e-test.local';
@@ -157,11 +158,11 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
       .expect(400);
   });
 
-  it('locks out further attempts after 5 wrong guesses, even with the correct code', async () => {
+  it('locks out further attempts after MAX_VERIFY_ATTEMPTS wrong guesses, even with the correct code', async () => {
     const user = await createUser('lockout');
     const code = await createCodeFor(user.id);
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < MAX_VERIFY_ATTEMPTS; i++) {
       await request(app.getHttpServer())
         .post('/auth/verify-email')
         .send({ email: user.email, code: randomCode() })
