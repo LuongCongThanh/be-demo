@@ -29,9 +29,7 @@ async function main() {
   const email = process.env.ADMIN_BOOTSTRAP_EMAIL;
   const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
   if (!email || !password) {
-    throw new Error(
-      'Missing ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD in .env',
-    );
+    throw new Error('Missing ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD in .env');
   }
 
   const existingAdmin = await prisma.user.findUnique({ where: { email } });
@@ -45,6 +43,8 @@ async function main() {
     data: {
       email,
       passwordHash,
+      fullName: 'Admin',
+      phone: '',
       status: 'ACTIVE',
       emailVerifiedAt: new Date(), // admin bootstrap doesn't need email verification
       userRoles: { create: [{ roleId: adminRole.id }] },
