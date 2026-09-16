@@ -9,6 +9,11 @@ import { MailService } from '../../mail/mail.service.js';
 import { RegisterDto } from '../dto/register.dto.js';
 import { RegisterResponseDto } from '../dto/register-response.dto.js';
 
+// Code 6 chữ số chỉ có 1.000.000 khả năng, khác với raw token 32-byte cũ,
+// nên có thể bị brute-force trong thời gian hết hạn nếu không giới hạn số
+// lần đoán sai.
+export const MAX_VERIFY_ATTEMPTS = 5;
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -21,12 +26,11 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto): Promise<RegisterResponseDto> {
-    // Email uniqueness is checked explicitly (rather than relying on the DB
-    // unique constraint throwing) so we can return a clear 409 before doing
-    // any hashing/DB-write work, and to match decision #10: register wants
-    // an unambiguous "email already in use" error, unlike forgot-password
-    // or resend-verification, which deliberately hide whether an email
-    // exists.
+    // Kiểm tra email trùng tường minh (thay vì dựa vào DB unique constraint
+    // throw lỗi) để trả 409 rõ ràng trước khi tốn công hash/ghi DB, và đúng
+    // theo decision #10: register cần lỗi "email đã tồn tại" rõ ràng, khác
+    // với forgot-password hay resend-verification (cố tình giấu việc email
+    // có tồn tại hay không).
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -34,15 +38,14 @@ export class AuthService {
       throw new ConflictException('Email is already in use');
     }
 
-    // Hashing is CPU-heavy and doesn't touch the DB, so it happens before
-    // (and outside) the transaction rather than holding a DB transaction
-    // open while argon2 runs.
+    // Hash password tốn CPU và không đụng tới DB, nên làm trước (và ngoài)
+    // transaction, tránh giữ transaction DB mở trong lúc argon2 chạy.
     const passwordHash = await this.passwordService.hash(dto.password);
 
     let user: { id: string; email: string };
-    let rawToken: string;
+    let rawCode: string;
     try {
-      ({ user, rawToken } = await this.prisma.$transaction(async (tx) => {
+      ({ user, rawCode } = await this.prisma.$transaction(async (tx) => {
         const customerRole = await tx.role.findUniqueOrThrow({
           where: { name: 'CUSTOMER' },
         });
@@ -58,20 +61,18 @@ export class AuthService {
           },
         });
 
-        const rawTok = await this.tokenService.createEmailVerificationToken(createdUser.id, tx);
+        const code = await this.tokenService.createEmailVerificationToken(createdUser.id, tx);
 
-        return { user: createdUser, rawToken: rawTok };
+        return { user: createdUser, rawCode: code };
       }));
     } catch (err) {
-      // The findUnique check above only catches most duplicate-email
-      // registrations; two concurrent requests for the same email can both
-      // pass that check, so the DB's unique constraint is the real guard.
-      // Translate that race into the same 409 the pre-check produces — but
-      // only when the violated constraint is actually `email`. The same
-      // transaction also creates an EmailVerificationToken with its own
-      // unique `tokenHash`, so a bare `code === 'P2002'` check would
-      // misreport a (vanishingly unlikely) tokenHash collision as "email
-      // already in use".
+      // Check findUnique ở trên chỉ chặn được phần lớn trường hợp trùng
+      // email; 2 request đồng thời cùng email đều có thể pass check đó, nên
+      // unique constraint của DB mới là chốt chặn thật sự. Chuyển race đó
+      // thành cùng lỗi 409 như pre-check — nhưng chỉ khi constraint bị vi
+      // phạm đúng là `email`. Transaction này cũng tạo EmailVerificationToken
+      // với `tokenHash` unique riêng, nên chỉ check `code === 'P2002'` sẽ
+      // báo nhầm một collision tokenHash (cực hiếm) thành "email đã tồn tại".
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
         err.code === 'P2002' &&
@@ -82,13 +83,12 @@ export class AuthService {
       throw err;
     }
 
-    // Sending email is an external call and must happen AFTER the
-    // transaction has committed — never inside it (a slow/hanging SMTP call
-    // would otherwise hold DB locks open). A failure here is logged but
-    // does not roll back or fail the request: the user was created
-    // successfully and can use "resend verification" to get a new email.
+    // Gửi email là external call, phải chạy SAU khi transaction đã commit —
+    // không bao giờ đặt trong transaction (SMTP chậm/treo sẽ giữ lock DB).
+    // Lỗi ở đây chỉ log lại, không rollback hay fail request: user đã tạo
+    // thành công và có thể dùng "resend verification" để nhận code mới.
     try {
-      await this.mailService.sendVerificationEmail(user.email, rawToken);
+      await this.mailService.sendVerificationEmail(user.email, rawCode);
     } catch (err) {
       this.logger.error(`Failed to send verification email to ${user.email}`, err as Error);
     }
@@ -97,31 +97,59 @@ export class AuthService {
   }
 
   async verifyEmail(dto: VerifyEmailDto): Promise<MessageResponseDto> {
-    const tokenHash = this.tokenService.hashRawToken(dto.token);
-
-    const record = await this.prisma.emailVerificationToken.findUnique({
-      where: { tokenHash },
-    });
+    // Code 6 chữ số (chỉ 1.000.000 khả năng) không đủ unique để tự nó định
+    // danh 1 record an toàn — khác với raw token 32-byte cũ — nên tìm code
+    // đang chờ của user theo userId trước (chỉ có tối đa 1, vì
+    // createEmailVerificationToken() đã xóa mọi token chưa verify trước đó),
+    // rồi so hash tại đây. Cách này cũng cho phép đếm cả lượt đoán sai vào
+    // `attempts`, điều mà lookup theo tokenHash không làm được (code sai thì
+    // đơn giản là không match row nào).
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const record = user
+      ? await this.prisma.emailVerificationToken.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: 'desc' },
+        })
+      : null;
 
     if (!record) {
-      throw new NotFoundException('Token not found');
+      // Cùng 1 lỗi cho cả 2 trường hợp email không tồn tại hoặc không có
+      // code đang chờ — không lộ ra là trường hợp nào.
+      throw new NotFoundException('Invalid email or code');
     }
     if (record.verifiedAt) {
-      // Replay protection: token đã dùng rồi, gọi lại lần 2 phải bị reject
+      // Chống replay: code đã dùng rồi, gọi lại lần 2 phải bị reject
       // (không phải hành vi idempotent).
-      throw new BadRequestException('Token already used');
+      throw new BadRequestException('Code already used');
     }
     if (record.expiresAt < new Date()) {
-      throw new BadRequestException('Token has expired');
+      throw new BadRequestException('Code has expired');
+    }
+    if (record.attempts >= MAX_VERIFY_ATTEMPTS) {
+      throw new BadRequestException('Too many attempts. Request a new code.');
     }
 
-    // The findUnique() read above is not atomic with the update below, so
-    // two concurrent requests for the same token could both pass the
-    // record.verifiedAt check before either commits. Guard against that
-    // race by claiming the token with a conditional update (`verifiedAt:
-    // null` in the WHERE clause) inside the transaction: the DB itself
-    // enforces that only one caller can win. If we lose the race, undo
-    // nothing else and reject the same way an already-used token would.
+    if (this.tokenService.hashRawToken(dto.code) !== record.tokenHash) {
+      // Vẫn tính lượt đoán sai này dù code không hợp lệ — đây chính là cách
+      // giới hạn brute-force code 6 chữ số trong thời gian hết hạn. Dùng
+      // updateMany với điều kiện `attempts: { lt: MAX_VERIFY_ATTEMPTS }`
+      // thay vì update thường, để tránh race: nhiều request đoán sai đến
+      // cùng lúc khi attempts đang ở ngưỡng gần giới hạn có thể đều đọc thấy
+      // "chưa vượt giới hạn" và đều tăng, khiến attempts vượt quá
+      // MAX_VERIFY_ATTEMPTS. Điều kiện trong WHERE để DB tự xử lý atomic.
+      await this.prisma.emailVerificationToken.updateMany({
+        where: { id: record.id, attempts: { lt: MAX_VERIFY_ATTEMPTS } },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new NotFoundException('Invalid email or code');
+    }
+
+    // Read findFirst() ở trên không atomic với update bên dưới, nên 2 request
+    // đồng thời cho cùng 1 token đều có thể pass check record.verifiedAt
+    // trước khi cái nào commit. Chống race này bằng cách "claim" token qua
+    // conditional update (`verifiedAt: null` trong WHERE) trong transaction:
+    // DB tự đảm bảo chỉ 1 caller thắng. Nếu thua race, không cần undo gì
+    // thêm, reject giống như token đã dùng rồi.
     const wonRace = await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.emailVerificationToken.updateMany({
         where: { id: record.id, verifiedAt: null },
@@ -139,7 +167,7 @@ export class AuthService {
     });
 
     if (!wonRace) {
-      throw new BadRequestException('Token already used');
+      throw new BadRequestException('Code already used');
     }
 
     return { message: 'Email verified successfully' };

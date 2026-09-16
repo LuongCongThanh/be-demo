@@ -5,7 +5,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  output   = "../../src/generated/prisma"
 }
 
 datasource db {
@@ -226,6 +226,7 @@ model EmailVerificationToken {
   id         String    @id @default(uuid()) @db.Uuid
   userId     String    @map("user_id") @db.Uuid
   tokenHash  String    @unique @map("token_hash")
+  attempts   Int       @default(0)
   expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
   verifiedAt DateTime? @map("verified_at") @db.Timestamptz(6)
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -233,31 +234,4 @@ model EmailVerificationToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("email_verification_tokens")
-}
-
-// enum
-enum UserStatus {
-  ACTIVE
-  BLOCKED
-}
-
-enum ProductStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum VariantStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum CartStatus {
-  ACTIVE
-  CHECKED_OUT
-}
-
-enum OrderStatus {
-  PENDING
-  PAID
-  CANCELLED
 }

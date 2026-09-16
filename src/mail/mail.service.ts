@@ -3,18 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import nodemailer, { type Transporter } from 'nodemailer';
 
 /**
- * Sends transactional emails over SMTP (nodemailer). Falls back to logging
- * only (no real send) when SMTP_* env vars aren't fully set, so local dev
- * and CI keep working without real credentials — see .env.example for how
- * to point this at a real provider (Mailtrap sandbox for local testing, or
- * your production SMTP/SES/SendGrid relay).
+ * Gửi transactional email qua SMTP (nodemailer). Fallback về chỉ log (không
+ * gửi thật) khi các biến SMTP_* chưa được set đủ, để local dev và CI vẫn
+ * chạy được mà không cần credentials thật — xem .env.example để trỏ tới
+ * provider thật (Mailtrap sandbox để test local, hoặc SMTP/SES/SendGrid
+ * relay production).
  */
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly transporter: Transporter | null;
   private readonly from: string;
-  private readonly frontendUrl: string;
 
   constructor(private readonly config: ConfigService) {
     const host = this.config.get<string>('SMTP_HOST');
@@ -23,7 +22,6 @@ export class MailService {
     const pass = this.config.get<string>('SMTP_PASS');
 
     this.from = this.config.get<string>('SMTP_FROM', 'no-reply@example.com');
-    this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
 
     this.transporter =
       host && port && user && pass
@@ -42,13 +40,11 @@ export class MailService {
     }
   }
 
-  async sendVerificationEmail(to: string, rawToken: string): Promise<void> {
-    const link = `${this.frontendUrl}/verify-email?token=${encodeURIComponent(rawToken)}`;
-
+  async sendVerificationEmail(to: string, code: string): Promise<void> {
     if (!this.transporter) {
-      // Dev/CI fallback: no SMTP configured, don't attempt a real send.
-      // Never log the raw token itself (security rule, doc/auth-playbook/00-overview.md §5) —
-      // it's a live, usable verification secret.
+      // Fallback dev/CI: chưa cấu hình SMTP, không thử gửi thật.
+      // Không bao giờ log raw code (quy tắc bảo mật, doc/auth-playbook/00-overview.md §5) —
+      // đây là verification secret còn dùng được.
       this.logger.log(`[DEV] Would send verification email to ${to}`);
       return;
     }
@@ -57,8 +53,8 @@ export class MailService {
       from: this.from,
       to,
       subject: 'Verify your email address',
-      html: `<p>Click the link below to verify your email address:</p><p><a href="${link}">${link}</a></p>`,
-      text: `Verify your email address: ${link}`,
+      html: `<p>Your email verification code is:</p><p style="font-size:24px;font-weight:bold">${code}</p><p>This code expires in 10 minutes.</p>`,
+      text: `Your email verification code is: ${code} (expires in 10 minutes)`,
     });
   }
 }

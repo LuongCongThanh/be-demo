@@ -11,6 +11,10 @@ async function bootstrap() {
     .setTitle('Ecommerce API')
     .setDescription('API NestJS + PostgreSQL (Prisma)')
     .setVersion('1.0')
+    .addTag(
+      'Authentication & Authorization',
+      'Register, email verification, login/refresh/logout, and role/ownership-based access control',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);

@@ -1,4 +1,4 @@
-# 01 — Setup: hạ tầng dùng chung
+# 01: Setup: hạ tầng dùng chung
 
 Trước khi viết bất kỳ endpoint nào, có một mớ hạ tầng dùng chung cần dựng sẵn: glossary domain, seed data, package, biến môi trường, khung module, password policy, và `TokenService` đầy đủ. Đọc [00-overview.md](./00-overview.md) trước nếu chưa đọc (Scope, Decisions, Security Rules, Response DTO...). Đây là file đầu tiên trong chuỗi implement, chưa có file `0X-...` nào khác cần hoàn thành trước. Cần tra thuật ngữ thì mở [GLOSSARY.md](./GLOSSARY.md).
 
@@ -6,7 +6,7 @@ Làm xong toàn bộ 7 bước dưới đây 1 lần, rồi mới bắt đầu v
 
 ---
 
-## Bước 0 — Cập nhật CONTEXT.md
+## Bước 0: Cập nhật CONTEXT.md
 
 CONTEXT.md phản ánh đúng domain ecommerce hiện tại, bắt đầu từ glossary Auth. File cần sửa: `CONTEXT.md`.
 
@@ -44,7 +44,7 @@ Mở `CONTEXT.md`: nội dung hiện tại mô tả domain "Todo List" cũ, khô
 
 ---
 
-## Bước 1 — Seed roles + admin bootstrap
+## Bước 1: Seed roles + admin bootstrap
 
 Mục tiêu bước này là có sẵn role `ADMIN`/`CUSTOMER` và 1 tài khoản ADMIN đầu tiên khi hệ thống khởi động lần đầu. File cần sửa: `prisma/seed.ts`, `package.json` (thêm script `db:seed`).
 
@@ -120,7 +120,7 @@ main()
   });
 ```
 
-⚠️ Tên field/relation (`userRoles`, `roleId`, `status`, `emailVerifiedAt`...) phải khớp đúng với `prisma/schema.prisma` hiện tại: mở file schema đối chiếu trước khi paste code trên, sửa lại tên field nếu khác. Và đừng tạo endpoint HTTP nào để tạo ADMIN; chỉ qua seed script (giảm bề mặt tấn công, quyết định #16).
+⚠️ Tên field/relation (`userRoles`, `roleId`, `status`, `emailVerifiedAt`...) phải khớp đúng với `prisma/schema/schema.prisma` hiện tại: mở file schema đối chiếu trước khi paste code trên, sửa lại tên field nếu khác. Và đừng tạo endpoint HTTP nào để tạo ADMIN; chỉ qua seed script (giảm bề mặt tấn công, quyết định #16).
 
 Chạy thử để kiểm tra:
 
@@ -132,7 +132,7 @@ Chạy lại lệnh này thêm vài lần liên tiếp. DB không được có t
 
 ---
 
-## Bước 2 — Cài package
+## Bước 2: Cài package
 
 Cần đủ dependency cho hashing + JWT + Passport trước khi viết code.
 
@@ -157,7 +157,7 @@ Chưa cần cài `@nestjs/throttler` ở bước này; chuyện đó để dành
 
 ---
 
-## Bước 3 — Env vars
+## Bước 3: Env vars
 
 Toàn bộ config nhạy cảm cần đọc qua `ConfigService`, và cần có file mẫu cho dev khác. File liên quan: `.env.example`, `.env` (local, không commit).
 
@@ -214,7 +214,7 @@ Kiểm tra lại: `.env.example` tồn tại và không chứa giá trị thật
 
 ---
 
-## Bước 4 — Scaffold module
+## Bước 4: Scaffold module
 
 Bước này dựng khung thư mục đúng kiến trúc, sẵn sàng để điền logic ở các bước/file sau.
 
@@ -308,7 +308,7 @@ Kiểm tra: `src/app.module.ts` đã import `AuthModule` và `MailModule`, và `
 
 ---
 
-## Bước 5 — Password policy
+## Bước 5: Password policy
 
 Password cần đáp ứng quyết định #9 (hoa + thường + số + ký tự đặc biệt, ≥ 8 ký tự), dùng chung cho `RegisterDto` (02-register.md) và `ResetPasswordDto` (11-reset-password.md). Vì đúng 1 rule này được dùng ở 2 DTO khác nhau, bước này **bắt buộc tách thành 1 custom decorator dùng chung** (`@IsStrongPassword()`), không viết riêng lẻ vào từng DTO, để tránh copy-paste regex 2 lần.
 
@@ -356,19 +356,25 @@ Thử password `abc12345` (thiếu hoa + ký tự đặc biệt): phải bị t�
 
 ---
 
-## Bước 6 — TokenService đầy đủ
+## Bước 6: TokenService đầy đủ
 
-Bước cuối cùng của phần setup: tổng quát hoá `TokenService` (bản tối thiểu đã viết ở `02-register.md`, chỉ có `createEmailVerificationToken`) thành service dùng chung cho **cả 3 loại token**: email verification, password reset, refresh token. File cần sửa: `src/auth/services/token.service.ts` (sửa lại, không tạo file mới).
+Bước cuối cùng của phần setup: mở rộng `TokenService` (bản tối thiểu đã viết ở `02-register.md`, chỉ có `createEmailVerificationToken`) để dùng chung cho **cả 3 loại token**: email verification, password reset, refresh token. File cần sửa: `src/auth/services/token.service.ts` (sửa lại, không tạo file mới). **Giữ nguyên `createEmailVerificationToken` đã viết ở `02-register.md`** (mã 6 số, TTL 10 phút) — không viết lại theo pattern random-bytes bên dưới, vì 2 loại token còn lại (password reset, refresh) dùng thiết kế khác: token ngẫu nhiên dạng chuỗi hex 32-byte (quyết định #18, [00-overview.md](./00-overview.md)), không phải mã 6 số.
 
-> 📘 **Khái niệm: vì sao gom 3 loại token vào 1 service thay vì 3 service riêng?** Cả 3 loại token (email verification, password reset, refresh) đều theo đúng 1 pattern: sinh random bytes → hash SHA-256 → lưu hash + `expiresAt` → raw token chỉ tồn tại thoáng qua lúc tạo. Chỉ khác **model Prisma nào được ghi** và **TTL bao lâu**. Viết 1 hàm generate/hash dùng chung, các method public chỉ khác nhau ở việc gọi đúng model.
+> 📘 **Khái niệm: vì sao email verification dùng mã 6 số, còn 2 loại token kia dùng chuỗi hex ngẫu nhiên?** Mã 6 số (OTP) tối ưu cho việc **user tự gõ tay** vào form sau khi đọc email (xem lý do đầy đủ ở `02-register.md` Bước 3). Password reset token và refresh token thì không cần user gõ tay: reset token nằm trong link email (user chỉ click), refresh token nằm trong cookie (browser tự gửi, user không nhìn thấy). Vì không cần dễ gõ, 2 loại này dùng chuỗi ngẫu nhiên dài hơn nhiều (32 byte, tương đương 2^256 khả năng) để an toàn hơn, đánh đổi lại bằng TTL dài hơn (1 giờ, 7 ngày) so với 10 phút của mã 6 số.
 
 ```ts
 // src/auth/services/token.service.ts
-import { randomBytes, createHash } from 'crypto';
+import { randomInt, randomBytes, createHash } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service'; // chỉnh lại path đúng repo
 import ms from 'ms'; // hoặc parse TTL bằng cách bạn đang dùng sẵn trong repo (vd @nestjs/config có parse riêng)
+
+// Subset của Prisma client mà createEmailVerificationToken() cần — khớp cả
+// với PrismaService lẫn `tx` mà Prisma truyền vào $transaction(async (tx) =>
+// ...), để caller (vd AuthService.register()) truyền tx vào nhằm giữ việc
+// tạo token trong transaction đang chạy thay vì mở transaction mới.
+type EmailVerificationTokenClient = Pick<PrismaService, 'emailVerificationToken'>;
 
 @Injectable()
 export class TokenService {
@@ -377,29 +383,58 @@ export class TokenService {
     private readonly config: ConfigService,
   ) {}
 
-  /** Sinh token ngẫu nhiên (raw) + hash SHA-256 của nó — dùng chung cho cả 3 loại token. */
-  private generate(): { rawToken: string; tokenHash: string } {
+  /** Sinh mã 6 số ngẫu nhiên (raw) + hash SHA-256 — dùng cho email verification. Giữ nguyên từ 02-register.md. */
+  private generateCode(): { rawCode: string; tokenHash: string } {
+    const rawCode = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const tokenHash = this.hashRawToken(rawCode);
+    return { rawCode, tokenHash };
+  }
+
+  /** Sinh chuỗi hex 32-byte ngẫu nhiên (raw) + hash SHA-256 — dùng cho password reset và refresh token. */
+  private generateOpaqueToken(): { rawToken: string; tokenHash: string } {
     const rawToken = randomBytes(32).toString('hex');
     const tokenHash = this.hashRawToken(rawToken);
     return { rawToken, tokenHash };
   }
 
-  /** Hash 1 raw token nhận từ client (email link, cookie...) để so khớp với DB. */
+  /** Hash 1 raw token/code nhận từ client (email link, cookie, form nhập tay...) để so khớp với DB. */
   hashRawToken(rawToken: string): string {
     return createHash('sha256').update(rawToken).digest('hex');
   }
 
-  // ---- Email Verification Token --------------------------------------
+  // ---- Email Verification Token (đã viết đầy đủ ở 02-register.md, giờ thêm tham số client) ----
 
-  async createEmailVerificationToken(userId: string): Promise<string> {
-    await this.prisma.emailVerificationToken.deleteMany({
-      where: { userId, verifiedAt: null },
-    });
-    const { rawToken, tokenHash } = this.generate();
-    await this.prisma.emailVerificationToken.create({
-      data: { userId, tokenHash, expiresAt: this.expiryFromNow('24h') },
-    });
-    return rawToken;
+  /**
+   * Truyền `client` (vd `tx` từ 1 `prisma.$transaction` đang chạy, như
+   * `AuthService.register()` cần ở `02-register.md`) để cả 2 lệnh ghi chạy
+   * trong transaction đó thay vì mở transaction mới. Khi không truyền
+   * `client` (vd gọi từ `04-resend-verification.md`, chỉ 1 write), cặp
+   * delete+create tự bọc trong 1 transaction riêng để không bao giờ để user
+   * mất trắng token hợp lệ nếu lỗi giữa 2 lệnh.
+   */
+  async createEmailVerificationToken(
+    userId: string,
+    client: EmailVerificationTokenClient = this.prisma,
+  ): Promise<string> {
+    const { rawCode, tokenHash } = this.generateCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 phút — ngắn vì không gian mã chỉ 1 triệu khả năng
+
+    const write = async (c: EmailVerificationTokenClient) => {
+      await c.emailVerificationToken.deleteMany({
+        where: { userId, verifiedAt: null },
+      });
+      await c.emailVerificationToken.create({
+        data: { userId, tokenHash, expiresAt },
+      });
+    };
+
+    if (client === this.prisma) {
+      await this.prisma.$transaction((tx) => write(tx));
+    } else {
+      await write(client);
+    }
+
+    return rawCode;
   }
 
   // ---- Password Reset Token -------------------------------------------
@@ -409,7 +444,7 @@ export class TokenService {
     await this.prisma.passwordResetToken.deleteMany({
       where: { userId, usedAt: null },
     });
-    const { rawToken, tokenHash } = this.generate();
+    const { rawToken, tokenHash } = this.generateOpaqueToken();
     await this.prisma.passwordResetToken.create({
       data: { userId, tokenHash, expiresAt: this.expiryFromNow('1h') },
     });
@@ -419,7 +454,7 @@ export class TokenService {
   // ---- Refresh Token ----------------------------------------------------
 
   async createRefreshToken(userId: string): Promise<string> {
-    const { rawToken, tokenHash } = this.generate();
+    const { rawToken, tokenHash } = this.generateOpaqueToken();
     const ttl = this.config.get<string>('REFRESH_TOKEN_TTL', '7d');
     await this.prisma.refreshToken.create({
       data: { userId, tokenHash, expiresAt: this.expiryFromNow(ttl) },
@@ -435,9 +470,9 @@ export class TokenService {
 }
 ```
 
-⚠️ Tên model Prisma (`emailVerificationToken`, `passwordResetToken`, `refreshToken`) và field (`userId`, `tokenHash`, `expiresAt`, `verifiedAt`, `usedAt`) phải khớp đúng `prisma/schema.prisma`: đối chiếu trước khi paste. Nếu repo chưa có package `ms`, cài thêm (`npm install ms @types/ms`) hoặc tự viết hàm parse TTL đơn giản (`'15m'` → phút, `'7d'` → ngày); miễn nhất quán trong toàn bộ `TokenService`.
+⚠️ Tên model Prisma (`emailVerificationToken`, `passwordResetToken`, `refreshToken`) và field (`userId`, `tokenHash`, `expiresAt`, `verifiedAt`, `usedAt`) phải khớp đúng `prisma/schema/schema.prisma`: đối chiếu trước khi paste. Nếu repo chưa có package `ms`, cài thêm (`npm install ms @types/ms`) hoặc tự viết hàm parse TTL đơn giản (`'15m'` → phút, `'7d'` → ngày); miễn nhất quán trong toàn bộ `TokenService`.
 
-Đoạn `createVerificationTokenInTx` viết tay trong `AuthService.register()` (ở `02-register.md`) là bản trùng lặp tạm thời. Sau khi `TokenService` đã đầy đủ như trên, cân nhắc refactor `AuthService.register()` gọi qua `tokenService` với tham số `tx` nếu muốn dọn code (không bắt buộc cho MVP, ghi ở [00-overview.md § Known Gaps](./00-overview.md)).
+`createPasswordResetToken`/`createRefreshToken` chưa có tham số `client` như trên vì chưa có nơi nào gọi chúng cần chung transaction với thao tác DB khác; nếu sau này cần (tương tự `createEmailVerificationToken`), thêm tham số `client` (mặc định `= this.prisma`) theo đúng cách đã làm ở trên, thay vì viết riêng 1 helper trùng lặp logic generate/hash ở nơi gọi.
 
 Kiểm tra lại: `TokenService` không có method nào trả raw token ra ngoài trừ lúc tạo mới (để gửi email/set cookie); gọi `createEmailVerificationToken` hoặc `createPasswordResetToken` 2 lần liên tiếp cho cùng user thì chỉ còn 1 token loại đó hợp lệ trong DB (token cũ bị xoá trước khi tạo mới, quyết định #8); và `createRefreshToken` tạo đúng 1 record `refresh_tokens` với TTL đọc từ `ConfigService` (`REFRESH_TOKEN_TTL`), không hardcode số ngày ở đâu cả.
 

@@ -1,32 +1,33 @@
-import { randomBytes, createHash } from 'node:crypto';
+import { randomInt, createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+const EMAIL_VERIFICATION_TTL_MS = 10 * 60 * 1000; // 10 phút — ngắn vì là code 6 chữ số dễ đoán
 
 /**
- * Subset of the Prisma client this service needs — matches both
- * `PrismaService` and the `tx` object Prisma hands to `$transaction(async
- * (tx) => ...)` callbacks, so callers can pass `tx` to keep token creation
- * inside an existing transaction instead of opening a second one.
+ * Subset của Prisma client mà service này cần — khớp cả với `PrismaService`
+ * lẫn object `tx` mà Prisma truyền vào callback `$transaction(async (tx) =>
+ * ...)`, để caller có thể truyền `tx` nhằm giữ việc tạo token trong
+ * transaction đang chạy thay vì mở thêm 1 transaction mới.
  */
 type EmailVerificationTokenClient = Pick<PrismaService, 'emailVerificationToken'>;
 
 /**
- * Generates and hashes one-time tokens (currently: email verification).
+ * Sinh và hash các one-time token (hiện tại: email verification, gửi cho
+ * user dưới dạng code 6 chữ số).
  *
- * The raw token is only ever returned to the caller (to be emailed to the
- * user) — the database always stores a SHA-256 hash of it, never the raw
- * value, the same way passwords are never stored raw.
+ * Raw code chỉ được trả về cho caller (để gửi email cho user) — DB luôn lưu
+ * hash SHA-256 của nó, không bao giờ lưu giá trị gốc, giống cách password
+ * không bao giờ lưu raw.
  */
 @Injectable()
 export class TokenService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private generate(): { rawToken: string; tokenHash: string } {
-    const rawToken = randomBytes(32).toString('hex');
-    const tokenHash = this.hashRawToken(rawToken);
-    return { rawToken, tokenHash };
+  private generate(): { rawCode: string; tokenHash: string } {
+    const rawCode = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const tokenHash = this.hashRawToken(rawCode);
+    return { rawCode, tokenHash };
   }
 
   hashRawToken(rawToken: string): string {
@@ -34,21 +35,21 @@ export class TokenService {
   }
 
   /**
-   * Creates a new email verification token for the user, first deleting any
-   * unverified token already on file (so re-registering / resending never
-   * leaves more than one valid token around).
+   * Tạo email verification token mới cho user, xóa trước mọi token chưa
+   * verify đang có (để đăng ký lại / resend không bao giờ để dư hơn 1 token
+   * hợp lệ).
    *
-   * Pass `client` (e.g. the `tx` from an in-progress `prisma.$transaction`)
-   * to run both writes inside that transaction instead of opening a new one.
-   * When no `client` is passed, the delete+create pair is wrapped in its own
-   * transaction so a failure between the two never leaves the user with zero
-   * valid tokens.
+   * Truyền `client` (ví dụ `tx` từ 1 `prisma.$transaction` đang chạy) để cả
+   * 2 lệnh ghi chạy trong transaction đó thay vì mở transaction mới. Khi
+   * không truyền `client`, cặp delete+create được bọc trong transaction
+   * riêng để nếu lỗi giữa 2 lệnh thì user không bao giờ bị mất trắng token
+   * hợp lệ.
    */
   async createEmailVerificationToken(
     userId: string,
     client: EmailVerificationTokenClient = this.prisma,
   ): Promise<string> {
-    const { rawToken, tokenHash } = this.generate();
+    const { rawCode, tokenHash } = this.generate();
     const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
 
     const write = async (c: EmailVerificationTokenClient) => {
@@ -66,6 +67,6 @@ export class TokenService {
       await write(client);
     }
 
-    return rawToken;
+    return rawCode;
   }
 }

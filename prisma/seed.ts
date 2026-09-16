@@ -29,9 +29,7 @@ async function main() {
   const email = process.env.ADMIN_BOOTSTRAP_EMAIL;
   const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
   if (!email || !password) {
-    throw new Error(
-      'Missing ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD in .env',
-    );
+    throw new Error('Missing ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD in .env');
   }
 
   const existingAdmin = await prisma.user.findUnique({ where: { email } });
@@ -45,6 +43,11 @@ async function main() {
     data: {
       email,
       passwordHash,
+      // fullName/phone không có ý nghĩa thật với tài khoản bootstrap này
+      // (không phải khách hàng đăng ký qua form) — điền placeholder cố định
+      // để thoả field bắt buộc của model User.
+      fullName: 'Admin',
+      phone: '0000000000',
       status: 'ACTIVE',
       emailVerifiedAt: new Date(), // admin bootstrap doesn't need email verification
       userRoles: { create: [{ roleId: adminRole.id }] },
