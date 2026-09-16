@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { configureApp } from '../src/bootstrap/configure-app.js';
+import { createTestUser } from './support/create-test-user.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-resend-verification.e2e-test.local';
 
@@ -40,19 +41,10 @@ describe('Auth — POST /auth/resend-verification (e2e)', () => {
   });
 
   async function createUser(emailSuffix: string, overrides: { emailVerifiedAt?: Date } = {}) {
-    const email = `${emailSuffix}${Date.now()}${Math.random().toString(36).slice(2)}${TEST_EMAIL_DOMAIN}`;
-    const customerRole = await prisma.role.findUniqueOrThrow({ where: { name: 'CUSTOMER' } });
-
-    return prisma.user.create({
-      data: {
-        email,
-        passwordHash: 'irrelevant-for-this-test',
-        fullName: 'Nguyen Van A',
-        phone: '0912345678',
-        status: 'ACTIVE',
-        emailVerifiedAt: overrides.emailVerifiedAt,
-        userRoles: { create: [{ roleId: customerRole.id }] },
-      },
+    return createTestUser(prisma, {
+      emailDomain: TEST_EMAIL_DOMAIN,
+      emailSuffix,
+      emailVerifiedAt: overrides.emailVerifiedAt,
     });
   }
 

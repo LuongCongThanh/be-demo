@@ -26,6 +26,7 @@ function createHarness() {
   const prisma = {
     user: {
       findUnique: vi.fn().mockResolvedValue(null),
+      findUniqueOrThrow: vi.fn(),
       update: vi.fn().mockResolvedValue({}),
     },
     emailVerificationToken: {
@@ -601,6 +602,34 @@ describe('AuthService.refreshToken', () => {
     expect(result).toEqual({
       accessToken: 'new-signed-access-token',
       newRawRefreshToken: 'new-raw-refresh-token',
+    });
+  });
+});
+
+describe('AuthService.getMe', () => {
+  it('maps the user to the allow-list DTO, without passwordHash', async () => {
+    const { service, prisma } = createHarness();
+    prisma.user.findUniqueOrThrow.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@example.com',
+      fullName: 'Nguyen Van A',
+      passwordHash: 'hashed',
+      emailVerifiedAt: new Date(),
+      userRoles: [{ role: { name: 'CUSTOMER' } }],
+    });
+
+    const result = await service.getMe('user-1');
+
+    expect(prisma.user.findUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      include: { userRoles: { include: { role: true } } },
+    });
+    expect(result).toEqual({
+      id: 'user-1',
+      email: 'user@example.com',
+      fullName: 'Nguyen Van A',
+      roles: ['CUSTOMER'],
+      emailVerified: true,
     });
   });
 });

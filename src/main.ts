@@ -15,6 +15,7 @@ async function bootstrap() {
       'Authentication & Authorization',
       'Register, email verification, login/refresh/logout, and role/ownership-based access control',
     )
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);

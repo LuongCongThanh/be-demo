@@ -12,6 +12,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { ResendVerificationDto } from '../dto/resend-verification.dto.js';
 import { VerifyEmailDto } from '../dto/verify-email.dto.js';
 import { LoginDto } from '../dto/login.dto.js';
+import { AuthUserResponseDto } from '../dto/auth-user-response.dto.js';
 import { MessageResponseDto } from '../dto/message-response.dto.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
@@ -318,6 +319,22 @@ export class AuthService {
     throw new UnauthorizedException(
       'Refresh token has been revoked — all login sessions have been logged out for security reasons',
     );
+  }
+
+  async getMe(userId: string): Promise<AuthUserResponseDto> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: { userRoles: { include: { role: true } } },
+    });
+
+    // Map thủ công sang DTO allow-list — KHÔNG return thẳng `user` (có passwordHash).
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      roles: user.userRoles.map((r) => r.role.name),
+      emailVerified: user.emailVerifiedAt !== null,
+    };
   }
 
   /**
