@@ -1,7 +1,17 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { ResendVerificationDto } from '../dto/resend-verification.dto.js';
 import { VerifyEmailDto } from '../dto/verify-email.dto.js';
+import { LoginDto } from '../dto/login.dto.js';
 import { MessageResponseDto } from '../dto/message-response.dto.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
@@ -14,6 +24,18 @@ import { RegisterResponseDto } from '../dto/register-response.dto.js';
 // lần đoán sai.
 export const MAX_VERIFY_ATTEMPTS = 5;
 
+// Message chung cho resendVerification() dù email không tồn tại, đã verify
+// rồi, hay vừa được cấp code mới — export để test tham chiếu trực tiếp thay
+// vì hard-code lại chuỗi, tránh lệch nhau khi message đổi.
+export const GENERIC_RESEND_MESSAGE =
+  'If the email exists and is not yet verified, a new verification email has been sent.';
+
+export interface LoginResult {
+  accessToken: string;
+  rawRefreshToken: string;
+  user: { id: string; email: string; fullName: string; roles: string[]; emailVerified: boolean };
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -23,6 +45,7 @@ export class AuthService {
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly mailService: MailService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async register(dto: RegisterDto): Promise<RegisterResponseDto> {
@@ -87,11 +110,7 @@ export class AuthService {
     // không bao giờ đặt trong transaction (SMTP chậm/treo sẽ giữ lock DB).
     // Lỗi ở đây chỉ log lại, không rollback hay fail request: user đã tạo
     // thành công và có thể dùng "resend verification" để nhận code mới.
-    try {
-      await this.mailService.sendVerificationEmail(user.email, rawCode);
-    } catch (err) {
-      this.logger.error(`Failed to send verification email to ${user.email}`, err as Error);
-    }
+    await this.sendVerificationEmailBestEffort(user.email, rawCode);
 
     return { id: user.id, email: user.email };
   }
@@ -171,5 +190,91 @@ export class AuthService {
     }
 
     return { message: 'Email verified successfully' };
+  }
+
+  async resendVerification(dto: ResendVerificationDto): Promise<MessageResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user || user.emailVerifiedAt) {
+      return { message: GENERIC_RESEND_MESSAGE };
+    }
+
+    const rawCode = await this.tokenService.createEmailVerificationToken(user.id);
+    await this.sendVerificationEmailBestEffort(user.email, rawCode);
+
+    return { message: GENERIC_RESEND_MESSAGE };
+  }
+
+  async login(dto: LoginDto): Promise<LoginResult> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      include: { userRoles: { include: { role: true } } },
+    });
+
+    // Không tồn tại → lỗi generic, KHÔNG phân biệt với sai password (chống
+    // enumeration, xem 05-login.md).
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const passwordValid = await this.passwordService.verify(user.passwordHash, dto.password);
+    if (!passwordValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    // Kiểm tra CẢ HAI trục trạng thái (quyết định #15) — SAU khi đã xác nhận
+    // password đúng, để không lộ thêm thông tin cho kẻ đoán sai password.
+    if (user.status === 'BLOCKED') {
+      throw new UnauthorizedException('Account is locked');
+    }
+    if (!user.emailVerifiedAt) {
+      throw new UnauthorizedException('Email is not verified');
+    }
+
+    const roles = user.userRoles.map((ur) => ur.role.name);
+    const accessToken = this.signAccessToken({ id: user.id, email: user.email, roles });
+    const rawRefreshToken = await this.tokenService.createRefreshToken(user.id);
+
+    return {
+      accessToken,
+      rawRefreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        roles,
+        // Derive từ dữ liệu thật (không hardcode `true`): tại điểm này chắc
+        // chắn email đã verify (đã check ở trên), nhưng derive vẫn an toàn
+        // hơn nếu logic check phía trên đổi mà quên sửa dòng này.
+        emailVerified: !!user.emailVerifiedAt,
+      },
+    };
+  }
+
+  /**
+   * Sinh JWT access token. Payload chỉ chứa thông tin cần để nhận diện user
+   * (sub = userId, email, roles) — KHÔNG nhét passwordHash/refresh token/dữ
+   * liệu cá nhân không cần thiết (JWT payload không được mã hoá, ai cũng đọc
+   * được nếu có token).
+   */
+  private signAccessToken(user: { id: string; email: string; roles: string[] }): string {
+    return this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      roles: user.roles,
+    });
+  }
+
+  // Lỗi gửi mail chỉ log lại, không throw — caller (register/resendVerification)
+  // đã hoàn tất phần việc chính của mình (tạo user / tạo code mới), gửi mail
+  // thất bại không nên làm fail cả request đó.
+  private async sendVerificationEmailBestEffort(email: string, rawCode: string): Promise<void> {
+    try {
+      await this.mailService.sendVerificationEmail(email, rawCode);
+    } catch (err) {
+      this.logger.error(`Failed to send verification email to ${email}`, err as Error);
+    }
   }
 }
