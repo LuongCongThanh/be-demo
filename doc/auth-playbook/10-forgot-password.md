@@ -1,4 +1,4 @@
-# 10 — Forgot Password (`POST /auth/forgot-password`)
+# 10: Forgot Password (`POST /auth/forgot-password`)
 
 > Trước khi làm file này: xong [09-logout.md](./09-logout.md). Guards, login, refresh, logout phải chạy được trước. Tham chiếu chung (Decisions, Security Rules, Response DTO...): [00-overview.md](./00-overview.md).
 
@@ -9,7 +9,7 @@ Endpoint này cho phép user yêu cầu reset password, mà không lộ thông t
 
 ---
 
-## Bước 1 — Mô tả dữ liệu client gửi lên (ForgotPasswordDto)
+## Bước 1: Mô tả dữ liệu client gửi lên (ForgotPasswordDto)
 
 Client chỉ cần gửi 1 field duy nhất: email. Tạo file `src/auth/dto/forgot-password.dto.ts`:
 
@@ -35,7 +35,7 @@ export class ForgotPasswordDto {
 
 ---
 
-## Bước 2 — Viết logic không lộ enumeration trong AuthService
+## Bước 2: Viết logic không lộ enumeration trong AuthService
 
 Thêm method mới vào `src/auth/services/auth.service.ts`, dùng chung `TokenService`, `MailService` đã có sẵn từ [01-setup.md](./01-setup.md) và [02-register.md](./02-register.md):
 
@@ -82,7 +82,7 @@ Tự kiểm tra: gọi với email tồn tại phải thấy token mới xuất 
 
 ---
 
-## Bước 3 — Mở endpoint HTTP
+## Bước 3: Mở endpoint HTTP
 
 Nối route vào `AuthController`, response qua `MessageResponseDto` dùng chung (đã tạo ở [03-verify-email.md](./03-verify-email.md)):
 

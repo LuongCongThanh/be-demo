@@ -1,4 +1,4 @@
-# 09 — Logout + Logout All
+# 09: Logout + Logout All
 
 > Trước khi làm file này: xong [08-me.md](./08-me.md), và trước đó [05-login.md](./05-login.md) + [06-refresh-token.md](./06-refresh-token.md): cookie refresh token phải được set đúng cách ở 2 file đó trước. Tham chiếu chung (Decisions, Security Rules...): [00-overview.md](./00-overview.md).
 
@@ -6,7 +6,7 @@
 
 ---
 
-## Bước 1 — Logout (`POST /auth/logout`)
+## Bước 1: Logout (`POST /auth/logout`)
 
 > 📘 **Khái niệm: vì sao `path` khi `clearCookie()` phải khớp CHÍNH XÁC với `path` lúc `cookie()` set ra?** Browser không xoá cookie theo _tên_ không thôi. Nó xác định 1 cookie bằng bộ 3 `(name, domain, path)`. Nếu bạn set cookie với `path: '/api/auth'` nhưng gọi `clearCookie(name, { path: '/auth' })` (thiếu tiền tố `/api`), browser coi đây là 2 cookie khác nhau về path: lệnh xoá không tìm thấy cookie cần xoá, cookie cũ vẫn còn nguyên trên máy client dù server tưởng đã xoá. Đây là lỗi rất dễ gặp khi đổi global prefix (`app.setGlobalPrefix('api')`) mà quên sửa đồng bộ path ở tất cả những chỗ set/clear cookie.
 
@@ -61,7 +61,7 @@ Tự kiểm tra: logout thành công thì refresh token đó không còn dùng �
 
 ---
 
-## Bước 2 — Logout All (`POST /auth/logout-all`)
+## Bước 2: Logout All (`POST /auth/logout-all`)
 
 Tương tự Bước 1, nhưng lần này revoke **toàn bộ** refresh token còn hiệu lực của user, không chỉ 1 cái:
 

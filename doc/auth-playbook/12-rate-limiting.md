@@ -1,4 +1,4 @@
-# 12 — Rate Limiting
+# 12: Rate Limiting
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [11-reset-password.md](./11-reset-password.md): toàn bộ 10 endpoint `/auth/*` đã chạy được. Cần tra thuật ngữ nào đó thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định #11 (endpoint nào cần rate limit, threshold bao nhiêu) thì xem [00-overview.md](./00-overview.md).
 
@@ -11,7 +11,7 @@ Giờ tất cả endpoint đã hoạt động, bước tiếp theo là giảm r�
 
 ---
 
-## Bước 1 — Cài package (nếu chưa)
+## Bước 1: Cài package (nếu chưa)
 
 Nếu chưa cài ở [01-setup.md](./01-setup.md), cài ngay:
 
@@ -21,7 +21,7 @@ npm install @nestjs/throttler
 
 ---
 
-## Bước 2 — Đăng ký `ThrottlerModule` với default toàn cục
+## Bước 2: Đăng ký `ThrottlerModule` với default toàn cục
 
 Trước khi tinh chỉnh threshold riêng cho từng route, bạn cần 1 mức mặc định áp dụng cho những route không khai `@Throttle()` riêng. Mở `src/app.module.ts`:
 
@@ -46,7 +46,7 @@ export class AppModule {}
 
 ---
 
-## Bước 3 — Custom tracker theo email
+## Bước 3: Custom tracker theo email
 
 `login` chặn theo IP là đủ, nhưng `forgot-password`/`resend-verification` cần chặn theo **email** (vd để 2 IP khác nhau cùng spam 1 email vẫn bị chặn). Tracker mặc định của `@nestjs/throttler` không tự làm được việc này.
 
@@ -128,7 +128,7 @@ export class EmailThrottlerGuard implements CanActivate {
 
 ---
 
-## Bước 4 — Áp `@Throttle()` lên từng route
+## Bước 4: Áp `@Throttle()` lên từng route
 
 Giờ gắn threshold cụ thể cho từng endpoint theo quyết định #11. Các con số dưới đây là **giá trị khởi điểm để implement, không phải security guarantee cố định**, cần tune lại theo traffic thật khi lên production (theo dõi rate 429 thật, false-positive với user hợp lệ...):
 

@@ -1,4 +1,4 @@
-# Glossary — Thuật ngữ dùng trong playbook này
+# Glossary: Thuật ngữ dùng trong playbook này
 
 > Dành cho người mới học backend. Mỗi thuật ngữ được giải thích ngắn gọn bằng ví dụ thực tế trong chính playbook Auth này. Đọc thuật ngữ nào chưa quen thì tra ở đây, không cần hiểu hết trước khi bắt đầu code. Các khái niệm sâu hơn (vì sao thiết kế thế này, không phải thế khác) đã có sẵn trong box "📘 Khái niệm" ở từng STEP: file này chỉ giải thích **từ/cụm từ**, còn box trong file giải thích **quyết định thiết kế**.
 
@@ -19,7 +19,7 @@
 - **JSON** (JavaScript Object Notation): định dạng text để biểu diễn dữ liệu dạng object/array (`{ "key": "value" }`), là định dạng phổ biến nhất cho API body ngày nay.
 - **CORS** (Cross-Origin Resource Sharing): cơ chế trình duyệt dùng để quyết định 1 trang web ở domain A có được phép gọi API ở domain B hay không. Liên quan tới refresh token cookie khi frontend/backend khác domain. Xem `00-overview.md § Known Gaps`.
 
-## 2. NestJS — các khối xây dựng cơ bản
+## 2. NestJS: các khối xây dựng cơ bản
 
 ### NestJS theo mô hình gì? (MVC? MVCC?)
 
@@ -89,7 +89,7 @@
 ## 4. Database & Prisma (ORM)
 
 - **ORM** (Object-Relational Mapping): thư viện cho phép thao tác với database bằng code (gọi hàm, method) thay vì viết SQL tay. Prisma là ORM dùng trong dự án này.
-- **Schema** (`prisma/schema.prisma`): file định nghĩa cấu trúc database (model nào, field nào, quan hệ nào) mà Prisma dựa vào để sinh code truy vấn.
+- **Schema** (`prisma/schema/schema.prisma`, cùng thư mục với `enums.prisma`): file định nghĩa cấu trúc database (model nào, field nào, quan hệ nào) mà Prisma dựa vào để sinh code truy vấn. Repo này tách schema thành nhiều file trong thư mục `prisma/schema/` thay vì 1 file `schema.prisma` duy nhất.
 - **Model**: 1 "bảng" trong ngôn ngữ Prisma, vd `User`, `Role`, `RefreshToken`. Prisma tự sinh ra các hàm `prisma.user.findUnique()`, `prisma.user.create()`... từ model này.
 - **Migration**: 1 bản ghi lại sự thay đổi cấu trúc DB (thêm bảng, thêm cột...) theo thời gian, để áp dụng đồng bộ giữa các môi trường (dev, staging, production). Playbook Auth này **không cần migration mới** vì schema đã có sẵn.
 - **Relation**: quan hệ giữa 2 model, vd `User` có nhiều `RefreshToken` (1-nhiều), hoặc `User` - `Role` qua bảng nối `UserRole` (nhiều-nhiều, vì 1 user có thể có nhiều role và 1 role gán cho nhiều user).
@@ -103,7 +103,7 @@
 - **Unit test**: test 1 đơn vị code nhỏ (thường là 1 class/hàm) một cách cô lập, mock hết mọi dependency (DB, network...), chạy rất nhanh. Xem `13-testing.md`.
 - **E2E test** (End-to-End): test toàn bộ luồng thật, từ gửi HTTP request tới app đã bootstrap, chạy với DB test thật. Chậm hơn nhưng bắt được lỗi "wiring" (thiếu Guard, sai route...) mà unit test không thấy được.
 - **Mock**: 1 object/hàm giả lập thay thế cho dependency thật trong test (vd giả lập `PrismaService` để không cần DB thật khi unit test `AuthService`).
-- **`jest`**: framework chạy test phổ biến nhất trong hệ sinh thái Node.js/NestJS (mặc định khi tạo project bằng `nest new`).
+- **`vitest`**: framework chạy test dùng trong repo này (`npm run test`, `npm run test:e2e`... xem `package.json § scripts`). Cú pháp assert (`describe`/`it`/`expect`) tương tự `jest` (framework mặc định khi tạo project bằng `nest new`, phổ biến trong hệ sinh thái NestJS), nhưng `vitest` dùng `vi.fn()`/`vi.mock()` thay vì `jest.fn()`/`jest.mock()`.
 - **`supertest`**: thư viện gửi HTTP request thật tới app NestJS (chạy trong bộ nhớ) để viết e2e test, cho phép assert trên response thật (status, body, header).
 - **Coverage** (`npm run test:cov`): tỉ lệ phần trăm code được chạy qua ít nhất 1 lần trong lúc test. Chỉ là chỉ số tham khảo, không đảm bảo hết bug nhưng giúp phát hiện code chưa có test nào đụng tới.
 
@@ -118,7 +118,7 @@
 - **TypeScript `interface` vs `class`**: `interface` chỉ tồn tại lúc biên dịch (compile-time), biến mất hoàn toàn khi chạy thật (runtime), vì vậy NestJS không thể dùng `interface` làm token để dependency-inject (`@Inject()` cần 1 giá trị runtime thật, như `class` hoặc `Symbol`). Đây là lý do `MailService` ở MVP dùng `class` cụ thể thay vì `interface`. Xem `00-overview.md § Shared Services`.
 - **Swagger / OpenAPI**: chuẩn mô tả API bằng 1 file spec (JSON/YAML), `@nestjs/swagger` tự sinh spec đó từ decorator (`@ApiProperty`, `@ApiOperation`...) và hiển thị thành giao diện web tương tác để test thử API. Xem `14-swagger-and-wrapup.md`.
 
-## 7. NestJS/Node.js — khái niệm sâu hơn
+## 7. NestJS/Node.js: khái niệm sâu hơn
 
 "Vòng đời" (lifecycle) trong NestJS có **2 tầng khác nhau**, dễ nhầm lẫn nên tách riêng: (7.1) vòng đời của **1 request** đi qua app, chạy lại từ đầu mỗi lần có request mới; (7.2) vòng đời của **cả application**, chỉ chạy 1 lần lúc app khởi động và 1 lần lúc app tắt.
 
@@ -242,7 +242,7 @@ flowchart TD
 - **Wiring**: cách các thành phần (Module, Guard, Service...) được "đấu nối" với nhau (import đúng module, đăng ký đúng provider, gắn đúng Guard lên route). E2E test đặc biệt hữu ích để bắt lỗi "wiring sai" (vd quên đăng ký Guard) mà unit test (chạy cô lập, mock hết) không phát hiện được. Xem `13-testing.md`.
 - **Bề mặt tấn công (attack surface)**: tổng số "cửa" mà kẻ tấn công có thể thử khai thác (endpoint public, biến env lộ, tính năng thừa...). Nhiều quyết định trong playbook nhằm giảm bề mặt tấn công, vd không tạo endpoint HTTP để tạo ADMIN (`01-setup.md, phần seed roles + admin bootstrap`, quyết định #16).
 
-## 9. SOLID — 5 nguyên tắc thiết kế hướng đối tượng
+## 9. SOLID: 5 nguyên tắc thiết kế hướng đối tượng
 
 SOLID là 5 nguyên tắc kinh điển giúp code dễ bảo trì/mở rộng/test. Không phải luật cứng phải nhớ thuộc lòng, mà là "cảm giác" để nhận ra code đang bắt đầu khó sửa thì nên tách lại thế nào. NestJS (dựa trên class + Dependency Injection) được thiết kế để SOLID áp dụng tự nhiên; playbook Auth này thực ra đã áp dụng cả 5 nguyên tắc mà không cần bạn "cố tình" làm gì thêm, dưới đây chỉ ra đúng chỗ trong code để bạn nhận ra chúng.
 
@@ -254,31 +254,31 @@ SOLID là 5 nguyên tắc kinh điển giúp code dễ bảo trì/mở rộng/te
 | **I** | Interface Segregation Principle | Không ép 1 class cài đặt những method nó **không dùng tới**, chia interface nhỏ theo đúng nhu cầu |
 | **D** | Dependency Inversion Principle  | Phụ thuộc vào **abstraction**, không phụ thuộc trực tiếp vào 1 implementation cụ thể              |
 
-### S — Single Responsibility Principle (SRP)
+### S: Single Responsibility Principle (SRP)
 
 **"1 class = 1 lý do để thay đổi."** Nếu 1 class vừa lo hash password, vừa lo query DB, vừa lo gửi email thì khi cần đổi _bất kỳ_ thứ nào trong 3 thứ đó, bạn đều phải động vào đúng 1 class này, rủi ro sửa nhầm chỗ khác tăng lên.
 
 Trong playbook: `AuthService` **không tự** hash password, sinh token, hay gọi SMTP. Nó chỉ **orchestrate** (điều phối, xem mục 8) `PasswordService`, `TokenService`, `MailService`, mỗi service chỉ chịu trách nhiệm đúng 1 việc. Đổi thuật toán hash chỉ sửa `PasswordService`, đổi provider email chỉ sửa `MailService`: `AuthService` không đổi gì. Nếu gộp hết lại thành 1 class thì đó chính là "God Service" (anti-pattern đã nhắc ở mục 8), vi phạm SRP. Xem `00-overview.md § 7. Shared Services`.
 
-### O — Open/Closed Principle (OCP)
+### O: Open/Closed Principle (OCP)
 
 **"Mở cho mở rộng, đóng cho sửa đổi"**: thêm tính năng mới mà **không cần sửa lại code đã viết xong và đã test**.
 
 Trong playbook: `RolesGuard` (`07-guards.md`) so khớp role dạng **string** lấy từ JWT payload, không hardcode 1 `enum` liệt kê sẵn `ADMIN | CUSTOMER`. Nhờ vậy, muốn thêm role mới (vd `STAFF`) chỉ cần seed thêm dữ liệu (`01-setup.md`) + gắn `@Roles('STAFF')` ở route mới. **Không cần sửa 1 dòng nào trong `RolesGuard`** (class đã đóng lại, không cần sửa) mà vẫn "mở rộng" được thêm role (quyết định #6, role model DB-driven).
 
-### L — Liskov Substitution Principle (LSP)
+### L: Liskov Substitution Principle (LSP)
 
 **"Class con dùng thay class cha ở bất kỳ đâu mà không làm hỏng chương trình."** Nếu class con override 1 method nhưng đổi hành vi theo kiểu bất ngờ (vd cha luôn trả `boolean`, con lại `throw` trong trường hợp cha không `throw`), nơi gọi class cha sẽ "ngạc nhiên" khi nhận class con, vi phạm LSP.
 
 Trong playbook: `JwtAuthGuard extends AuthGuard('jwt')` (`07-guards.md`), ở bất kỳ đâu NestJS mong đợi 1 Guard (interface `CanActivate`, xem mục 2), `JwtAuthGuard` dùng thay được `AuthGuard('jwt')` gốc mà không phá vỡ hợp đồng: vẫn trả `true`/`false`/`throw` đúng như 1 Guard bình thường phải làm, chỉ khác ở chỗ nó gắn sẵn tên strategy `'jwt'`. Tương tự `OwnershipGuard implements CanActivate`: bất kỳ class nào implement đúng interface `CanActivate` đều dùng được ở `@UseGuards(...)`, NestJS không cần biết bên trong nó làm gì khác nhau.
 
-### I — Interface Segregation Principle (ISP)
+### I: Interface Segregation Principle (ISP)
 
 **"Không ép 1 class phải cài đặt method nó không dùng tới: chia interface nhỏ theo đúng nhu cầu, thay vì 1 interface khổng lồ ôm hết."**
 
 Trong playbook: thay vì có 1 class kiểu `AuthHelperService` khổng lồ với đủ loại method (hash, generateToken, sendMail, checkRole...), mỗi service chỉ "lộ ra" đúng những gì nó cần: `PasswordService` chỉ có `hash()`/`verify()`, `TokenService` chỉ có `createXToken()`/`hashRawToken()` (`01-setup.md`). Tương tự ở tầng Guard: mỗi route chỉ khai đúng Guard nó cần qua `@UseGuards(...)`. Route công khai không cần `JwtAuthGuard`, route cần login nhưng không cần check role thì không khai `RolesGuard`. Không có 1 "Guard tổng" bắt buộc mọi route phải dùng chung dù không cần hết mọi tính năng của nó.
 
-### D — Dependency Inversion Principle (DIP)
+### D: Dependency Inversion Principle (DIP)
 
 **"Phụ thuộc vào abstraction, không phụ thuộc trực tiếp vào 1 implementation cụ thể. Class cấp cao không nên tự `new` ra class cấp thấp nó cần."**
 

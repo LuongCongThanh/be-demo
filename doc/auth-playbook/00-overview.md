@@ -1,4 +1,4 @@
-# Auth & Authorization — Overview & Reference
+# Auth & Authorization: Overview & Reference
 
 > Đây là file **tra cứu chung**: Scope, Decisions, Architecture, Security Rules, Shared Services, Testing Strategy, Definition of Done, Known Gaps. Các file `01-setup.md` → `14-swagger-and-wrapup.md` chứa hướng dẫn implement từng phần, và **link ngược lại đây** khi cần nhắc tới 1 decision/rule cụ thể. Đọc file này trước khi bắt đầu code.
 >
@@ -11,7 +11,7 @@
 | #   | File                                                     | Nội dung                                                                                                               |
 | --- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | 00  | `00-overview.md` (file này)                              | Scope, Decisions, Architecture, Security Rules, Shared Services, Testing, DoD, Known Gaps                              |
-| —   | [GLOSSARY.md](./GLOSSARY.md)                             | Giải thích thuật ngữ kỹ thuật (HTTP, NestJS, Auth/Security, Database, Testing, Tooling): đọc trước nếu mới học backend |
+| –   | [GLOSSARY.md](./GLOSSARY.md)                             | Giải thích thuật ngữ kỹ thuật (HTTP, NestJS, Auth/Security, Database, Testing, Tooling): đọc trước nếu mới học backend |
 | 01  | [01-setup.md](./01-setup.md)                             | CONTEXT.md, seed roles/admin, cài package, env vars, scaffold module, password policy, TokenService đầy đủ             |
 | 02  | [02-register.md](./02-register.md)                       | `POST /auth/register` (6 bước)                                                                                         |
 | 03  | [03-verify-email.md](./03-verify-email.md)               | `POST /auth/verify-email`                                                                                              |
@@ -409,7 +409,6 @@ Các điểm cố ý để ngoài scope MVP này, ghi lại để không bị qu
   ```
   Cải tiến tương lai, **không bắt buộc cho MVP**.
 - **OwnershipGuard coupling với Prisma**: implementation MVP dùng callback `fetch` trực tiếp trong decorator metadata ([07-guards.md](./07-guards.md)), gây coupling khá mạnh với Prisma. Hướng cải tiến tương lai: `@OwnedResource('order')` + guard gọi qua một provider/registry chuyên resolve ownership theo resource type, tách khỏi Prisma trực tiếp. **Không cần đổi ngay.**
-- **TokenService trong transaction của `AuthService.register()`**: `TokenService` (01-setup.md, phần TokenService đầy đủ) tự inject `PrismaService` riêng, không tham gia chung transaction với `AuthService.register()` được; xem 02-register.md, phần AuthService.register() dùng 1 helper viết tay trùng lặp code nhỏ để giải quyết tạm. Cải tiến tương lai: refactor `TokenService` nhận `tx` qua tham số thay vì tự inject `this.prisma`. **Không bắt buộc cho MVP.**
 - **MFA (2FA)**: ngoài scope, cân nhắc khi có yêu cầu bảo mật cao hơn (vd tài khoản ADMIN).
 - **Social login**: ngoài scope.
 - **Account lockout theo số lần sai password**: ngoài scope MVP (quyết định #4); rate limiting theo IP tạm thời thay thế.

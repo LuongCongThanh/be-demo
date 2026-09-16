@@ -1,4 +1,4 @@
-# 14 — Swagger/OpenAPI + Đồng bộ doc + Quality Check cuối
+# 14: Swagger/OpenAPI + Đồng bộ doc + Quality Check cuối
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [13-testing.md](./13-testing.md): toàn bộ endpoint đã có test pass. Tham chiếu chung: [00-overview.md](./00-overview.md).
 
@@ -6,7 +6,7 @@
 
 ---
 
-## Bước 1 — Swagger/OpenAPI
+## Bước 1: Swagger/OpenAPI
 
 Các file liên quan: mọi DTO trong `src/auth/dto/`, và `src/main.ts`.
 
@@ -68,11 +68,9 @@ Kiểm tra 2 điều: mọi endpoint `/auth/*` phải xuất hiện trong Swagge
 
 ---
 
-## Bước 2 — Đồng bộ `doc/module-auth.md` và kiểm tra chất lượng cuối
+## Bước 2: Đồng bộ `doc/module-auth.md` và kiểm tra chất lượng cuối
 
-⚠️ **Ghi chú audit quan trọng, đọc trước khi sửa gì:** `doc/module-auth.md` có thể đang ở trạng thái git rối (bản staged là file rỗng, còn nội dung đầy đủ nằm ở working tree, chưa stage). Nếu commit ngay lúc này có thể commit nhầm file rỗng và mất nội dung. Cần `git add doc/module-auth.md` lại (sau khi đã sửa theo danh sách dưới) trước khi commit. **Không tự ý chạy lệnh git thay đổi staging** (`git reset`, `git checkout --`...) nếu chưa chắc chắn nội dung nào là bản đúng cần giữ. Nếu nghi ngờ, dừng lại và hỏi trước khi chạy lệnh git có thể mất dữ liệu.
-
-Cập nhật `doc/module-auth.md` theo danh sách sau:
+Cập nhật `doc/module-auth.md` theo danh sách sau. Trước khi commit, luôn `git status`/`git diff --stat doc/module-auth.md` để tự xác nhận đúng nội dung bạn vừa sửa đang được stage (thói quen chung, không phải chỉ riêng file này).
 
 - Bảng API tổng kết (mục 4) có đủ dòng `POST /auth/logout-all`. Kiểm tra lại, có thể đã có sẵn từ trước (không phải do bước này), không cần sửa nếu đã đúng.
 - Bổ sung đoạn mô tả reuse detection (và giới hạn access-token không bị revoke ngay) vào mục liên quan tới refresh token.
@@ -89,7 +87,7 @@ npm run format
 npm run build
 ```
 
-Coi toàn bộ playbook là xong khi: `npm run lint` pass không có warning bị ignore mà không rõ lý do; `npm run format` (hoặc format check) pass; `npm run build` pass; `doc/module-auth.md` đã đồng bộ đủ 6 mục ở trên và đã `git add` lại đúng nội dung (không phải file rỗng). Phần checklist tổng còn lại (test coverage, không leak secret trong log, error envelope chung, PR reviewed...) không lặp lại ở đây để tránh 2 nơi lệch nhau khi checklist đổi. Xem đầy đủ ở [00-overview.md § Definition of Done](./00-overview.md) và rà lại lần cuối trước khi mở PR.
+Coi toàn bộ playbook là xong khi: `npm run lint` pass không có warning bị ignore mà không rõ lý do; `npm run format` (hoặc format check) pass; `npm run build` pass; `doc/module-auth.md` đã đồng bộ đủ 6 mục ở trên và đã stage đúng nội dung đã sửa. Phần checklist tổng còn lại (test coverage, không leak secret trong log, error envelope chung, PR reviewed...) không lặp lại ở đây để tránh 2 nơi lệch nhau khi checklist đổi. Xem đầy đủ ở [00-overview.md § Definition of Done](./00-overview.md) và rà lại lần cuối trước khi mở PR.
 
 ---
 

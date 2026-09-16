@@ -1,4 +1,4 @@
-# 02 — Register (`POST /auth/register`)
+# 02: Register (`POST /auth/register`)
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [01-setup.md](./01-setup.md): module đã scaffold, `PasswordService`/`TokenService` cơ bản đã có, package đã cài, env đã sẵn. Cần tra thuật ngữ nào đó (DTO, transaction, hash...) thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại 1 quyết định thiết kế (vd vì sao register không tự động login) thì xem [00-overview.md](./00-overview.md).
 
@@ -6,7 +6,7 @@
 
 ---
 
-## Bước 1 — Tạo "form đăng ký" (RegisterDto)
+## Bước 1: Tạo "form đăng ký" (RegisterDto)
 
 Trước khi viết logic, bạn cần mô tả rõ ràng dữ liệu mà client phải gửi lên khi đăng ký: `email`, `password`, `fullName` và `phone`. Trong NestJS, việc này làm qua 1 class gọi là DTO (Data Transfer Object).
 
@@ -53,13 +53,13 @@ export class RegisterDto {
 }
 ```
 
-`fullName`/`phone` là 2 field **bắt buộc**, không phải optional: nếu thiếu hoặc rỗng, `ValidationPipe` chặn ngay ở tầng DTO với `400 Bad Request`, request không chạm tới `AuthController`/`AuthService`. `fullName` chỉ cần `@IsNotEmpty()` (không trim khoảng trắng thừa hay giới hạn ký tự đặc biệt ở MVP này); `phone` dùng `@Matches()` với pattern chấp nhận số, `+`, `-`, khoảng trắng, dài 8–15 ký tự — đủ lỏng để nhận cả số nội địa và số có mã quốc gia, không cố phân biệt định dạng theo từng nước.
+`fullName`/`phone` là 2 field **bắt buộc**, không phải optional: nếu thiếu hoặc rỗng, `ValidationPipe` chặn ngay ở tầng DTO với `400 Bad Request`, request không chạm tới `AuthController`/`AuthService`. `fullName` chỉ cần `@IsNotEmpty()` (không trim khoảng trắng thừa hay giới hạn ký tự đặc biệt ở MVP này); `phone` dùng `@Matches()` với pattern chấp nhận số, `+`, `-`, khoảng trắng, dài 8, 15 ký tự, đủ lỏng để nhận cả số nội địa và số có mã quốc gia, không cố phân biệt định dạng theo từng nước.
 
 Chạy `npm run build` để chắc chắn file không lỗi cú pháp. Bạn chưa gọi được route nào ở bước này cả, chỉ mới có "hình dạng" dữ liệu. Nếu muốn tin chắc validate hoạt động, thử tạo 1 instance thiếu `fullName` hoặc `phone` sai định dạng và chạy qua `class-validator`: bạn sẽ thấy lỗi validate bật lên ngay. Việc này để dành verify chính thức khi xong Bước 6.
 
 ---
 
-## Bước 2 — Hash password (PasswordService)
+## Bước 2: Hash password (PasswordService)
 
 Không bao giờ được lưu password thô vào DB. Bước này viết phần hash: biến password thành 1 chuỗi không thể đảo ngược lại, chỉ dùng để so sánh.
 
@@ -88,7 +88,7 @@ export class PasswordService {
 
 ---
 
-## Bước 3 — Sinh mã xác thực email (TokenService)
+## Bước 3: Sinh mã xác thực email (TokenService)
 
 Sau khi tạo user, bạn cần gửi cho họ 1 mã xác thực email (OTP 6 số) không ai đoán được trong thời gian ngắn. Bước này viết phần tối thiểu để sinh mã đó. Bản đầy đủ dùng chung cho cả reset-password/refresh sẽ hoàn thiện ở [01-setup.md § TokenService đầy đủ](./01-setup.md), ở đây chỉ cần đủ cho Register chạy được.
 
@@ -142,7 +142,7 @@ export class TokenService {
 
 ---
 
-## Bước 4 — Gửi email xác thực (MailService)
+## Bước 4: Gửi email xác thực (MailService)
 
 `AuthService` sắp orchestrate flow register không nên tự biết cách gửi mail qua SMTP/SES/SendGrid nào, nó chỉ cần gọi `mailService.sendVerificationEmail(email, token)`. Tách riêng như vậy giúp sau này đổi provider gửi mail mà không đụng vào code auth (xem thêm [00-overview.md § Shared Services](./00-overview.md) về nguyên tắc không tạo interface/DI token thừa cho MVP).
 
@@ -211,7 +211,7 @@ export class MailService {
 
 **Vì sao code như vậy:**
 
-- Gọi provider SMTP qua `nodemailer` (package thật, không tự viết lại SMTP protocol). `ConfigService` (NestJS) đọc `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM` từ `.env` — 5 biến này cần thêm vào `.env.example`, xem mẫu:
+- Gọi provider SMTP qua `nodemailer` (package thật, không tự viết lại SMTP protocol). `ConfigService` (NestJS) đọc `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM` từ `.env`, 5 biến này cần thêm vào `.env.example`, xem mẫu:
 
   ```env
   # SMTP for transactional email (verify-email code, forgot-password links).
@@ -228,14 +228,14 @@ export class MailService {
 
 - **Fallback log-only khi thiếu SMTP\_\*:** nếu 1 trong 4 biến `SMTP_HOST/PORT/USER/PASS` trống, `transporter` là `null` và hàm chỉ log `[DEV] Would send verification email to ...`, không throw lỗi. Local dev/CI chạy được ngay không cần tài khoản SMTP thật; chỉ khi deploy thật (hoặc muốn test bằng inbox giả như Mailtrap) mới cần điền đủ 4 biến.
 - **`secure: Number(port) === 465`**: cổng `465` dùng TLS ngay từ đầu kết nối (implicit TLS); cổng `587`/`25` dùng STARTTLS (bắt đầu plain, nâng cấp lên TLS sau) nên `secure` phải là `false`. Đặt sai sẽ khiến kết nối SMTP thất bại hoặc bị provider từ chối.
-- **Mã xác thực gửi thẳng trong nội dung mail** (không phải link): đây chính là `code` (raw 6 số) sinh ra ở `TokenService` (Bước 3), gửi thẳng cho user qua email, KHÔNG lưu vào DB (chỉ `tokenHash` được lưu — xem lại nguyên tắc ở Bước 3). User tự đọc mã từ mail, nhập vào form của frontend, frontend gọi `POST /auth/verify-email` với `{ email, code }` — chi tiết luồng verify ở [03-verify-email.md](./03-verify-email.md).
+- **Mã xác thực gửi thẳng trong nội dung mail** (không phải link): đây chính là `code` (raw 6 số) sinh ra ở `TokenService` (Bước 3), gửi thẳng cho user qua email, KHÔNG lưu vào DB (chỉ `tokenHash` được lưu, xem lại nguyên tắc ở Bước 3). User tự đọc mã từ mail, nhập vào form của frontend, frontend gọi `POST /auth/verify-email` với `{ email, code }`, chi tiết luồng verify ở [03-verify-email.md](./03-verify-email.md).
 - Không log `code` ở nhánh fallback: log là nơi dễ bị đọc lại (file log, log aggregator...), log ra mã thô coi như phát tán chính secret mà toàn bộ cơ chế "chỉ lưu hash" đang cố bảo vệ.
 
-Gọi thử `sendVerificationEmail('a@b.com', '123456')` khi chưa set `SMTP_*`: bạn sẽ thấy dòng log `[DEV] Would send verification email to a@b.com`, không throw lỗi, không thấy `123456` (raw code) xuất hiện ở đâu trong log. Muốn thấy email thật được gửi, tạo tài khoản sandbox ở [mailtrap.io](https://mailtrap.io), điền 4 biến `SMTP_*` vào `.env`, gọi lại — email sẽ xuất hiện trong inbox sandbox của Mailtrap (không gửi tới địa chỉ thật).
+Gọi thử `sendVerificationEmail('a@b.com', '123456')` khi chưa set `SMTP_*`: bạn sẽ thấy dòng log `[DEV] Would send verification email to a@b.com`, không throw lỗi, không thấy `123456` (raw code) xuất hiện ở đâu trong log. Muốn thấy email thật được gửi, tạo tài khoản sandbox ở [mailtrap.io](https://mailtrap.io), điền 4 biến `SMTP_*` vào `.env`, gọi lại, email sẽ xuất hiện trong inbox sandbox của Mailtrap (không gửi tới địa chỉ thật).
 
 ---
 
-## Bước 5 — Ghép mọi thứ lại trong AuthService.register()
+## Bước 5: Ghép mọi thứ lại trong AuthService.register()
 
 Đây là bước "trái tim" của cả flow: nơi bạn điều phối (orchestrate) 4 bước trên theo đúng thứ tự. Kiểm tra email chưa tồn tại, hash password, ghi User + role + token trong 1 transaction, rồi gửi mail sau khi transaction đã commit xong.
 
@@ -248,6 +248,7 @@ Mở `src/auth/services/auth.service.ts` (đã scaffold rỗng ở `01-setup.md`
 ```ts
 // src/auth/services/auth.service.ts
 import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client'; // đường dẫn generated client tuỳ cấu hình generator của repo bạn
 import { PrismaService } from '../../prisma/prisma.service'; // chỉnh lại path đúng repo
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
@@ -272,7 +273,7 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new ConflictException('Email already in use');
+      throw new ConflictException('Email is already in use');
     }
 
     // 2. Hash password TRƯỚC transaction — hash không phụ thuộc DB, không cần
@@ -282,31 +283,52 @@ export class AuthService {
 
     // 3. Transaction: tạo user + gán role CUSTOMER + tạo verification token.
     //    Dùng `tx` (không phải `this.prisma`) bên trong để cùng 1 transaction.
-    const { user, rawCode } = await this.prisma.$transaction(async (tx) => {
-      const customerRole = await tx.role.findUniqueOrThrow({
-        where: { name: 'CUSTOMER' },
-      });
+    let user: { id: string; email: string };
+    let rawCode: string;
+    try {
+      ({ user, rawCode } = await this.prisma.$transaction(async (tx) => {
+        const customerRole = await tx.role.findUniqueOrThrow({
+          where: { name: 'CUSTOMER' },
+        });
 
-      const createdUser = await tx.user.create({
-        data: {
-          email: dto.email,
-          passwordHash,
-          fullName: dto.fullName, // bắt buộc, validate ở RegisterDto Bước 1
-          phone: dto.phone, // bắt buộc, validate ở RegisterDto Bước 1
-          status: 'ACTIVE',
-          userRoles: { create: [{ roleId: customerRole.id }] },
-        },
-      });
+        const createdUser = await tx.user.create({
+          data: {
+            email: dto.email,
+            passwordHash,
+            fullName: dto.fullName, // bắt buộc, validate ở RegisterDto Bước 1
+            phone: dto.phone, // bắt buộc, validate ở RegisterDto Bước 1
+            status: 'ACTIVE',
+            userRoles: { create: [{ roleId: customerRole.id }] },
+          },
+        });
 
-      // TokenService cũng cần chạy trong transaction này để rollback đồng bộ
-      // nếu có lỗi — nhưng TokenService ở Bước 3 tự inject PrismaService
-      // riêng (không nhận `tx`). Cách đơn giản cho MVP: gọi thẳng
-      // `tx.emailVerificationToken.create(...)` ở đây thay vì gọi qua
-      // TokenService khi cần chung transaction — xem ghi chú bên dưới.
-      const code = await this.createVerificationTokenInTx(tx, createdUser.id);
+        // Truyền `tx` cho TokenService để lệnh tạo token nằm chung transaction
+        // này (TokenService.createEmailVerificationToken nhận tham số `client`
+        // tuỳ chọn, mặc định = this.prisma; xem 01-setup.md § TokenService đầy đủ).
+        const code = await this.tokenService.createEmailVerificationToken(createdUser.id, tx);
 
-      return { user: createdUser, rawCode: code };
-    });
+        return { user: createdUser, rawCode: code };
+      }));
+    } catch (err) {
+      // Check findUnique ở bước 1 chỉ chặn được phần lớn trường hợp trùng
+      // email; 2 request gửi cùng email gần như đồng thời đều có thể pass
+      // check đó trước khi request nào commit (race condition). Unique
+      // constraint của DB (`User.email`) mới là chốt chặn thật sự cho case
+      // này — bắt lỗi P2002 (Prisma unique constraint violation) và chỉ khi
+      // đúng field `email` vi phạm (transaction này còn tạo
+      // EmailVerificationToken với `tokenHash` unique riêng, nên không thể
+      // chỉ check `code === 'P2002'` mà bỏ qua target, kẻo báo nhầm 1 collision
+      // tokenHash cực hiếm thành "email đã tồn tại") thì mới chuyển thành cùng
+      // lỗi 409 như pre-check; lỗi khác thì ném lại nguyên vẹn.
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002' &&
+        (err.meta?.target as string[] | undefined)?.includes('email')
+      ) {
+        throw new ConflictException('Email is already in use');
+      }
+      throw err;
+    }
 
     // 4. Gửi mail SAU khi transaction đã commit — không rollback nếu fail.
     try {
@@ -319,35 +341,8 @@ export class AuthService {
     // 5. Response qua DTO allow-list — không trả passwordHash/token.
     return { id: user.id, email: user.email };
   }
-
-  /**
-   * Helper tạo verification token TRONG transaction hiện tại (`tx`), tách khỏi
-   * TokenService.createEmailVerificationToken() (Bước 3) vì hàm đó tự mở
-   * PrismaService riêng, không tham gia được transaction của Prisma Client
-   * gốc. Đây là cách đơn giản cho MVP; nếu muốn tái sử dụng logic generate+hash
-   * token của TokenService bên trong transaction, refactor TokenService để
-   * nhận `tx` qua tham số thay vì tự inject `this.prisma` — cân nhắc khi làm
-   * TokenService đầy đủ ở `01-setup.md` (không bắt buộc phải sửa ngay ở bước này).
-   */
-  private async createVerificationTokenInTx(
-    tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
-    userId: string,
-  ): Promise<string> {
-    const { randomInt, createHash } = await import('crypto');
-    const rawCode = randomInt(0, 1_000_000).toString().padStart(6, '0');
-    const tokenHash = createHash('sha256').update(rawCode).digest('hex');
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    await tx.emailVerificationToken.create({
-      data: { userId, tokenHash, expiresAt },
-    });
-
-    return rawCode;
-  }
 }
 ```
-
-Đoạn `createVerificationTokenInTx` hơi vòng vèo. Lý do là `TokenService` ở Bước 3 tự inject `PrismaService` riêng nên không tham gia chung transaction được với `register()` ở đây. Đây là giới hạn đã biết của bản MVP tối thiểu, chấp nhận trùng lặp code nhỏ để giữ transaction đúng; dọn lại (refactor `TokenService` nhận `tx`) là việc có thể làm sau khi hoàn thiện `TokenService` ở `01-setup.md`, không bắt buộc ngay.
 
 ⚠️ `fullName`/`phone` là cột **bắt buộc** (`NOT NULL`) trên model `User` trong `prisma/schema/schema.prisma` (không có `?` sau kiểu), nên cần migration Prisma tương ứng nếu bảng `users` đã có data cũ chưa có 2 cột này (`npx prisma migrate dev`). Vì cả 2 field đã validate bắt buộc ở `RegisterDto` (Bước 1), `dto.fullName`/`dto.phone` ở đây luôn có giá trị hợp lệ, không cần check `null`/`undefined` lại lần nữa trong service.
 
@@ -355,7 +350,7 @@ Thử gọi `authService.register({ email, password, fullName, phone })` với 1
 
 ---
 
-## Bước 6 — Mở endpoint HTTP (AuthController)
+## Bước 6: Mở endpoint HTTP (AuthController)
 
 Bước cuối: expose flow trên ra thành route thật `POST /auth/register`, trả đúng dữ liệu cho phép (không có `passwordHash`, không tự động đăng nhập).
 
@@ -406,7 +401,7 @@ export class AuthController {
 }
 ```
 
-`@HttpCode(HttpStatus.CREATED)` đặt status `201`: mặc định `@Post()` của Nest trả `200` nếu không khai báo rõ.
+`@HttpCode(HttpStatus.CREATED)` đặt status `201` một cách tường minh — NestJS thực ra đã mặc định trả `201` cho mọi `@Post()` (chỉ `GET`/`PUT`/`PATCH`/`DELETE` mới mặc định `200`), nên decorator này không đổi hành vi, chỉ giúp người đọc code thấy rõ status mong đợi mà không cần nhớ default của framework.
 
 Đến đây bạn đã có 1 endpoint hoạt động đầy đủ. Body hợp lệ giờ cần đủ 4 field:
 

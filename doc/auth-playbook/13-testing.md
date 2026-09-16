@@ -1,4 +1,4 @@
-# 13 — Testing (Unit + E2E)
+# 13: Testing (Unit + E2E)
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [12-rate-limiting.md](./12-rate-limiting.md): toàn bộ endpoint, guard, và rate limit đã implement. Tham chiếu chung: [00-overview.md](./00-overview.md).
 
@@ -17,7 +17,7 @@ Toàn bộ service có business logic (`AuthService`, `TokenService`, `PasswordS
 
 ---
 
-## Bước 1 — Unit test
+## Bước 1: Unit test
 
 Các file cần tạo: `src/auth/services/auth.service.spec.ts`, `src/auth/services/token.service.spec.ts`, `src/auth/services/password.service.spec.ts`. Lệnh dùng khi viết test:
 
@@ -27,7 +27,7 @@ npm run test:watch    # chạy lại tự động khi sửa code — dùng khi �
 npm run test:cov      # kèm coverage report
 ```
 
-> 📘 **Khái niệm: `Test.createTestingModule` + `overrideProvider`?** NestJS cung cấp `@nestjs/testing` để dựng 1 "module giả lập" chỉ chứa provider cần test, thay các dependency thật (`PrismaService`, `MailService`...) bằng mock object (`jest.fn()`). Nhờ vậy test chạy độc lập, không cần DB/SMTP thật, và assert được chính xác "AuthService gọi đúng hàm nào với tham số nào".
+> 📘 **Khái niệm: `Test.createTestingModule` + mock provider?** Repo này dùng **Vitest** (không phải Jest — kiểm tra `package.json § scripts.test`), với `globals: true` trong `vitest.config.ts`, nên `describe`/`it`/`expect`/`vi` dùng được trực tiếp mà không cần import. NestJS cung cấp `@nestjs/testing` để dựng 1 "module giả lập" chỉ chứa provider cần test, thay các dependency thật (`PrismaService`, `MailService`...) bằng mock object (`vi.fn()`). Nhờ vậy test chạy độc lập, không cần DB/SMTP thật, và assert được chính xác "AuthService gọi đúng hàm nào với tham số nào". (Các spec file thật trong repo, vd `src/auth/services/auth.service.spec.ts`, còn dùng cách gọn hơn: tự khởi tạo `new AuthService(...)` với mock object truyền tay, không qua `Test.createTestingModule` — cả 2 cách đều hợp lệ, chọn cách bạn thấy dễ đọc hơn.)
 
 Ví dụ unit test cho `AuthService.register()`:
 
@@ -43,18 +43,18 @@ import { MailService } from '../../mail/mail.service';
 
 describe('AuthService.register', () => {
   let authService: AuthService;
-  let prisma: { user: any; $transaction: jest.Mock };
-  let passwordService: { hash: jest.Mock };
-  let mailService: { sendVerificationEmail: jest.Mock };
+  let prisma: { user: { findUnique: ReturnType<typeof vi.fn> }; $transaction: ReturnType<typeof vi.fn> };
+  let passwordService: { hash: ReturnType<typeof vi.fn> };
+  let mailService: { sendVerificationEmail: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     prisma = {
-      user: { findUnique: jest.fn() },
-      $transaction: jest.fn(),
+      user: { findUnique: vi.fn() },
+      $transaction: vi.fn(),
     };
-    passwordService = { hash: jest.fn().mockResolvedValue('hashed') };
+    passwordService = { hash: vi.fn().mockResolvedValue('hashed') };
     mailService = {
-      sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+      sendVerificationEmail: vi.fn().mockResolvedValue(undefined),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -73,7 +73,9 @@ describe('AuthService.register', () => {
   it('throws ConflictException when email already exists', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'existing-user' });
 
-    await expect(authService.register({ email: 'a@b.com', password: 'Abc@1234' })).rejects.toThrow(ConflictException);
+    await expect(
+      authService.register({ email: 'a@b.com', password: 'Abc@1234', fullName: 'Nguyen Van A', phone: '0912345678' }),
+    ).rejects.toThrow(ConflictException);
 
     // Không được đi tiếp tới bước hash/transaction khi email đã tồn tại.
     expect(passwordService.hash).not.toHaveBeenCalled();
@@ -83,25 +85,27 @@ describe('AuthService.register', () => {
     prisma.user.findUnique.mockResolvedValue(null);
     prisma.$transaction.mockResolvedValue({
       user: { id: 'new-user', email: 'a@b.com' },
-      rawToken: 'raw-token-abc',
+      rawCode: 'raw-code-abc',
     });
 
     const result = await authService.register({
       email: 'a@b.com',
       password: 'Abc@1234',
+      fullName: 'Nguyen Van A',
+      phone: '0912345678',
     });
 
     expect(result).toEqual({ id: 'new-user', email: 'a@b.com' });
-    expect(mailService.sendVerificationEmail).toHaveBeenCalledWith('a@b.com', 'raw-token-abc');
+    expect(mailService.sendVerificationEmail).toHaveBeenCalledWith('a@b.com', 'raw-code-abc');
   });
 });
 ```
 
-Viết tương tự cho `TokenService` (assert xoá token cũ trước khi tạo mới, assert raw token không bị lưu vào DB) và `PasswordService` (assert `hash()` 2 lần cho ra 2 chuỗi khác nhau nhưng cùng `verify()` đúng; đã tự thử ở [02-register.md](./02-register.md), Bước 2). Mục tiêu cuối cùng của bước này: unit test cho `AuthService`, `TokenService`, `PasswordService` pass, cover đủ các nhánh chính, gồm cả happy path lẫn lỗi domain (duplicate email, token hết hạn, password sai...).
+Viết tương tự cho `TokenService` (assert xoá token cũ trước khi tạo mới, assert raw code không bị lưu vào DB) và `PasswordService` (assert `hash()` 2 lần cho ra 2 chuỗi khác nhau nhưng cùng `verify()` đúng; đã tự thử ở [02-register.md](./02-register.md), Bước 2). Mục tiêu cuối cùng của bước này: unit test cho `AuthService`, `TokenService`, `PasswordService` pass, cover đủ các nhánh chính, gồm cả happy path lẫn lỗi domain (duplicate email, token hết hạn, password sai...).
 
 ---
 
-## Bước 2 — E2E test
+## Bước 2: E2E test
 
 File cần tạo: `test/auth.e2e-spec.ts` (hoặc theo cấu trúc `test/` hiện có của repo). Lệnh chạy:
 
@@ -116,10 +120,23 @@ Ví dụ e2e test cho `POST /auth/register`:
 ```ts
 // test/auth.e2e-spec.ts
 import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { AppModule } from '../src/app.module.js';
+import { PrismaService } from '../src/prisma/prisma.service.js';
+import { configureApp } from '../src/bootstrap/configure-app.js'; // cùng setup ValidationPipe với main.ts thật, để test không lệch cấu hình
+
+// fullName/phone là field bắt buộc của RegisterDto (02-register.md Bước 1)
+// nhưng không phải trọng tâm của phần lớn test case dưới đây — 1 payload hợp
+// lệ dùng chung giúp phần override riêng của từng test dễ thấy hơn.
+function validRegisterPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    password: 'Abc@1234',
+    fullName: 'Nguyen Van A',
+    phone: '0912345678',
+    ...overrides,
+  };
+}
 
 describe('Auth (e2e)', () => {
   let app: INestApplication;
@@ -131,7 +148,7 @@ describe('Auth (e2e)', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true })); // giống main.ts thật
+    configureApp(app);
     await app.init();
 
     prisma = moduleRef.get(PrismaService);
@@ -152,7 +169,7 @@ describe('Auth (e2e)', () => {
   it('POST /auth/register -> 201 on success', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: 'new-user@e2e-test.local', password: 'Abc@1234' })
+      .send(validRegisterPayload({ email: 'new-user@e2e-test.local' }))
       .expect(201);
 
     expect(res.body).toEqual({
@@ -165,19 +182,19 @@ describe('Auth (e2e)', () => {
   it('POST /auth/register -> 409 when email already exists', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: 'dup@e2e-test.local', password: 'Abc@1234' })
+      .send(validRegisterPayload({ email: 'dup@e2e-test.local' }))
       .expect(201);
 
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: 'dup@e2e-test.local', password: 'Abc@1234' })
+      .send(validRegisterPayload({ email: 'dup@e2e-test.local' }))
       .expect(409);
   });
 
   it('POST /auth/register -> 400 when password does not meet policy', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
-      .send({ email: 'weak@e2e-test.local', password: 'abc12345' })
+      .send(validRegisterPayload({ email: 'weak@e2e-test.local', password: 'abc12345' }))
       .expect(400);
   });
 });

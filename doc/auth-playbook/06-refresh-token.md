@@ -1,4 +1,4 @@
-# 06 — Refresh Token: rotation + reuse detection (`POST /auth/refresh`)
+# 06: Refresh Token: rotation + reuse detection (`POST /auth/refresh`)
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [05-login.md](./05-login.md): access token và refresh token cookie đã hoạt động khi login. Cần tra thuật ngữ nào đó thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định thiết kế thì xem [00-overview.md](./00-overview.md).
 
@@ -6,7 +6,7 @@ Endpoint này cấp access token mới từ refresh token hợp lệ (đọc t�
 
 ---
 
-## Bước 1 — Cài `cookie-parser`
+## Bước 1: Cài `cookie-parser`
 
 Bạn cần có `request.cookies` trong mọi request, vì `/auth/refresh` và `/auth/logout` (xem [09-logout.md](./09-logout.md)) đọc refresh token từ cookie, không phải từ body.
 
@@ -38,7 +38,7 @@ Muốn chắc chắn nó chạy đúng, gửi 1 request bất kỳ kèm header `
 
 ---
 
-## Bước 2 — RefreshResponseDto
+## Bước 2: RefreshResponseDto
 
 Response DTO cho `/auth/refresh` chỉ cần trả access token mới:
 
@@ -66,7 +66,7 @@ Bạn không cần DTO cho request: `/auth/refresh` đọc raw refresh token t�
 
 ---
 
-## Bước 3 — Logic rotation + reuse detection trong AuthService
+## Bước 3: Logic rotation + reuse detection trong AuthService
 
 Đây là phần cốt lõi: verify refresh token hợp lệ → nếu đã bị revoke trước đó (reuse) → revoke toàn bộ session của user; nếu hợp lệ → xoay vòng (revoke cũ, tạo mới).
 
@@ -137,7 +137,7 @@ async refreshToken(rawRefreshToken: string | undefined): Promise<{
 }
 ```
 
-⚠️ Tên field (`refreshToken`, `tokenHash`, `revokedAt`, `expiresAt`, `userId`) phải khớp `prisma/schema.prisma`. Đối chiếu trước khi paste.
+⚠️ Tên field (`refreshToken`, `tokenHash`, `revokedAt`, `expiresAt`, `userId`) phải khớp `prisma/schema/schema.prisma`. Đối chiếu trước khi paste.
 
 ⚠️ **CSRF note** (xem [00-overview.md § Known Gaps](./00-overview.md)): vì refresh token nằm trong cookie, browser tự động gửi kèm mọi request cùng origin. `/auth/refresh` và `/auth/logout` là state-changing endpoint đọc cookie, cần `SameSite=Strict` (đã set ở [05-login.md](./05-login.md)) để giảm rủi ro CSRF. Không tự implement CSRF token riêng cho MVP.
 
@@ -145,7 +145,7 @@ Muốn tự kiểm chứng, thử refresh thành công trước. Bạn sẽ nh�
 
 ---
 
-## Bước 4 — Mở endpoint HTTP (AuthController)
+## Bước 4: Mở endpoint HTTP (AuthController)
 
 Cuối cùng, đọc cookie từ request, gọi service, rồi set cookie mới trong response:
 

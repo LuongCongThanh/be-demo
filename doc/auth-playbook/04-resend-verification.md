@@ -1,4 +1,4 @@
-# 04 — Resend Verification (`POST /auth/resend-verification`)
+# 04: Resend Verification (`POST /auth/resend-verification`)
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [03-verify-email.md](./03-verify-email.md): `MessageResponseDto` đã tồn tại, `TokenService.createEmailVerificationToken()` đã có. Cần tra thuật ngữ thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định thiết kế thì xem [00-overview.md](./00-overview.md).
 
@@ -6,7 +6,7 @@ Endpoint này cho phép gửi lại email verification mà **không lộ thông 
 
 ---
 
-## Bước 1 — Mô tả dữ liệu client gửi lên (ResendVerificationDto)
+## Bước 1: Mô tả dữ liệu client gửi lên (ResendVerificationDto)
 
 Client chỉ cần gửi đúng 1 field: email. Tạo file `src/auth/dto/resend-verification.dto.ts`:
 
@@ -34,7 +34,7 @@ File này chỉ cần build không lỗi là xong.
 
 ---
 
-## Bước 2 — Viết logic không lộ enumeration trong AuthService
+## Bước 2: Viết logic không lộ enumeration trong AuthService
 
 Đây là phần tinh tế nhất của endpoint này: dù email tồn tại hay không, dù đã verify hay chưa, bạn phải luôn trả về đúng cùng 1 message. Chỉ khác nhau ở việc có tạo token mới và gửi mail hay không phía sau hậu trường; client không được phép phân biệt được 2 trường hợp này qua response.
 
@@ -68,12 +68,12 @@ async resendVerification(
   // Email tồn tại & chưa verify → tạo token mới (xoá token cũ trước, quyết
   // định #8, đã xử lý sẵn trong TokenService) → gửi mail SAU khi token đã
   // lưu DB xong (không cần transaction ở đây vì chỉ có 1 write).
-  const rawToken = await this.tokenService.createEmailVerificationToken(
+  const rawCode = await this.tokenService.createEmailVerificationToken(
     user.id,
   );
 
   try {
-    await this.mailService.sendVerificationEmail(user.email, rawToken);
+    await this.mailService.sendVerificationEmail(user.email, rawCode);
   } catch (err) {
     this.logger.error(
       `Failed to resend verification email to ${user.email}`,
@@ -87,13 +87,13 @@ async resendVerification(
 }
 ```
 
-⚠️ Method này dùng `this.tokenService.createEmailVerificationToken()` (đã viết đầy đủ ở 01-setup.md, phần TokenService đầy đủ). Khác với `AuthService.register()` (02-register.md, Bước 5) phải tự viết `createVerificationTokenInTx` vì cần chung transaction, ở đây không cần transaction (chỉ 1 write), nên gọi thẳng qua `TokenService` bình thường.
+⚠️ Method này dùng `this.tokenService.createEmailVerificationToken(user.id)` (viết ở 02-register.md, Bước 3), gọi thẳng không truyền tham số `client`/`tx`. Khác với `AuthService.register()` (02-register.md, Bước 5) cần truyền `tx` vì phải chung transaction với việc tạo `User`, ở đây chỉ có 1 write nên không cần transaction, để `client` dùng giá trị mặc định (`this.prisma`) trong `TokenService`.
 
 Tự kiểm tra: gọi với email tồn tại & chưa verify phải trả `GENERIC_RESEND_MESSAGE`, tạo token mới, gọi `sendVerificationEmail`. Gọi với email đã verified, hoặc email không tồn tại luôn: cả 2 case này đều phải trả cùng `GENERIC_RESEND_MESSAGE`, không tạo token, không gọi mail. Điểm quan trọng nhất: 3 case trên phải trả về response **giống hệt nhau** về status code và message. Đừng chỉ đọc bằng mắt, viết test so sánh trực tiếp mới chắc chắn.
 
 ---
 
-## Bước 3 — Mở endpoint HTTP
+## Bước 3: Mở endpoint HTTP
 
 Bước cuối, expose route `POST /auth/resend-verification`:
 

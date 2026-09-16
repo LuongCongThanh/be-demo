@@ -1,4 +1,4 @@
-# 11 — Reset Password (`POST /auth/reset-password`)
+# 11: Reset Password (`POST /auth/reset-password`)
 
 > Trước khi làm file này: xong [10-forgot-password.md](./10-forgot-password.md). Tham chiếu chung (Decisions, Security Rules, Response DTO...): [00-overview.md](./00-overview.md).
 
@@ -9,7 +9,7 @@ Endpoint cuối cùng của flow quên mật khẩu: đặt lại password bằn
 
 ---
 
-## Bước 1 — Mô tả dữ liệu client gửi lên (ResetPasswordDto)
+## Bước 1: Mô tả dữ liệu client gửi lên (ResetPasswordDto)
 
 Client cần gửi 3 thứ: token nhận từ email, password mới, và confirmPassword để so khớp. Bước này dùng lại `IsStrongPassword()` đã viết ở [01-setup.md](./01-setup.md), phần password policy, cộng thêm 1 custom validator để so khớp `confirmPassword`.
 
@@ -67,7 +67,7 @@ export class ResetPasswordDto {
 
 ---
 
-## Bước 2 — Viết AuthService.resetPassword()
+## Bước 2: Viết AuthService.resetPassword()
 
 Đây là phần lõi: hash token nhận được để tra DB, kiểm tra còn hợp lệ không, rồi trong 1 transaction đổi password mới, đánh dấu token đã dùng, và revoke toàn bộ refresh token cũ:
 
@@ -122,7 +122,7 @@ async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
 
 ---
 
-## Bước 3 — Mở endpoint HTTP
+## Bước 3: Mở endpoint HTTP
 
 Nối route vào `AuthController`, response qua `MessageResponseDto` dùng chung (đã tạo ở [03-verify-email.md](./03-verify-email.md)):
 

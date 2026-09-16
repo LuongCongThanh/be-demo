@@ -1,4 +1,4 @@
-# 05 — Login (`POST /auth/login`) + Access Token
+# 05: Login (`POST /auth/login`) + Access Token
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [04-resend-verification.md](./04-resend-verification.md). Cần tra thuật ngữ thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định thiết kế thì xem [00-overview.md](./00-overview.md).
 
@@ -6,7 +6,7 @@
 
 ---
 
-## Bước 1 — Đăng ký JwtModule trong AuthModule
+## Bước 1: Đăng ký JwtModule trong AuthModule
 
 Trước khi sinh được access token, `AuthService` cần có `JwtService` để inject vào.
 
@@ -48,7 +48,7 @@ Chạy `npm run build` để chắc không lỗi, rồi thử inject `JwtService
 
 ---
 
-## Bước 2 — Viết DTO cho input login và 2 response DTO
+## Bước 2: Viết DTO cho input login và 2 response DTO
 
 Bạn cần 3 class: dữ liệu login client gửi lên, và 2 DTO response theo đúng allow-list ở [00-overview.md § 5](./00-overview.md).
 
@@ -89,8 +89,8 @@ export class AuthUserResponseDto {
   @ApiProperty()
   email: string;
 
-  @ApiProperty({ nullable: true })
-  fullName: string | null;
+  @ApiProperty()
+  fullName: string;
 
   @ApiProperty({ type: [String] })
   roles: string[];
@@ -119,7 +119,7 @@ export class LoginResponseDto {
 
 ---
 
-## Bước 3 — Viết hàm sinh access token
+## Bước 3: Viết hàm sinh access token
 
 Trước khi viết `login()` đầy đủ, tách riêng phần sinh JWT access token thành 1 hàm helper, dùng lại được cả ở đây lẫn ở `06-refresh-token.md` sau này.
 
@@ -167,7 +167,7 @@ Kiểm tra nhanh: decode thử access token (vd bằng https://jwt.io hoặc `jw
 
 ---
 
-## Bước 4 — Viết logic login đầy đủ
+## Bước 4: Viết logic login đầy đủ
 
 Đây là phần orchestrate chính: tìm user → check 2 trục trạng thái → verify password → sinh access token + refresh token.
 
@@ -185,7 +185,7 @@ import { LoginDto } from '../dto/login.dto';
 async login(dto: LoginDto): Promise<{
   accessToken: string;
   rawRefreshToken: string;
-  user: { id: string; email: string; fullName: string | null; roles: string[]; emailVerified: boolean };
+  user: { id: string; email: string; fullName: string; roles: string[]; emailVerified: boolean };
 }> {
   const user = await this.prisma.user.findUnique({
     where: { email: dto.email },
@@ -228,7 +228,7 @@ async login(dto: LoginDto): Promise<{
     user: {
       id: user.id,
       email: user.email,
-      fullName: user.fullName ?? null,
+      fullName: user.fullName,
       roles,
       // Derive từ dữ liệu thật (không hardcode `true`): tại điểm này chắc
       // chắn email đã verify (đã check ở trên), nhưng derive vẫn an toàn
@@ -240,7 +240,7 @@ async login(dto: LoginDto): Promise<{
 }
 ```
 
-⚠️ Tên relation `userRoles: { include: { role: true } }` giả định schema dạng `User.userRoles -> UserRole -> Role` (bảng nối `user_roles`). Đối chiếu đúng tên relation/field thật trong `prisma/schema.prisma` (`fullName` cũng có thể không tồn tại nếu schema không có field này, bỏ dòng đó nếu vậy).
+⚠️ Tên relation `userRoles: { include: { role: true } }` giả định schema dạng `User.userRoles -> UserRole -> Role` (bảng nối `user_roles`). Đối chiếu đúng tên relation/field thật trong `prisma/schema/schema.prisma`. `fullName` là cột bắt buộc (`NOT NULL`) trên `User` (xem `02-register.md` Bước 1), nên luôn có giá trị, không cần xử lý `null`.
 
 Để ý `login()` trả `rawRefreshToken` ra ngoài thay vì tự set cookie trong Service, vì **Service không nên biết về HTTP response/cookie**, đó là trách nhiệm của Controller (Bước 5). Giữ Service thuần business logic giúp unit test dễ hơn nhiều (không cần mock `Response`).
 
@@ -248,7 +248,7 @@ Tự kiểm tra: login đúng email/password với account `ACTIVE` + đã verif
 
 ---
 
-## Bước 5 — Mở endpoint HTTP và set cookie refresh token
+## Bước 5: Mở endpoint HTTP và set cookie refresh token
 
 Bước cuối: expose route `POST /auth/login`, trả access token trong body, set refresh token qua cookie `HttpOnly`+`Secure`+`SameSite`.
 

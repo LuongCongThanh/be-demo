@@ -1,4 +1,4 @@
-# 07 — Guards: JwtAuthGuard, RolesGuard, OwnershipGuard
+# 07: Guards: JwtAuthGuard, RolesGuard, OwnershipGuard
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [06-refresh-token.md](./06-refresh-token.md): access token đã sinh được, refresh token đã hoạt động. Cần tra thuật ngữ nào đó thì mở [GLOSSARY.md](./GLOSSARY.md); cần nhắc lại quyết định thiết kế thì xem [00-overview.md](./00-overview.md).
 
@@ -6,7 +6,7 @@ File này xây 4 lớp bảo vệ route dùng chung cho toàn bộ endpoint cầ
 
 ---
 
-## Bước 1 — JwtAuthGuard + JwtStrategy
+## Bước 1: JwtAuthGuard + JwtStrategy
 
 Đây là guard xác thực access token và gắn `CurrentUser` vào request. Đây là guard quan trọng nhất, mọi endpoint cần login đều đi qua nó.
 
@@ -75,7 +75,7 @@ Tự kiểm tra: gửi request không có header `Authorization` phải nhận `
 
 ---
 
-## Bước 2 — `@CurrentUser()` decorator
+## Bước 2: `@CurrentUser()` decorator
 
 Bước này viết 1 decorator để lấy user hiện tại từ request trong controller mà không cần tự inject `Request` thủ công mỗi lần.
 
@@ -110,7 +110,7 @@ Tự kiểm tra: dùng `@CurrentUser() user: JwtPayload` trong 1 controller có 
 
 ---
 
-## Bước 3 — RolesGuard + `@Roles()`
+## Bước 3: RolesGuard + `@Roles()`
 
 Bước này chặn route theo role, và phải tương thích với role model DB-driven (quyết định #6): không hardcode enum.
 
@@ -175,7 +175,7 @@ Tự kiểm tra: route có `@Roles('ADMIN')`, user không có role ADMIN phải 
 
 ---
 
-## Bước 4 — OwnershipGuard
+## Bước 4: OwnershipGuard
 
 Bước cuối cùng: chặn user truy cập resource không thuộc về mình, tách biệt khỏi những business rule phức tạp hơn (xem [00-overview.md § Guard vs Service](./00-overview.md)).
 
@@ -255,7 +255,7 @@ Ví dụ cách dùng (áp dụng thật khi build Order module sau, đặt ở �
 getOrder(@Param('id') id: string) { /* ... */ }
 ```
 
-Auth module ở đây chỉ cung cấp `OwnershipGuard` + `@OwnedResource()` dạng generic. Chưa có route nào dùng thật vì chưa có Order/Cart module. Bạn sẽ áp dụng cụ thể khi build Order module sau (xem [00-overview.md § 1. Scope](./00-overview.md), mục "Sau khi xong Auth MVP").
+Auth module ở đây chỉ cung cấp `OwnershipGuard` + `@OwnedResource()` dạng generic. Chưa có route nào dùng thật vì chưa có Order/Cart module. Bạn sẽ áp dụng cụ thể khi build Order module sau (ngoài scope MVP Auth, xem [00-overview.md § 1. Scope & Goal](./00-overview.md)).
 
 Tự kiểm tra: guard này phải compile/chạy được dù chưa có route nào dùng tới. Viết 1 route test nội bộ (hoặc để dành verify khi build Order module) để xác nhận user A không truy cập được resource của user B, và user có role ADMIN thì bypass được ownership check.
 
