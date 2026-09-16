@@ -138,7 +138,7 @@ export class TokenService {
 }
 ```
 
-⚠️ Trước khi paste, đối chiếu lại tên model/field Prisma (`emailVerificationToken`, `userId`, `tokenHash`, `expiresAt`, `verifiedAt`) với `prisma/schema.prisma` thật của bạn: tên có thể khác đôi chút. Method `createPasswordResetToken`, `hashRawToken` (dùng ở verify/refresh sau này) sẽ được thêm đầy đủ ở `01-setup.md`, chưa cần lo ở bước này. Kiểm tra nhanh: gọi `createEmailVerificationToken()` từ 1 chỗ test tạm. Bạn sẽ thấy đúng 1 record mới xuất hiện trong bảng `email_verification_tokens`.
+⚠️ Trước khi paste, đối chiếu lại tên model/field Prisma (`emailVerificationToken`, `userId`, `tokenHash`, `expiresAt`, `verifiedAt`) với `prisma/schema/schema.prisma` thật của bạn: tên có thể khác đôi chút. Method `createPasswordResetToken`, `hashRawToken` (dùng ở verify/refresh sau này) sẽ được thêm đầy đủ ở `01-setup.md`, chưa cần lo ở bước này. Kiểm tra nhanh: gọi `createEmailVerificationToken()` từ 1 chỗ test tạm. Bạn sẽ thấy đúng 1 record mới xuất hiện trong bảng `email_verification_tokens`.
 
 ---
 
@@ -349,7 +349,7 @@ export class AuthService {
 
 Đoạn `createVerificationTokenInTx` hơi vòng vèo. Lý do là `TokenService` ở Bước 3 tự inject `PrismaService` riêng nên không tham gia chung transaction được với `register()` ở đây. Đây là giới hạn đã biết của bản MVP tối thiểu, chấp nhận trùng lặp code nhỏ để giữ transaction đúng; dọn lại (refactor `TokenService` nhận `tx`) là việc có thể làm sau khi hoàn thiện `TokenService` ở `01-setup.md`, không bắt buộc ngay.
 
-⚠️ `fullName`/`phone` là cột **bắt buộc** (`NOT NULL`) trên model `User` trong `prisma/schema.prisma` (không có `?` sau kiểu), nên cần migration Prisma tương ứng nếu bảng `users` đã có data cũ chưa có 2 cột này (`npx prisma migrate dev`). Vì cả 2 field đã validate bắt buộc ở `RegisterDto` (Bước 1), `dto.fullName`/`dto.phone` ở đây luôn có giá trị hợp lệ, không cần check `null`/`undefined` lại lần nữa trong service.
+⚠️ `fullName`/`phone` là cột **bắt buộc** (`NOT NULL`) trên model `User` trong `prisma/schema/schema.prisma` (không có `?` sau kiểu), nên cần migration Prisma tương ứng nếu bảng `users` đã có data cũ chưa có 2 cột này (`npx prisma migrate dev`). Vì cả 2 field đã validate bắt buộc ở `RegisterDto` (Bước 1), `dto.fullName`/`dto.phone` ở đây luôn có giá trị hợp lệ, không cần check `null`/`undefined` lại lần nữa trong service.
 
 Thử gọi `authService.register({ email, password, fullName, phone })` với 1 email mới: bạn sẽ thấy đúng 1 User được tạo với role CUSTOMER, đủ `fullName`/`phone` và đúng 1 EmailVerificationToken đi kèm, `passwordHash` không phải là chuỗi plain text bạn gõ vào. Gọi lại lần 2 với cùng email đó sẽ ném ra `ConflictException` và không có user thứ 2 nào được tạo thêm.
 

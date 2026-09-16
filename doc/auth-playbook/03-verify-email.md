@@ -204,7 +204,7 @@ async verifyEmail(dto: VerifyEmailDto): Promise<{ message: string }> {
 }
 ```
 
-⚠️ Tên field (`emailVerificationToken`, `tokenHash`, `attempts`, `verifiedAt`, `expiresAt`, `userId`, `emailVerifiedAt`) phải khớp `prisma/schema.prisma`. Đối chiếu trước khi paste. Model `EmailVerificationToken` hiện tại (`prisma/schema.prisma`):
+⚠️ Tên field (`emailVerificationToken`, `tokenHash`, `attempts`, `verifiedAt`, `expiresAt`, `userId`, `emailVerifiedAt`) phải khớp `prisma/schema/schema.prisma`. Đối chiếu trước khi paste. Model `EmailVerificationToken` hiện tại (`prisma/schema/schema.prisma`):
 
 ```prisma
 model EmailVerificationToken {
