@@ -75,6 +75,8 @@ Bạn không cần DTO cho request: `/auth/refresh` đọc raw refresh token t�
 > 📘 **Khái niệm: "reuse detection" hoạt động như thế nào?** Khi 1 refresh token có `revokedAt != null` (đã bị rotation trước đó) nhưng vẫn bị gửi lên `/auth/refresh` lần nữa, đây là dấu hiệu rõ ràng rằng có 2 bên khác nhau đang cùng cầm bản sao token đó: token đã bị lộ (đánh cắp). Phản ứng: coi TOÀN BỘ session của user đó là không đáng tin, revoke hết, buộc user phải login lại từ đầu ở mọi thiết bị.
 >
 > ⚠️ **Giới hạn đã biết:** reuse detection chỉ revoke được **refresh token**. Access token JWT đã phát hành trước đó (nếu có) vẫn hợp lệ tới khi hết TTL (15 phút) vì là stateless token (xem [00-overview.md § Known Gaps](./00-overview.md)). Đừng viết test/assert kỳ vọng access token bị vô hiệu ngay; điều đó sai với thiết kế hiện tại.
+>
+> 📘 **Khái niệm: vì sao rotation cũng cần "claim" bằng conditional update, giống hệt lý do ở `03-verify-email.md`?** `findUnique()` (đọc) và bước revoke-để-rotation (ghi) bên dưới là 2 thao tác tách rời, không atomic với nhau. Nếu 2 request `/auth/refresh` cùng gửi đúng 1 refresh token hợp lệ gần như đồng thời (vd 2 tab cùng tự động refresh), cả 2 đều có thể đọc được `revokedAt: null` **trước khi** request nào commit xong: cả 2 cùng vượt qua check reuse-detection, cùng revoke "token cũ" (idempotent, vô hại) và cùng tạo token mới riêng — kết quả sai là **2 refresh token cùng hợp lệ song song** thay vì đúng 1, vi phạm chính bất biến "rotation = mỗi token chỉ dùng được 1 lần". Cách khắc phục giống hệt verify-email: đừng chỉ dựa vào giá trị `revokedAt` đã đọc ở bước check, "giành" (claim) quyền rotation bằng 1 câu update có điều kiện `revokedAt: null` ngay trong `WHERE`. Request nào thua race coi như gặp reuse thật (token đã bị "dùng" bởi request kia) nên áp dụng luôn hậu quả reuse detection (revoke toàn bộ session), thay vì âm thầm thất bại.
 
 Thêm method sau vào `src/auth/services/auth.service.ts`:
 
@@ -117,11 +119,29 @@ async refreshToken(rawRefreshToken: string | undefined): Promise<{
     throw new UnauthorizedException('Refresh token has expired');
   }
 
-  // --- Rotation: revoke token cũ, tạo token mới ---
-  await this.prisma.refreshToken.update({
-    where: { id: record.id },
+  // --- Rotation: "claim" quyền xoay vòng bằng conditional update, đóng race
+  // window giữa findUnique() ở trên và update này. Chỉ request nào update
+  // trúng đúng 1 dòng (revokedAt vẫn còn null tại thời điểm ghi) mới thắng
+  // và được cấp token mới; request thua coi như gặp reuse.
+  const claimed = await this.prisma.refreshToken.updateMany({
+    where: { id: record.id, revokedAt: null },
     data: { revokedAt: new Date() },
   });
+
+  if (claimed.count === 0) {
+    // Thua race: 1 request khác (gần như đồng thời) đã claim token này
+    // trước. Xử lý giống hệt nhánh reuse detection ở trên — revoke toàn bộ
+    // session của user — vì từ góc nhìn của request này, token đã bị "dùng"
+    // bởi ai đó khác.
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: record.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    throw new UnauthorizedException(
+      'Refresh token has been revoked — all login sessions have been logged out for security reasons',
+    );
+  }
+
   const newRawRefreshToken = await this.tokenService.createRefreshToken(
     record.userId,
   );
@@ -141,7 +161,7 @@ async refreshToken(rawRefreshToken: string | undefined): Promise<{
 
 ⚠️ **CSRF note** (xem [00-overview.md § Known Gaps](./00-overview.md)): vì refresh token nằm trong cookie, browser tự động gửi kèm mọi request cùng origin. `/auth/refresh` và `/auth/logout` là state-changing endpoint đọc cookie, cần `SameSite=Strict` (đã set ở [05-login.md](./05-login.md)) để giảm rủi ro CSRF. Không tự implement CSRF token riêng cho MVP.
 
-Muốn tự kiểm chứng, thử refresh thành công trước. Bạn sẽ nhận `accessToken` mới cùng `newRawRefreshToken` mới, và refresh token cũ (đã revoke) không dùng lại được nữa. Gọi mà không truyền refresh token phải bị `UnauthorizedException` (401), refresh token hết hạn cũng vậy. Trường hợp thú vị nhất: dùng lại 1 refresh token đã revoked. Không chỉ bản thân request đó bị 401, mà **toàn bộ refresh token khác còn hiệu lực của user đó cũng bị revoke theo** (verify bằng cách gọi refresh với 1 token khác của cùng user ngay sau đó → cũng phải 401). Đừng kỳ vọng access token cũ bị vô hiệu ngay lập tức; điều đó sai với thiết kế đã giải thích ở box khái niệm phía trên.
+Muốn tự kiểm chứng, thử refresh thành công trước. Bạn sẽ nhận `accessToken` mới cùng `newRawRefreshToken` mới, và refresh token cũ (đã revoke) không dùng lại được nữa. Gọi mà không truyền refresh token phải bị `UnauthorizedException` (401), refresh token hết hạn cũng vậy. Trường hợp thú vị nhất: dùng lại 1 refresh token đã revoked. Không chỉ bản thân request đó bị 401, mà **toàn bộ refresh token khác còn hiệu lực của user đó cũng bị revoke theo** (verify bằng cách gọi refresh với 1 token khác của cùng user ngay sau đó → cũng phải 401). Đừng kỳ vọng access token cũ bị vô hiệu ngay lập tức; điều đó sai với thiết kế đã giải thích ở box khái niệm phía trên. Cuối cùng, thử gọi 2 request `/auth/refresh` gần như đồng thời với đúng 1 refresh token hợp lệ (`Promise.all(...)`): đúng 1 request phải thành công, request còn lại phải nhận 401 (không có trường hợp cả 2 cùng nhận được token mới hợp lệ).
 
 ---
 
