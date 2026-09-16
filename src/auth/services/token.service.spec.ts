@@ -21,28 +21,26 @@ describe('TokenService', () => {
     expect(prisma.emailVerificationToken.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1', verifiedAt: null },
     });
-    expect(
-      prisma.emailVerificationToken.deleteMany.mock.invocationCallOrder[0],
-    ).toBeLessThan(
+    expect(prisma.emailVerificationToken.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
       prisma.emailVerificationToken.create.mock.invocationCallOrder[0],
     );
   });
 
-  it('creates a token record with a hash, not the raw token', async () => {
+  it('creates a token record with a hash, not the raw code', async () => {
     const prisma = createPrismaMock();
     const service = new TokenService(prisma as never);
 
-    const rawToken = await service.createEmailVerificationToken('user-1');
+    const rawCode = await service.createEmailVerificationToken('user-1');
 
-    expect(rawToken).toMatch(/^[0-9a-f]{64}$/); // 32 random bytes as hex
+    expect(rawCode).toMatch(/^\d{6}$/); // 6-digit numeric code
     const createCall = prisma.emailVerificationToken.create.mock.calls[0][0];
     expect(createCall.data.userId).toBe('user-1');
-    expect(createCall.data.tokenHash).not.toBe(rawToken);
+    expect(createCall.data.tokenHash).not.toBe(rawCode);
     expect(createCall.data.tokenHash).toMatch(/^[0-9a-f]{64}$/); // sha256 hex
     expect(createCall.data.expiresAt).toBeInstanceOf(Date);
   });
 
-  it('returns a different raw token on every call', async () => {
+  it('returns a different raw code on every call', async () => {
     const prisma = createPrismaMock();
     const service = new TokenService(prisma as never);
 
@@ -54,14 +52,10 @@ describe('TokenService', () => {
 
   it('wraps delete+create in a transaction when no client is passed, so a failed create never leaves zero tokens', async () => {
     const prisma = createPrismaMock();
-    prisma.emailVerificationToken.create.mockRejectedValue(
-      new Error('DB write failed'),
-    );
+    prisma.emailVerificationToken.create.mockRejectedValue(new Error('DB write failed'));
     const service = new TokenService(prisma as never);
 
-    await expect(
-      service.createEmailVerificationToken('user-1'),
-    ).rejects.toThrow('DB write failed');
+    await expect(service.createEmailVerificationToken('user-1')).rejects.toThrow('DB write failed');
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
