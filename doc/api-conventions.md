@@ -559,7 +559,29 @@ export class CategoryResponseDto {
 
 ### 12. Swagger / OpenAPI
 
-Swagger đã bật sẵn trong `main.ts`, xem tại `http://localhost:3000/api`. Ngoài mô tả bằng `description` (đủ cho người đọc), nên khai **response type** để OpenAPI document biết chính xác shape trả về — phục vụ generate client/type cho frontend, contract testing:
+Swagger đã bật sẵn trong `main.ts`, xem tại `http://localhost:3000/api`.
+
+**`@ApiTags()`: đặt tên đầy đủ ý nghĩa, không chỉ viết tắt/path trần.** Với resource CRUD đơn giản, tên path số nhiều (`@ApiTags('categories')`) đã đủ rõ nghĩa. Nhưng với module mà tên path là viết tắt hoặc không tự giải thích được (vd `auth`), dùng tên đầy đủ cho tag để người đọc Swagger UI (kể cả người ngoài team) hiểu ngay nhóm route này làm gì, không phụ thuộc phải đọc code:
+
+```ts
+@ApiTags('Authentication & Authorization') // không dùng 'auth' trần
+@Controller('auth') // path URL giữ nguyên, không đổi theo tag
+export class AuthController { ... }
+```
+
+Nếu cần mô tả thêm ngữ cảnh cho cả nhóm (không chỉ 1 dòng tên), khai kèm ở `main.ts` qua `DocumentBuilder.addTag(name, description)`, dùng đúng tên tag đã khai ở `@ApiTags()` để 2 bên khớp nhau:
+
+```ts
+// src/main.ts
+const config = new DocumentBuilder()
+  .addTag(
+    'Authentication & Authorization',
+    'Register, email verification, login/refresh/logout, and role/ownership-based access control',
+  )
+  .build();
+```
+
+Ngoài mô tả bằng `description` (đủ cho người đọc), nên khai **response type** để OpenAPI document biết chính xác shape trả về — phục vụ generate client/type cho frontend, contract testing:
 
 ```ts
 @Post()
@@ -784,6 +806,7 @@ Checklist chi tiết bên dưới là cách để đạt Definition of Done này
 - [ ] API e2e test cho endpoint public/quan trọng — bắt buộc; cho CRUD thường — khuyến nghị
 - [ ] Response DTO (allow-list) nếu model có field nhạy cảm; `@Exclude` chấp nhận được cho resource nhỏ ổn định
 - [ ] Swagger có `type:` cho response (`@ApiOkResponse`/`@ApiCreatedResponse`), không chỉ `description`
+- [ ] `@ApiTags()` đủ nghĩa nếu tên path là viết tắt/không tự giải thích (xem [§12](#12-swagger--openapi))
 - [ ] Pagination + `@Max(limit)` nếu resource dự kiến nhiều bản ghi
 - [ ] Đã đi qua [Authorization checkpoint](#10-authorization-checkpoint)
 - [ ] `npm run test` (unit) pass

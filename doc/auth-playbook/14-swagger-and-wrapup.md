@@ -26,6 +26,10 @@ async function bootstrap() {
     .setTitle('Ecommerce API')
     .setDescription('Auth & Authorization MVP')
     .setVersion('1.0')
+    .addTag(
+      'Authentication & Authorization',
+      'Register, email verification, login/refresh/logout, and role/ownership-based access control',
+    ) // tên đầy đủ hơn 'auth' cho nhóm route trong Swagger UI, kèm mô tả ngắn
     .addBearerAuth() // để Swagger UI cho phép nhập access token, test route có JwtAuthGuard
     .build();
   const document = SwaggerModule.createDocument(app, config);
@@ -41,7 +45,7 @@ Sau đó thêm `@ApiOperation`/`@ApiResponse` cho từng route. Ví dụ 1 route
 // src/auth/auth.controller.ts
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-@ApiTags('auth')
+@ApiTags('Authentication & Authorization') // tên nhóm route hiện đầy đủ ý nghĩa hơn trong Swagger UI, khác với `@Controller('auth')` (path URL, không đổi)
 @Controller('auth')
 export class AuthController {
   @ApiOperation({ summary: 'Register a new CUSTOMER account' })
