@@ -10,6 +10,9 @@ function createPrismaMock() {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       create: vi.fn().mockResolvedValue({}),
     },
+    refreshToken: {
+      create: vi.fn().mockResolvedValue({}),
+    },
     $transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
   };
   return prisma;
@@ -78,5 +81,46 @@ describe('TokenService', () => {
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(tx.emailVerificationToken.create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('TokenService.createRefreshToken', () => {
+  it('creates a refresh token record with a hash, not the raw token', async () => {
+    const prisma = createPrismaMock();
+    const service = new TokenService(prisma as never, createConfigMock() as never);
+
+    const rawToken = await service.createRefreshToken('user-1');
+
+    expect(rawToken).toMatch(/^[0-9a-f]{64}$/); // 32-byte opaque token, hex-encoded
+    const createCall = prisma.refreshToken.create.mock.calls[0][0];
+    expect(createCall.data.userId).toBe('user-1');
+    expect(createCall.data.tokenHash).not.toBe(rawToken);
+    expect(createCall.data.tokenHash).toMatch(/^[0-9a-f]{64}$/); // sha256 hex
+    expect(createCall.data.expiresAt).toBeInstanceOf(Date);
+  });
+
+  it('returns a different raw token on every call', async () => {
+    const prisma = createPrismaMock();
+    const service = new TokenService(prisma as never, createConfigMock() as never);
+
+    const first = await service.createRefreshToken('user-1');
+    const second = await service.createRefreshToken('user-1');
+
+    expect(first).not.toBe(second);
+  });
+
+  it('sets expiresAt using REFRESH_TOKEN_TTL from config, not a hardcoded value', async () => {
+    const prisma = createPrismaMock();
+    const config = { get: vi.fn().mockReturnValue('1h') };
+    const service = new TokenService(prisma as never, config as never);
+
+    const before = Date.now();
+    await service.createRefreshToken('user-1');
+    const after = Date.now();
+
+    expect(config.get).toHaveBeenCalledWith('REFRESH_TOKEN_TTL', '7d');
+    const expiresAt = prisma.refreshToken.create.mock.calls[0][0].data.expiresAt as Date;
+    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + 60 * 60 * 1000);
+    expect(expiresAt.getTime()).toBeLessThanOrEqual(after + 60 * 60 * 1000);
   });
 });
