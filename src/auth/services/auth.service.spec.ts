@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
-import { AuthService } from './auth.service.js';
+import { AuthService, MAX_VERIFY_ATTEMPTS } from './auth.service.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
 import { MailService } from '../../mail/mail.service.js';
@@ -266,7 +266,7 @@ describe('AuthService.verifyEmail', () => {
   it('throws BadRequestException once attempts already reached the max, without comparing the code', async () => {
     const { service, prisma, tokenService } = createHarness();
     prisma.user.findUnique.mockResolvedValue(existingUser);
-    prisma.emailVerificationToken.findFirst.mockResolvedValue(validRecord({ attempts: 5 }));
+    prisma.emailVerificationToken.findFirst.mockResolvedValue(validRecord({ attempts: MAX_VERIFY_ATTEMPTS }));
 
     await expect(service.verifyEmail({ email: 'user@example.com', code: 'raw-code' })).rejects.toThrow(
       BadRequestException,
@@ -284,9 +284,25 @@ describe('AuthService.verifyEmail', () => {
       NotFoundException,
     );
     expect(prisma.emailVerificationToken.updateMany).toHaveBeenCalledWith({
-      where: { id: 'token-1', attempts: { lt: 5 } },
+      where: { id: 'token-1', attempts: { lt: MAX_VERIFY_ATTEMPTS } },
       data: { attempts: { increment: 1 } },
     });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('still rejects as invalid when a concurrent guess already pushed attempts to the cap (updateMany matches zero rows)', async () => {
+    // Simulates 2 wrong guesses arriving together when attempts is one below
+    // the cap: both read attempts < MAX before either commits, but the
+    // conditional updateMany's WHERE re-checks attempts < MAX at write time,
+    // so only one of them actually increments — this one matches zero rows.
+    const { service, prisma } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(existingUser);
+    prisma.emailVerificationToken.findFirst.mockResolvedValue(validRecord({ attempts: MAX_VERIFY_ATTEMPTS - 1 }));
+    prisma.emailVerificationToken.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.verifyEmail({ email: 'user@example.com', code: 'wrong-code' })).rejects.toThrow(
+      NotFoundException,
+    );
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 

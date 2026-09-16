@@ -12,7 +12,7 @@ import { RegisterResponseDto } from '../dto/register-response.dto.js';
 // Code 6 chữ số chỉ có 1.000.000 khả năng, khác với raw token 32-byte cũ,
 // nên có thể bị brute-force trong thời gian hết hạn nếu không giới hạn số
 // lần đoán sai.
-const MAX_VERIFY_ATTEMPTS = 5;
+export const MAX_VERIFY_ATTEMPTS = 5;
 
 @Injectable()
 export class AuthService {
