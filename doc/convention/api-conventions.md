@@ -14,31 +14,31 @@ CRUD chỉ là **một trường hợp riêng** của flow API tổng quát — 
 
 - [A. Flow tổng quát](#a-flow-tổng-quát--áp-dụng-cho-mọi-api)
 - [B. CRUD Resource Flow](#b-crud-resource-flow-trường-hợp-cụ-thể)
-  - [0. Requirement / Business Rules / API Contract (rút gọn cho CRUD)](#0-requirement--business-rules--api-contract-rút-gọn-cho-crud)
-  - [1. Database impact](#1-database-impact--model-mới-hoặc-đã-có-trong-prismaschemaschemaprisma)
-  - [2. Migration + generate Prisma Client](#2-migration--generate-prisma-client)
-  - [3. Scaffold — cấu trúc thư mục chuẩn](#3-scaffold--cấu-trúc-thư-mục-chuẩn)
-  - [4. Request DTO + Validation](#4-request-dto--validation)
-  - [5. Service / Use Case](#5-service--use-case-business-rule--prisma-call)
-  - [5b. Data access layer — khi nào cần Repository?](#5b-data-access-layer--khi-nào-cần-repository)
-  - [5c. Transaction — khi nào atomic](#5c-transaction--khi-nào-atomic)
-  - [6. Controller](#6-controller)
-  - [7. Exception Mapping](#7-exception-mapping)
-  - [8. Testing](#8-testing)
-  - [9. Best practice khác](#9-best-practice-khác)
-  - [10. Authorization checkpoint](#10-authorization-checkpoint)
-  - [11. Response DTO / Serialization](#11-response-dto--serialization)
-  - [12. Swagger / OpenAPI](#12-swagger--openapi)
-  - [13. Pagination cho `findAll()`](#13-pagination-cho-findall)
-  - [14. Convention — schema Prisma tách thành nhiều file](#14-convention--schema-prisma-tách-thành-nhiều-file)
+  - [B0. Requirement / Business Rules / API Contract (rút gọn cho CRUD)](#b0-requirement--business-rules--api-contract-rút-gọn-cho-crud)
+  - [B1. Database impact](#b1-database-impact--model-mới-hoặc-đã-có-trong-prismaschemaschemaprisma)
+  - [B2. Migration + generate Prisma Client](#b2-migration--generate-prisma-client)
+  - [B3. Scaffold — cấu trúc thư mục chuẩn](#b3-scaffold--cấu-trúc-thư-mục-chuẩn)
+  - [B4. Request DTO + Validation](#b4-request-dto--validation)
+  - [B5. Service / Use Case](#b5-service--use-case-business-rule--prisma-call)
+  - [B5b. Data access layer — khi nào cần Repository?](#b5b-data-access-layer--khi-nào-cần-repository)
+  - [B5c. Transaction — khi nào atomic](#b5c-transaction--khi-nào-atomic)
+  - [B6. Controller](#b6-controller)
+  - [B7. Exception Mapping](#b7-exception-mapping)
+  - [B8. Testing](#b8-testing)
+  - [B9. Best practice khác](#b9-best-practice-khác)
+  - [B10. Authorization checkpoint](#b10-authorization-checkpoint)
+  - [B11. Response DTO / Serialization](#b11-response-dto--serialization)
+  - [B12. Swagger / OpenAPI](#b12-swagger--openapi)
+  - [B13. Pagination cho `findAll()`](#b13-pagination-cho-findall)
+  - [B14. Convention — schema Prisma tách thành nhiều file](#b14-convention--schema-prisma-tách-thành-nhiều-file)
 - [C. Business/Use-case API Flow (non-CRUD)](#c-businessuse-case-api-flow-non-crud)
 - [Definition of Done](#definition-of-done)
 - [Checklist khi tạo API mới](#checklist-khi-tạo-api-mới)
 - [Phụ lục — Tổng hợp lệnh CLI cần dùng](#phụ-lục--tổng-hợp-lệnh-cli-cần-dùng)
 
-> Tài liệu này là **convention chung, generic** — mô tả _cách_ tạo 1 API/module, không phải bản ghi chi tiết business rule của 1 resource cụ thể. Khi 1 resource thật (vd. `categories`) được lên kế hoạch/implement, business rule cụ thể + code thật của nó sống ở tài liệu/PR riêng của resource đó (vd. `doc/categories-module-plan.md`), tài liệu đó tham chiếu ngược lại các mục dưới đây cho phần convention dùng chung.
+> Tài liệu này là **convention chung, generic** — mô tả _cách_ tạo 1 API/module, không phải bản ghi chi tiết business rule của 1 resource cụ thể. Khi 1 resource thật (vd. `categories`) được lên kế hoạch/implement, business rule cụ thể + code thật của nó sống ở tài liệu/PR riêng của resource đó (vd. `../categories-module-plan.md`), tài liệu đó tham chiếu ngược lại các mục dưới đây cho phần convention dùng chung.
 >
-> ⚠️ `CONTEXT.md` ở root hiện vẫn mô tả domain "Todo List" cũ, chưa khớp schema ecommerce thật (`docs/agents/domain.md` yêu cầu đọc `CONTEXT.md` trước khi code) — gap đã biết, cần task riêng để cập nhật, không xử lý trong convention này.
+> ⚠️ `../../CONTEXT.md` ở root hiện vẫn mô tả domain "Todo List" cũ, chưa khớp schema ecommerce thật (`docs/agents/domain.md` yêu cầu đọc `CONTEXT.md` trước khi code) — gap đã biết, cần task riêng để cập nhật, không xử lý trong convention này.
 
 ## A. Flow tổng quát — áp dụng cho MỌI API
 
@@ -56,7 +56,7 @@ CRUD chỉ là **một trường hợp riêng** của flow API tổng quát — 
 09. Request DTO + Validation        — class-validator, whitelist input
 10. Service / Use Case              — chứa business rule ở §02
 11. Data Access / Prisma            — 1 hoặc nhiều Prisma call
-12. Transaction (nếu cần)           — khi cả một business operation cần atomic (không phải cứ ≥2 write là tự động cần transaction — xem §5c)
+12. Transaction (nếu cần)           — khi cả một business operation cần atomic (không phải cứ ≥2 write là tự động cần transaction — xem §B5c)
 13. Controller                      — route → validate param → delegate Service
 14. Exception Mapping               — domain error → đúng HTTP status
 15. Response DTO / Serialization    — field nào được phép ra ngoài
@@ -74,9 +74,9 @@ Với CRUD đơn giản, nhiều bước co lại gần như không tốn effort
 - _Idempotency_: nếu client gọi lại API này 2 lần (do timeout/retry), có tạo ra 2 bản ghi/2 side-effect không nên có không? (`checkout`, `payment`, `refund`, webhook — cần cân nhắc `Idempotency-Key` hoặc unique constraint chống trùng)
 - _Concurrency_: 2 request cùng lúc có thể cùng đọc một giá trị rồi cùng ghi đè, dẫn tới sai invariant không? Đặc biệt với `inventory`, `coupon usage`, `balance`, `order status` — nếu có, `read → check → write` (kể cả trong transaction) chưa chắc đủ; cần atomic update dạng `UPDATE ... WHERE quantity >= x` hoặc optimistic lock, không chỉ dựa vào transaction.
 
-Cả hai chủ đề này khá sâu (outbox pattern, saga, optimistic locking...) — tài liệu này chỉ đặt câu hỏi checkpoint, chưa đi sâu kỹ thuật vì project hiện chưa có API nào thực sự cần tới; khi có (`checkout`, `payment`...) nên tách thành ADR (Architecture Decision Record — tài liệu ghi lại 1 quyết định kỹ thuật và lý do, xem `docs/adr/`) hoặc doc riêng.
+Cả hai chủ đề này khá sâu (outbox pattern, saga, optimistic locking...) — tài liệu này chỉ đặt câu hỏi checkpoint, chưa đi sâu kỹ thuật vì project hiện chưa có API nào thực sự cần tới; khi có (`checkout`, `payment`...) nên tách thành ADR (Architecture Decision Record — tài liệu ghi lại 1 quyết định kỹ thuật và lý do, xem `../../docs/adr`) hoặc doc riêng.
 
-**§16 Logging / Audit / Metrics** — không phải API nào cũng cần, nhưng nên tự hỏi trước khi coi là xong: có cần log business event không (vd. `order cancelled`, `login failed`)? Có cần audit trail (ai làm gì, lúc nào) không — đặc biệt với hành động có thể tranh chấp (huỷ đơn, hoàn tiền, đổi quyền)? Có metric quan trọng cần theo dõi không (tỷ lệ lỗi checkout, thời gian xử lý payment...)? CRUD nội bộ đơn giản thường không cần gì thêm ngoài log mặc định của framework; API nghiệp vụ nhạy cảm (`checkout`, `payment`, `refund`, `cancelOrder`, `login`) nên có ít nhất audit log. Project hiện chưa có cơ chế logging/audit chuẩn hoá nào — khi cần, nên thiết kế chung (interceptor/middleware) thay vì mỗi module tự viết log rời rạc.
+**§16 Logging / Audit / Metrics** — không phải API nào cũng cần, nhưng nên tự hỏi trước khi coi là xong: có cần log business event không (vd. `order cancelled`, `login failed`)? Có cần audit trail (ai làm gì, lúc nào) không — đặc biệt với hành động có thể tranh chấp (huỷ đơn, hoàn tiền, đổi quyền)? Có metric quan trọng cần theo dõi không (tỷ lệ lỗi checkout, thời gian xử lý payment...)? CRUD nội bộ đơn giản thường không cần gì thêm ngoài log mặc định của framework; API nghiệp vụ nhạy cảm (`checkout`, `payment`, `refund`, `cancelOrder`, `login`) nên có ít nhất audit log. Project đã có logging + request-id chuẩn hoá (xem `error-logging-conventions.md`) — audit trail chi tiết hơn (ai làm gì, lúc nào cho từng hành động nghiệp vụ) vẫn chưa có, thiết kế khi cần thay vì mỗi module tự viết log rời rạc.
 
 ---
 
@@ -84,9 +84,9 @@ Cả hai chủ đề này khá sâu (outbox pattern, saga, optimistic locking...
 
 Bên dưới là flow A áp dụng đầy đủ cho 1 CRUD resource, viết theo khung **generic** — dùng placeholder **`Resource`/`resource`**, thay bằng tên thực thể thật khi bắt đầu 1 resource mới (`Category`/`categories`, `Product`/`products`...).
 
-> **Không nằm trong phạm vi mục này**: business rule cụ thể của từng resource thật (sinh slug, ownership, tính tồn kho, ADR xoá cascade/restrict...). Khi 1 resource cụ thể được lên kế hoạch, business rule + code thật của nó nên sống ở tài liệu riêng của resource đó (vd. `doc/categories-module-plan.md`), tài liệu đó trỏ ngược lại các mục §0–§14 dưới đây cho phần khung sườn dùng chung.
+> **Không nằm trong phạm vi mục này**: business rule cụ thể của từng resource thật (sinh slug, ownership, tính tồn kho, ADR xoá cascade/restrict...). Khi 1 resource cụ thể được lên kế hoạch, business rule + code thật của nó nên sống ở tài liệu riêng của resource đó (vd. `../categories-module-plan.md`), tài liệu đó trỏ ngược lại các mục §B0–§B14 dưới đây cho phần khung sườn dùng chung.
 
-### 0. Requirement / Business Rules / API Contract (rút gọn cho CRUD)
+### B0. Requirement / Business Rules / API Contract (rút gọn cho CRUD)
 
 Với CRUD thuần, 3 bước đầu của flow A thường chỉ là:
 
@@ -96,9 +96,9 @@ Với CRUD thuần, 3 bước đầu của flow A thường chỉ là:
 
 → Vì contract gần như trùng schema, có thể đi thẳng vào bước migration bên dưới. Với API nghiệp vụ (§C), 3 bước này **không được rút gọn** vì contract khác hẳn shape DB.
 
-### 1. Database impact — model mới (hoặc đã có) trong `prisma/schema/schema.prisma`
+### B1. Database impact — model mới (hoặc đã có) trong `../../prisma/schema/schema.prisma`
 
-Khai báo (hoặc đối chiếu) model trong `prisma/schema/schema.prisma` theo mẫu sau:
+Khai báo (hoặc đối chiếu) model trong `../../prisma/schema/schema.prisma` theo mẫu sau:
 
 ```prisma
 model Resource {
@@ -112,11 +112,11 @@ model Resource {
 }
 ```
 
-Nếu model chưa tồn tại, thêm vào `prisma/schema/schema.prisma` trước. Nếu cần thêm enum mới, khai báo trong `prisma/schema/enums.prisma` (xem [convention tách schema thành nhiều file](#14-convention--schema-prisma-tách-thành-nhiều-file)) — Prisma tự merge mọi file `.prisma` trong thư mục `prisma/schema/` khi generate/migrate, không cần import.
+Nếu model chưa tồn tại, thêm vào `../../prisma/schema/schema.prisma` trước. Nếu cần thêm enum mới, khai báo trong `prisma/schema/enums.prisma` (xem [convention tách schema thành nhiều file](#b14-convention--schema-prisma-tách-thành-nhiều-file)) — Prisma tự merge mọi file `.prisma` trong thư mục `prisma/schema/` khi generate/migrate, không cần import.
 
-> Dùng `id String @default(uuid())` hay `id Int @default(autoincrement())` là quyết định theo từng resource — kiểu `id` quyết định dùng `ParseUUIDPipe` hay `ParseIntPipe` ở controller (§6), luôn kiểm tra lại schema thật trước khi copy code mẫu.
+> Dùng `id String @default(uuid())` hay `id Int @default(autoincrement())` là quyết định theo từng resource — kiểu `id` quyết định dùng `ParseUUIDPipe` hay `ParseIntPipe` ở controller (§B6), luôn kiểm tra lại schema thật trước khi copy code mẫu.
 
-### 2. Migration + generate Prisma Client
+### B2. Migration + generate Prisma Client
 
 Chạy 2 lệnh sau để tạo bảng và sinh lại Prisma Client:
 
@@ -127,13 +127,13 @@ npx prisma generate --config prisma7.config.ts
 
 > ⚠️ **Prisma v7**: `migrate dev` **không còn tự động chạy `prisma generate` hoặc seed script** (khác với Prisma v5/v6). Phải gọi `prisma generate` riêng sau khi migrate nếu cần Prisma Client mới ngay (vd. để code TypeScript nhận đúng type field mới thêm). Xem thêm [Phụ lục CLI](#phụ-lục--tổng-hợp-lệnh-cli-cần-dùng).
 >
-> Project cũng dùng file config tên **`prisma7.config.ts`** (không phải mặc định `prisma.config.ts`) — mọi lệnh `prisma` đều cần `--config prisma7.config.ts`.
+> Project cũng dùng file config tên **`../../prisma7.config.ts`** (không phải mặc định `prisma.config.ts`) — mọi lệnh `prisma` đều cần `--config prisma7.config.ts`.
 
 (Tuỳ chọn) Seed dữ liệu mẫu: `npx prisma db seed --config prisma7.config.ts`.
 
 > Chỉ sau khi bảng tồn tại trong DB, `PrismaService` mới `create/findMany/update/delete` được — nếu chưa migrate, mọi lời gọi CRUD sẽ lỗi kiểu `relation "xxx" does not exist`.
 
-### 3. Scaffold — cấu trúc thư mục chuẩn
+### B3. Scaffold — cấu trúc thư mục chuẩn
 
 Project là ESM (`"type": "module"`) — **mọi import nội bộ phải có đuôi `.js`**, kể cả import từ file `.ts`. Cấu trúc thư mục chuẩn như sau:
 
@@ -143,13 +143,13 @@ src/
     dto/
       create-resource.dto.ts
       update-resource.dto.ts
-      pagination.dto.ts   — dùng chung shape { page, limit } cho mọi resource có findAll() phân trang (§13)
+      pagination.dto.ts   — dùng chung shape { page, limit } cho mọi resource có findAll() phân trang (§B13)
     resources.controller.ts
     resources.service.ts
     resources.module.ts
 ```
 
-> ⚠️ **Không dùng `entities/`**: `nest g resource` mặc định sinh thêm thư mục này (class đại diện response, dùng cho Swagger + `ClassSerializerInterceptor`). Convention project là **trả thẳng type Prisma sinh ra** cho resource không có field nhạy cảm — xem [11. Response DTO / Serialization](#11-response-dto--serialization) khi nào bắt buộc phải có entity/DTO riêng.
+> ⚠️ **Không dùng `entities/`**: `nest g resource` mặc định sinh thêm thư mục này (class đại diện response, dùng cho Swagger + `ClassSerializerInterceptor`). Convention project là **trả thẳng type Prisma sinh ra** cho resource không có field nhạy cảm — xem [B11. Response DTO / Serialization](#b11-response-dto--serialization) khi nào bắt buộc phải có entity/DTO riêng.
 
 Luôn bắt đầu bằng CLI:
 
@@ -161,13 +161,13 @@ Chọn transport **REST API**, và trả lời **Yes** cho "Would you like to ge
 
 Sau khi CLI sinh xong, **chỉnh tay**:
 
-1. Xoá thư mục `entities/` sinh sẵn và file `*.spec.ts` rỗng (viết lại đúng cách ở [§8 Testing](#8-testing))
+1. Xoá thư mục `entities/` sinh sẵn và file `*.spec.ts` rỗng (viết lại đúng cách ở [§B8 Testing](#b8-testing))
 2. Bổ sung `class-validator` + `@ApiProperty` vào DTO (CLI sinh DTO rỗng)
-3. Bổ sung decorator Swagger vào controller ([§12 Swagger](#12-swagger--openapi))
+3. Bổ sung decorator Swagger vào controller ([§B12 Swagger](#b12-swagger--openapi))
 4. Sửa import cho đúng chuẩn ESM `.js`
-5. Thêm `dto/pagination.dto.ts` nếu `findAll()` cần phân trang ([§13](#13-pagination-cho-findall))
+5. Thêm `dto/pagination.dto.ts` nếu `findAll()` cần phân trang ([§B13](#b13-pagination-cho-findall))
 
-### 4. Request DTO + Validation
+### B4. Request DTO + Validation
 
 Viết `CreateResourceDto`/`UpdateResourceDto` theo mẫu sau:
 
@@ -200,7 +200,7 @@ export class UpdateResourceDto extends PartialType(CreateResourceDto) {}
 
 > Nếu 1 field do **server tự sinh** (vd. slug sinh từ tên, mã đơn tự tăng...), field đó **không** xuất hiện trong `CreateResourceDto` — client gửi field đó lên sẽ bị `ValidationPipe` global (`forbidNonWhitelisted`) từ chối 400, không bị âm thầm bỏ qua. Xem ví dụ business rule thật ở tài liệu riêng của resource đó.
 
-### 5. Service / Use Case (business rule + Prisma call)
+### B5. Service / Use Case (business rule + Prisma call)
 
 Viết service với đủ 5 method CRUD như sau:
 
@@ -255,11 +255,11 @@ export class ResourcesService {
 
 > **Về `findOne` trước `update`/`remove`**: đoạn trên chạy `SELECT` rồi mới `UPDATE`/`DELETE` — có race condition nhỏ (record bị request khác xoá giữa 2 câu lệnh, dẫn tới Prisma `P2025` khi update). Quy tắc: **không pre-fetch chỉ để xác nhận tồn tại** nếu exception filter đã map `P2025` → 404 (khi đó `update`/`delete` trực tiếp là đủ, để Prisma tự báo not-found). **Pre-fetch khi cần chính record đó để kiểm tra business rule** (ownership, status, quan hệ FK cần đếm/kiểm tra trước khi xoá...) — trường hợp đó dù sao cũng phải đọc record trước khi ghi.
 
-> **Business-specific error message**: exception filter ở [§7](#7-exception-mapping) chỉ nên là _safety net_ cho lỗi Prisma không lường trước, không phải nơi định nghĩa toàn bộ domain error. Message nghiệp vụ (trùng field unique, còn record con tham chiếu...) nên được ném rõ ràng ở service (vd. `throw new ConflictException('...')` kèm message cụ thể), thay vì để rơi xuống Prisma filter (trả message chung chung dạng "Giá trị đã tồn tại cho field: x", không nói rõ do trùng gì).
+> **Business-specific error message**: exception filter ở [§B7](#b7-exception-mapping) chỉ nên là _safety net_ cho lỗi Prisma không lường trước, không phải nơi định nghĩa toàn bộ domain error. Message nghiệp vụ (trùng field unique, còn record con tham chiếu...) nên được ném rõ ràng ở service (vd. `throw new ConflictException('...')` kèm message cụ thể), thay vì để rơi xuống Prisma filter (trả message chung chung dạng "Giá trị đã tồn tại cho field: x", không nói rõ do trùng gì).
 >
-> ⚠️ **Pre-check không thay thế unique constraint ở DB.** Nếu resource có field unique mà service tự kiểm tra trước khi ghi (vd. `findUnique` rồi mới `create`/`update` để trả message đẹp thay vì để Prisma `P2002` rơi xuống), đoạn code đó **vẫn có race condition**: 2 request gọi gần như đồng thời có thể cùng đọc ra "chưa tồn tại" rồi cùng ghi — request thứ 2 sẽ rớt xuống Prisma `P2002` chứ không rớt vào nhánh exception tự ném ở service. Coi pre-check là **UX layer** (trả message đẹp cho trường hợp thông thường), còn **unique constraint (DB) + [Exception filter §7](#7-exception-mapping) mới là lớp bảo vệ cuối cùng** (bắt buộc phải giữ, không được bỏ vì "đã có pre-check rồi"). Tương tự với FK: nếu service tự đếm record con trước khi xoá để trả message rõ ràng, vẫn có race nhỏ giữa lúc đếm và lúc xoá — FK constraint (`RESTRICT`/`CASCADE`) ở DB là lớp bảo vệ cuối cùng, count/pre-check chỉ là UX layer.
+> ⚠️ **Pre-check không thay thế unique constraint ở DB.** Nếu resource có field unique mà service tự kiểm tra trước khi ghi (vd. `findUnique` rồi mới `create`/`update` để trả message đẹp thay vì để Prisma `P2002` rơi xuống), đoạn code đó **vẫn có race condition**: 2 request gọi gần như đồng thời có thể cùng đọc ra "chưa tồn tại" rồi cùng ghi — request thứ 2 sẽ rớt xuống Prisma `P2002` chứ không rớt vào nhánh exception tự ném ở service. Coi pre-check là **UX layer** (trả message đẹp cho trường hợp thông thường), còn **unique constraint (DB) + [Exception filter §B7](#b7-exception-mapping) mới là lớp bảo vệ cuối cùng** (bắt buộc phải giữ, không được bỏ vì "đã có pre-check rồi"). Tương tự với FK: nếu service tự đếm record con trước khi xoá để trả message rõ ràng, vẫn có race nhỏ giữa lúc đếm và lúc xoá — FK constraint (`RESTRICT`/`CASCADE`) ở DB là lớp bảo vệ cuối cùng, count/pre-check chỉ là UX layer.
 
-### 5b. Data access layer — khi nào cần Repository?
+### B5b. Data access layer — khi nào cần Repository?
 
 Layer thêm vào khi nghiệp vụ phức tạp lên, so với CRUD đơn giản:
 
@@ -276,7 +276,7 @@ Prisma                   Repository / Data Access
 
 CRUD đơn giản **không cần** tạo `ResourcesRepository` riêng — bọc `prisma.resource.findUnique(...)` vào 1 class khác chỉ tạo abstraction không giá trị. Chỉ cân nhắc tách Repository khi có: query phức tạp tái sử dụng nhiều nơi, nhiều aggregate cùng tham gia 1 nghiệp vụ, transaction lớn, hoặc cần cô lập ORM khỏi business logic (test/thay ORM). Không áp đặt Repository cho mọi resource.
 
-### 5c. Transaction — khi nào atomic
+### B5c. Transaction — khi nào atomic
 
 Không áp dụng cho CRUD 1-write đơn giản. Quy tắc **không phải "cứ ≥2 write là cần transaction"** — mà là: khi cả một **business operation** phải cùng thành công/thất bại như 1 đơn vị (không được để nửa chừng), vd. tạo `Order` + `OrderItem` + trừ `Inventory`. Ngược lại, có trường hợp nhiều write độc lập không cần chung transaction, và có trường hợp chỉ 1 write nhưng đi kèm `read → check` phía trước lại cần transaction/lock để chống race condition (xem §05 Concurrency ở mục A). Dùng `prisma.$transaction`:
 
@@ -291,7 +291,7 @@ return this.prisma.$transaction(async (tx) => {
 
 Xem ví dụ đầy đủ hơn ở [§C — Cancel Order](#c-businessuse-case-api-flow-non-crud).
 
-### 6. Controller
+### B6. Controller
 
 Viết controller map đúng HTTP method sang route như sau:
 
@@ -370,7 +370,7 @@ export class ResourcesController {
 }
 ```
 
-> Import path của guard/decorator (`../auth/guards/...`, `../auth/decorators/...`) giả định resource nằm ngay dưới `src/` (`src/resources/`, cùng cấp với `src/auth/`) — đúng với cấu trúc scaffold ở [§3](#3-scaffold--cấu-trúc-thư-mục-chuẩn). Nếu resource không cần bảo vệ (public toàn bộ), bỏ hẳn `@UseGuards`/`@Roles`/`@ApiBearerAuth` — không phải mọi resource đều cần admin-only write.
+> Import path của guard/decorator (`../auth/guards/...`, `../auth/decorators/...`) giả định resource nằm ngay dưới `../../src` (`src/resources/`, cùng cấp với `src/auth/`) — đúng với cấu trúc scaffold ở [§B3](#b3-scaffold--cấu-trúc-thư-mục-chuẩn). Nếu resource không cần bảo vệ (public toàn bộ), bỏ hẳn `@UseGuards`/`@Roles`/`@ApiBearerAuth` — không phải mọi resource đều cần admin-only write.
 
 | HTTP             | Method                    | Ý nghĩa                                            |
 | ---------------- | ------------------------- | -------------------------------------------------- |
@@ -381,51 +381,13 @@ export class ResourcesController {
 
 > Model dùng `id String @default(uuid())` → dùng `ParseUUIDPipe`. Với resource khác dùng `id Int @default(autoincrement())` thì đổi sang `ParseIntPipe` — luôn kiểm tra kiểu `id` thật trong schema trước khi copy.
 
-### 7. Exception Mapping
+### B7. Exception Mapping
 
-Prisma ném `PrismaClientKnownRequestError` (`P2002` = unique constraint, `P2025` = record không tồn tại...). Không bắt thì NestJS trả `500` cho mọi lỗi DB. Filter này là **safety net cho lỗi không lường trước**, không thay thế domain error đã biết trước (xem lưu ý ở [§5](#5-service--use-case-business-rule--prisma-call)):
+Prisma ném `PrismaClientKnownRequestError` (`P2002` = unique constraint, `P2003` = foreign key constraint, `P2025` = record không tồn tại...). Không bắt thì NestJS trả `500` cho mọi lỗi DB. Project đã có `AllExceptionsFilter` (`../../src/common/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) xử lý sẵn 3 mã Prisma trên **cùng lúc** với `HttpException` và lỗi không lường trước khác — không cần tự viết filter riêng cho resource mới, chi tiết đầy đủ (response shape, quy tắc log) xem `convention/error-logging-conventions.md`. Filter này là **safety net cho lỗi không lường trước**, không thay thế domain error đã biết trước (xem lưu ý ở [§B5](#b5-service--use-case-business-rule--prisma-call)).
 
-```ts
-// prisma/prisma-exception.filter.ts
-import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from '@nestjs/common';
-import type { Response } from 'express';
-import { Prisma } from '../generated/prisma/client.js';
+### B8. Testing
 
-@Catch(Prisma.PrismaClientKnownRequestError)
-export class PrismaExceptionFilter implements ExceptionFilter {
-  catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {
-    const response = host.switchToHttp().getResponse<Response>();
-
-    switch (exception.code) {
-      case 'P2002': {
-        const target = (exception.meta?.target as string[])?.join(', ');
-        return response.status(HttpStatus.CONFLICT).json({
-          statusCode: HttpStatus.CONFLICT,
-          message: `Giá trị đã tồn tại cho field: ${target}`,
-        });
-      }
-      case 'P2025':
-        return response.status(HttpStatus.NOT_FOUND).json({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: 'Record không tồn tại',
-        });
-      default:
-        return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Internal server error',
-        });
-    }
-  }
-}
-```
-
-Đăng ký global trong `main.ts` (hoặc trong `src/bootstrap/configure-app.ts` đã có sẵn — xem §8): `app.useGlobalFilters(new PrismaExceptionFilter());`
-
-> ⚠️ **Gap đã biết (xem [bảng Gap toàn app](#gap-toàn-app-đã-biết--phân-loại-blockingnon-blocking))**: filter này **chưa tồn tại** trong `src/`. Mọi resource có field `@unique` sẽ trả `500` thay vì `409` cho tới khi có filter — nên làm sớm, nhưng không block việc tạo resource mới (miễn service đã tự ném exception rõ ràng cho case đã biết trước, xem §5).
-
-### 8. Testing
-
-Project dùng **Vitest** (`vitest.config.ts` unit, `vitest.config.e2e.ts` e2e) + `supertest`.
+Project dùng **Vitest** (`../../vitest.config.ts` unit, `vitest.config.e2e.ts` e2e) + `supertest`.
 
 **Chiến lược ưu tiên** (đảo lại so với "mọi resource phải có unit test controller"):
 
@@ -547,7 +509,7 @@ describe('Resources (e2e)', () => {
 });
 ```
 
-> **`adminAccessToken` trong ví dụ e2e trên**: lấy bằng cách login qua `POST /auth/login` với tài khoản ADMIN đã có sẵn từ seed script (`auth-playbook/auth-engineering-playbook.md` STEP 1), thực hiện 1 lần trong `beforeAll` và lưu vào biến dùng chung cho cả file test — không tạo lại user/login lại ở từng test case.
+> **`adminAccessToken` trong ví dụ e2e trên**: lấy bằng cách login qua `POST /auth/login` với tài khoản ADMIN đã có sẵn từ seed script (`../auth-playbook/auth-engineering-playbook.md` STEP 1), thực hiện 1 lần trong `beforeAll` và lưu vào biến dùng chung cho cả file test — không tạo lại user/login lại ở từng test case.
 
 > **Không duplicate bootstrap config giữa `main.ts` và e2e setup.** Nếu `main.ts` khai báo `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` nhưng e2e chỉ set `{ whitelist: true, transform: true }`, test có thể pass trong khi app thật xử lý khác (vd. field lạ: e2e không set `forbidNonWhitelisted` nên không phát hiện được nếu app thật lẽ ra phải trả 400). Tách phần config chung ra 1 hàm dùng lại ở cả 2 chỗ:
 >
@@ -557,30 +519,29 @@ describe('Resources (e2e)', () => {
 >
 > export function configureApp(app: INestApplication) {
 >   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
->   // app.useGlobalFilters(new PrismaExceptionFilter()); // khi filter §7 đã implement
 > }
 > ```
+>
+> `AllExceptionsFilter` (§B7) đăng ký riêng qua `APP_FILTER` trong `app.module.ts`, không qua `configureApp()` — vì nó cần chạy trong Nest DI container (đọc `RequestContext`), không phải instantiate tay như `ValidationPipe`.
 >
 > ```ts
 > // main.ts
 > configureApp(app);
 > ```
 >
-> ✅ **Đã có sẵn**: `src/bootstrap/configure-app.ts` đã tồn tại và đã wiring vào `main.ts` (`configureApp(app)`) — dùng lại trực tiếp trong e2e setup như ví dụ trên, không cần tạo mới.
+> ✅ **Đã có sẵn**: `../../src/bootstrap/configure-app.ts` đã tồn tại và đã wiring vào `main.ts` (`configureApp(app)`) — dùng lại trực tiếp trong e2e setup như ví dụ trên, không cần tạo mới.
 
 Chạy: `npm run test` (unit) · `npm run test:e2e` (e2e) · `npm run test:cov` (coverage).
 
-### 9. Best practice khác
+### B9. Best practice khác
 
 - **ValidationPipe global** đã bật trong `main.ts` (qua `configureApp()`, dùng chung `main.ts` + e2e): `whitelist`, `forbidNonWhitelisted`, `transform`.
-- Ném lỗi bằng `NotFoundException`, `BadRequestException`, `ConflictException`... để trả đúng HTTP status — kết hợp exception filter (§7) cho lỗi tầng DB không lường trước.
+- Ném lỗi bằng `NotFoundException`, `BadRequestException`, `ConflictException`... để trả đúng HTTP status — kết hợp exception filter (§B7) cho lỗi tầng DB không lường trước.
 - Service không phụ thuộc `Request`/`Response` của Express — giữ logic thuần, dễ test.
 - Đặt tên method service theo convention `create/findAll/findOne/update/remove` cho CRUD; API nghiệp vụ dùng tên mô tả hành vi (xem [§C](#c-businessuse-case-api-flow-non-crud)).
-- **Đọc biến môi trường qua `ConfigService`**, không đọc thẳng `process.env`.
+- **Đọc biến môi trường qua `ConfigService`**, không đọc thẳng `process.env` — kèm validate lúc startup (fail-fast nếu thiếu/sai biến bắt buộc). Xem chi tiết ở `config-environment-conventions.md`.
 
-  > ⚠️ **Gap đã biết (non-blocking, xem [bảng Gap toàn app](#gap-toàn-app-đã-biết--phân-loại-blockingnon-blocking))**: `ConfigModule.forRoot({ isGlobal: true })` đã đăng ký trong `app.module.ts`, nhưng `PrismaService` vẫn đọc thẳng `process.env.DATABASE_URL`.
-
-### 10. Authorization checkpoint
+### B10. Authorization checkpoint
 
 Trước khi coi 1 endpoint là "xong", tự hỏi:
 
@@ -594,11 +555,11 @@ Endpoint có cần authorization (role/ownership) không?
    Role/Policy Guard
 ```
 
-> ✅ **Auth module đã xong** (`JwtAuthGuard`, `RolesGuard`, `OwnershipGuard`, `@Roles()`, `@CurrentUser()` — xem `auth-playbook/auth-engineering-playbook.md`). Mọi resource mới tái sử dụng nguyên bộ guard này, không tự viết cơ chế phân quyền riêng. Với resource có khái niệm "chủ sở hữu" (`Cart`, `Order` — chỉ user đó được thao tác trên resource của chính mình), dùng thêm `OwnershipGuard` + `@OwnedResource()` thay vì chỉ `RolesGuard`.
+> ✅ **Auth module đã xong** (`JwtAuthGuard`, `RolesGuard`, `OwnershipGuard`, `@Roles()`, `@CurrentUser()` — xem `../auth-playbook/auth-engineering-playbook.md`). Mọi resource mới tái sử dụng nguyên bộ guard này, không tự viết cơ chế phân quyền riêng. Với resource có khái niệm "chủ sở hữu" (`Cart`, `Order` — chỉ user đó được thao tác trên resource của chính mình), dùng thêm `OwnershipGuard` + `@OwnedResource()` thay vì chỉ `RolesGuard`.
 >
-> Áp dụng checklist này cho **từng resource mới khi thực sự implement** — xem tài liệu kế hoạch/implementation riêng của resource đó (vd. `doc/categories-module-plan.md`) để biết resource nào đã đi qua checkpoint này, resource nào còn đang ở dạng kế hoạch.
+> Áp dụng checklist này cho **từng resource mới khi thực sự implement** — xem tài liệu kế hoạch/implementation riêng của resource đó (vd. `../categories-module-plan.md`) để biết resource nào đã đi qua checkpoint này, resource nào còn đang ở dạng kế hoạch.
 
-### 11. Response DTO / Serialization
+### B11. Response DTO / Serialization
 
 Nguyên tắc chung: **Database Model ≠ API Response Contract.**
 
@@ -636,7 +597,7 @@ export class ResourceResponseDto {
 
 → **Khuyến nghị**: dùng allow-list (Response DTO) cho model có field nhạy cảm hoặc thường xuyên thêm field mới (`User`, `Order`...); blacklist (`@Exclude`) chấp nhận được cho resource nhỏ, ổn định. Khi dùng Response DTO, khai `type:` tương ứng trong Swagger (mục dưới) để OpenAPI phản ánh đúng contract, không phải shape DB.
 
-### 12. Swagger / OpenAPI
+### B12. Swagger / OpenAPI
 
 Swagger đã bật sẵn trong `main.ts`, xem tại `http://localhost:3000/api`.
 
@@ -672,7 +633,7 @@ create(@Body() dto: CreateResourceDto) { ... }
 findOne(@Param('id', ParseUUIDPipe) id: string) { ... }
 ```
 
-Không bắt buộc phải có `ResourceResponseDto` riêng nếu resource trả thẳng Prisma type (§11.a) — khi đó `type:` có thể trỏ vào 1 class khai lại field cho Swagger đọc (Prisma type không tự mang metadata OpenAPI).
+Không bắt buộc phải có `ResourceResponseDto` riêng nếu resource trả thẳng Prisma type (§B11.a) — khi đó `type:` có thể trỏ vào 1 class khai lại field cho Swagger đọc (Prisma type không tự mang metadata OpenAPI).
 
 **Đồng bộ sang Postman:** không tạo/sửa request thủ công trong Postman collection. Swagger (`/api-json`) là nguồn chuẩn duy nhất — sau khi thêm/sửa API (đủ decorator Swagger ở trên), chạy:
 
@@ -681,9 +642,9 @@ npm run start:dev                # app phải đang chạy để có /api-json
 npm run postman:sync             # fetch OpenAPI spec → convert → PUT lên Postman collection
 ```
 
-Cần set `POSTMAN_API_KEY` và `POSTMAN_COLLECTION_ID` trong `.env` (xem `.env.example`). Script ở `scripts/sync-postman-collection.ts`, ghi đè toàn bộ nội dung collection trên Postman bằng spec hiện tại — không dùng cho collection có chứa request/example thủ công cần giữ lại.
+Cần set `POSTMAN_API_KEY` và `POSTMAN_COLLECTION_ID` trong `../../.env` (xem `.env.example`). Script ở `scripts/sync-postman-collection.ts`, ghi đè toàn bộ nội dung collection trên Postman bằng spec hiện tại — không dùng cho collection có chứa request/example thủ công cần giữ lại.
 
-### 13. Pagination cho `findAll()`
+### B13. Pagination cho `findAll()`
 
 Khai `PaginationDto` dùng chung cho mọi resource có `findAll()` phân trang như sau:
 
@@ -735,7 +696,7 @@ Response envelope có dạng:
 
 Áp dụng khi resource dự kiến nhiều bản ghi (`Product`, `Order`...). Với resource ít bản ghi, pagination **vẫn nên được áp dụng** dù không thật sự cần thiết về hiệu năng — mục tiêu là giữ shape response nhất quán giữa mọi resource (client không phải xử lý 2 kiểu response khác nhau tuỳ resource).
 
-### 14. Convention — schema Prisma tách thành nhiều file
+### B14. Convention — schema Prisma tách thành nhiều file
 
 Project dùng **multi-file schema** của Prisma (từ bản v6.7+, ổn định ở v7 project đang dùng), không còn 1 file `prisma/schema.prisma` duy nhất:
 
@@ -748,11 +709,11 @@ prisma/
   seed.ts
 ```
 
-- `prisma7.config.ts` trỏ `schema: "prisma/schema"` (thư mục, không phải 1 file) — Prisma tự merge mọi file `.prisma` trong thư mục này khi `validate`/`generate`/`migrate`, không cần khai báo import giữa các file.
-- **Model** → thêm vào `prisma/schema/schema.prisma`.
-- **Enum** → thêm vào `prisma/schema/enums.prisma`.
+- `../../prisma7.config.ts` trỏ `schema: "prisma/schema"` (thư mục, không phải 1 file) — Prisma tự merge mọi file `.prisma` trong thư mục này khi `validate`/`generate`/`migrate`, không cần khai báo import giữa các file.
+- **Model** → thêm vào `../../prisma/schema/schema.prisma`.
+- **Enum** → thêm vào `../../prisma/schema/enums.prisma`.
 - Lý do tách: enum là khai báo tĩnh (list giá trị), không có logic, tách riêng giúp mục lục file gọn và dễ tìm khi schema phình to nhiều model — không phải bug hay yêu cầu bắt buộc của Prisma, chỉ là convention tổ chức file của project này.
-- `generator client { output = "../../src/generated/prisma" }` — path `output` tính từ vị trí file `schema.prisma` (tức `prisma/schema/schema.prisma`), nên có 2 cấp `../..` chứ không phải 1 cấp như khi còn 1 file `prisma/schema.prisma`.
+- `generator client { output = "../../src/generated/prisma" }` — path `output` tính từ vị trí file `schema.prisma` (tức `../../prisma/schema/schema.prisma`), nên có 2 cấp `../..` chứ không phải 1 cấp như khi còn 1 file `prisma/schema.prisma`.
 - Mọi lệnh CLI (`prisma validate`, `generate`, `migrate dev`, `format`...) không đổi cú pháp — chỉ cần `--config prisma7.config.ts` như cũ (xem [Phụ lục](#phụ-lục--tổng-hợp-lệnh-cli-cần-dùng)).
 
 ---
@@ -765,10 +726,10 @@ Khác biệt chính so với mục B:
 
 - **§01–04 (Requirement/Business Rules/Contract/Authorization) không được rút gọn** — đây là phần quan trọng nhất, vì request/response shape thường không map trực tiếp vào 1 model DB.
 - **Service method đặt tên theo hành vi** (`checkout()`, `cancelOrder()`, `applyCoupon()`), không theo `create/update`.
-- **Thường cần transaction** (§5c) vì phải ghi nhiều bảng atomic.
+- **Thường cần transaction** (§B5c) vì phải ghi nhiều bảng atomic.
 - **Business rule là trọng tâm**, Prisma call chỉ là bước cuối để hiện thực hoá rule đó.
 
-Ví dụ minh hoạ — `POST /orders/:id/cancel` (chưa implement trong `src/`, chỉ minh hoạ flow):
+Ví dụ minh hoạ — `POST /orders/:id/cancel` (chưa implement trong `../../src`, chỉ minh hoạ flow):
 
 ```
 Requirement
@@ -846,9 +807,9 @@ Method tên `cancelOrder()`, không phải `update()` — vì nó không phải 
 >
 > ⚠️ **External call (refund qua Stripe/payment gateway, gửi email...) không nên nằm bên trong `$transaction`.** `$transaction` chỉ đảm bảo atomicity ở tầng database — giữ transaction mở trong lúc gọi API bên ngoài (network chậm/timeout) sẽ giữ lock/connection DB lâu, và nếu external call thành công nhưng DB rollback sau đó (hoặc ngược lại) thì **không có gì tự động đồng bộ lại 2 bên**. Với refund/payment nên gọi external API **ngoài** transaction (trước hoặc sau, tuỳ nghiệp vụ), rồi ghi lại kết quả (thành công/thất bại) vào DB ở bước riêng. Khi nghiệp vụ này thực sự cần làm, tìm hiểu thêm outbox pattern / saga — chưa cần đưa sâu vào convention hiện tại vì project chưa có nghiệp vụ nào tới mức đó.
 
-> Ví dụ trên minh hoạ flow, **chưa có module `orders`/`auth` nào tồn tại trong `src/` hiện tại** — khi thực sự implement, đối chiếu lại với schema thật (`Order`, `OrderItem`, `Inventory` trong `prisma/schema/schema.prisma`) và áp dụng đúng auth guard một khi guard đó đã được xây dựng (xem [§10](#10-authorization-checkpoint)).
+> Ví dụ trên minh hoạ flow, **chưa có module `orders`/`auth` nào tồn tại trong `../../src` hiện tại** — khi thực sự implement, đối chiếu lại với schema thật (`Order`, `OrderItem`, `Inventory` trong `../../prisma/schema/schema.prisma`) và áp dụng đúng auth guard một khi guard đó đã được xây dựng (xem [§B10](#b10-authorization-checkpoint)).
 >
-> Khi project thực sự có API xử lý payment/refund thật (không còn là ví dụ minh hoạ), nên tách chủ đề **external side effects / outbox / saga / idempotency-key thực thi** thành 1 ADR riêng (`docs/adr/`) thay vì tiếp tục mở rộng convention này — tài liệu này nên dừng ở mức "biết để hỏi đúng câu hỏi", không phải nơi định nghĩa chi tiết kỹ thuật cho từng pattern.
+> Khi project thực sự có API xử lý payment/refund thật (không còn là ví dụ minh hoạ), nên tách chủ đề **external side effects / outbox / saga / idempotency-key thực thi** thành 1 ADR riêng (`../../docs/adr`) thay vì tiếp tục mở rộng convention này — tài liệu này nên dừng ở mức "biết để hỏi đúng câu hỏi", không phải nơi định nghĩa chi tiết kỹ thuật cho từng pattern.
 
 ---
 
@@ -872,7 +833,7 @@ Checklist chi tiết bên dưới là cách để đạt Definition of Done này
 
 ### CRUD resource
 
-- [ ] Model (hoặc enum) đã có trong `prisma/schema/schema.prisma` (hoặc `prisma/schema/enums.prisma`) + đã `migrate dev` + `generate` (2 lệnh riêng — Prisma v7 không tự generate)
+- [ ] Model (hoặc enum) đã có trong `../../prisma/schema/schema.prisma` (hoặc `prisma/schema/enums.prisma`) + đã `migrate dev` + `generate` (2 lệnh riêng — Prisma v7 không tự generate)
 - [ ] Sinh khung bằng `nest g resource RESOURCE_NAME` (chọn REST API, Yes cho CRUD entry points)
 - [ ] Xoá `entities/` sinh sẵn, xoá/viết lại `*.spec.ts` mẫu
 - [ ] DTO có đủ `class-validator` + `@ApiProperty`/`@ApiPropertyOptional`; `UpdateDto` dùng `PartialType` từ **`@nestjs/swagger`**
@@ -882,9 +843,9 @@ Checklist chi tiết bên dưới là cách để đạt Definition of Done này
 - [ ] API e2e test cho endpoint public/quan trọng — bắt buộc; cho CRUD thường — khuyến nghị
 - [ ] Response DTO (allow-list) nếu model có field nhạy cảm; `@Exclude` chấp nhận được cho resource nhỏ ổn định
 - [ ] Swagger có `type:` cho response (`@ApiOkResponse`/`@ApiCreatedResponse`), không chỉ `description`
-- [ ] `@ApiTags()` đủ nghĩa nếu tên path là viết tắt/không tự giải thích (xem [§12](#12-swagger--openapi))
-- [ ] Pagination + `@Max(limit)` nếu resource dự kiến nhiều bản ghi
-- [ ] Đã đi qua [Authorization checkpoint](#10-authorization-checkpoint)
+- [ ] `@ApiTags()` đủ nghĩa nếu tên path là viết tắt/không tự giải thích (xem [§B12](#b12-swagger--openapi))
+- [ ] Pagination + `@Max(limit)` cho mọi `findAll()` — kể cả resource ít bản ghi, để giữ response shape nhất quán (xem [§B13](#b13-pagination-cho-findall))
+- [ ] Đã đi qua [Authorization checkpoint](#b10-authorization-checkpoint)
 - [ ] `npm run test` (unit) pass
 - [ ] `npm run test:e2e` pass (nếu có viết e2e)
 - [ ] `npm run lint` + `npm run format` sạch
@@ -901,71 +862,69 @@ Checklist chi tiết bên dưới là cách để đạt Definition of Done này
 
 ### Gap toàn app (đã biết — phân loại blocking/non-blocking)
 
-| Gap                                                             | Mức độ                                                                   |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Chưa có `PrismaExceptionFilter` global (§7)                     | Non-blocking cho CRUD nội bộ/admin; nên làm sớm                          |
-| `PrismaService` chưa dùng `ConfigService` (§9)                  | Non-blocking                                                             |
-| `CONTEXT.md` mô tả domain "Todo" cũ, chưa khớp schema ecommerce | Non-blocking cho việc code, nhưng gây nhầm domain nếu không đọc kỹ trước |
+| Gap                                                                   | Mức độ                                                                   |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `../../CONTEXT.md` mô tả domain "Todo" cũ, chưa khớp schema ecommerce | Non-blocking cho việc code, nhưng gây nhầm domain nếu không đọc kỹ trước |
 
-> Gap đã fix (`src/bootstrap/configure-app.ts` dùng chung giữa `main.ts`/e2e, `AuthModule` + guard) đã được xoá khỏi bảng này — không giữ lại lịch sử "đã từng là gap" ở đây để tránh đọc nhầm thành "chưa xong". Nếu cần biết trạng thái implement thật của 1 resource cụ thể (vd. `categories` đã đi qua bao nhiêu bước), xem tài liệu kế hoạch riêng của resource đó (vd. `doc/categories-module-plan.md`), không suy luận từ convention doc này.
+> Gap đã fix (`../../src/bootstrap/configure-app.ts` dùng chung giữa `main.ts`/e2e, `AuthModule` + guard) đã được xoá khỏi bảng này — không giữ lại lịch sử "đã từng là gap" ở đây để tránh đọc nhầm thành "chưa xong". Nếu cần biết trạng thái implement thật của 1 resource cụ thể (vd. `categories` đã đi qua bao nhiêu bước), xem tài liệu kế hoạch riêng của resource đó (vd. `doc/categories-module-plan.md`), không suy luận từ convention doc này.
 
 ---
 
 ## Phụ lục — Tổng hợp lệnh CLI cần dùng
 
-> ⚠️ Project dùng file config **`prisma7.config.ts`** — mọi lệnh `prisma` đều cần thêm `--config prisma7.config.ts`.
+> ⚠️ Project dùng file config **`../../prisma7.config.ts`** — mọi lệnh `prisma` đều cần thêm `--config prisma7.config.ts`.
 
-Mỗi lệnh dưới đây có 2 cột: **Tác dụng** (lệnh này làm gì) và **Khi nào dùng** (thời điểm/bối cảnh nên gọi nó trong quá trình tạo API — đối chiếu với các bước §0–§14 ở trên).
+Mỗi lệnh dưới đây có 2 cột: **Tác dụng** (lệnh này làm gì) và **Khi nào dùng** (thời điểm/bối cảnh nên gọi nó trong quá trình tạo API — đối chiếu với các bước §B0–§B14 ở trên).
 
 ### a. Nest CLI
 
-| Lệnh                                                            | Tác dụng                                                                                                                | Khi nào dùng                                                                                                                                            |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `nest g resource RESOURCE_NAME`                                 | Sinh đủ 4 file (module/controller/service/DTO), tự wiring `@Module`, tự đăng ký vào `AppModule`, sinh sẵn 5 method rỗng | Bước [§3 Scaffold](#3-scaffold--cấu-trúc-thư-mục-chuẩn) — **luôn bắt đầu 1 resource CRUD mới bằng lệnh này**, chọn REST API + Yes cho CRUD entry points |
-| `nest g module RESOURCE_NAME`                                   | Chỉ sinh 1 file `RESOURCE_NAME.module.ts` + tự đăng ký vào `AppModule`                                                  | Khi chỉ cần thêm 1 module trống (vd. module hạ tầng), không cần 5 method CRUD mẫu                                                                       |
-| `nest g controller RESOURCE_NAME --no-spec`                     | Chỉ sinh 1 file controller, bỏ qua file `*.spec.ts` mẫu                                                                 | Khi thêm controller cho API nghiệp vụ (§C) — không cần scaffold cả resource CRUD                                                                        |
-| `nest g service RESOURCE_NAME --no-spec`                        | Chỉ sinh 1 file service, bỏ qua file `*.spec.ts` mẫu                                                                    | Tương tự trên, khi chỉ cần thêm 1 service (vd. tách use-case riêng cho API nghiệp vụ)                                                                   |
-| `nest g class RESOURCE_NAME/dto/create-RESOURCE_NAME --no-spec` | Sinh 1 class DTO rỗng tại đúng path quy ước                                                                             | Khi cần thêm 1 DTO lẻ (vd. request DTO cho API nghiệp vụ không nằm trong resource CRUD)                                                                 |
-| `nest build`                                                    | Build production ra `dist/` (chính là lệnh `npm run build` gọi bên trong)                                               | Trước khi deploy, hoặc muốn build tay không qua npm script                                                                                              |
-| `nest start --watch`                                            | Chạy app ở chế độ dev, tự reload khi sửa code (chính là lệnh `npm run start:dev` gọi bên trong)                         | Trong lúc code, để thấy thay đổi ngay lập tức                                                                                                           |
+| Lệnh                                                            | Tác dụng                                                                                                                | Khi nào dùng                                                                                                                                              |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nest g resource RESOURCE_NAME`                                 | Sinh đủ 4 file (module/controller/service/DTO), tự wiring `@Module`, tự đăng ký vào `AppModule`, sinh sẵn 5 method rỗng | Bước [§B3 Scaffold](#b3-scaffold--cấu-trúc-thư-mục-chuẩn) — **luôn bắt đầu 1 resource CRUD mới bằng lệnh này**, chọn REST API + Yes cho CRUD entry points |
+| `nest g module RESOURCE_NAME`                                   | Chỉ sinh 1 file `RESOURCE_NAME.module.ts` + tự đăng ký vào `AppModule`                                                  | Khi chỉ cần thêm 1 module trống (vd. module hạ tầng), không cần 5 method CRUD mẫu                                                                         |
+| `nest g controller RESOURCE_NAME --no-spec`                     | Chỉ sinh 1 file controller, bỏ qua file `*.spec.ts` mẫu                                                                 | Khi thêm controller cho API nghiệp vụ (§C) — không cần scaffold cả resource CRUD                                                                          |
+| `nest g service RESOURCE_NAME --no-spec`                        | Chỉ sinh 1 file service, bỏ qua file `*.spec.ts` mẫu                                                                    | Tương tự trên, khi chỉ cần thêm 1 service (vd. tách use-case riêng cho API nghiệp vụ)                                                                     |
+| `nest g class RESOURCE_NAME/dto/create-RESOURCE_NAME --no-spec` | Sinh 1 class DTO rỗng tại đúng path quy ước                                                                             | Khi cần thêm 1 DTO lẻ (vd. request DTO cho API nghiệp vụ không nằm trong resource CRUD)                                                                   |
+| `nest build`                                                    | Build production ra `../../dist` (chính là lệnh `npm run build` gọi bên trong)                                          | Trước khi deploy, hoặc muốn build tay không qua npm script                                                                                                |
+| `nest start --watch`                                            | Chạy app ở chế độ dev, tự reload khi sửa code (chính là lệnh `npm run start:dev` gọi bên trong)                         | Trong lúc code, để thấy thay đổi ngay lập tức                                                                                                             |
 
 ### b. Prisma CLI
 
-> ⚠️ Project dùng file config **`prisma7.config.ts`** — mọi lệnh `prisma` đều cần thêm `--config prisma7.config.ts`, nếu không CLI sẽ không tìm thấy schema/`DATABASE_URL`.
+> ⚠️ Project dùng file config **`../../prisma7.config.ts`** — mọi lệnh `prisma` đều cần thêm `--config prisma7.config.ts`, nếu không CLI sẽ không tìm thấy schema/`DATABASE_URL`.
 
-| Lệnh                                                                      | Tác dụng                                                                                   | Khi nào dùng                                                                                                                                                                                                                                   |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npx prisma format --config prisma7.config.ts`                            | Tự format lại các file `.prisma` trong `prisma/schema/` cho đúng convention indent/spacing | Sau khi sửa tay `schema.prisma`/`enums.prisma`, trước khi commit                                                                                                                                                                               |
-| `npx prisma validate --config prisma7.config.ts`                          | Kiểm tra schema hợp lệ (cú pháp, quan hệ, kiểu dữ liệu...), **không đụng vào DB thật**     | Muốn kiểm tra nhanh schema đúng chưa mà chưa cần migrate (vd. trong CI, hoặc trước khi mở PR)                                                                                                                                                  |
-| `npx prisma migrate dev --name MIGRATION_NAME --config prisma7.config.ts` | Tạo migration mới + áp dụng lên DB dev + tạo bảng lần đầu / mỗi khi đổi schema             | [§2 Migration](#2-migration--generate-prisma-client) — sau khi thêm/sửa model ở [§1](#1-database-impact--model-mới-hoặc-đã-có-trong-prismaschemaschemaprisma). ⚠️ Chỉ dùng ở **dev**; Prisma v7 **không** tự chạy `generate`/seed sau lệnh này |
-| `npx prisma generate --config prisma7.config.ts`                          | Sinh lại Prisma Client (type TypeScript khớp schema mới) vào `src/generated/prisma`        | **Luôn chạy ngay sau `migrate dev`** ở Prisma v7 — nếu quên, code TypeScript vẫn dùng type Prisma Client cũ, không thấy field mới                                                                                                              |
-| `npx prisma migrate deploy --config prisma7.config.ts`                    | Áp dụng các migration đã có (không tạo migration mới, không hỏi tương tác)                 | Khi deploy lên **production/staging** (CI/CD) — không dùng `migrate dev` ở môi trường này                                                                                                                                                      |
-| `npx prisma migrate reset --config prisma7.config.ts`                     | Xoá sạch dữ liệu + bảng, chạy lại toàn bộ migration từ đầu + seed                          | ⚠️ Chỉ dùng ở **dev**, khi DB local bị lệch/hỏng và muốn làm lại từ đầu — **mất hết data hiện có**                                                                                                                                             |
-| `npx prisma db seed --config prisma7.config.ts`                           | Chạy `prisma/seed.ts` để tạo dữ liệu mẫu (vd. tài khoản ADMIN bootstrap cho auth)          | Sau khi migrate xong trên DB mới/rỗng, hoặc khi cần seed lại tài khoản test (tương đương `npm run db:seed`)                                                                                                                                    |
-| `npx prisma studio --config prisma7.config.ts`                            | Mở GUI trên trình duyệt để xem/sửa data trực tiếp trong DB                                 | Khi cần kiểm tra nhanh data thật đang có gì mà không muốn viết query tay                                                                                                                                                                       |
+| Lệnh                                                                      | Tác dụng                                                                                        | Khi nào dùng                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npx prisma format --config prisma7.config.ts`                            | Tự format lại các file `.prisma` trong `../../prisma/schema` cho đúng convention indent/spacing | Sau khi sửa tay `schema.prisma`/`enums.prisma`, trước khi commit                                                                                                                                                                                   |
+| `npx prisma validate --config prisma7.config.ts`                          | Kiểm tra schema hợp lệ (cú pháp, quan hệ, kiểu dữ liệu...), **không đụng vào DB thật**          | Muốn kiểm tra nhanh schema đúng chưa mà chưa cần migrate (vd. trong CI, hoặc trước khi mở PR)                                                                                                                                                      |
+| `npx prisma migrate dev --name MIGRATION_NAME --config prisma7.config.ts` | Tạo migration mới + áp dụng lên DB dev + tạo bảng lần đầu / mỗi khi đổi schema                  | [§B2 Migration](#b2-migration--generate-prisma-client) — sau khi thêm/sửa model ở [§B1](#b1-database-impact--model-mới-hoặc-đã-có-trong-prismaschemaschemaprisma). ⚠️ Chỉ dùng ở **dev**; Prisma v7 **không** tự chạy `generate`/seed sau lệnh này |
+| `npx prisma generate --config prisma7.config.ts`                          | Sinh lại Prisma Client (type TypeScript khớp schema mới) vào `../../src/generated/prisma`       | **Luôn chạy ngay sau `migrate dev`** ở Prisma v7 — nếu quên, code TypeScript vẫn dùng type Prisma Client cũ, không thấy field mới                                                                                                                  |
+| `npx prisma migrate deploy --config prisma7.config.ts`                    | Áp dụng các migration đã có (không tạo migration mới, không hỏi tương tác)                      | Khi deploy lên **production/staging** (CI/CD) — không dùng `migrate dev` ở môi trường này                                                                                                                                                          |
+| `npx prisma migrate reset --config prisma7.config.ts`                     | Xoá sạch dữ liệu + bảng, chạy lại toàn bộ migration từ đầu + seed                               | ⚠️ Chỉ dùng ở **dev**, khi DB local bị lệch/hỏng và muốn làm lại từ đầu — **mất hết data hiện có**                                                                                                                                                 |
+| `npx prisma db seed --config prisma7.config.ts`                           | Chạy `../../prisma/seed.ts` để tạo dữ liệu mẫu (vd. tài khoản ADMIN bootstrap cho auth)         | Sau khi migrate xong trên DB mới/rỗng, hoặc khi cần seed lại tài khoản test (tương đương `npm run db:seed`)                                                                                                                                        |
+| `npx prisma studio --config prisma7.config.ts`                            | Mở GUI trên trình duyệt để xem/sửa data trực tiếp trong DB                                      | Khi cần kiểm tra nhanh data thật đang có gì mà không muốn viết query tay                                                                                                                                                                           |
 
 ### c. npm scripts
 
-| Lệnh                   | Tác dụng                                                                                   | Khi nào dùng                                                                                                              |
-| ---------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `npm run start:dev`    | Chạy app dev, tự reload khi sửa code                                                       | Trong lúc code hằng ngày                                                                                                  |
-| `npm run start:debug`  | Chạy dev kèm debugger (`--inspect`)                                                        | Khi cần đặt breakpoint, debug logic phức tạp thay vì chỉ đọc log                                                          |
-| `npm run build`        | Build TypeScript ra `dist/`, có kiểm tra type qua quá trình build                          | Trước khi `start:prod`, hoặc để chắc chắn code build sạch trước khi mở PR ([§19](#a-flow-tổng-quát--áp-dụng-cho-mọi-api)) |
-| `npm run start:prod`   | Chạy bản đã build (`node dist/main`), giống môi trường production                          | Kiểm tra thử bản build thật chạy đúng trước khi deploy                                                                    |
-| `npm run typecheck`    | Chạy `tsc --noEmit` — chỉ kiểm tra type, không sinh file build                             | Muốn kiểm tra lỗi type nhanh, không cần đợi build ra `dist/`                                                              |
-| `npm run lint`         | Lint code bằng `oxlint` (`src/`, `test/`)                                                  | Trước khi commit/mở PR — theo Definition of Done                                                                          |
-| `npm run format`       | Tự format code bằng `prettier`                                                             | Trước khi commit, hoặc sau khi code xong 1 file để chuẩn hoá style                                                        |
-| `npm run test`         | Chạy toàn bộ unit test (`vitest run`)                                                      | [§8 Testing](#8-testing) — sau khi viết/sửa service, trước khi commit                                                     |
-| `npm run test:watch`   | Chạy unit test ở chế độ watch, tự chạy lại khi sửa file                                    | Trong lúc viết test, muốn thấy kết quả ngay khi lưu file                                                                  |
-| `npm run test:debug`   | Chạy test kèm debugger, tắt chạy song song để dễ debug từng test                           | Khi 1 test fail khó hiểu, cần đặt breakpoint để trace                                                                     |
-| `npm run test:cov`     | Chạy unit test kèm báo cáo coverage                                                        | Muốn biết phần code nào chưa có test bao phủ                                                                              |
-| `npm run test:e2e`     | Chạy e2e test (`vitest.config.e2e.ts`, gọi thật qua HTTP)                                  | [§8b](#b-api-e2e-test--gọi-thật-qua-http-supertest) — sau khi viết xong controller + route thật                           |
-| `npm run db:seed`      | Chạy `prisma/seed.ts` (tương đương `prisma db seed`, nhưng qua `tsx` không cần `--config`) | Sau khi migrate DB mới/rỗng, hoặc cần tài khoản ADMIN bootstrap để login trong e2e test                                   |
-| `npm run postman:sync` | Đồng bộ Postman collection từ Swagger spec (`/api-json`) — app phải đang chạy              | [§12 Swagger](#12-swagger--openapi) — sau khi thêm/sửa decorator Swagger cho endpoint mới                                 |
+| Lệnh                   | Tác dụng                                                                                         | Khi nào dùng                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `npm run start:dev`    | Chạy app dev, tự reload khi sửa code                                                             | Trong lúc code hằng ngày                                                                                                  |
+| `npm run start:debug`  | Chạy dev kèm debugger (`--inspect`)                                                              | Khi cần đặt breakpoint, debug logic phức tạp thay vì chỉ đọc log                                                          |
+| `npm run build`        | Build TypeScript ra `../../dist`, có kiểm tra type qua quá trình build                           | Trước khi `start:prod`, hoặc để chắc chắn code build sạch trước khi mở PR ([§19](#a-flow-tổng-quát--áp-dụng-cho-mọi-api)) |
+| `npm run start:prod`   | Chạy bản đã build (`node dist/main`), giống môi trường production                                | Kiểm tra thử bản build thật chạy đúng trước khi deploy                                                                    |
+| `npm run typecheck`    | Chạy `tsc --noEmit` — chỉ kiểm tra type, không sinh file build                                   | Muốn kiểm tra lỗi type nhanh, không cần đợi build ra `../../dist`                                                         |
+| `npm run lint`         | Lint code bằng `oxlint` (`../../src`, `test/`)                                                   | Trước khi commit/mở PR — theo Definition of Done                                                                          |
+| `npm run format`       | Tự format code bằng `prettier`                                                                   | Trước khi commit, hoặc sau khi code xong 1 file để chuẩn hoá style                                                        |
+| `npm run test`         | Chạy toàn bộ unit test (`vitest run`)                                                            | [§B8 Testing](#b8-testing) — sau khi viết/sửa service, trước khi commit                                                   |
+| `npm run test:watch`   | Chạy unit test ở chế độ watch, tự chạy lại khi sửa file                                          | Trong lúc viết test, muốn thấy kết quả ngay khi lưu file                                                                  |
+| `npm run test:debug`   | Chạy test kèm debugger, tắt chạy song song để dễ debug từng test                                 | Khi 1 test fail khó hiểu, cần đặt breakpoint để trace                                                                     |
+| `npm run test:cov`     | Chạy unit test kèm báo cáo coverage                                                              | Muốn biết phần code nào chưa có test bao phủ                                                                              |
+| `npm run test:e2e`     | Chạy e2e test (`../../vitest.config.e2e.ts`, gọi thật qua HTTP)                                  | [§B8b](#b-api-e2e-test--gọi-thật-qua-http-supertest) — sau khi viết xong controller + route thật                          |
+| `npm run db:seed`      | Chạy `../../prisma/seed.ts` (tương đương `prisma db seed`, nhưng qua `tsx` không cần `--config`) | Sau khi migrate DB mới/rỗng, hoặc cần tài khoản ADMIN bootstrap để login trong e2e test                                   |
+| `npm run postman:sync` | Đồng bộ Postman collection từ Swagger spec (`/api-json`) — app phải đang chạy                    | [§B12 Swagger](#b12-swagger--openapi) — sau khi thêm/sửa decorator Swagger cho endpoint mới                               |
 
 ### d. Git & PR workflow
 
-> Chi tiết đầy đủ về branching xem `docs/git-workflow.md`. Tóm tắt: `main` (trunk ổn định) ← `dev` (integration) ← `feature/*`/`fix/*`/`chore/*`/`docs/*` (checked out từ `dev`, merge lại qua PR). Không commit thẳng vào `main`; hạn chế commit trực tiếp lớn vào `dev`.
+> Chi tiết đầy đủ về branching xem `../../docs/git-workflow.md`. Tóm tắt: `main` (trunk ổn định) ← `dev` (integration) ← `feature/*`/`fix/*`/`chore/*`/`docs/*` (checked out từ `dev`, merge lại qua PR). Không commit thẳng vào `main`; hạn chế commit trực tiếp lớn vào `dev`.
 
 | Lệnh                                       | Tác dụng                                                      | Khi nào dùng                                                                                         |
 | ------------------------------------------ | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |

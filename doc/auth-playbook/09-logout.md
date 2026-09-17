@@ -93,7 +93,7 @@ async logoutAll(
 }
 ```
 
-Tự kiểm tra: tạo thử 3 session cho cùng 1 user (login 3 lần, ra 3 refresh token khác nhau), gọi `logout-all` một lần. Cả 3 refresh token đó đều phải không dùng để refresh được nữa, và không ảnh hưởng gì tới refresh token của user khác. Tiện thể, nhớ kiểm tra lại `doc/module-auth.md` có dòng `POST /auth/logout-all` trong bảng API tổng kết chưa: việc này sẽ rà lại kỹ hơn ở [14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md).
+Tự kiểm tra: tạo thử 3 session cho cùng 1 user (login 3 lần, ra 3 refresh token khác nhau), gọi `logout-all` một lần. Cả 3 refresh token đó đều phải không dùng để refresh được nữa, và không ảnh hưởng gì tới refresh token của user khác. Tiện thể, nhớ kiểm tra lại `module-auth.md` có dòng `POST /auth/logout-all` trong bảng API tổng kết chưa: việc này sẽ rà lại kỹ hơn ở [14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md).
 
 ---
 

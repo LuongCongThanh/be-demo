@@ -1,8 +1,8 @@
 # Auth & Authorization — Engineering Playbook
 
-> Nguồn: buổi grilling review `../module-auth.md` ngày 2026-09-11, đối chiếu với `prisma/schema.prisma` và `doc/api-conventions.md`.
+> Nguồn: buổi grilling review `../module-auth.md` ngày 2026-09-11, đối chiếu với `prisma/schema.prisma` và `../convention/api-conventions.md`.
 > File này là **playbook thực thi** — đủ ngữ cảnh để một dev (hoặc AI coding agent) nhận task và làm tuần tự mà ít phải hỏi lại. Mỗi step trong [4. Implementation Steps](#4-implementation-steps) đi theo cùng một khuôn: **Goal → Files → CLI → Implementation → Acceptance Criteria → Tests** — đọc step, chạy CLI, code, test, check AC, sang step tiếp theo.
-> Glossary domain nằm ở `CONTEXT.md`, quy ước code chung nằm ở `doc/api-conventions.md`.
+> Glossary domain nằm ở `CONTEXT.md`, quy ước code chung nằm ở `../convention/api-conventions.md`.
 
 ---
 
@@ -16,7 +16,7 @@
 - 🟡 **Đã scaffold (rỗng)** — file đã được tạo (thường qua `nest g`) nhưng chưa có logic thật, hoặc trùng hợp có sẵn nội dung không liên quan (cần thay thế, không phải "đã xong" nên bỏ qua).
 - 🟢 **Đã xong** — có logic thật + đúng Acceptance Criteria của step.
 
-**Tình trạng hiện tại (audit ngày 2026-09-11): 0/26 step đã xong, 25/26 chưa làm, 1/26 có trùng hợp một phần (STEP 24).** Chưa có bất kỳ file nào dưới `src/auth/` hay `src/mail/`, `../../package.json` chưa cài package nào ở STEP 2, `app.module.ts` chưa import `AuthModule`/`MailModule`.
+**Tình trạng hiện tại (audit ngày 2026-09-11): 0/26 step đã xong, 25/26 chưa làm, 1/26 có trùng hợp một phần (STEP 24).** Chưa có bất kỳ file nào dưới `../../src/auth` hay `src/mail/`, `../../package.json` chưa cài package nào ở STEP 2, `app.module.ts` chưa import `AuthModule`/`MailModule`.
 
 > ⚠️ **Đang cập nhật lại format (2026-09-14):** STEP 5 (Register) đã được tách thành 6 step con (STEP 5.1 → 5.6), mỗi step con làm đúng 1 việc và có Acceptance Criteria riêng — xem [4. Implementation Steps](#4-implementation-steps). Việc tách chỉ đổi **cách trình bày**, không đổi tiến độ thực tế: cả 6 step con vẫn đang 🔴 **Chưa làm**. Tổng số step sẽ được đếm lại chính xác sau khi toàn bộ playbook (STEP 6 → 24, A, B) được viết lại theo cùng format.
 
@@ -219,7 +219,7 @@ Mỗi step theo khuôn: **Goal / Files / CLI / Implementation / Acceptance Crite
 
 **Goal:** Có sẵn role `ADMIN`/`CUSTOMER` và 1 tài khoản ADMIN đầu tiên khi hệ thống khởi động lần đầu.
 
-**Files:** `../../prisma/seed.ts`, `package.json` (thêm script `db:seed`)
+**Files:** `../../prisma/seed.ts`, `../../package.json` (thêm script `db:seed`)
 
 ⚠️ **`../../prisma/seed.ts` đã tồn tại trong repo — nhưng KHÔNG phải seed logic Auth.** File hiện tại là seed script cũ của app Todo trước đây (`prisma.todo.createMany(...)` với dữ liệu mẫu tiếng Việt), không seed role/admin gì cả. **Đừng bỏ qua step này vì "file đã có"** — mở file hiện có và **thay thế toàn bộ nội dung**, không chạy CLI tạo file mới (sẽ báo lỗi file đã tồn tại).
 
@@ -262,9 +262,7 @@ Mỗi step theo khuôn: **Goal / Files / CLI / Implementation / Acceptance Crite
      const email = process.env.ADMIN_BOOTSTRAP_EMAIL;
      const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
      if (!email || !password) {
-       throw new Error(
-         'Thiếu ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD trong .env',
-       );
+       throw new Error('Thiếu ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD trong .env');
      }
 
      // 3. Idempotent: nếu admin đã tồn tại (theo email) thì bỏ qua, không tạo lại
@@ -347,7 +345,7 @@ npm install -D @types/passport-jwt
 
 **Goal:** Toàn bộ config nhạy cảm đọc qua `ConfigService`, có file mẫu cho dev khác.
 
-**Files:** `.env.example`, `../../.env` (local, không commit)
+**Files:** `../../.env.example`, `../../.env` (local, không commit)
 
 > 📘 **Khái niệm — `ConfigService` là gì, vì sao không dùng `process.env.XXX` thẳng trong code?**
 > `ConfigService` (từ `@nestjs/config`) là 1 service được NestJS "tiêm" (dependency injection — DI, xem giải thích đầy đủ ở STEP 4) vào bất kỳ class nào cần đọc config, thay vì gọi `process.env.XXX` rải rác khắp nơi. Lợi ích: (1) test dễ hơn — mock `ConfigService` thay vì mock biến môi trường thật của process; (2) một chỗ duy nhất kiểm soát giá trị mặc định/validate; (3) tránh gõ sai tên biến env ở nhiều chỗ khác nhau mà không ai biết. Ngoại lệ duy nhất là `../../prisma/seed.ts` (xem STEP 1) vì nó chạy ngoài Nest DI container.
@@ -387,7 +385,7 @@ EOF
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Sau khi tạo `.env.example`, copy thành `../../.env` và điền giá trị thật (secret vừa sinh, `DATABASE_URL` thật, email/password admin bootstrap):
+Sau khi tạo `../../.env.example`, copy thành `../../.env` và điền giá trị thật (secret vừa sinh, `DATABASE_URL` thật, email/password admin bootstrap):
 
 ```powershell
 Copy-Item .env.example .env   # PowerShell
@@ -399,8 +397,8 @@ cp .env.example .env   # Bash (Git Bash/WSL)
 
 **Acceptance Criteria:**
 
-- [ ] `.env.example` tồn tại, không chứa giá trị thật.
-- [ ] `../../.env` local có giá trị thật, không được commit (`.gitignore` đã có `.env` — kiểm tra lại).
+- [ ] `../../.env.example` tồn tại, không chứa giá trị thật.
+- [ ] `../../.env` local có giá trị thật, không được commit (`../../.gitignore` đã có `.env` — kiểm tra lại).
 - [ ] Không có `process.env.XXX` nào được gọi trực tiếp trong code auth (trừ `../../prisma/seed.ts`).
 
 ---
@@ -514,7 +512,7 @@ export class AppModule {}
 
 **Goal:** Định nghĩa + validate dữ liệu client gửi lên khi đăng ký.
 
-**Files:** `src/auth/dto/register.dto.ts`
+**Files:** `../../src/auth/dto/register.dto.ts`
 
 **CLI:**
 
@@ -546,8 +544,7 @@ export class RegisterDto {
   // Áp dụng luôn password policy (quyết định #9) — chi tiết đầy đủ về pattern
   // và test case ở STEP 6, ở đây dùng luôn để RegisterDto hoạt động đúng ngay.
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, {
-    message:
-      'Password phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt',
+    message: 'Password phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt',
   })
   password: string;
 }
@@ -564,7 +561,7 @@ export class RegisterDto {
 
 **Goal:** Hash password bằng argon2, không tự viết thuật toán hash tay.
 
-**Files:** `src/auth/services/password.service.ts` (đã scaffold rỗng ở STEP 4)
+**Files:** `../../src/auth/services/password.service.ts` (đã scaffold rỗng ở STEP 4)
 
 **Implementation:**
 
@@ -599,7 +596,7 @@ export class PasswordService {
 
 **Goal:** Sinh token ngẫu nhiên + hash để lưu DB, đủ dùng cho Register. Bản đầy đủ (dùng chung cho reset-password/refresh) làm ở STEP 7 — ở đây chỉ implement phần tối thiểu để STEP 5 chạy được.
 
-**Files:** `src/auth/services/token.service.ts` (đã scaffold rỗng ở STEP 4)
+**Files:** `../../src/auth/services/token.service.ts` (đã scaffold rỗng ở STEP 4)
 
 **Implementation:**
 
@@ -656,7 +653,7 @@ export class TokenService {
 
 **Goal:** Gửi email chứa link verification, đứng ngoài `auth` module.
 
-**Files:** `src/mail/mail.service.ts` (đã scaffold rỗng ở STEP 4)
+**Files:** `../../src/mail/mail.service.ts` (đã scaffold rỗng ở STEP 4)
 
 **Implementation:**
 
@@ -674,15 +671,11 @@ export class MailService {
     // MVP: log ra console thay vì gọi SMTP/SES thật — đủ để dev/test flow.
     // Khi có provider email thật, thay thân hàm này bằng lời gọi SDK tương ứng,
     // KHÔNG cần đổi chữ ký hàm hay chỗ gọi từ AuthService.
-    this.logger.log(
-      `[DEV] Gửi verification email tới ${to}: token=${rawToken}`,
-    );
+    this.logger.log(`[DEV] Gửi verification email tới ${to}: token=${rawToken}`);
   }
 
   async sendPasswordResetEmail(to: string, rawToken: string): Promise<void> {
-    this.logger.log(
-      `[DEV] Gửi reset-password email tới ${to}: token=${rawToken}`,
-    );
+    this.logger.log(`[DEV] Gửi reset-password email tới ${to}: token=${rawToken}`);
   }
 }
 ```
@@ -697,7 +690,7 @@ export class MailService {
 
 **Goal:** Orchestrate toàn bộ flow register: validate email chưa tồn tại → hash password → transaction tạo user+role+token → gửi mail sau khi commit.
 
-**Files:** `src/auth/services/auth.service.ts` (đã scaffold rỗng ở STEP 4)
+**Files:** `../../src/auth/services/auth.service.ts` (đã scaffold rỗng ở STEP 4)
 
 **Implementation:**
 
@@ -770,10 +763,7 @@ export class AuthService {
     try {
       await this.mailService.sendVerificationEmail(user.email, rawToken);
     } catch (err) {
-      this.logger.error(
-        `Gửi verification email thất bại cho ${user.email}`,
-        err as Error,
-      );
+      this.logger.error(`Gửi verification email thất bại cho ${user.email}`, err as Error);
       // Không throw lại — user vẫn được tạo, có thể resend-verification (STEP 9).
     }
 
@@ -821,7 +811,7 @@ export class AuthService {
 
 **Goal:** Expose HTTP endpoint, trả đúng `RegisterResponseDto`.
 
-**Files:** `src/auth/auth.controller.ts`, `src/auth/dto/register-response.dto.ts` (mới)
+**Files:** `../../src/auth/auth.controller.ts`, `src/auth/dto/register-response.dto.ts` (mới)
 
 **CLI:**
 
@@ -895,7 +885,7 @@ export class AuthController {
 
 **Goal:** Password đáp ứng quyết định #9 (hoa + thường + số + ký tự đặc biệt, ≥ 8 ký tự).
 
-**Files:** `src/auth/dto/register.dto.ts`, `src/auth/dto/reset-password.dto.ts` (STEP B)
+**Files:** `../../src/auth/dto/register.dto.ts`, `src/auth/dto/reset-password.dto.ts` (STEP B)
 
 **Implementation:**
 
@@ -918,7 +908,7 @@ Viết trực tiếp vào 2 DTO trên — không cần file/CLI riêng cho step 
 
 **Goal:** `TokenService` sinh + hash token dùng chung cho email verification / password reset / refresh.
 
-**Files:** `src/auth/services/token.service.ts`
+**Files:** `../../src/auth/services/token.service.ts`
 
 **Implementation:**
 
@@ -937,7 +927,7 @@ Viết trực tiếp vào 2 DTO trên — không cần file/CLI riêng cho step 
 
 **Goal:** Xác thực email bằng token, cập nhật `emailVerifiedAt`.
 
-**Files:** `src/auth/dto/verify-email.dto.ts`
+**Files:** `../../src/auth/dto/verify-email.dto.ts`
 
 **CLI:**
 
@@ -973,7 +963,7 @@ touch src/auth/dto/verify-email.dto.ts   # Bash (Git Bash/WSL)
 
 **Goal:** Cho phép gửi lại email verification mà không lộ thông tin email có tồn tại hay không.
 
-**Files:** `src/auth/dto/resend-verification.dto.ts`
+**Files:** `../../src/auth/dto/resend-verification.dto.ts`
 
 **CLI:**
 
@@ -1008,7 +998,7 @@ touch src/auth/dto/resend-verification.dto.ts   # Bash (Git Bash/WSL)
 
 **Goal:** Xác thực user, trả Access Token trong body + set Refresh Token qua cookie (quyết định #17).
 
-**Files:** `src/auth/dto/login.dto.ts`, `src/auth/dto/login-response.dto.ts`
+**Files:** `../../src/auth/dto/login.dto.ts`, `src/auth/dto/login-response.dto.ts`
 
 **CLI:**
 
@@ -1097,7 +1087,7 @@ touch src/auth/dto/login.dto.ts src/auth/dto/login-response.dto.ts   # Bash (Git
 
 **Goal:** Guard xác thực access token, gắn `CurrentUser` vào request.
 
-**Files:** `src/auth/guards/jwt-auth.guard.ts`, `src/auth/strategies/jwt.strategy.ts`
+**Files:** `../../src/auth/guards/jwt-auth.guard.ts`, `src/auth/strategies/jwt.strategy.ts`
 
 **Implementation:**
 
@@ -1212,7 +1202,7 @@ touch src/auth/dto/login.dto.ts src/auth/dto/login-response.dto.ts   # Bash (Git
 
 **Goal:** Cho phép yêu cầu reset password mà không lộ thông tin email tồn tại.
 
-**Files:** `src/auth/dto/forgot-password.dto.ts`
+**Files:** `../../src/auth/dto/forgot-password.dto.ts`
 
 **CLI:**
 
@@ -1245,7 +1235,7 @@ touch src/auth/dto/forgot-password.dto.ts   # Bash (Git Bash/WSL)
 
 **Goal:** Đặt lại password bằng token, thu hồi toàn bộ session cũ.
 
-**Files:** `src/auth/dto/reset-password.dto.ts`
+**Files:** `../../src/auth/dto/reset-password.dto.ts`
 
 **CLI:**
 
@@ -1322,7 +1312,7 @@ npm run test:cov      # coverage — xem STEP 24/DoD về threshold
 
 ### STEP 22 — E2E test — 🔴 Chưa làm
 
-**Goal:** Toàn bộ flow `/auth/*` có e2e test — bắt buộc theo `../api-conventions.md`.
+**Goal:** Toàn bộ flow `/auth/*` có e2e test — bắt buộc theo `../convention/api-conventions.md`.
 
 **CLI:**
 
@@ -1338,7 +1328,7 @@ npm run test:e2e   # đảm bảo DATABASE_URL trỏ DB test trước khi chạy
 
 **Goal:** Toàn bộ endpoint `/auth/*` có Swagger doc đúng contract.
 
-**Implementation:** `@ApiProperty` trong mọi DTO theo `../api-conventions.md`.
+**Implementation:** `@ApiProperty` trong mọi DTO theo `../convention/api-conventions.md`.
 
 **CLI:**
 
@@ -1385,7 +1375,7 @@ npm run build
 
 ### Sau khi xong Auth MVP
 
-Chỉ bắt đầu build/guard các module ecommerce khác (Products, Categories, Cart, Orders, Inventory) sau khi playbook này hoàn thành — `../api-conventions.md` đã flag "chưa có auth/guard nào trong project" là **gap blocking** với mọi endpoint chạm dữ liệu nhạy cảm. Khi build Order module, áp dụng `OwnershipGuard` (STEP 16) + rule "chỉ PENDING mới cancel được" (quyết định #7).
+Chỉ bắt đầu build/guard các module ecommerce khác (Products, Categories, Cart, Orders, Inventory) sau khi playbook này hoàn thành — `../convention/api-conventions.md` đã flag "chưa có auth/guard nào trong project" là **gap blocking** với mọi endpoint chạm dữ liệu nhạy cảm. Khi build Order module, áp dụng `OwnershipGuard` (STEP 16) + rule "chỉ PENDING mới cancel được" (quyết định #7).
 
 **CLI tham khảo nếu về sau schema có thay đổi** (MVP hiện tại KHÔNG cần — schema đã đủ):
 
@@ -1489,13 +1479,13 @@ Không bao giờ trả: `passwordHash`, `refreshTokens`/refresh token thô (dù 
 
 ## 7. Shared Services
 
-| Service           | Trách nhiệm                                                                                       | Vị trí                                                        |
-| ----------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `AuthService`     | Orchestrate business flow (register/login/refresh/...), gọi các service bên dưới theo đúng thứ tự | `src/auth/services/auth.service.ts`                           |
-| `PasswordService` | Hash / verify password (argon2)                                                                   | `src/auth/services/password.service.ts`                       |
-| `TokenService`    | Generate + hash token (email verification / password reset / refresh); xoá token cũ chưa dùng     | `src/auth/services/token.service.ts`                          |
-| `MailService`     | Gửi verification email / reset password email                                                     | `src/mail/mail.service.ts` (module riêng, đứng ngoài `auth/`) |
-| `JwtService`      | Sinh & verify access token (built-in từ `@nestjs/jwt`)                                            | dùng trực tiếp, không cần wrap thêm                           |
+| Service           | Trách nhiệm                                                                                       | Vị trí                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `AuthService`     | Orchestrate business flow (register/login/refresh/...), gọi các service bên dưới theo đúng thứ tự | `../../src/auth/services/auth.service.ts`                           |
+| `PasswordService` | Hash / verify password (argon2)                                                                   | `../../src/auth/services/password.service.ts`                       |
+| `TokenService`    | Generate + hash token (email verification / password reset / refresh); xoá token cũ chưa dùng     | `../../src/auth/services/token.service.ts`                          |
+| `MailService`     | Gửi verification email / reset password email                                                     | `../../src/mail/mail.service.ts` (module riêng, đứng ngoài `auth/`) |
+| `JwtService`      | Sinh & verify access token (built-in từ `@nestjs/jwt`)                                            | dùng trực tiếp, không cần wrap thêm                                 |
 
 **Nguyên tắc:** `AuthService` không tự làm hết mọi việc (tránh thành God Service) — nó chỉ điều phối. Nhờ tách vậy, `PasswordService`/`TokenService` dễ unit test độc lập (không cần mock DB/HTTP).
 
@@ -1563,7 +1553,7 @@ Nếu gửi mail fail: log lại, **không rollback DB** — user đã tồn t�
 
 ## 8. Testing Strategy
 
-Theo `../api-conventions.md`: nhóm `auth` là **bắt buộc phải có e2e test**. Unit test bắt buộc cho mọi service có business logic (`AuthService`, `TokenService`, `PasswordService`).
+Theo `../convention/api-conventions.md`: nhóm `auth` là **bắt buộc phải có e2e test**. Unit test bắt buộc cho mọi service có business logic (`AuthService`, `TokenService`, `PasswordService`).
 
 | Endpoint                             | Happy path | Validation | Auth | Security | Edge case |
 | ------------------------------------ | :--------: | :--------: | :--: | :------: | :-------: |
@@ -1608,10 +1598,10 @@ Auth MVP chỉ được coi là hoàn thành khi:
 - [ ] Refresh token luôn nằm trong cookie `HttpOnly`+`Secure`+`SameSite`, không bao giờ xuất hiện trong response body/log
 - [ ] Mọi response `/auth/*` dùng đúng Response DTO ở bảng mục 6 (không có endpoint nào trả object nội bộ)
 - [ ] Không leak sensitive field (passwordHash, tokenHash...) qua bất kỳ response nào
-- [ ] Toàn bộ error response của `/auth/*` tuân theo error envelope chung `{ statusCode, message }` (theo `../api-conventions.md` §7 — lưu ý `PrismaExceptionFilter` global **chưa được implement** trong repo, là gap đã biết non-blocking; lỗi domain đã biết trước ở auth (409 email tồn tại, 401 sai credential...) phải tự ném exception có message rõ ràng ở service, không phó mặc cho filter chưa tồn tại)
+- [ ] Toàn bộ error response của `/auth/*` tuân theo error envelope chung `{ statusCode, message }` (theo `../convention/api-conventions.md` §7 — lưu ý `PrismaExceptionFilter` global **chưa được implement** trong repo, là gap đã biết non-blocking; lỗi domain đã biết trước ở auth (409 email tồn tại, 401 sai credential...) phải tự ném exception có message rõ ràng ở service, không phó mặc cho filter chưa tồn tại)
 - [ ] Unit tests pass (`npm run test`)
 - [ ] `npm run test:cov` đạt threshold coverage của project
-- [ ] E2E tests pass (`npm run test:e2e`, bắt buộc theo `../api-conventions.md`)
+- [ ] E2E tests pass (`npm run test:e2e`, bắt buộc theo `../convention/api-conventions.md`)
 - [ ] Swagger đúng contract
 - [ ] `npm run lint` pass
 - [ ] `npm run format` (hoặc format check) pass

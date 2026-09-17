@@ -18,24 +18,28 @@ Prisma không gọi là "biến" — gọi là **field** (nằm trong 1 **model*
 
 Ví dụ đọc từng phần của dòng `email String @unique @db.VarChar(255)`:
 
-| Phần | Ý nghĩa |
-|---|---|
-| `email` | tên field (dùng trong code TypeScript: `user.email`) |
-| `String` | kiểu dữ liệu Prisma (tương ứng cột `TEXT`/`VARCHAR` bên Postgres) |
-| `@unique` | thêm ràng buộc UNIQUE cho cột này |
+| Phần               | Ý nghĩa                                                                                 |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `email`            | tên field (dùng trong code TypeScript: `user.email`)                                    |
+| `String`           | kiểu dữ liệu Prisma (tương ứng cột `TEXT`/`VARCHAR` bên Postgres)                       |
+| `@unique`          | thêm ràng buộc UNIQUE cho cột này                                                       |
 | `@db.VarChar(255)` | ép kiểu cột thật trong Postgres là `VARCHAR(255)` (không thì Prisma mặc định ra `TEXT`) |
 
 Nếu field là **nullable** (được phép NULL), thêm dấu `?` ngay sau kiểu:
+
 ```
 revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
 ```
+
 `DateTime?` = cột này có thể NULL. Không có `?` = bắt buộc phải có giá trị (NOT NULL).
 
 Field kiểu **quan hệ** (FK) luôn đi theo **cặp 2 dòng**:
+
 ```
 categoryId String   @map("category_id") @db.Uuid        // 1. cột FK thật (lưu UUID)
 category   Category @relation(fields: [categoryId], references: [id])  // 2. field quan hệ (dùng để .include() trong code)
 ```
+
 Dòng 1 là cột thật nằm trong DB. Dòng 2 **không tạo cột nào cả** — nó chỉ khai báo với Prisma "field `category` được nối từ `categoryId` sang `Category.id`", để code gọi `product.category` lấy được object Category liên quan.
 
 ---
@@ -72,7 +76,7 @@ enum OrderStatus {
 }
 ```
 
-`enum` giống như kiểu `VARCHAR` nhưng Postgres **tự chặn** giá trị nằm ngoài danh sách — không cần viết `CHECK` tay nữa (đúng vấn đề đã nêu ở review: *"status nên ràng buộc bằng CHECK hoặc ENUM"*).
+`enum` giống như kiểu `VARCHAR` nhưng Postgres **tự chặn** giá trị nằm ngoài danh sách — không cần viết `CHECK` tay nữa (đúng vấn đề đã nêu ở review: _"status nên ràng buộc bằng CHECK hoặc ENUM"_).
 
 ---
 
@@ -125,6 +129,7 @@ model User {
 ```
 
 Giải thích các dòng mới gặp lần đầu:
+
 - `@id` — đánh dấu `id` là Primary Key.
 - `@default(uuid())` — Prisma tự sinh UUID v4 mỗi lần tạo record mới (sinh ở phía code, không phải trong Postgres).
 - `@updatedAt` — Prisma tự set lại giá trị này = thời điểm hiện tại mỗi lần `update()`, không cần tự gán tay (giống hệt cách `Todo.updatedAt` đang làm ở model có sẵn).
@@ -191,6 +196,7 @@ model Product {
 ```
 
 Field FK đầu tiên xuất hiện — đọc kỹ cặp `categoryId` / `category`:
+
 - `categoryId String @map("category_id") @db.Uuid` — **cột thật**, lưu UUID của category cha.
 - `category Category @relation(fields: [categoryId], references: [id])` — khai với Prisma: field `category` được nối bằng cách lấy `categoryId` (ở bảng này) so khớp với `id` (ở bảng `Category`).
 
@@ -244,7 +250,7 @@ model ProductVariant {
 
 `price Decimal @db.Decimal(12, 2)` — **không** dùng `Float` cho tiền, luôn dùng `Decimal` (tránh sai số thập phân khi cộng trừ giá tiền).
 
-`inventory Inventory?` — có dấu `?` vì quan hệ 1:1 **optional** (1 variant *có thể chưa* có dòng inventory nào). `cartItems`/`orderItems` là quan hệ ngược 1:N, chưa tồn tại model đích cũng không sao (giống Bước 4).
+`inventory Inventory?` — có dấu `?` vì quan hệ 1:1 **optional** (1 variant _có thể chưa_ có dòng inventory nào). `cartItems`/`orderItems` là quan hệ ngược 1:N, chưa tồn tại model đích cũng không sao (giống Bước 4).
 
 ## Bước 9 — `inventory` (bảng #7, FK → `product_variants`)
 
@@ -495,27 +501,27 @@ Xác nhận đủ 15 bảng. Muốn xem index có đúng `WHERE` clause không, 
 
 ## Tóm tắt thứ tự (chép nhanh)
 
-| # | Bước | Bảng | FK tới |
-|---|---|---|---|
-| 1 | 1 | *(enum, không phải bảng)* | — |
-| 2 | 3 | `users` | — |
-| 3 | 4 | `categories` | — |
-| 4 | 5 | `roles` | — |
-| 5 | 6 | `products` | `categories` |
-| 6 | 7 | `product_images` | `products` |
-| 7 | 8 | `product_variants` | `products` |
-| 8 | 9 | `inventory` | `product_variants` |
-| 9 | 10 | `carts` | `users` |
-| 10 | 11 | `cart_items` | `carts`, `product_variants` |
-| 11 | 12 | `orders` | `users` |
-| 12 | 13 | `order_items` | `orders`, `product_variants` |
-| 13 | 14 | `user_roles` | `users`, `roles` |
-| 14 | 15 | `refresh_tokens` | `users` |
-| 15 | 16 | `password_reset_tokens` | `users` |
-| 16 | 17 | `email_verification_tokens` | `users` |
-| — | 18 | *(quay lại vá `User`)* | — |
-| — | 19 | *(2 partial unique index)* | — |
-| — | 20 | *(kiểm tra)* | — |
+| #   | Bước | Bảng                        | FK tới                       |
+| --- | ---- | --------------------------- | ---------------------------- |
+| 1   | 1    | _(enum, không phải bảng)_   | —                            |
+| 2   | 3    | `users`                     | —                            |
+| 3   | 4    | `categories`                | —                            |
+| 4   | 5    | `roles`                     | —                            |
+| 5   | 6    | `products`                  | `categories`                 |
+| 6   | 7    | `product_images`            | `products`                   |
+| 7   | 8    | `product_variants`          | `products`                   |
+| 8   | 9    | `inventory`                 | `product_variants`           |
+| 9   | 10   | `carts`                     | `users`                      |
+| 10  | 11   | `cart_items`                | `carts`, `product_variants`  |
+| 11  | 12   | `orders`                    | `users`                      |
+| 12  | 13   | `order_items`               | `orders`, `product_variants` |
+| 13  | 14   | `user_roles`                | `users`, `roles`             |
+| 14  | 15   | `refresh_tokens`            | `users`                      |
+| 15  | 16   | `password_reset_tokens`     | `users`                      |
+| 16  | 17   | `email_verification_tokens` | `users`                      |
+| —   | 18   | _(quay lại vá `User`)_      | —                            |
+| —   | 19   | _(2 partial unique index)_  | —                            |
+| —   | 20   | _(kiểm tra)_                | —                            |
 
 ---
 
@@ -525,63 +531,63 @@ Mọi keyword bên dưới đều đã xuất hiện ít nhất 1 lần ở các
 
 ### A.1. Khối khai báo (block-level keyword)
 
-| Keyword | Ý nghĩa | Ví dụ trong file |
-|---|---|---|
-| `generator client` | Khai báo Prisma tạo ra **Prisma Client** (thư viện TypeScript để code gọi DB) — đã có sẵn đầu file, không đụng vào. | *(không sửa)* |
-| `datasource db` | Khai báo DB thật kết nối tới đâu (Postgres, connection string lấy từ `.env`) — đã có sẵn đầu file, không đụng vào. | *(không sửa)* |
-| `model` | Khai 1 **bảng**. Tên model viết `PascalCase` số ít (`User`), tên bảng thật trong Postgres viết `snake_case` số nhiều (`users`) — nối 2 tên này bằng `@@map`. | `model User { ... }` |
-| `enum` | Khai 1 kiểu liệt kê giá trị cố định. Postgres sẽ tạo ra kiểu `ENUM` thật, tự chặn giá trị lạ ở tầng DB (không cần `CHECK` tay). | `enum UserStatus { ACTIVE BLOCKED }` |
+| Keyword            | Ý nghĩa                                                                                                                                                      | Ví dụ trong file                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| `generator client` | Khai báo Prisma tạo ra **Prisma Client** (thư viện TypeScript để code gọi DB) — đã có sẵn đầu file, không đụng vào.                                          | _(không sửa)_                        |
+| `datasource db`    | Khai báo DB thật kết nối tới đâu (Postgres, connection string lấy từ `.env`) — đã có sẵn đầu file, không đụng vào.                                           | _(không sửa)_                        |
+| `model`            | Khai 1 **bảng**. Tên model viết `PascalCase` số ít (`User`), tên bảng thật trong Postgres viết `snake_case` số nhiều (`users`) — nối 2 tên này bằng `@@map`. | `model User { ... }`                 |
+| `enum`             | Khai 1 kiểu liệt kê giá trị cố định. Postgres sẽ tạo ra kiểu `ENUM` thật, tự chặn giá trị lạ ở tầng DB (không cần `CHECK` tay).                              | `enum UserStatus { ACTIVE BLOCKED }` |
 
 ### A.2. Kiểu dữ liệu field (type)
 
-| Kiểu Prisma | Tương ứng Postgres | Dùng khi nào |
-|---|---|---|
-| `String` | `TEXT` (hoặc `VARCHAR(n)` nếu thêm `@db.VarChar(n)`) | chữ, ví dụ `email`, `name` |
-| `Int` | `INTEGER` | số nguyên đếm được, ví dụ `quantity` |
-| `Boolean` | `BOOLEAN` | cờ đúng/sai, ví dụ `isPrimary` |
-| `Decimal` | `NUMERIC`/`DECIMAL` | **tiền tệ** — bắt buộc, không dùng `Float` vì `Float` có sai số nhị phân khi cộng trừ tiền |
-| `DateTime` | `TIMESTAMP` (hoặc `TIMESTAMPTZ` nếu thêm `@db.Timestamptz(6)`) | thời điểm, ví dụ `createdAt` |
-| Tên 1 model khác (`Category`, `User`, …) | *(không tạo cột riêng)* | field quan hệ — xem A.4 |
-| `Model[]` | *(không tạo cột)* | field quan hệ ngược 1-N, ví dụ `products Product[]` |
-| `Kiểu?` (có dấu `?`) | cột NULL được | field optional, ví dụ `description String?` |
-| *(không có `?`)* | cột `NOT NULL` | field bắt buộc |
+| Kiểu Prisma                              | Tương ứng Postgres                                             | Dùng khi nào                                                                               |
+| ---------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `String`                                 | `TEXT` (hoặc `VARCHAR(n)` nếu thêm `@db.VarChar(n)`)           | chữ, ví dụ `email`, `name`                                                                 |
+| `Int`                                    | `INTEGER`                                                      | số nguyên đếm được, ví dụ `quantity`                                                       |
+| `Boolean`                                | `BOOLEAN`                                                      | cờ đúng/sai, ví dụ `isPrimary`                                                             |
+| `Decimal`                                | `NUMERIC`/`DECIMAL`                                            | **tiền tệ** — bắt buộc, không dùng `Float` vì `Float` có sai số nhị phân khi cộng trừ tiền |
+| `DateTime`                               | `TIMESTAMP` (hoặc `TIMESTAMPTZ` nếu thêm `@db.Timestamptz(6)`) | thời điểm, ví dụ `createdAt`                                                               |
+| Tên 1 model khác (`Category`, `User`, …) | _(không tạo cột riêng)_                                        | field quan hệ — xem A.4                                                                    |
+| `Model[]`                                | _(không tạo cột)_                                              | field quan hệ ngược 1-N, ví dụ `products Product[]`                                        |
+| `Kiểu?` (có dấu `?`)                     | cột NULL được                                                  | field optional, ví dụ `description String?`                                                |
+| _(không có `?`)_                         | cột `NOT NULL`                                                 | field bắt buộc                                                                             |
 
 ### A.3. Attribute gắn trên 1 field (`@...`)
 
-| Attribute | Ý nghĩa | Lưu ý |
-|---|---|---|
-| `@id` | Đánh dấu field này là Primary Key của bảng. | Mỗi model chỉ 1 field có `@id` (trừ khi dùng `@@id` composite — xem A.5). |
-| `@unique` | Thêm ràng buộc `UNIQUE` cho đúng 1 cột này. | Nếu gắn lên field FK (`variantId @unique`) thì biến quan hệ 1-N thành 1-1 (xem Bước 9). |
-| `@default(giá trị)` | Giá trị mặc định khi không truyền lúc tạo record. | Có 4 dạng dùng trong file: `@default(uuid())` (sinh UUID **ở phía code Prisma**, không phải Postgres), `@default(now())` (thời điểm tạo record), `@default(0)` / `@default(false)` (số/cờ mặc định), `@default(ACTIVE)` (giá trị enum mặc định). |
-| `@updatedAt` | Prisma **tự** ghi đè field này = thời điểm hiện tại mỗi lần gọi `.update()` — không tự tay gán trong code. | Chỉ dùng được trên field kiểu `DateTime`. |
-| `@map("ten_cot")` | Đổi tên **cột thật** trong Postgres (field trong code vẫn giữ tên `camelCase`). | Lý do: code TypeScript quy ước `camelCase` (`passwordHash`), Postgres quy ước `snake_case` (`password_hash`). |
-| `@db.<KiểuPostgres>` | Ép kiểu cột thật chính xác hơn kiểu Prisma suy ra mặc định. | Ví dụ: `@db.VarChar(255)` (giới hạn độ dài), `@db.Uuid` (cột UUID thật thay vì text), `@db.Timestamptz(6)` (có timezone, độ chính xác 6 chữ số giây), `@db.Decimal(12, 2)` (tối đa 12 chữ số, 2 số sau dấu phẩy). |
-| `@relation(fields: [...], references: [...], onDelete: ...)` | Khai field quan hệ (phía "nhiều" của FK): field nào ở bảng này (`fields`) khớp với field nào ở bảng kia (`references`). | Luôn đi kèm 1 field cột FK thật đứng ngay phía trên nó (xem mục 0, cặp `categoryId` / `category`). |
+| Attribute                                                    | Ý nghĩa                                                                                                                 | Lưu ý                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@id`                                                        | Đánh dấu field này là Primary Key của bảng.                                                                             | Mỗi model chỉ 1 field có `@id` (trừ khi dùng `@@id` composite — xem A.5).                                                                                                                                                                        |
+| `@unique`                                                    | Thêm ràng buộc `UNIQUE` cho đúng 1 cột này.                                                                             | Nếu gắn lên field FK (`variantId @unique`) thì biến quan hệ 1-N thành 1-1 (xem Bước 9).                                                                                                                                                          |
+| `@default(giá trị)`                                          | Giá trị mặc định khi không truyền lúc tạo record.                                                                       | Có 4 dạng dùng trong file: `@default(uuid())` (sinh UUID **ở phía code Prisma**, không phải Postgres), `@default(now())` (thời điểm tạo record), `@default(0)` / `@default(false)` (số/cờ mặc định), `@default(ACTIVE)` (giá trị enum mặc định). |
+| `@updatedAt`                                                 | Prisma **tự** ghi đè field này = thời điểm hiện tại mỗi lần gọi `.update()` — không tự tay gán trong code.              | Chỉ dùng được trên field kiểu `DateTime`.                                                                                                                                                                                                        |
+| `@map("ten_cot")`                                            | Đổi tên **cột thật** trong Postgres (field trong code vẫn giữ tên `camelCase`).                                         | Lý do: code TypeScript quy ước `camelCase` (`passwordHash`), Postgres quy ước `snake_case` (`password_hash`).                                                                                                                                    |
+| `@db.<KiểuPostgres>`                                         | Ép kiểu cột thật chính xác hơn kiểu Prisma suy ra mặc định.                                                             | Ví dụ: `@db.VarChar(255)` (giới hạn độ dài), `@db.Uuid` (cột UUID thật thay vì text), `@db.Timestamptz(6)` (có timezone, độ chính xác 6 chữ số giây), `@db.Decimal(12, 2)` (tối đa 12 chữ số, 2 số sau dấu phẩy).                                |
+| `@relation(fields: [...], references: [...], onDelete: ...)` | Khai field quan hệ (phía "nhiều" của FK): field nào ở bảng này (`fields`) khớp với field nào ở bảng kia (`references`). | Luôn đi kèm 1 field cột FK thật đứng ngay phía trên nó (xem mục 0, cặp `categoryId` / `category`).                                                                                                                                               |
 
 ### A.4. Giá trị của `onDelete` trong `@relation`
 
-| Giá trị | Hành vi khi xoá record cha | Bảng đang dùng trong file |
-|---|---|---|
-| `Cascade` | Xoá cha → Postgres tự xoá luôn record con. | `ProductImage→Product`, `ProductVariant→Product`, `Inventory→ProductVariant`, `Cart→User`, `CartItem→Cart`, `UserRole→User/Role`, `RefreshToken/PasswordResetToken/EmailVerificationToken→User` |
-| `Restrict` | Xoá cha bị **chặn** nếu còn con tham chiếu tới (phải xoá/xử lý con trước). | `Order→User`, `OrderItem→Order` — vì đơn hàng là hồ sơ tài chính, không được mất khi xoá user |
-| *(không khai — mặc định)* | Prisma dùng `Restrict` cho quan hệ bắt buộc nếu không khai `onDelete` (tuỳ version); nên **luôn khai rõ tay** như file này làm, đừng phụ thuộc mặc định. | `CartItem→ProductVariant`, `OrderItem→ProductVariant` (cố ý không cho xoá variant còn nằm trong giỏ/đơn) |
+| Giá trị                   | Hành vi khi xoá record cha                                                                                                                               | Bảng đang dùng trong file                                                                                                                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Cascade`                 | Xoá cha → Postgres tự xoá luôn record con.                                                                                                               | `ProductImage→Product`, `ProductVariant→Product`, `Inventory→ProductVariant`, `Cart→User`, `CartItem→Cart`, `UserRole→User/Role`, `RefreshToken/PasswordResetToken/EmailVerificationToken→User` |
+| `Restrict`                | Xoá cha bị **chặn** nếu còn con tham chiếu tới (phải xoá/xử lý con trước).                                                                               | `Order→User`, `OrderItem→Order` — vì đơn hàng là hồ sơ tài chính, không được mất khi xoá user                                                                                                   |
+| _(không khai — mặc định)_ | Prisma dùng `Restrict` cho quan hệ bắt buộc nếu không khai `onDelete` (tuỳ version); nên **luôn khai rõ tay** như file này làm, đừng phụ thuộc mặc định. | `CartItem→ProductVariant`, `OrderItem→ProductVariant` (cố ý không cho xoá variant còn nằm trong giỏ/đơn)                                                                                        |
 
 ### A.5. Attribute gắn ở cuối model (`@@...`, 2 dấu `@`)
 
-| Attribute | Ý nghĩa |
-|---|---|
-| `@@map("ten_bang")` | Đổi tên **bảng thật** trong Postgres (model vẫn giữ tên `PascalCase` trong code). |
-| `@@id([field1, field2])` | Khai **composite Primary Key** gồm nhiều field cộng lại — dùng khi bảng nối M:N thuần không cần cột `id` riêng (xem `UserRole` ở Bước 14). |
-| `@@index([field1, field2, ...])` | Tạo 1 **composite index** (không phải unique) để tăng tốc truy vấn lọc/sắp theo đúng thứ tự field liệt kê. |
-| `field(sort: Desc)` bên trong `@@index([...])` | Chỉ định cột đó sắp giảm dần trong index — khớp với truy vấn `ORDER BY createdAt DESC` (listing "mới nhất trước"). |
+| Attribute                                      | Ý nghĩa                                                                                                                                    |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@@map("ten_bang")`                            | Đổi tên **bảng thật** trong Postgres (model vẫn giữ tên `PascalCase` trong code).                                                          |
+| `@@id([field1, field2])`                       | Khai **composite Primary Key** gồm nhiều field cộng lại — dùng khi bảng nối M:N thuần không cần cột `id` riêng (xem `UserRole` ở Bước 14). |
+| `@@index([field1, field2, ...])`               | Tạo 1 **composite index** (không phải unique) để tăng tốc truy vấn lọc/sắp theo đúng thứ tự field liệt kê.                                 |
+| `field(sort: Desc)` bên trong `@@index([...])` | Chỉ định cột đó sắp giảm dần trong index — khớp với truy vấn `ORDER BY createdAt DESC` (listing "mới nhất trước").                         |
 
 ### A.6. Ký hiệu không phải chữ (symbol)
 
-| Ký hiệu | Ý nghĩa |
-|---|---|
-| `?` ngay sau kiểu (`String?`, `DateTime?`) | Field nullable — cột được phép NULL. |
+| Ký hiệu                                           | Ý nghĩa                                                                                                 |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `?` ngay sau kiểu (`String?`, `DateTime?`)        | Field nullable — cột được phép NULL.                                                                    |
 | `[]` ngay sau tên model (`Cart[]`, `OrderItem[]`) | Field quan hệ 1 → nhiều, chỉ tồn tại phía code (không tạo cột), dùng để `.include()` lấy danh sách con. |
-| `//` | Comment 1 dòng trong `schema.prisma` (giống TypeScript). |
+| `//`                                              | Comment 1 dòng trong `schema.prisma` (giống TypeScript).                                                |
 
 ---
 
@@ -593,6 +599,7 @@ Mọi keyword bên dưới đều đã xuất hiện ít nhất 1 lần ở các
 # 1) Sau khi đã gõ xong đủ 15 model + 5 enum vào prisma/schema.prisma (Bước 1-18):
 npx prisma migrate dev --create-only --name init_ecommerce
 ```
+
 - `prisma migrate dev` — lệnh chuẩn để: so sánh `schema.prisma` với DB hiện tại → sinh ra file SQL migration mới → áp dụng vào DB → chạy lại `prisma generate`.
 - `--create-only` — **chỉ sinh file SQL**, KHÔNG áp dụng vào DB, KHÔNG chạy `generate`. Bắt buộc phải dùng cờ này ở bước này vì bạn cần **sửa tay** file SQL trước khi nó chạy thật (thêm 2 partial unique index mà Prisma schema không viết được).
 - `--name init_ecommerce` — đặt tên migration, sẽ ra thư mục `prisma/migrations/<timestamp>_init_ecommerce/`.
@@ -605,6 +612,7 @@ CREATE UNIQUE INDEX "carts_user_id_active_unique"
 CREATE UNIQUE INDEX "product_images_product_id_primary_unique"
   ON "product_images" ("product_id") WHERE "is_primary" = true;
 ```
+
 - Đây là **raw SQL Postgres** thuần, không phải Prisma DSL — vì Prisma schema hiện chưa có cú pháp khai "unique index kèm điều kiện `WHERE`" (partial unique index).
 - Phải thêm **sau khi** file migration đã sinh (bước 1), **trước khi** áp dụng migration (bước 3) — nếu làm ngược thứ tự, `--create-only` sẽ không có file nào để sửa, hoặc migration đã chạy rồi thì phải tạo migration mới để thêm 2 dòng này thay vì sửa file cũ.
 
@@ -612,18 +620,21 @@ CREATE UNIQUE INDEX "product_images_product_id_primary_unique"
 # 3) Áp dụng migration thật vào DB (đã bao gồm cả 2 dòng SQL tay ở bước 2):
 npx prisma migrate dev
 ```
+
 - Gọi lại **không có** `--create-only` lần này → Prisma thấy đã có migration file "chờ áp dụng" (từ bước 1, đã sửa ở bước 2) → chạy toàn bộ SQL trong đó vào Postgres → tự chạy `prisma generate` luôn ở cuối.
 
 ```bash
 # 4) (Thường tự chạy ở bước 3, chạy tay lại nếu cần) sinh lại Prisma Client:
 npx prisma generate
 ```
+
 - Đọc `schema.prisma` → sinh ra code TypeScript (nằm trong `node_modules/.prisma/client` hoặc theo `output` cấu hình) để code NestJS gọi được `prisma.user.findMany()`, `prisma.product.create()`, v.v. Cần chạy lại **mỗi khi** `schema.prisma` đổi.
 
 ```bash
 # 5) Kiểm tra lại bằng UI:
 npx prisma studio
 ```
+
 - Mở giao diện web (mặc định `http://localhost:5555`) để xem trực tiếp dữ liệu/cấu trúc 15 bảng — dùng để xác nhận bằng mắt là đủ bảng, đúng cột.
 
 ```sql
@@ -631,18 +642,19 @@ npx prisma studio
 \d carts
 \d product_images
 ```
+
 - `\d <tên_bảng>` là lệnh **của `psql`** (CLI của Postgres, không phải của Prisma) — in ra cấu trúc bảng kèm danh sách toàn bộ index, dùng để xác nhận 2 dòng `CREATE UNIQUE INDEX ... WHERE ...` đã được tạo đúng.
 
 ### Tóm tắt thứ tự lệnh (chép nhanh)
 
-| # | Lệnh | Chạy ở đâu | Mục đích |
-|---|---|---|---|
-| 1 | `npx prisma migrate dev --create-only --name init_ecommerce` | terminal, tại root project | sinh file SQL migration, chưa áp dụng |
-| 2 | *(sửa tay file `migration.sql`)* | editor | thêm 2 partial unique index |
-| 3 | `npx prisma migrate dev` | terminal | áp dụng migration thật vào Postgres |
-| 4 | `npx prisma generate` | terminal | sinh lại Prisma Client (thường tự chạy ở #3) |
-| 5 | `npx prisma studio` | terminal → mở browser | xem trực quan dữ liệu/bảng |
-| 6 | `\d carts`, `\d product_images` | trong `psql` | xác nhận 2 index có `WHERE` clause |
+| #   | Lệnh                                                         | Chạy ở đâu                 | Mục đích                                     |
+| --- | ------------------------------------------------------------ | -------------------------- | -------------------------------------------- |
+| 1   | `npx prisma migrate dev --create-only --name init_ecommerce` | terminal, tại root project | sinh file SQL migration, chưa áp dụng        |
+| 2   | _(sửa tay file `migration.sql`)_                             | editor                     | thêm 2 partial unique index                  |
+| 3   | `npx prisma migrate dev`                                     | terminal                   | áp dụng migration thật vào Postgres          |
+| 4   | `npx prisma generate`                                        | terminal                   | sinh lại Prisma Client (thường tự chạy ở #3) |
+| 5   | `npx prisma studio`                                          | terminal → mở browser      | xem trực quan dữ liệu/bảng                   |
+| 6   | `\d carts`, `\d product_images`                              | trong `psql`               | xác nhận 2 index có `WHERE` clause           |
 
 ---
 
@@ -668,6 +680,7 @@ src/
 Vì sao gộp `RefreshToken`/`PasswordResetToken`/`EmailVerificationToken` vào `users/` thay vì tách module riêng: 3 bảng này chỉ tồn tại **để phục vụ** nghiệp vụ của `User` (đăng nhập/quên mật khẩu/xác thực email), không có nghiệp vụ độc lập nào khác cần tới chúng — tách module riêng chỉ làm phình cấu trúc không cần thiết.
 
 Sinh khung module/service/controller (lặp lại cho từng domain, ví dụ `products`):
+
 ```bash
 npx nest g module products --no-spec
 npx nest g service products --no-spec
@@ -675,6 +688,7 @@ npx nest g controller products --no-spec
 ```
 
 `ProductsService` inject `PrismaService` giống hệt `TodosService` đã làm ở PLAN.md Bước 22:
+
 ```typescript
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -725,6 +739,7 @@ export class ProductsService {
 ```
 
 Từ khoá/kiểu mới xuất hiện:
+
 - `Prisma.ProductCreateInput` / `Prisma.ProductUpdateInput` — Prisma **tự sinh** 2 type này (nằm cùng chỗ export `PrismaClient`, ví dụ `../generated/prisma/client.js`) khớp chính xác các field của model `Product`, dùng làm kiểu tham số cho DTO thay vì tự định nghĩa tay type input.
 - `findUnique({ where: { id } })` — chỉ dùng được khi field trong `where` có `@id` hoặc `@unique` (đúng lý do `Inventory.variantId` phải có `@unique` ở Bước 9 — nếu không sẽ phải dùng `findFirst` thay vì `findUnique`).
 - `remove()` gọi `.delete()` **không cần tự xoá tay** `ProductImage`/`ProductVariant` con — Postgres tự cascade nhờ `onDelete: Cascade` đã khai ở Bước 7-8.
@@ -747,11 +762,13 @@ findOneWithDetails(id: string) {
 - `include: { category: true }` — lấy kèm object `Category` cha (field quan hệ `category` khai ở Bước 6), tương đương SQL `JOIN`.
 - `include` có thể **lồng nhau** (`variants: { include: { inventory: true } }`) — lấy `Product → variants → inventory` chỉ trong 1 query.
 - `select` là **lựa chọn thay thế** cho `include`: dùng khi chỉ cần vài field cụ thể (không lấy nguyên object) để giảm dữ liệu trả về:
+
 ```typescript
 this.prisma.product.findMany({
   select: { id: true, name: true, category: { select: { name: true } } },
 });
 ```
+
 **Không dùng `include` và `select` cùng lúc trên 1 field** — Prisma báo lỗi nếu lẫn cả hai ở cùng cấp.
 
 ## Bước 24 — Ghi nhiều bảng cùng lúc: `$transaction`
@@ -799,6 +816,7 @@ async checkout(cartId: string, userId: string) {
 ```
 
 Từ khoá mới:
+
 - `findUniqueOrThrow` — giống `findUnique` nhưng **tự throw exception** (`PrismaClientKnownRequestError` mã `P2025`) nếu không tìm thấy, khỏi phải tự viết `if (!cart) throw ...`.
 - `$transaction(async (tx) => { ... })` — dạng **interactive transaction**: mọi lệnh gọi qua `tx.` (không phải `this.prisma.`) bên trong callback này chạy trong **cùng 1 transaction Postgres thật** — nếu bất kỳ lệnh nào bên trong throw lỗi, **toàn bộ tự động rollback**, không cần tự viết `try/catch` + rollback tay.
 - `data: { items: { create: [...] } }` — **nested write**: tạo `Order` và toàn bộ `OrderItem` con của nó trong **1 lệnh `create` duy nhất** (Prisma tự lo thứ tự insert đúng để FK hợp lệ), thay vì tách thành nhiều lệnh `create` riêng.
@@ -809,6 +827,7 @@ Từ khoá mới:
 ## Bước 25 — Lọc nâng cao trên quan hệ: `some` / `every` / `none`
 
 Ví dụ: tìm sản phẩm **còn ít nhất 1 variant còn hàng** (`quantity > 0`):
+
 ```typescript
 this.prisma.product.findMany({
   where: {
@@ -817,6 +836,7 @@ this.prisma.product.findMany({
   },
 });
 ```
+
 - `some: {...}` — đúng nếu **ít nhất 1** record quan hệ con khớp điều kiện. `every: {...}` — đúng nếu **tất cả** con khớp. `none: {...}` — đúng nếu **không có con nào** khớp. Cả 3 chỉ dùng được trên field quan hệ kiểu `[]` (1-N), không dùng được trên quan hệ 1-1.
 - `gt` (greater than) là 1 trong các toán tử so sánh Prisma hỗ trợ trong `where` cho field số/ngày: `gt`, `gte`, `lt`, `lte`, `not`, `in`, `notIn` — ví dụ `createdAt: { gte: fromDate, lte: toDate }`.
 - Kết hợp `OR`/`AND` tay khi cần logic phức tạp hơn: `where: { OR: [{ name: { contains: q } }, { slug: { contains: q } }] }` (`contains` = tìm chuỗi con, thêm `mode: 'insensitive'` để không phân biệt hoa/thường).
@@ -824,12 +844,15 @@ this.prisma.product.findMany({
 ## Bước 26 — Phân trang: `skip`/`take` vs cursor
 
 **Offset pagination** (đơn giản, đủ dùng cho admin dashboard ít dữ liệu):
+
 ```typescript
 this.prisma.product.findMany({ skip: (page - 1) * pageSize, take: pageSize, orderBy: { createdAt: 'desc' } });
 ```
+
 Nhược điểm: `skip` càng lớn thì Postgres càng phải quét bỏ qua càng nhiều dòng — chậm dần khi dữ liệu lớn.
 
 **Cursor pagination** (khuyến nghị cho listing sản phẩm công khai, khớp với `@@index([categoryId, status, createdAt(sort: Desc)])` đã khai ở Bước 6):
+
 ```typescript
 this.prisma.product.findMany({
   where: { categoryId, status: 'ACTIVE' },
@@ -838,6 +861,7 @@ this.prisma.product.findMany({
   ...(lastSeenId && { cursor: { id: lastSeenId }, skip: 1 }),
 });
 ```
+
 - `cursor: { id: lastSeenId }` — bắt đầu lấy dữ liệu **ngay sau** record có `id` này (record cuối của trang trước) — Postgres seek thẳng tới vị trí đó bằng index, không quét từ đầu.
 - `skip: 1` — bỏ qua chính record cursor (đã hiển thị ở trang trước), lấy `pageSize` record **tiếp theo**.
 
@@ -910,36 +934,41 @@ main()
 ```
 
 Từ khoá mới:
+
 - `upsert({ where, update, create })` — "update nếu đã tồn tại, create nếu chưa" trong **1 lệnh** — bắt buộc dùng cho bất kỳ dữ liệu seed nào có field `@unique`, để chạy `npx prisma db seed` lại nhiều lần **không bị lỗi** `Unique constraint failed`.
 - `userId_roleId: { userId, roleId }` — tên field tổng hợp Prisma **tự đặt** cho composite key khai bằng `@@id([userId, roleId])` (Bước 14): ghép 2 tên field bằng dấu `_`, dùng làm key trong `where` khi 1 model không có field `id` đơn.
 - `variants: { create: [{ ..., inventory: { create: {...} } }] }` — nested create **3 tầng** (`Product → ProductVariant → Inventory`) trong 1 lệnh `.create()` duy nhất, Prisma tự đảm bảo thứ tự insert đúng theo FK.
 
 Chạy seed (đã khai `seed` trong `prisma.config.ts` ở PLAN.md Bước 22 phần mở rộng):
+
 ```bash
 npx prisma db seed
 ```
 
 ## Bước 28 — Sửa schema an toàn sau khi đã có dữ liệu thật
 
-| Tình huống | Cách làm an toàn |
-|---|---|
-| Thêm cột **bắt buộc** (`NOT NULL`) vào bảng đã có data | Không thêm thẳng field không có `?` và không có `@default(...)` — `migrate dev` sẽ hỏi giá trị mặc định cho các dòng cũ hoặc lỗi nếu chạy `migrate deploy`. Luôn thêm kèm `@default(...)` hoặc để `?` trước, sau này muốn bắt buộc thì tách thành 2 migration (thêm cột nullable → backfill data → đổi thành NOT NULL). |
-| Đổi tên field | Sửa tên trong `schema.prisma` **kèm** `@map("ten_cot_cu")` nếu muốn giữ nguyên tên cột thật (tránh Prisma tạo migration `DROP COLUMN` + `ADD COLUMN` làm mất data) — hoặc chấp nhận migration rename thật (`ALTER TABLE ... RENAME COLUMN`) bằng cách sửa tay file SQL sinh ra trước khi apply, giống cách làm partial index ở Bước 19. |
-| Xoá cột/bảng không dùng nữa | Chạy `--create-only` trước, đọc kỹ SQL sinh ra (`DROP COLUMN`/`DROP TABLE`) để chắc chắn không xoá nhầm bảng đang có data quan trọng, rồi mới apply. |
-| Đổi kiểu FK / thắt chặt ràng buộc | Kiểm tra data cũ có vi phạm ràng buộc mới không **trước khi** apply (ví dụ thêm `@unique` vào cột đang có giá trị trùng sẽ làm migration fail giữa chừng). |
+| Tình huống                                             | Cách làm an toàn                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Thêm cột **bắt buộc** (`NOT NULL`) vào bảng đã có data | Không thêm thẳng field không có `?` và không có `@default(...)` — `migrate dev` sẽ hỏi giá trị mặc định cho các dòng cũ hoặc lỗi nếu chạy `migrate deploy`. Luôn thêm kèm `@default(...)` hoặc để `?` trước, sau này muốn bắt buộc thì tách thành 2 migration (thêm cột nullable → backfill data → đổi thành NOT NULL).                 |
+| Đổi tên field                                          | Sửa tên trong `schema.prisma` **kèm** `@map("ten_cot_cu")` nếu muốn giữ nguyên tên cột thật (tránh Prisma tạo migration `DROP COLUMN` + `ADD COLUMN` làm mất data) — hoặc chấp nhận migration rename thật (`ALTER TABLE ... RENAME COLUMN`) bằng cách sửa tay file SQL sinh ra trước khi apply, giống cách làm partial index ở Bước 19. |
+| Xoá cột/bảng không dùng nữa                            | Chạy `--create-only` trước, đọc kỹ SQL sinh ra (`DROP COLUMN`/`DROP TABLE`) để chắc chắn không xoá nhầm bảng đang có data quan trọng, rồi mới apply.                                                                                                                                                                                    |
+| Đổi kiểu FK / thắt chặt ràng buộc                      | Kiểm tra data cũ có vi phạm ràng buộc mới không **trước khi** apply (ví dụ thêm `@unique` vào cột đang có giá trị trùng sẽ làm migration fail giữa chừng).                                                                                                                                                                              |
 
 Lệnh hữu ích khi thao tác migration:
+
 ```bash
 npx prisma migrate status      # xem migration nào đã/chưa apply vào DB đang kết nối
 npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma
 npx prisma migrate deploy      # dùng ở production/CI — CHỈ áp dụng migration có sẵn, không tự sinh migration mới, không hỏi tương tác
 ```
+
 - `migrate dev` chỉ dùng ở **máy dev** (có thể tự sinh migration mới, tự hỏi tương tác); `migrate deploy` mới là lệnh dùng khi **deploy thật** (production/CI) — không bao giờ chạy `migrate dev` trên production.
 - Prisma **không có lệnh "rollback" tự động** cho 1 migration đã apply — muốn revert thì viết 1 migration **mới** làm ngược lại thay đổi đó (ví dụ migration thêm cột thì migration revert là `DROP COLUMN` cột đó), không sửa/xoá file migration cũ đã apply.
 
 ## Bước 29 — Test service dùng Prisma
 
 **Unit test** (mock toàn bộ `PrismaService`, không đụng DB thật — nhanh, dùng cho logic nghiệp vụ):
+
 ```typescript
 import { Test } from '@nestjs/testing';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
@@ -965,21 +994,25 @@ describe('ProductsService', () => {
   });
 });
 ```
+
 - `mockDeep<PrismaService>()` (package `jest-mock-extended`) — tự sinh mock cho **toàn bộ** method lồng nhau của Prisma Client (`prisma.product.findUnique`, `prisma.order.create`, …) mà không cần tự viết tay từng hàm giả.
 - Test này **không cần Postgres chạy thật** — chạy được trong CI không có DB.
 
 **Integration test** (dùng DB test thật, kiểm tra query/transaction/constraint hoạt động đúng):
+
 ```bash
 # .env.test trỏ tới 1 database Postgres riêng (KHÔNG dùng chung DB dev)
 npx dotenv -e .env.test -- npx prisma migrate deploy   # apply toàn bộ migration vào DB test
 npx dotenv -e .env.test -- jest --config jest.integration.config.ts
 ```
+
 - Mỗi lần chạy: **reset về trạng thái sạch** trước khi test bằng `npx prisma migrate reset --force --skip-seed` (xoá sạch data + apply lại migration), tránh test trước ảnh hưởng test sau.
 - Không dùng chung database dev/production cho integration test — luôn dùng DB/schema riêng để `migrate reset` không xoá nhầm data thật.
 
 ## Bước 30 — Tránh N+1 query & đo hiệu năng
 
 **N+1 problem** — lỗi hiệu năng phổ biến nhất khi mới dùng ORM:
+
 ```typescript
 // ❌ SAI — 1 query lấy list + N query lấy category cho từng product (N+1)
 const products = await this.prisma.product.findMany();
@@ -992,29 +1025,37 @@ const products = await this.prisma.product.findMany({ include: { category: true 
 ```
 
 Bật log để tự đếm số query thật sự chạy xuống Postgres (sửa `PrismaService` ở PLAN.md Bước 20, thêm option `log`):
+
 ```typescript
 super({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
   log: ['query'],
 });
 ```
+
 `log: ['query']` in ra **mọi câu SQL thật** Prisma gửi xuống Postgres kèm thời gian chạy — dùng để phát hiện chỗ nào đang bị N+1 (thấy nhiều dòng log lặp lại cùng 1 câu SQL chỉ khác tham số).
 
 Kiểm tra index có được dùng không bằng `psql`:
+
 ```sql
 EXPLAIN ANALYZE
 SELECT * FROM products WHERE category_id = '...' AND status = 'ACTIVE' ORDER BY created_at DESC LIMIT 20;
 ```
+
 Nếu kết quả hiện `Index Scan using products_category_id_status_created_at_idx` (đúng tên index sinh ra từ `@@index` ở Bước 6) → tốt. Nếu hiện `Seq Scan` (quét toàn bảng) dù đã có `@@index` → kiểm tra lại đúng thứ tự field trong `where`/`orderBy` có khớp đúng thứ tự khai trong `@@index` không (Postgres composite index chỉ tối ưu tốt khi dùng đúng thứ tự cột từ trái sang).
 
 ## Bước 31 — Transaction isolation level (khi cần chặt hơn mặc định)
 
 Mặc định Postgres/Prisma dùng mức `Read Committed` — đủ cho hầu hết nghiệp vụ, nhưng **không tự chặn** 2 request checkout cùng lúc cùng đọc thấy `quantity = 1` rồi cùng trừ kho (oversell). Khi cần chặt hơn:
+
 ```typescript
 await this.prisma.$transaction(
-  async (tx) => { /* ...logic checkout Bước 24... */ },
+  async (tx) => {
+    /* ...logic checkout Bước 24... */
+  },
   { isolationLevel: 'Serializable' },
 );
 ```
+
 - `isolationLevel: 'Serializable'` — Postgres đảm bảo hành vi giống như các transaction chạy **lần lượt tuyệt đối**, không transaction nào thấy được thay đổi "nửa chừng" của transaction khác — transaction thua sẽ tự **fail và cần retry** (bọc thêm logic `try/catch` + retry hữu hạn lần khi gặp lỗi `P2034`).
 - Cân nhắc đánh đổi: `Serializable` an toàn nhất nhưng **chậm hơn** và có thể phải retry — chỉ dùng cho đúng chỗ có rủi ro race-condition thật (trừ kho, giữ chỗ), không áp dụng tràn lan cho mọi transaction.

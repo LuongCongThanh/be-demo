@@ -25,7 +25,7 @@
 | 11  | [11-reset-password.md](./11-reset-password.md)           | `POST /auth/reset-password`                                                                                            |
 | 12  | [12-rate-limiting.md](./12-rate-limiting.md)             | `@nestjs/throttler` cho các endpoint nhạy cảm                                                                          |
 | 13  | [13-testing.md](./13-testing.md)                         | Unit test + E2E test                                                                                                   |
-| 14  | [14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md)   | Swagger/OpenAPI, đồng bộ `doc/module-auth.md`, quality check cuối                                                      |
+| 14  | [14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md)   | Swagger/OpenAPI, đồng bộ `module-auth.md`, quality check cuối                                                          |
 
 > Bản gốc dạng 1 file duy nhất (trước khi tách folder) được giữ lại ở `auth-engineering-playbook.md` làm archive tham khảo. Không dùng để code theo nữa; mọi cập nhật từ nay áp dụng vào folder `doc/auth-playbook/` này.
 
@@ -92,7 +92,7 @@ Tài liệu này mô tả cách implement **Authentication & Authorization MVP**
 | 17  | Refresh token delivery               | HttpOnly + Secure + SameSite cookie, `path` giới hạn theo prefix route auth thực tế (mặc định `/auth`): server set, JS không đọc được, không trả trong response body            | Target chính là web browser; giảm rủi ro XSS đọc được refresh token so với để frontend lưu `localStorage`. Giới hạn `path` giúp cookie chỉ gửi kèm request tới route auth, không gửi tới toàn site. Access token vẫn trả trong response body (ngắn hạn, chấp nhận rủi ro thấp hơn) |
 | 18  | Refresh token type                   | Opaque random token (không phải JWT) → hash SHA-256 → lưu `tokenHash`                                                                                                           | Khớp đúng với schema hiện tại (`refresh_tokens.tokenHash`, rotation, reuse detection); không cần `JWT_REFRESH_SECRET` vì không ký/verify bằng JWT                                                                                                                                  |
 
-### Lỗi cần sửa kèm trong `doc/module-auth.md`
+### Lỗi cần sửa kèm trong `module-auth.md`
 
 - Bảng API tổng kết ở mục 4 thiếu dòng `POST /auth/logout-all`.
 - Xem thêm [Known Gaps](#10-known-gaps) để cập nhật đồng bộ 2 file.
@@ -327,7 +327,7 @@ Nếu gửi mail fail: log lại, **không rollback DB**. User đã tồn tại 
 
 ## 7. Testing Strategy
 
-Theo `doc/api-conventions.md`: nhóm `auth` là **bắt buộc phải có e2e test**. Unit test bắt buộc cho mọi service có business logic (`AuthService`, `TokenService`, `PasswordService`).
+Theo `../convention/api-conventions.md`: nhóm `auth` là **bắt buộc phải có e2e test**. Unit test bắt buộc cho mọi service có business logic (`AuthService`, `TokenService`, `PasswordService`).
 
 | Endpoint                             | Happy path | Validation | Auth | Security | Edge case |
 | ------------------------------------ | :--------: | :--------: | :--: | :------: | :-------: |
@@ -372,16 +372,16 @@ Auth MVP chỉ được coi là hoàn thành khi:
 - [ ] Refresh token luôn nằm trong cookie `HttpOnly`+`Secure`+`SameSite`, không bao giờ xuất hiện trong response body/log
 - [ ] Mọi response `/auth/*` dùng đúng Response DTO ở bảng mục 5 (không có endpoint nào trả object nội bộ)
 - [ ] Không leak sensitive field (passwordHash, tokenHash...) qua bất kỳ response nào
-- [ ] Toàn bộ error response của `/auth/*` tuân theo error envelope chung `{ statusCode, message }` (theo `doc/api-conventions.md` §7, lưu ý `PrismaExceptionFilter` global **chưa được implement** trong repo, là gap đã biết non-blocking; lỗi domain đã biết trước ở auth (409 email tồn tại, 401 sai credential...) phải tự ném exception có message rõ ràng ở service, không phó mặc cho filter chưa tồn tại)
+- [ ] Toàn bộ error response của `/auth/*` tuân theo error envelope chung `{ statusCode, message }` (theo `../convention/api-conventions.md` §7, lưu ý `PrismaExceptionFilter` global **chưa được implement** trong repo, là gap đã biết non-blocking; lỗi domain đã biết trước ở auth (409 email tồn tại, 401 sai credential...) phải tự ném exception có message rõ ràng ở service, không phó mặc cho filter chưa tồn tại)
 - [ ] Unit tests pass (`npm run test`)
 - [ ] `npm run test:cov` đạt threshold coverage của project
-- [ ] E2E tests pass (`npm run test:e2e`, bắt buộc theo `doc/api-conventions.md`)
+- [ ] E2E tests pass (`npm run test:e2e`, bắt buộc theo `../convention/api-conventions.md`)
 - [ ] Swagger đúng contract
 - [ ] `npm run lint` pass
 - [ ] `npm run format` (hoặc format check) pass
 - [ ] `npm run build` pass
 - [ ] Không có secret/token/password nào xuất hiện trong log
-- [ ] `doc/module-auth.md` đã đồng bộ lại ([14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md))
+- [ ] `module-auth.md` đã đồng bộ lại ([14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md))
 - [ ] PR reviewed
 
 ---
@@ -415,4 +415,4 @@ Các điểm cố ý để ngoài scope MVP này, ghi lại để không bị qu
 - **Device fingerprinting**: ngoài scope. Vì vậy thuật ngữ "Session" (quyết định #14) chỉ là phiên đăng nhập logic, không xác thực được đây có đúng là 1 thiết bị vật lý hay không.
 - **SSO**: ngoài scope.
 - **Permission matrix nâng cao** (permission rời rạc ngoài Role + Ownership): ngoài scope; Role + Ownership + business rule trong Service là đủ cho MVP.
-- **`doc/module-auth.md` cần đồng bộ lại** theo [14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md): chưa làm thì hai file sẽ lệch nhau.
+- **`module-auth.md` cần đồng bộ lại** theo [14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md): chưa làm thì hai file sẽ lệch nhau.
