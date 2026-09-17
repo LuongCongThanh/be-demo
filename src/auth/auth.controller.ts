@@ -37,6 +37,11 @@ import type { JwtPayload } from './strategies/jwt.strategy.js';
 // path này rải rác và dễ lệch nhau.
 const REFRESH_TOKEN_COOKIE_PATH = '/auth';
 
+// Mức throttle mặc định (20 request/phút) cho các route không cần siết chặt
+// hơn mức global — dùng chung để đổi 1 chỗ thay vì lặp lại object này ở từng
+// `@Throttle()` (register, verify-email, refresh).
+const DEFAULT_THROTTLE = { default: { limit: 20, ttl: 60_000 } };
+
 @ApiTags('Authentication & Authorization')
 @Controller('auth')
 export class AuthController {
@@ -45,7 +50,7 @@ export class AuthController {
     private readonly config: ConfigService,
   ) {}
 
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle(DEFAULT_THROTTLE)
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new CUSTOMER account' })
@@ -56,7 +61,7 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle(DEFAULT_THROTTLE)
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email address using the 6-digit code sent by email' })
@@ -94,7 +99,7 @@ export class AuthController {
   // Route này KHÔNG có JwtAuthGuard — cố ý, vì lúc gọi /auth/refresh access
   // token cũ thường đã hết hạn (đó chính là lý do cần refresh). Route tự xác
   // thực bằng refresh token đọc từ cookie, không phụ thuộc access token.
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle(DEFAULT_THROTTLE)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rotate the refresh token cookie and issue a new access token' })

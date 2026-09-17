@@ -41,17 +41,7 @@ export class MailService {
   }
 
   async sendVerificationEmail(to: string, code: string): Promise<void> {
-    if (!this.transporter) {
-      // Fallback dev/CI: chưa cấu hình SMTP, không thử gửi thật.
-      // Không bao giờ log raw code (quy tắc bảo mật, doc/auth-playbook/00-overview.md §5) —
-      // đây là verification secret còn dùng được.
-      this.logger.log(`[DEV] Would send verification email to ${to}`);
-      return;
-    }
-
-    await this.transporter.sendMail({
-      from: this.from,
-      to,
+    await this.send(to, `[DEV] Would send verification email to ${to}`, {
       subject: 'Verify your email address',
       html: `<p>Your email verification code is:</p><p style="font-size:24px;font-weight:bold">${code}</p><p>This code expires in 10 minutes.</p>`,
       text: `Your email verification code is: ${code} (expires in 10 minutes)`,
@@ -62,20 +52,27 @@ export class MailService {
     const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
     const resetLink = `${frontendUrl}/reset-password?token=${rawToken}`;
 
-    if (!this.transporter) {
-      // Fallback dev/CI: chưa cấu hình SMTP, không thử gửi thật.
-      // Không bao giờ log raw token (quy tắc bảo mật, doc/auth-playbook/00-overview.md §5) —
-      // đây là password reset secret còn dùng được.
-      this.logger.log(`[DEV] Would send password reset email to ${to}`);
-      return;
-    }
-
-    await this.transporter.sendMail({
-      from: this.from,
-      to,
+    await this.send(to, `[DEV] Would send password reset email to ${to}`, {
       subject: 'Reset your password',
       html: `<p>Click the link below to reset your password:</p><p><a href="${resetLink}">${resetLink}</a></p><p>This link expires in 1 hour.</p>`,
       text: `Reset your password: ${resetLink} (expires in 1 hour)`,
     });
+  }
+
+  // Fallback dev/CI dùng chung cho mọi loại email: khi chưa cấu hình SMTP thì
+  // chỉ log `devLogMessage` chứ không thử gửi thật. `devLogMessage` do caller
+  // truyền vào — KHÔNG bao giờ chứa raw code/token (quy tắc bảo mật,
+  // doc/auth-playbook/00-overview.md §5), vì đây vẫn là secret còn dùng được.
+  private async send(
+    to: string,
+    devLogMessage: string,
+    content: { subject: string; html: string; text: string },
+  ): Promise<void> {
+    if (!this.transporter) {
+      this.logger.log(devLogMessage);
+      return;
+    }
+
+    await this.transporter.sendMail({ from: this.from, to, ...content });
   }
 }
