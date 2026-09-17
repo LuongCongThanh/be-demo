@@ -1,5 +1,11 @@
-import { plainToInstance } from 'class-transformer';
+import { Transform, plainToInstance } from 'class-transformer';
 import { IsEmail, IsInt, IsOptional, IsString, Max, Min, MinLength, validateSync } from 'class-validator';
+import { IsStrongPassword } from '../auth/decorators/is-strong-password.decorator.js';
+
+// class-validator's `@IsOptional()` only skips null/undefined, not an empty
+// string — an optional numeric env var left blank (as .env.example does)
+// would otherwise fail `@IsInt()`/`@Min()` instead of being treated as unset.
+const emptyStringToUndefined = () => Transform(({ value }: { value: unknown }) => (value === '' ? undefined : value));
 
 // Biến bắt buộc: thiếu là app không chạy đúng được, nên không có `@IsOptional()`.
 // Biến optional: nơi gọi `ConfigService.get(key, default)` đã tự lo default,
@@ -16,10 +22,10 @@ export class EnvironmentVariables {
   @IsEmail()
   ADMIN_BOOTSTRAP_EMAIL: string;
 
-  @IsString()
-  @MinLength(1)
+  @IsStrongPassword()
   ADMIN_BOOTSTRAP_PASSWORD: string;
 
+  @emptyStringToUndefined()
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -42,8 +48,11 @@ export class EnvironmentVariables {
   @IsString()
   SMTP_HOST?: string;
 
+  @emptyStringToUndefined()
   @IsOptional()
   @IsInt()
+  @Min(1)
+  @Max(65535)
   SMTP_PORT?: number;
 
   @IsOptional()

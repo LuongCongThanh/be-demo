@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { Response } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
+import { getUniqueConstraintTarget } from '../prisma-error.util.js';
 import { RequestContext } from '../request-context.js';
 
 interface ResolvedError {
@@ -51,13 +52,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private resolvePrismaError(exception: Prisma.PrismaClientKnownRequestError): ResolvedError {
     switch (exception.code) {
       case 'P2002': {
-        const target = (exception.meta?.target as string[] | undefined)?.join(', ');
-        return { status: HttpStatus.CONFLICT, message: `Giá trị đã tồn tại cho field: ${target}` };
+        const target = getUniqueConstraintTarget(exception)?.join(', ');
+        const message = target ? `Giá trị đã tồn tại cho field: ${target}` : 'Giá trị đã tồn tại';
+        return { status: HttpStatus.CONFLICT, message };
       }
       case 'P2003':
         return {
           status: HttpStatus.CONFLICT,
           message: 'Bản ghi đang được tham chiếu bởi dữ liệu khác, không thể thực hiện thao tác',
+        };
+      case 'P2011':
+        return { status: HttpStatus.BAD_REQUEST, message: 'Thiếu giá trị bắt buộc cho một trường dữ liệu' };
+      case 'P2014':
+        return {
+          status: HttpStatus.CONFLICT,
+          message: 'Thao tác vi phạm quan hệ bắt buộc giữa các bản ghi',
         };
       case 'P2025':
         return { status: HttpStatus.NOT_FOUND, message: 'Record không tồn tại' };

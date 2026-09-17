@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '../../generated/prisma/client.js';
+import { getUniqueConstraintTarget } from '../../common/prisma-error.util.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { ResendVerificationDto } from '../dto/resend-verification.dto.js';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto.js';
@@ -112,7 +113,7 @@ export class AuthService {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
         err.code === 'P2002' &&
-        (err.meta?.target as string[] | undefined)?.includes('email')
+        getUniqueConstraintTarget(err)?.includes('email')
       ) {
         throw new ConflictException('Email is already in use');
       }
