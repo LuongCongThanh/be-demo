@@ -12,6 +12,10 @@ Default canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, `read
 
 Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
+### Conventions (coding style, config, error handling, API, schema)
+
+Top-down index and reading order for all convention docs: `doc/convention/README.md`.
+
 ### API conventions (NestJS)
 
 Single generic convention doc — flow for any API (CRUD or business/use-case), step-by-step CRUD walkthrough using a placeholder `Resource` entity (module/controller/service/DTO, Prisma migration, Swagger, testing), Definition of Done and checklist. Written for devs to read and write the code themselves, not as agent context for autogenerating code. See `doc/convention/api-conventions.md`. Resource-specific business rules and real implementation status live in that resource's own plan doc (e.g. `doc/categories-module-plan.md`), not in this convention doc.
@@ -27,3 +31,7 @@ File/class naming, folder structure per module, barrel files banned, `@src/*` im
 ### Error handling & logging conventions
 
 Global `AllExceptionsFilter` (`src/common/filters/all-exceptions.filter.ts`) unifying HttpException/Prisma/unexpected-error responses, log-level policy (log 5xx only, never 4xx), request-id tracing via `AsyncLocalStorage` + `AppLogger` (auto-injected into every existing `Logger` call site, no code changes needed at call sites). See `doc/convention/error-logging-conventions.md`.
+
+### Prisma schema convention
+
+Step-by-step guide for writing `schema.prisma` for the 15-table ecommerce domain (enums, table order, relations, migrations) and using Prisma Client in NestJS (CRUD, transactions, pagination, N+1). See `doc/convention/ecommerce-prisma-schema-guide.md`.

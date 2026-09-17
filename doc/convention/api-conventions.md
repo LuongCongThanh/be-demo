@@ -1,5 +1,7 @@
 # Convention: phát triển API trong NestJS (ecommerce project)
 
+> 📖 Xem [README.md](./README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
+
 Tài liệu này dành cho **dev trong team tự đọc và tự viết code** khi tạo 1 API/module mới trong project — không phải prompt hay tài liệu ngữ cảnh để AI agent tự sinh code (vibe coding). Đọc xong, bạn biết cách đi từ requirement tới lúc mở PR cho cả CRUD resource lẫn API nghiệp vụ, theo đúng convention hiện hành của repo.
 
 Tài liệu này có 3 phần:

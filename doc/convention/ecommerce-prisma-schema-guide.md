@@ -1,5 +1,7 @@
 # Hướng dẫn viết `schema.prisma` cho Ecommerce (15 bảng) — theo từng bước
 
+> 📖 Xem [README.md](./README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
+>
 > Đọc kèm `ecommerce-postgresql-database-summary.md` (thiết kế: bảng, PK/FK/UK, giả định nghiệp vụ). File này là **quy trình từng bước** để gõ thiết kế đó thành code Prisma thật, theo đúng quy ước Prisma v7 project đang dùng (xem `doc/PLAN.md` bước 14-22).
 >
 > Không có bước nào tôi chạy hộ — bạn tự gõ/copy và tự chạy lệnh.
