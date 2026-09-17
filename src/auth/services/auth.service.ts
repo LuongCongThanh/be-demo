@@ -370,31 +370,37 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired token');
     }
 
-    const newPasswordHash = await this.passwordService.hash(dto.password);
-
-    const wonRace = await this.claimPasswordReset(resetToken.id, resetToken.userId, newPasswordHash);
+    // Claim token TRƯỚC khi hash password mới: hash (argon2) tốn CPU, nếu
+    // hash trước rồi mới claim thì request thua race phí công hash một mật
+    // khẩu sẽ bị vứt bỏ. Claim trước cũng tránh giữ transaction DB mở trong
+    // lúc argon2 chạy (như lý do register() hash password ngoài transaction).
+    const wonRace = await this.claimPasswordResetToken(resetToken.id);
     if (!wonRace) {
       throw new BadRequestException('Invalid or expired token');
     }
+
+    const newPasswordHash = await this.passwordService.hash(dto.password);
+    await this.applyPasswordReset(resetToken.userId, newPasswordHash);
 
     return { message: 'Password has been reset. Please log in again.' };
   }
 
   // "Claim" token bằng conditional update (usedAt: null trong WHERE) để đóng
   // race window giữa findUnique() ở caller và update này — cùng lý do như
-  // claimEmailVerification() ở trên. Chỉ khi claim thắng mới update password
-  // mới + revoke TOÀN BỘ refresh token của user (không chỉ 1 cái, giống
-  // logout-all — xem 11-reset-password.md).
-  private async claimPasswordReset(tokenId: string, userId: string, newPasswordHash: string): Promise<boolean> {
-    return this.prisma.$transaction(async (tx) => {
-      const claimed = await tx.passwordResetToken.updateMany({
-        where: { id: tokenId, usedAt: null },
-        data: { usedAt: new Date() },
-      });
-      if (claimed.count === 0) {
-        return false;
-      }
+  // claimEmailVerification() ở trên.
+  private async claimPasswordResetToken(tokenId: string): Promise<boolean> {
+    const claimed = await this.prisma.passwordResetToken.updateMany({
+      where: { id: tokenId, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    return claimed.count > 0;
+  }
 
+  // Chỉ gọi sau khi đã thắng race claim token ở trên: update password mới +
+  // revoke TOÀN BỘ refresh token của user (không chỉ 1 cái, giống logout-all
+  // — xem 11-reset-password.md).
+  private async applyPasswordReset(userId: string, newPasswordHash: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
         data: { passwordHash: newPasswordHash },
@@ -403,7 +409,6 @@ export class AuthService {
         where: { userId, revokedAt: null },
         data: { revokedAt: new Date() },
       });
-      return true;
     });
   }
 

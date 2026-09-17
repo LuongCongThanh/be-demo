@@ -744,11 +744,14 @@ describe('AuthService.resetPassword', () => {
 
     const result = await service.resetPassword(validDto());
 
-    expect(passwordService.hash).toHaveBeenCalledWith('NewAbc@1234');
-    expect(tx.passwordResetToken.updateMany).toHaveBeenCalledWith({
+    // Claim xảy ra TRƯỚC khi hash — hash không đáng tin cậy để assert thứ tự
+    // qua mock call, nhưng quan trọng là claim dùng prisma (không phải tx):
+    // xem comment trong resetPassword() về lý do claim trước, hash sau.
+    expect(prisma.passwordResetToken.updateMany).toHaveBeenCalledWith({
       where: { id: 'reset-token-1', usedAt: null },
       data: { usedAt: expect.any(Date) },
     });
+    expect(passwordService.hash).toHaveBeenCalledWith('NewAbc@1234');
     expect(tx.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: { passwordHash: 'new-hashed-password' },
@@ -761,13 +764,16 @@ describe('AuthService.resetPassword', () => {
   });
 
   it('rejects as already-used, without changing the password, when a concurrent request wins the race to claim the token first', async () => {
-    const { service, prisma, tx } = createHarness();
+    const { service, prisma, passwordService, tx } = createHarness();
     prisma.passwordResetToken.findUnique.mockResolvedValue(validResetToken());
-    tx.passwordResetToken.updateMany.mockResolvedValue({ count: 0 });
+    prisma.passwordResetToken.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(service.resetPassword(validDto())).rejects.toThrow(
       new BadRequestException('Invalid or expired token'),
     );
+    // Thua race claim thì không hash lẫn không update gì cả — tránh phí CPU
+    // hash một password sẽ bị vứt bỏ (đây chính là fix bug hiệu năng đã tìm ra).
+    expect(passwordService.hash).not.toHaveBeenCalled();
     expect(tx.user.update).not.toHaveBeenCalled();
   });
 });

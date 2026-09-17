@@ -102,6 +102,8 @@ POST /auth/refresh
 
 POST /auth/logout
 
+POST /auth/logout-all
+
 POST /auth/forgot-password
 
 POST /auth/reset-password
