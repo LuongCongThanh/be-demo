@@ -102,6 +102,8 @@ POST /auth/refresh
 
 POST /auth/logout
 
+POST /auth/logout-all
+
 POST /auth/forgot-password
 
 POST /auth/reset-password
@@ -170,6 +172,16 @@ Database lưu:
 
 ```text
 passwordHash
+```
+
+**Password policy** (áp dụng cho cả Register lẫn Reset Password — mục 17):
+
+```text
+Tối thiểu 8 ký tự
+Có ít nhất 1 chữ hoa
+Có ít nhất 1 chữ thường
+Có ít nhất 1 chữ số
+Có ít nhất 1 ký tự đặc biệt
 ```
 
 ---
@@ -252,6 +264,27 @@ Login
 ```
 
 tức là chưa verify thì login bị chặn.
+
+**Lưu ý quan trọng: đây là 2 trục trạng thái độc lập, không được gộp mơ hồ:**
+
+```text
+Trục 1 — Account status (User.status)
+  ACTIVE | BLOCKED
+  → tài khoản có bị khoá (do admin/vi phạm...) hay không
+
+Trục 2 — Email verification (User.emailVerifiedAt)
+  NULL | <timestamp>
+  → email đã xác thực hay chưa
+```
+
+Login cần kiểm tra **cả hai trục**, độc lập với nhau:
+
+```text
+status === 'BLOCKED' → chặn, dù email đã verify
+emailVerifiedAt === null → chặn, dù account đang ACTIVE
+```
+
+Một user có thể ACTIVE nhưng chưa verify email (vừa register xong), hoặc đã verify email nhưng bị BLOCKED sau đó (do vi phạm) — 2 trục này không suy ra lẫn nhau.
 
 ---
 
@@ -561,6 +594,20 @@ store new hash
 
 Đây là hướng nên dùng.
 
+**Reuse detection:** nếu 1 refresh token đã bị revoke (do đã rotate 1 lần) mà lại bị dùng lại lần nữa, đây là dấu hiệu token đã bị đánh cắp. Xử lý:
+
+```text
+Refresh token có revokedAt != null
+ ↓
+Coi là reuse (bị đánh cắp)
+ ↓
+Revoke TOÀN BỘ refresh_tokens của user đó
+ ↓
+Bắt buộc login lại ở mọi thiết bị
+```
+
+Giới hạn quan trọng cần biết: reuse detection chỉ thu hồi được **refresh token**. Access token (JWT) đã phát hành trước đó vẫn còn hiệu lực cho tới khi hết TTL (15 phút) — vì đây là stateless token, server không có chỗ nào để "hủy" nó giữa chừng. Access token TTL ngắn chính là cách giảm thiệt hại cho khoảng thời gian này. Muốn thu hồi access token ngay lập tức cần thêm cơ chế denylist hoặc token-version, hiện chưa làm ở MVP này.
+
 ---
 
 # 14. Logout
@@ -691,7 +738,7 @@ Expired?
  ↓
 usedAt == null?
  ↓
-Validate new password
+Validate new password (cùng password policy ở mục 4, cộng confirmPassword phải khớp password)
  ↓
 Hash new password
  ↓
@@ -932,6 +979,14 @@ Business Rules
 
 mới tạo thành authorization hoàn chỉnh.
 
+**Implementation thực tế:** ownership check dùng chung 1 guard/decorator duy nhất cho mọi loại resource, thay vì viết tay lặp lại ở từng module:
+
+```text
+OwnershipGuard + @OwnedResource(options)
+```
+
+`@OwnedResource({ paramIdKey, fetch })` khai báo cách lấy resource theo id trong params và trả về `userId` của resource đó; `OwnershipGuard` so sánh với `request.user.sub`, cho ADMIN bypass check này. Guard chỉ lo phần "có phải chủ resource hay không" — business rule sâu hơn (vd đơn hàng phải ở trạng thái PENDING mới được hủy) vẫn nằm ở Service, không nhét vào Guard.
+
 ---
 
 # 24. Module structure mình đề xuất
@@ -1169,3 +1224,23 @@ business rule
 ```
 
 Đó là phạm vi hợp lý cho **Authentication & Authorization MVP của web bán hàng dựa trên đúng schema hiện tại của bạn**.
+
+---
+
+# 28. Admin Bootstrap
+
+Không có API HTTP nào tạo tài khoản ADMIN — cố ý, để giảm bề mặt tấn công (không ai gọi được endpoint đó từ bên ngoài, dù có exploit gì đi nữa).
+
+Thay vào đó, tài khoản ADMIN đầu tiên được tạo bằng **seed script**, chạy 1 lần lúc setup:
+
+```text
+Seed script
+ ↓
+Đọc ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD từ env
+ ↓
+Hash password
+ ↓
+Tạo User + gán role ADMIN
+```
+
+Muốn thêm ADMIN khác sau này, dùng chính tài khoản ADMIN đã có để quản lý user (qua 1 API riêng dành cho ADMIN, ngoài phạm vi auth MVP này), không phải chạy lại seed script.

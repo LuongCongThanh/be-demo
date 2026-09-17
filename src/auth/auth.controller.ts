@@ -13,7 +13,11 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import ms from 'ms';
+import { Throttle } from '@nestjs/throttler';
+import { EmailThrottlerGuard } from './guards/email-throttler.guard.js';
 import { ResendVerificationDto } from './dto/resend-verification.dto.js';
+import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
+import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { VerifyEmailDto } from './dto/verify-email.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { LoginResponseDto } from './dto/login-response.dto.js';
@@ -33,6 +37,11 @@ import type { JwtPayload } from './strategies/jwt.strategy.js';
 // path này rải rác và dễ lệch nhau.
 const REFRESH_TOKEN_COOKIE_PATH = '/auth';
 
+// Mức throttle mặc định (20 request/phút) cho các route không cần siết chặt
+// hơn mức global — dùng chung để đổi 1 chỗ thay vì lặp lại object này ở từng
+// `@Throttle()` (register, verify-email, refresh).
+const DEFAULT_THROTTLE = { default: { limit: 20, ttl: 60_000 } };
+
 @ApiTags('Authentication & Authorization')
 @Controller('auth')
 export class AuthController {
@@ -41,6 +50,7 @@ export class AuthController {
     private readonly config: ConfigService,
   ) {}
 
+  @Throttle(DEFAULT_THROTTLE)
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new CUSTOMER account' })
@@ -51,6 +61,7 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @Throttle(DEFAULT_THROTTLE)
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email address using the 6-digit code sent by email' })
@@ -61,6 +72,7 @@ export class AuthController {
     return this.authService.verifyEmail(dto);
   }
 
+  @UseGuards(EmailThrottlerGuard)
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Resend the email verification code' })
@@ -70,6 +82,7 @@ export class AuthController {
     return this.authService.resendVerification(dto);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Log in and receive an access token (refresh token is set as an HttpOnly cookie)' })
@@ -86,6 +99,7 @@ export class AuthController {
   // Route này KHÔNG có JwtAuthGuard — cố ý, vì lúc gọi /auth/refresh access
   // token cũ thường đã hết hạn (đó chính là lý do cần refresh). Route tự xác
   // thực bằng refresh token đọc từ cookie, không phụ thuộc access token.
+  @Throttle(DEFAULT_THROTTLE)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rotate the refresh token cookie and issue a new access token' })
@@ -101,6 +115,25 @@ export class AuthController {
     return { accessToken };
   }
 
+  @UseGuards(EmailThrottlerGuard)
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a password reset email' })
+  @ApiOkResponse({ type: MessageResponseDto, description: 'A password reset email has been sent (if applicable)' })
+  @ApiBadRequestResponse({ description: 'Invalid input' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<MessageResponseDto> {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password using the token received by email' })
+  @ApiOkResponse({ type: MessageResponseDto, description: 'Password has been reset' })
+  @ApiBadRequestResponse({ description: 'Invalid, expired, or already-used token; or invalid input' })
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<MessageResponseDto> {
+    return this.authService.resetPassword(dto);
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -109,6 +142,43 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Missing, invalid, or expired access token' })
   getMe(@CurrentUser() user: JwtPayload): Promise<AuthUserResponseDto> {
     return this.authService.getMe(user.sub);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Log out the current session (revokes its refresh token)' })
+  @ApiOkResponse({ type: MessageResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Missing, invalid, or expired access token' })
+  async logout(@Req() request: Request, @Res({ passthrough: true }) response: Response): Promise<MessageResponseDto> {
+    const rawRefreshToken = request.cookies?.[this.getRefreshTokenCookieName()] as string | undefined;
+
+    if (rawRefreshToken) {
+      await this.authService.logout(rawRefreshToken);
+    }
+
+    this.clearRefreshTokenCookie(response);
+
+    return { message: 'Logged out' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Log out of all sessions (revokes every refresh token of the current user)' })
+  @ApiOkResponse({ type: MessageResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Missing, invalid, or expired access token' })
+  async logoutAll(
+    @CurrentUser() user: JwtPayload,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<MessageResponseDto> {
+    await this.authService.logoutAll(user.sub);
+
+    this.clearRefreshTokenCookie(response);
+
+    return { message: 'Logged out of all devices' };
   }
 
   private getRefreshTokenCookieName(): string {
@@ -123,5 +193,11 @@ export class AuthController {
       path: REFRESH_TOKEN_COOKIE_PATH,
       maxAge: ms(this.config.get<string>('REFRESH_TOKEN_TTL', '7d') as ms.StringValue),
     });
+  }
+
+  // `path` PHẢI khớp chính xác với path đã dùng lúc `setRefreshTokenCookie()`
+  // set ra — xem concept box trong 09-logout.md.
+  private clearRefreshTokenCookie(response: Response): void {
+    response.clearCookie(this.getRefreshTokenCookieName(), { path: REFRESH_TOKEN_COOKIE_PATH });
   }
 }

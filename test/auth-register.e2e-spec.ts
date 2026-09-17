@@ -1,9 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
-import { configureApp } from '../src/bootstrap/configure-app.js';
+import { createTestApp } from './support/create-test-app.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-register.e2e-test.local';
 
@@ -24,13 +22,9 @@ describe('Auth — POST /auth/register (e2e)', () => {
   let prisma: PrismaService;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    configureApp(app);
-    await app.init();
+    const created = await createTestApp();
+    app = created.app;
+    const moduleFixture = created.moduleFixture;
 
     prisma = moduleFixture.get(PrismaService);
 
