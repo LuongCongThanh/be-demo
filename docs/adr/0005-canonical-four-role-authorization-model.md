@@ -1,3 +1,3 @@
-# Use four canonical business roles
+# Dùng bốn role nghiệp vụ chuẩn (canonical)
 
-Authorization will use `CUSTOMER`, `ORDER_STAFF`, `STORE_MANAGER`, and `MASTER_ADMIN`; the legacy `ADMIN` label will be migrated to `MASTER_ADMIN` before production. Routes list every accepted role explicitly instead of relying on a hidden inheritance hierarchy, preserving least privilege and making the permission matrix reviewable; only MASTER_ADMIN manages users, account status, and role assignments, and the system must prevent removal of the last active verified MASTER_ADMIN.
+Việc phân quyền sẽ dùng `CUSTOMER`, `ORDER_STAFF`, `STORE_MANAGER`, và `MASTER_ADMIN`; nhãn `ADMIN` cũ sẽ được migrate sang `MASTER_ADMIN` trước khi lên production. Mỗi route liệt kê tường minh toàn bộ role được chấp nhận thay vì dựa vào một cây phân cấp (hierarchy) ngầm, giữ nguyên tắc least-privilege và giúp ma trận quyền có thể review được; chỉ MASTER_ADMIN mới quản lý user, account status, và gán role, và hệ thống phải ngăn việc xóa bỏ MASTER_ADMIN đang hoạt động, đã xác thực cuối cùng.

@@ -1,55 +1,46 @@
-# E-commerce Backend — Architecture & System Design
+# E-commerce Backend — Kiến trúc & Thiết kế Hệ thống
 
-> Backend reference architecture for a production-oriented e-commerce system.
+> Kiến trúc tham chiếu cho backend của một hệ thống e-commerce hướng tới production.
 >
-> Suggested stack: **NestJS + PostgreSQL + Redis + BullMQ + Object Storage + Docker**.
+> Stack đề xuất: **NestJS + PostgreSQL + Redis + BullMQ + Object Storage + Docker**.
 >
-> Architecture style: **Modular Monolith first, designed so high-load modules can be extracted into microservices later.**
+> Phong cách kiến trúc: **Modular Monolith trước, thiết kế sao cho các module tải cao có thể tách thành microservices sau này.**
 
-## How to read this document
+## Cách đọc tài liệu này
 
-This file is the **target architecture and phased roadmap**, not an
-implementation specification and not a claim that every diagram exists
-today. Every capability belongs to one of these states:
+File này là **kiến trúc mục tiêu và roadmap theo từng phase**, không phải một implementation specification, và không khẳng định mọi sơ đồ đã tồn tại ở hiện tại. Mỗi năng lực thuộc một trong các trạng thái sau:
 
-- **Current** — verified in code, schema, migrations, or tests.
-- **Committed** — a reviewed decision recorded in an ADR, but not
-  necessarily implemented yet.
-- **Future** — an extension point that requires a separate decision and
-  implementation plan when there is evidence it is needed.
+- **Current (Hiện có)** — đã xác nhận trong code, schema, migration, hoặc test.
+- **Committed (Đã chốt)** — một quyết định đã được review và ghi trong ADR, nhưng chưa chắc đã implement.
+- **Future (Tương lai)** — một điểm mở rộng cần một quyết định và implementation plan riêng khi có bằng chứng cần thiết.
 
-Concrete module work belongs in per-module implementation plans. Canonical
-business terms live in `CONTEXT.md`; hard-to-reverse decisions live in
-`docs/adr/`. The status snapshot below is the authority for what currently
-exists.
+Công việc cụ thể của từng module nằm trong các implementation plan riêng của module đó. Thuật ngữ nghiệp vụ chuẩn (canonical) nằm ở `CONTEXT.md`; các quyết định khó đảo ngược nằm ở `docs/adr/`. Bảng trạng thái bên dưới là nguồn xác thực cho những gì hiện đang tồn tại.
 
 ---
 
-# 0. Current Status & Gaps (as of 2026-09-17)
+# 0. Trạng thái hiện tại & Khoảng trống (tính đến 2026-09-17)
 
-Section 1-22 below describe the **target** architecture. This section says
-where the project actually is right now, so the rest of the document isn't
-mistaken for the current state.
+Mục 1-22 bên dưới mô tả kiến trúc **mục tiêu**. Mục này nói rõ dự án hiện đang ở đâu trong thực tế, để phần còn lại của tài liệu không bị nhầm là trạng thái hiện tại.
 
-| Component                                | Status                   | Note                                                                                                                                                                                                                                                 |
-| ---------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth                                     | 🟢 Done                  | register/login/refresh/logout/verify-email/forgot-reset-password, RBAC via `Role`/`UserRole` (DB-driven, not hardcoded enum), rate limiting                                                                                                          |
-| Categories                               | 🟡 Planned               | Plan ready at `doc/categories-module-plan.md`, 0/8 steps done. Next module to build.                                                                                                                                                                 |
-| Users, Products, Cart, Inventory, Orders | 🔴 Not built             | Modeled in `prisma/schema/schema.prisma` already, no module code yet                                                                                                                                                                                 |
-| Payments                                 | 🟡 Committed, not built  | No payment models or module yet; MoMo is the approved MVP provider behind a provider-neutral boundary (ADR 0004)                                                                                                                                     |
-| Promotions                               | 🔴 Not started           | Not modeled, not designed                                                                                                                                                                                                                            |
-| Notifications                            | 🟡 Partial               | `mail` module (nodemailer) covers auth transactional emails; no generic notification/queue system                                                                                                                                                    |
-| Redis                                    | 🔴 Not present           | Rate limiting currently runs on `@nestjs/throttler`'s in-memory store                                                                                                                                                                                |
-| BullMQ / Queue                           | 🔴 Not present           |                                                                                                                                                                                                                                                      |
-| Object Storage                           | 🔴 Not present           |                                                                                                                                                                                                                                                      |
-| Observability                            | 🟡 Partial               | `AppLogger` + request-id tracing (AsyncLocalStorage) done; no metrics/tracing/Prometheus/Grafana                                                                                                                                                     |
-| Docker / CI-CD                           | 🔴 Not present           | No `Dockerfile`, `docker-compose.yml`, or `.github/workflows` yet                                                                                                                                                                                    |
-| Inventory reservation model              | 🟡 Committed, not built  | Schema today only has `inventory.reserved_quantity`; target adds auditable, 15-minute `inventory_reservations` plus a transactional outbox (ADR 0003)                                                                                                |
-| Orders discount/subtotal columns         | ⚠️ Needed for Promotions | `orders` only has one final `total_amount` today. Promotions' `POST /promotions/validate` (Section 8) needs `orders.subtotal` + `orders.discount_amount` to exist before checkout can apply a code — plan this migration before building Promotions. |
-| API versioning                           | 🟡 Committed             | Runtime is still `/auth/*`; migrate to Nest URI versioning under `/api/v1/*` and move Swagger to `/docs` before adding commerce routes (ADR 0002)                                                                                                    |
-| Authorization roles                      | 🟡 Committed             | Runtime/seed still use legacy `ADMIN`; migrate to `CUSTOMER`, `ORDER_STAFF`, `STORE_MANAGER`, `MASTER_ADMIN` before production (ADR 0005)                                                                                                            |
-| Production topology                      | 🟡 Committed             | Target is multiple stateless API replicas, a separate worker, managed PostgreSQL/Redis/object storage, and a load balancer; deployment artifacts do not exist yet                                                                                    |
-| Payment provider                         | 🟡 Committed             | MoMo is the Vietnam/VND MVP provider; PayPal is deferred for international payments; Stripe is out of scope for a Vietnam entity (ADR 0004)                                                                                                          |
+| Component                                | Status                 | Ghi chú                                                                                                                                                                                                                                                         |
+| ---------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth                                     | 🟢 Xong                | register/login/refresh/logout/verify-email/forgot-reset-password, RBAC qua `Role`/`UserRole` (do DB điều khiển, không phải enum hardcode), có rate limiting                                                                                                     |
+| Categories                               | 🟡 Đã lên kế hoạch     | Plan sẵn ở `doc/categories-module-plan.md`, 0/8 bước đã xong. Module tiếp theo cần build.                                                                                                                                                                       |
+| Users, Products, Cart, Inventory, Orders | 🔴 Chưa build          | Đã model trong `prisma/schema/schema.prisma`, chưa có code module                                                                                                                                                                                               |
+| Payments                                 | 🟡 Đã chốt, chưa build | Chưa có model/module thanh toán; MoMo là provider MVP đã được duyệt, đứng sau một ranh giới trung lập với provider (ADR 0004)                                                                                                                                   |
+| Promotions                               | 🔴 Chưa bắt đầu        | Chưa model, chưa thiết kế                                                                                                                                                                                                                                       |
+| Notifications                            | 🟡 Một phần            | Module `mail` (nodemailer) phủ email giao dịch của Auth; chưa có hệ thống notification/queue tổng quát                                                                                                                                                          |
+| Redis                                    | 🔴 Chưa có             | Rate limiting hiện chạy trên in-memory store của `@nestjs/throttler`                                                                                                                                                                                            |
+| BullMQ / Queue                           | 🔴 Chưa có             |                                                                                                                                                                                                                                                                 |
+| Object Storage                           | 🔴 Chưa có             |                                                                                                                                                                                                                                                                 |
+| Observability                            | 🟡 Một phần            | `AppLogger` + request-id tracing (AsyncLocalStorage) đã xong; chưa có metrics/tracing/Prometheus/Grafana                                                                                                                                                        |
+| Docker / CI-CD                           | 🔴 Chưa có             | Chưa có `Dockerfile`, `docker-compose.yml`, hay `.github/workflows`                                                                                                                                                                                             |
+| Inventory reservation model              | 🟡 Đã chốt, chưa build | Schema hiện tại chỉ có `inventory.reserved_quantity`; mục tiêu thêm bảng `inventory_reservations` có thể kiểm chứng (auditable), hết hạn sau 15 phút, cộng một transactional outbox (ADR 0003)                                                                  |
+| Orders discount/subtotal columns         | ⚠️ Cần cho Promotions  | `orders` hiện chỉ có một cột `total_amount` cuối cùng. `POST /promotions/validate` của Promotions (Mục 8) cần `orders.subtotal` + `orders.discount_amount` tồn tại trước khi checkout có thể áp mã — cần lên kế hoạch migration này trước khi build Promotions. |
+| API versioning                           | 🟡 Đã chốt             | Runtime hiện vẫn là `/auth/*`; sẽ migrate sang Nest URI versioning dưới `/api/v1/*` và chuyển Swagger sang `/docs` trước khi thêm route thương mại (ADR 0002)                                                                                                   |
+| Authorization roles                      | 🟡 Đã chốt             | Runtime/seed vẫn dùng `ADMIN` cũ; sẽ migrate sang `CUSTOMER`, `ORDER_STAFF`, `STORE_MANAGER`, `MASTER_ADMIN` trước khi lên production (ADR 0005)                                                                                                                |
+| Production topology                      | 🟡 Đã chốt             | Mục tiêu là nhiều API replica stateless, một worker riêng, managed PostgreSQL/Redis/object storage, và một load balancer; các artifact deployment chưa tồn tại                                                                                                  |
+| Payment provider                         | 🟡 Đã chốt             | MoMo là provider MVP cho VND/Việt Nam; PayPal được lùi lại cho thanh toán quốc tế; Stripe nằm ngoài phạm vi với một pháp nhân Việt Nam (ADR 0004)                                                                                                               |
 
 ```mermaid
 flowchart TB
@@ -67,7 +58,7 @@ flowchart TB
     end
 
     subgraph Infra["Infrastructure"]
-        Observability["Observability<br/>(logs done, metrics/tracing missing)"]
+        Observability["Observability<br/>(logs xong, thiếu metrics/tracing)"]
         Redis["Redis"]
         Queue["BullMQ"]
         Storage["Object Storage"]
@@ -84,18 +75,13 @@ flowchart TB
     class Redis,Queue,Storage,DockerCI missing;
 ```
 
-**Where this sits in the roadmap (see Section 22 — Implementation Order):**
-Phase 1 (setup/DB) and most of Phase 2 (Auth) are done. RBAC is in place;
-Categories (start of Phase 3) is next, followed by Products/Product
-Variants. Phases 4 onward (Cart, Orders/Checkout, Payment, Redis/BullMQ,
-Notifications, Docker/CI, Observability) have not started.
+**Vị trí trong roadmap (xem Mục 22 — Thứ tự Implementation):** Auth đã được implement, nhưng các prerequisite của Phase 1 trong roadmap bên dưới (API versioning, migrate role, thu hồi authorization-version, Docker/CI, health check, structured logs/metrics) chưa xong. Categories là module đầu tiên của **Phase 2**, tiếp theo là Products/Product Variants. Phase 3 trở đi (Users, Cart, Orders/Checkout, Payment, Redis/BullMQ, Notifications, Observability) chưa bắt đầu.
 
-Update this table/diagram as modules land — it's meant to stay a snapshot
-of reality, not a plan (the plan is Section 22).
+Cập nhật bảng/sơ đồ này khi từng module hoàn thành — nó được thiết kế để luôn là một bản snapshot của thực tế, không phải một kế hoạch (kế hoạch nằm ở Mục 22).
 
 ---
 
-# 1. High-Level Backend Architecture
+# 1. Kiến trúc Backend Tổng quan
 
 ```mermaid
 flowchart LR
@@ -111,7 +97,7 @@ flowchart LR
     Queue["BullMQ + Redis<br/>Async Job Queue"]
     Storage["Object Storage<br/>S3 / Cloud Storage"]
 
-    Payment["Payment Gateway<br/>VNPay / Stripe / ..."]
+    Payment["Payment Gateway<br/>MoMo (MVP) / PayPal (future, ADR 0004)"]
     Email["Email Service<br/>SendGrid / SES / ..."]
     SMS["SMS Service"]
     Shipping["Shipping Service"]
@@ -135,51 +121,48 @@ flowchart LR
     Queue --> Shipping
 ```
 
-## Main responsibilities
+## Trách nhiệm chính
 
-| Component        | Responsibility                                 |
-| ---------------- | ---------------------------------------------- |
-| CDN / WAF        | DDoS protection, TLS, static assets            |
-| API Gateway      | Routing, rate limiting, load balancing         |
-| NestJS           | Business logic and API                         |
-| PostgreSQL       | Source of truth for transactional data         |
-| Redis            | Cache, sessions, rate limiting, temporary data |
-| BullMQ           | Background jobs and asynchronous processing    |
-| Object Storage   | Product images, invoices, media                |
-| Payment Gateway  | Online payment                                 |
-| Email/SMS        | Notifications                                  |
-| Shipping Service | Delivery integration                           |
+| Component        | Trách nhiệm                                     |
+| ---------------- | ----------------------------------------------- |
+| CDN / WAF        | Chống DDoS, TLS, static assets                  |
+| API Gateway      | Routing, rate limiting, load balancing          |
+| NestJS           | Business logic và API                           |
+| PostgreSQL       | Nguồn dữ liệu chính cho dữ liệu giao dịch       |
+| Redis            | Cache, session, rate limiting, dữ liệu tạm thời |
+| BullMQ           | Background job và xử lý bất đồng bộ             |
+| Object Storage   | Ảnh sản phẩm, hóa đơn, media                    |
+| Payment Gateway  | Thanh toán online                               |
+| Email/SMS        | Thông báo                                       |
+| Shipping Service | Tích hợp giao hàng                              |
 
-## Request Pipeline (NestJS internals)
+## Request Pipeline (nội bộ NestJS)
 
-The "NestJS Backend" box above is one process, but a request passes
-through a fixed pipeline inside it. This reflects what's actually wired
-in `src/app.module.ts` / `src/bootstrap/configure-app.ts` / `src/main.ts`
-today — not a generic NestJS diagram.
+Khối "NestJS Backend" ở trên là một process duy nhất, nhưng một request đi qua một pipeline cố định bên trong nó. Sơ đồ này phản ánh đúng những gì thực sự được wire trong `src/app.module.ts` / `src/bootstrap/configure-app.ts` / `src/main.ts` hiện tại — không phải một sơ đồ NestJS chung chung.
 
 ```mermaid
 flowchart TD
-    Req(["Incoming HTTP Request"])
+    Req(["Request HTTP đến"])
 
-    subgraph Global["Runs on every request"]
-        MW1["RequestIdMiddleware<br/>forRoutes('*') — sets X-Request-Id,<br/>opens AsyncLocalStorage context"]
-        MW2["cookie-parser<br/>app.use(...) in configureApp()"]
-        G1["ThrottlerGuard<br/>APP_GUARD — 20 req/phút/IP default<br/>(in-memory store, no Redis yet)"]
-        P1["ValidationPipe<br/>app.useGlobalPipes() in configureApp()<br/>whitelist + forbidNonWhitelisted + transform"]
+    subgraph Global["Chạy trên mọi request"]
+        MW1["cookie-parser<br/>app.use(...) trong configureApp() —<br/>middleware global-bound, chạy trước"]
+        MW2["RequestIdMiddleware<br/>forRoutes('*') trong AppModule.configure() —<br/>middleware module-bound, set X-Request-Id,<br/>mở context AsyncLocalStorage"]
+        G1["ThrottlerGuard<br/>APP_GUARD — mặc định 20 req/phút/IP<br/>(in-memory store, chưa có Redis)"]
+        P1["ValidationPipe<br/>app.useGlobalPipes() trong configureApp()<br/>whitelist + forbidNonWhitelisted + transform"]
     end
 
-    subgraph PerRoute["Only on routes that declare them"]
-        G2["JwtAuthGuard<br/>@UseGuards(...) — verifies access token"]
-        G3["RolesGuard<br/>checks @Roles(...) against DB Role/UserRole"]
-        G4["OwnershipGuard<br/>checks @OwnedResource(...)"]
-        P2["ParseUUIDPipe / other param pipes"]
+    subgraph PerRoute["Chỉ chạy trên route nào khai báo nó"]
+        G2["JwtAuthGuard<br/>@UseGuards(...) — xác thực access token"]
+        G3["RolesGuard<br/>kiểm tra @Roles(...) đối chiếu DB Role/UserRole"]
+        G4["OwnershipGuard<br/>kiểm tra @OwnedResource(...)"]
+        P2["ParseUUIDPipe / các param pipe khác"]
     end
 
     C["Controller"]
     S["Service"]
     PR["PrismaService<br/>(@prisma/adapter-pg)"]
     DB[("PostgreSQL")]
-    F["AllExceptionsFilter<br/>APP_FILTER — unifies HttpException /<br/>Prisma errors / unexpected errors.<br/>Logs 5xx only, never 4xx."]
+    F["AllExceptionsFilter<br/>APP_FILTER — hợp nhất HttpException /<br/>lỗi Prisma / lỗi không lường trước.<br/>Chỉ log 5xx, không bao giờ log 4xx."]
     Res(["HTTP Response"])
 
     Req --> MW1 --> MW2 --> G1
@@ -192,31 +175,22 @@ flowchart TD
     G3 -.403.-> F
     G4 -.403.-> F
     P1 -.400.-> F
-    S -.business exceptions.-> F
+    S -.lỗi nghiệp vụ.-> F
     F --> Res
 ```
 
-Notes:
+Ghi chú:
 
-- **Global** items run for every route regardless of controller code.
-  **Per-route** items only run where the controller explicitly attaches
-  them. Auth register/login/verification/reset routes are public;
-  logout/logout-all/me use `JwtAuthGuard`. `RolesGuard` and
-  `OwnershipGuard` exist for business modules but no current Auth
-  controller route uses `RolesGuard`.
-- Every exception, whichever layer throws it, is caught by the single
-  `AllExceptionsFilter` — there is no per-module exception filter. See
-  `doc/convention/error-logging-conventions.md`.
-- `RequestIdMiddleware` runs first and stays active for the whole
-  request via `AsyncLocalStorage`, so every `Logger` call anywhere
-  downstream (guards, services, the filter) is automatically tagged with
-  the same request id — no code change needed at call sites.
+- **Thứ tự middleware đã được sửa lại trong bản này**: middleware global-bound (`app.use()` trong `configure-app.ts`) chạy trước middleware module-bound (`consumer.apply().forRoutes()` trong `app.module.ts`), theo đúng request lifecycle mà NestJS đã tài liệu hóa — bất kể dòng nào xuất hiện trước trong source. Đã xác nhận đối chiếu với binding thật của repo này (`app.module.ts:42`, `configure-app.ts:24`); vẫn nên có một integration test kiểm tra thứ tự request trước khi dựa hẳn vào nó, vì đây là hành vi ở mức framework, không phải điều codebase này tự kiểm soát trực tiếp.
+- Các mục **Global** chạy trên mọi route bất kể code controller. Các mục **Per-route** chỉ chạy ở nơi controller gắn tường minh chúng. Route register/login/verification/reset của Auth là public; logout/logout-all/me dùng `JwtAuthGuard`. `RolesGuard` và `OwnershipGuard` tồn tại cho các module nghiệp vụ nhưng chưa route Auth controller nào hiện tại dùng `RolesGuard`.
+- Mọi exception, dù được throw ở tầng nào, đều được bắt bởi một `AllExceptionsFilter` duy nhất — không có exception filter riêng cho từng module. Xem `doc/convention/error-logging-conventions.md`.
+- `RequestIdMiddleware` mở context `AsyncLocalStorage` của nó trước khi request tới các guard và mọi thứ phía sau (nó vẫn chạy sau `cookie-parser`, theo đúng thứ tự đã sửa ở trên), và context đó vẫn hoạt động trong suốt phần còn lại của request — nên mọi lời gọi `Logger` ở bất kỳ đâu phía sau (guard, service, filter) đều tự động được gắn cùng một request id, không cần sửa code ở nơi gọi.
 
 ---
 
-# 2. Backend Domain Architecture
+# 2. Kiến trúc Domain của Backend
 
-The backend is organized by **business domain**, not by technical layer.
+Backend được tổ chức theo **domain nghiệp vụ**, không phải theo tầng kỹ thuật.
 
 ```mermaid
 flowchart TB
@@ -255,64 +229,69 @@ flowchart TB
     Products --> Categories
 ```
 
+## Quyền sở hữu dữ liệu giữa các module
+
+Tổ chức folder-per-domain sắp xếp _code_, nhưng tự nó không nói rõ module nào được phép ghi bảng nào khi nhiều module cùng dùng chung `PrismaService` global (Mục 3). Đề xuất quyền sở hữu — thao tác ghi lên một bảng phải đi qua service của module sở hữu, không phải qua bất kỳ module nào tình cờ import `PrismaService`:
+
+| Module         | Sở hữu (được phép mutate)                                                 |
+| -------------- | ------------------------------------------------------------------------- |
+| **Inventory**  | `inventory`, `inventory_reservations` — reserve, release, consume, adjust |
+| **Orders**     | `orders`, `order_items` — status, snapshot, điều phối checkout            |
+| **Payments**   | `payments`, `payment_attempts`, `payment_webhook_events`, `refunds`       |
+| **Promotions** | định nghĩa promotion và các bản ghi sử dụng/tiêu thụ                      |
+
+Việc Orders gọi vào Inventory/Payments/Promotions trong lúc checkout vẫn là một lời gọi trong cùng transaction, nằm trong một transaction PostgreSQL duy nhất (Mục 6); transaction client được truyền xuyên suốt, không mở riêng cho từng module. Bảng này là một đề xuất cần xác nhận khi viết implementation plan của từng module, chưa phải một rule đã được enforce.
+
 ---
 
-# 3. Project Directory Structure (full tree)
+# 3. Cấu trúc Thư mục Dự án (full tree)
 
-This is the **whole repo**, not just `src/` — real files where they exist
-today, plus every module the roadmap (Section 0/22) has already committed
-to. Status markers reuse the Section 0 legend: 🟢 done · 🟡 partial/planned
-· 🔴 not started. Anything with no marker is infra that already exists and
-isn't a "domain module" (config, bootstrap, generated code, tooling).
+Đây là **toàn bộ repo**, không chỉ `src/` — file thật ở nơi chúng đã tồn tại, cộng với mọi module mà roadmap (Mục 0/22) đã chốt. Ký hiệu trạng thái dùng lại chú giải ở Mục 0: 🟢 xong · 🟡 một phần/đã lên kế hoạch · 🔴 chưa bắt đầu. Bất cứ thứ gì không có ký hiệu là infra đã tồn tại sẵn và không phải "module nghiệp vụ" (config, bootstrap, code generated, tooling).
 
-Folder rule behind every domain module below (see
-`convention/coding-style-conventions.md` §2): a subfolder (`dto/`,
-`guards/`, `services/`, ...) only appears once **≥ 2 files share that
-role** — a module with one controller/service/module file and no DTO
-stays flat, no empty folders.
+Quy tắc folder áp dụng cho mọi module nghiệp vụ bên dưới (xem `convention/coding-style-conventions.md` §2): một subfolder (`dto/`, `guards/`, `services/`, ...) chỉ xuất hiện khi **≥ 2 file cùng vai trò** — một module chỉ có 1 file controller/service/module và không có DTO thì giữ phẳng (flat), không tạo folder rỗng. `inventory/dto/` bên dưới là ngoại lệ duy nhất đã được ghi nhận: nó tồn tại với đúng 1 file (`adjust-inventory.dto.ts`) vì file DTO vẫn phải nằm ở đâu đó bất kể số lượng, và Inventory thực sự chỉ cần đúng 1 file — quy tắc này nói về việc không tạo folder rỗng một cách suy đoán trước, không phải bắt buộc một module phải đạt 2 file mới được có folder `dto/`.
 
 ```text
 nestjs-demo/
-├── .env                            # local secrets/config — gitignored, never committed
-├── .env.example                    # template of every env var; kept in sync with .env.validation.ts (config-environment-conventions.md)
-├── .husky/                         # git hooks — pre-commit runs lint-staged
-├── .lintstagedrc                   # which linters/formatters run on staged files pre-commit
-├── .prettierrc                     # Prettier formatting rules
-├── nest-cli.json                   # Nest CLI config (schematics defaults, compiler options)
-├── oxlint.json                     # oxlint (Rust ESLint-compatible linter) rule config
+├── .env                            # secrets/config local — gitignored, không bao giờ commit
+├── .env.example                    # template mọi env var; đồng bộ với .env.validation.ts (config-environment-conventions.md)
+├── .husky/                         # git hooks — pre-commit chạy lint-staged
+├── .lintstagedrc                   # linter/formatter nào chạy trên file staged trước commit
+├── .prettierrc                     # rule format của Prettier
+├── nest-cli.json                   # config Nest CLI (schematics mặc định, compiler option)
+├── oxlint.json                     # config rule của oxlint (linter viết bằng Rust, tương thích ESLint)
 ├── package.json / package-lock.json
-├── prisma7.config.ts               # Prisma v7 config (schema path, seed command) — replaces the old `"prisma"` block in package.json
-├── tsconfig.json                   # base TS config; declares the `@src/*` alias (test files only — see coding-style-conventions.md §4)
-├── tsconfig.build.json             # build-only TS config (excludes tests) — what `nest build` actually uses
-├── vitest.config.ts                # unit test runner config
-├── vitest.config.e2e.ts            # e2e test runner config (boots the real Nest app)
-├── CLAUDE.md                       # project-level agent instructions
-├── CONTEXT.md                      # domain glossary — canonical meaning of User/Role/Session/... (see docs/agents/domain.md)
+├── prisma7.config.ts               # config Prisma v7 (đường dẫn schema, seed command) — thay cho block `"prisma"` cũ trong package.json
+├── tsconfig.json                   # config TS gốc; khai báo alias `@src/*` (chỉ dùng cho test — xem coding-style-conventions.md §4)
+├── tsconfig.build.json             # config TS chỉ dùng để build (loại trừ test) — cái mà `nest build` thực sự dùng
+├── vitest.config.ts                # config unit test runner
+├── vitest.config.e2e.ts            # config e2e test runner (khởi động app Nest thật)
+├── CLAUDE.md                       # instruction cho agent ở mức project
+├── CONTEXT.md                      # glossary domain — ý nghĩa chuẩn của User/Role/Session/... (xem docs/agents/domain.md)
 │
 ├── docs/
-│   └── adr/                        # Architecture Decision Records — one immutable file per big decision (e.g. 0001-category-delete-restrict.md)
+│   └── adr/                        # Architecture Decision Records — một file bất biến cho mỗi quyết định lớn (vd 0001-category-delete-restrict.md)
 │
-├── doc/                            # human-facing docs: conventions, playbooks, architecture (this file), per-module plans
+├── doc/                            # tài liệu cho người đọc: convention, playbook, kiến trúc (file này), plan từng module
 │
 ├── scripts/
-│   └── sync-postman-collection.ts  # regenerates the Postman collection from the live Swagger doc (npm run postman:sync)
+│   └── sync-postman-collection.ts  # tạo lại Postman collection từ Swagger doc đang chạy (npm run postman:sync)
 │
 ├── postman/
-│   ├── nestjs-demo.postman_collection.json  # generated — never hand-edit, re-run the sync script instead
-│   └── local.postman_environment.json       # local Postman env vars (base URL, bearer token placeholder)
+│   ├── nestjs-demo.postman_collection.json  # generated — không tự sửa tay, chạy lại sync script
+│   └── local.postman_environment.json       # env var Postman local (base URL, chỗ để bearer token)
 │
 ├── prisma/
 │   ├── schema/
-│   │   ├── schema.prisma           # every model (see prisma-multifile-schema-convention)
-│   │   └── enums.prisma            # every enum, split out so schema.prisma stays readable
+│   │   ├── schema.prisma           # toàn bộ model (xem prisma-multifile-schema-convention)
+│   │   └── enums.prisma            # toàn bộ enum, tách riêng để schema.prisma dễ đọc
 │   ├── migrations/
-│   │   └── <timestamp>_<name>/migration.sql  # one folder per applied migration — edit only *before* first apply (see the 2 partial-unique-index exceptions in Section 7)
-│   └── seed.ts                     # `npx prisma db seed` — idempotent upserts (safe to re-run) for dev/demo data
+│   │   └── <timestamp>_<name>/migration.sql  # một folder cho mỗi migration đã áp dụng — chỉ sửa *trước khi* apply lần đầu (xem 2 ngoại lệ partial-unique-index ở Mục 7)
+│   └── seed.ts                     # `npx prisma db seed` — upsert idempotent (chạy lại an toàn) cho dữ liệu dev/demo
 │
 ├── test/
 │   ├── support/
-│   │   ├── create-test-app.ts      # shared e2e app bootstrap — mirrors configureApp(), lets tests override ThrottlerGuard/APP_FILTER
-│   │   └── create-test-user.ts     # helper: creates + logs in a test user, returns tokens
+│   │   ├── create-test-app.ts      # bootstrap app e2e dùng chung — mô phỏng configureApp(), cho phép test override ThrottlerGuard/APP_FILTER
+│   │   └── create-test-user.ts     # helper: tạo + login một test user, trả về token
 │   ├── app.e2e-spec.ts
 │   ├── auth-login.e2e-spec.ts
 │   ├── auth-register.e2e-spec.ts
@@ -325,70 +304,70 @@ nestjs-demo/
 │   ├── auth-reset-password.e2e-spec.ts
 │   ├── auth-rate-limiting.e2e-spec.ts
 │   ├── mail-smtp.e2e-spec.ts
-│   └── categories.e2e-spec.ts      # 🟡 planned — categories-module-plan.md STEP 7 (one e2e file per module going forward, same pattern)
+│   └── categories.e2e-spec.ts      # 🟡 đã lên kế hoạch — categories-module-plan.md STEP 7 (từ giờ mỗi module có 1 file e2e, cùng pattern)
 │
 └── src/
-    ├── main.ts                     # bootstrap: NestFactory.create → configureApp() → Swagger setup → listen(PORT)
-    ├── app.module.ts               # root module: global providers (ThrottlerGuard, AllExceptionsFilter), wires RequestIdMiddleware to all routes
-    ├── app.controller.ts           # placeholder root route left over from `nest new` — revisit once a real root route (health check?) is needed
+    ├── main.ts                     # bootstrap: NestFactory.create → configureApp() → setup Swagger → listen(PORT)
+    ├── app.module.ts               # root module: provider global (ThrottlerGuard, AllExceptionsFilter), gắn RequestIdMiddleware vào mọi route
+    ├── app.controller.ts           # route gốc placeholder còn sót lại từ `nest new` — xem lại khi cần một route gốc thật (health check?)
     ├── app.service.ts
     ├── app.controller.spec.ts
     │
     ├── bootstrap/
-    │   └── configure-app.ts        # ValidationPipe + cookie-parser + AppLogger — shared by main.ts AND test/support/create-test-app.ts so they can't drift apart
+    │   └── configure-app.ts        # ValidationPipe + cookie-parser + AppLogger — dùng chung bởi main.ts VÀ test/support/create-test-app.ts để không bị lệch nhau
     │
     ├── config/
-    │   └── env.validation.ts       # fail-fast: throws at startup if a required env var is missing/invalid (config-environment-conventions.md)
+    │   └── env.validation.ts       # fail-fast: throw ngay lúc khởi động nếu thiếu/sai một env var bắt buộc (config-environment-conventions.md)
     │
-    ├── common/                     # cross-cutting infra shared by every module — not a business domain itself
-    │   ├── app-logger.ts           # Logger implementation; tags every log line with the current request id
-    │   ├── request-context.ts      # AsyncLocalStorage wrapper carrying the request id through the whole async call chain
-    │   ├── request-id.middleware.ts # sets X-Request-Id, opens the AsyncLocalStorage context — global, runs on every route
+    ├── common/                     # infra cross-cutting dùng chung cho mọi module — không phải bản thân một domain nghiệp vụ
+    │   ├── app-logger.ts           # implementation của Logger; gắn request id hiện tại vào mọi dòng log
+    │   ├── request-context.ts      # wrapper AsyncLocalStorage mang request id xuyên suốt chuỗi gọi bất đồng bộ
+    │   ├── request-id.middleware.ts # set X-Request-Id, mở context AsyncLocalStorage — global, chạy trên mọi route
     │   └── filters/
-    │       └── all-exceptions.filter.ts  # the ONE global exception filter — unifies HttpException/Prisma/unexpected errors, logs 5xx only (never 4xx)
+    │       └── all-exceptions.filter.ts  # MỘT exception filter global duy nhất — hợp nhất HttpException/lỗi Prisma/lỗi không lường trước, chỉ log 5xx (không bao giờ log 4xx)
     │
     ├── prisma/
-    │   ├── prisma.module.ts        # @Global() — PrismaService injectable anywhere without re-importing this module
-    │   └── prisma.service.ts       # extends PrismaClient, wired to Postgres via @prisma/adapter-pg
+    │   ├── prisma.module.ts        # @Global() — PrismaService inject được ở bất kỳ đâu mà không cần import lại module này
+    │   └── prisma.service.ts       # extends PrismaClient, nối với Postgres qua @prisma/adapter-pg
     │
     ├── generated/
-    │   └── prisma/                 # `prisma generate` output — do not hand-edit, do not review line-by-line in PRs
+    │   └── prisma/                 # output của `prisma generate` — không tự sửa tay, không review từng dòng trong PR
     │
     ├── mail/
     │   ├── mail.module.ts
-    │   └── mail.service.ts         # nodemailer wrapper — today only sends Auth transactional emails (verify/reset)
+    │   └── mail.service.ts         # wrapper nodemailer — hiện chỉ gửi email giao dịch của Auth (verify/reset)
     │
-    ├── auth/                       # 🟢 done
+    ├── auth/                       # 🟢 xong
     │   ├── auth.module.ts
-    │   ├── auth.controller.ts      # all /auth/* routes
+    │   ├── auth.controller.ts      # toàn bộ route /auth/*
     │   ├── services/
-    │   │   ├── auth.service.ts     # register/login orchestration
-    │   │   ├── token.service.ts    # access/refresh token issuance + rotation
-    │   │   └── password.service.ts # argon2 hashing + strength checks
+    │   │   ├── auth.service.ts     # điều phối register/login
+    │   │   ├── token.service.ts    # cấp phát + rotate access/refresh token
+    │   │   └── password.service.ts # hash argon2 + kiểm tra độ mạnh mật khẩu
     │   ├── strategies/
-    │   │   └── jwt.strategy.ts     # passport-jwt strategy — validates the access token
+    │   │   └── jwt.strategy.ts     # strategy passport-jwt — xác thực access token
     │   ├── guards/
     │   │   ├── jwt-auth.guard.ts
-    │   │   ├── roles.guard.ts      # checks @Roles() against the DB Role/UserRole tables (not a hardcoded enum)
-    │   │   ├── ownership.guard.ts  # checks @OwnedResource() — "is this the caller's own record?"
-    │   │   └── email-throttler.guard.ts  # tighter throttle specifically for email-sending routes
+    │   │   ├── roles.guard.ts      # kiểm tra @Roles() đối chiếu bảng Role/UserRole trong DB (không phải enum hardcode)
+    │   │   ├── ownership.guard.ts  # kiểm tra @OwnedResource() — "đây có phải bản ghi của chính người gọi không?"
+    │   │   └── email-throttler.guard.ts  # throttle chặt hơn riêng cho các route gửi email
     │   ├── decorators/
     │   │   ├── current-user.decorator.ts
     │   │   ├── roles.decorator.ts
     │   │   └── owned-resource.decorator.ts
-    │   └── dto/                    # one file per request/response shape — register, login, refresh, forgot/reset-password, verify-email, resend-verification, message-response, auth-user-response
+    │   └── dto/                    # mỗi file cho một hình dạng request/response — register, login, refresh, forgot/reset-password, verify-email, resend-verification, message-response, auth-user-response
     │
-    ├── categories/                 # 🟡 planned next — doc/categories-module-plan.md, 0/8 steps
+    ├── categories/                 # 🟡 đã lên kế hoạch tiếp theo — doc/categories-module-plan.md, 0/8 bước
     │   ├── categories.module.ts
-    │   ├── categories.controller.ts # GET public; writes → STORE_MANAGER or MASTER_ADMIN
-    │   ├── categories.service.ts    # calls PrismaService directly — no repository layer (api-conventions.md §B5b)
-    │   ├── categories.service.spec.ts  # unit test — has business logic (slug generation, duplicate/FK checks)
-    │   └── dto/                     # no entities/ folder (banned — api-conventions.md §B3); no response DTO — Category has no sensitive field, returns the Prisma type directly (§B11.a)
+    │   ├── categories.controller.ts # GET public; ghi → STORE_MANAGER hoặc MASTER_ADMIN
+    │   ├── categories.service.ts    # gọi thẳng PrismaService — không có lớp repository (api-conventions.md §B5b)
+    │   ├── categories.service.spec.ts  # unit test — có business logic (sinh slug, kiểm tra trùng/FK)
+    │   └── dto/                     # không có folder entities/ (bị cấm — api-conventions.md §B3); không có response DTO — Category không có field nhạy cảm, trả thẳng type của Prisma (§B11.a)
     │       ├── create-category.dto.ts
-    │       ├── update-category.dto.ts  # PartialType(CreateCategoryDto) from @nestjs/swagger, not @nestjs/mapped-types
-    │       └── pagination.dto.ts        # { page, limit } shape — copy-pasted per module today (see note below tree), not imported from one shared file
+    │       ├── update-category.dto.ts  # PartialType(CreateCategoryDto) từ @nestjs/swagger, không phải @nestjs/mapped-types
+    │       └── pagination.dto.ts        # hình dạng `{ page, limit }` — hiện copy-paste ở từng module (xem ghi chú dưới cây thư mục), chưa import từ một file dùng chung
     │
-    ├── products/                   # 🔴 not started — standard CRUD, same shape as categories (Section 8)
+    ├── products/                   # 🔴 chưa bắt đầu — CRUD chuẩn, cùng hình dạng với categories (Mục 8)
     │   ├── products.module.ts
     │   ├── products.controller.ts
     │   ├── products.service.ts
@@ -398,78 +377,73 @@ nestjs-demo/
     │       ├── update-product.dto.ts
     │       └── pagination.dto.ts
     │
-    ├── users/                      # 🔴 not started — API not yet in Section 8 either, added there in the same pass as this tree. Role assignment lives here (POST /users/:id/roles), not in a separate roles/ module
+    ├── users/                      # 🔴 chưa bắt đầu — API cũng chưa có ở Mục 8, sẽ thêm cùng lúc với cây thư mục này. Việc gán role nằm ở đây (POST /users/:id/roles), không phải một module roles/ riêng
     │   ├── users.module.ts
-    │   ├── users.controller.ts     # PATCH /users/me; user/status/role administration → MASTER_ADMIN
+    │   ├── users.controller.ts     # PATCH /users/me; quản trị user/status/role → MASTER_ADMIN
     │   ├── users.service.ts
     │   ├── users.service.spec.ts
     │   └── dto/
-    │       ├── update-profile.dto.ts    # PATCH /users/me body (fullName, phone)
-    │       ├── update-status.dto.ts     # PATCH /users/:id/status body
-    │       ├── assign-role.dto.ts       # POST /users/:id/roles body
-    │       ├── pagination.dto.ts        # GET /users listing
-    │       └── user-response.dto.ts     # allow-list DTO — User has passwordHash, must never serialize it directly (§B11.b)
+    │       ├── update-profile.dto.ts    # body PATCH /users/me (fullName, phone)
+    │       ├── update-status.dto.ts     # body PATCH /users/:id/status
+    │       ├── assign-role.dto.ts       # body POST /users/:id/roles
+    │       ├── pagination.dto.ts        # danh sách GET /users
+    │       └── user-response.dto.ts     # DTO allow-list — User có passwordHash, không bao giờ được serialize trực tiếp (§B11.b)
     │
-    ├── cart/                       # 🔴 not started — not standard CRUD: cart itself has no create/delete endpoint (auto-owned per user), only items are mutated
+    ├── cart/                       # 🔴 chưa bắt đầu — không phải CRUD chuẩn: bản thân cart không có endpoint create/delete (tự sở hữu theo user), chỉ item mới được mutate
     │   ├── cart.module.ts
     │   ├── cart.controller.ts      # GET /cart; POST/PATCH/DELETE /cart/items(/:id)
     │   ├── cart.service.ts
     │   ├── cart.service.spec.ts
     │   └── dto/
     │       ├── add-cart-item.dto.ts     # POST /cart/items
-    │       └── update-cart-item.dto.ts  # PATCH /cart/items/:id — no pagination.dto.ts (1 cart per user, nothing to page through)
+    │       └── update-cart-item.dto.ts  # PATCH /cart/items/:id — không có pagination.dto.ts (mỗi user 1 cart, không có gì để phân trang)
     │
-    ├── inventory/                  # 🔴 not started — resolve the reserved_quantity vs inventory_reservations decision (Section 0/7) before writing this
+    ├── inventory/                  # 🔴 chưa bắt đầu — cần chốt quyết định reserved_quantity vs inventory_reservations (Mục 0/7) trước khi viết module này
     │   ├── inventory.module.ts
-    │   ├── inventory.controller.ts # GET /inventory/:variantId; PATCH /inventory/:variantId/adjust — no create/delete/list, inventory rows are born with their ProductVariant
+    │   ├── inventory.controller.ts # GET /inventory/:variantId; PATCH /inventory/:variantId/adjust — không có create/delete/list, dòng inventory sinh ra cùng ProductVariant của nó
     │   ├── inventory.service.ts
-    │   ├── inventory.service.spec.ts   # concurrency/adjust logic is exactly the kind of business rule §B8 requires a unit test for
+    │   ├── inventory.service.spec.ts   # logic concurrency/adjust đúng là loại business rule mà §B8 yêu cầu phải có unit test
     │   └── dto/
-    │       └── adjust-inventory.dto.ts  # the only DTO this module needs
+    │       └── adjust-inventory.dto.ts  # DTO duy nhất module này cần
     │
-    ├── orders/                     # 🔴 not started — needs products/cart/inventory to exist first (checkout reads all three)
+    ├── orders/                     # 🔴 chưa bắt đầu — cần products/cart/inventory tồn tại trước (checkout đọc cả ba)
     │   ├── orders.module.ts
-    │   ├── orders.controller.ts    # POST /orders; GET /orders, /orders/:id; POST /orders/:id/cancel — no PATCH, "cancel" is the only mutation besides create
+    │   ├── orders.controller.ts    # POST /orders; GET /orders, /orders/:id; POST /orders/:id/cancel — không có PATCH, "cancel" là mutation duy nhất ngoài create
     │   ├── orders.service.ts
     │   ├── orders.service.spec.ts
     │   └── dto/
-    │       ├── create-order.dto.ts      # checkout — likely near-empty body, reads the caller's active cart server-side
-    │       └── pagination.dto.ts        # GET /orders listing
+    │       ├── create-order.dto.ts      # checkout — body gần như rỗng, đọc cart đang active của người gọi ở phía server
+    │       └── pagination.dto.ts        # danh sách GET /orders
     │
-    ├── payments/                   # 🟡 committed, not built — MoMo-first behind PaymentProvider (ADR 0004)
+    ├── payments/                   # 🟡 đã chốt, chưa build — MoMo-first đứng sau PaymentProvider (ADR 0004)
     │   ├── payments.module.ts
-    │   ├── payments.controller.ts  # create/retry payment, MoMo webhook, refund
+    │   ├── payments.controller.ts  # tạo/retry payment, webhook MoMo, refund
     │   ├── payments.service.ts
     │   ├── payments.service.spec.ts
     │   └── dto/
     │       ├── create-payment.dto.ts
-    │       └── payment-response.dto.ts  # allow-list — transaction/provider data is exactly the "sensitive, model grows often" case §B11.b calls for. Webhook body isn't a validated DTO — it's an external provider payload verified by signature, not by class-validator
+    │       └── payment-response.dto.ts  # allow-list — dữ liệu giao dịch/provider đúng là trường hợp "nhạy cảm, model hay thay đổi" mà §B11.b nói tới. Body webhook dùng hợp đồng riêng của provider, không phải DTO CRUD nội bộ: xác minh chữ ký (§9) xác thực payload, sau đó kiểm tra cấu trúc/nghiệp vụ (order, amount, currency) chạy trước khi đổi trạng thái — xác minh chữ ký không thay thế các kiểm tra đó
     │
-    ├── promotions/                 # 🔴 not started — no Prisma model yet; needs orders.subtotal/discount_amount first (Section 0 gap)
+    ├── promotions/                 # 🔴 chưa bắt đầu — chưa có Prisma model; cần orders.subtotal/discount_amount trước (gap ở Mục 0)
     │   ├── promotions.module.ts
     │   ├── promotions.controller.ts # CRUD → STORE_MANAGER/MASTER_ADMIN; validate → CUSTOMER
     │   ├── promotions.service.ts
-    │   ├── promotions.service.spec.ts  # validate() has the real business logic (expiry/usage-limit/min-order checks)
+    │   ├── promotions.service.spec.ts  # validate() chứa business logic thật (kiểm tra hết hạn/giới hạn sử dụng/đơn tối thiểu)
     │   └── dto/
     │       ├── create-promotion.dto.ts
     │       ├── update-promotion.dto.ts
-    │       ├── validate-promotion.dto.ts  # POST /promotions/validate body (code + cart context)
+    │       ├── validate-promotion.dto.ts  # body POST /promotions/validate (mã + context cart)
     │       └── pagination.dto.ts
     │
-    └── notifications/              # 🟡 partial — mail/ already covers Auth emails. No controller, no dto/: this module has no public API (Section 8) — it's a BullMQ consumer reacting to events from Section 11, once the queue exists
+    └── notifications/              # 🟡 một phần — mail/ đã phủ email của Auth. Không có controller, không có dto/: module này không có public API (Mục 8) — nó là một BullMQ consumer phản ứng với event từ Mục 11, một khi queue tồn tại
         ├── notifications.module.ts
         ├── notifications.service.ts
-        └── notifications.processor.ts  # BullMQ @Processor — the actual entry point once Redis/BullMQ (Section 0) exist; doesn't exist before then
+        └── notifications.processor.ts  # BullMQ @Processor — điểm vào thật một khi Redis/BullMQ (Mục 0) tồn tại; chưa tồn tại trước đó
 ```
 
-`pagination.dto.ts` above is the same `{ page, limit }` shape every time,
-but it's a **separate file per module today**, not a shared import — that's
-what `categories-module-plan.md` STEP 3 and `api-conventions.md` §B3 both
-already do. Worth reconsidering once 3-4 modules have it (extract to
-`common/dto/pagination.dto.ts`), but that's a call for whoever builds the
-second or third module, not a decision to make now.
+`pagination.dto.ts` ở trên luôn cùng một hình dạng `{ page, limit }`, nhưng hiện tại là **một file riêng cho từng module**, không phải một import dùng chung — đó là cách `categories-module-plan.md` STEP 3 và `api-conventions.md` §B3 đang làm. Đáng cân nhắc lại khi có 3-4 module cùng dùng nó (tách ra `common/dto/pagination.dto.ts`), nhưng đó là quyết định của người build module thứ hai hoặc thứ ba, không phải quyết định cần đưa ra bây giờ.
 
-### Dependency rule
+### Quy tắc dependency
 
 ```text
 Controller
@@ -481,19 +455,13 @@ PrismaService
 Database
 ```
 
-A controller should not directly access PostgreSQL — it goes through the
-service. Services call `PrismaService` directly; a separate `Resource
-Repository` class is **not** the default here (see
-`convention/api-conventions.md` §B5b) — only add one when there's a
-concrete reason (a complex query reused in several places, several
-aggregates in one business operation, a large transaction, or a real need
-to isolate the ORM from business logic).
+Controller không được truy cập PostgreSQL trực tiếp — phải đi qua service. Service gọi `PrismaService` trực tiếp; một lớp `Resource Repository` riêng **không phải** mặc định ở đây (xem `convention/api-conventions.md` §B5b) — chỉ thêm khi có lý do cụ thể (một query phức tạp được tái sử dụng ở nhiều nơi, nhiều aggregate trong một thao tác nghiệp vụ, một transaction lớn, hoặc nhu cầu thật sự cần tách ORM khỏi business logic).
 
 ---
 
-# 4. Request Flow
+# 4. Luồng Request
 
-Example: `POST /api/v1/orders`
+Ví dụ: `POST /api/v1/orders`
 
 ```mermaid
 sequenceDiagram
@@ -510,68 +478,90 @@ sequenceDiagram
 
     User->>Client: Checkout
     Client->>Gateway: POST /api/v1/orders
-    Gateway->>Auth: Validate access token
-    Auth-->>Gateway: Authorized
+    Gateway->>Auth: Xác thực access token
+    Auth-->>Gateway: Đã xác thực
 
-    Gateway->>Order: Create order
-    Order->>DB: Validate cart / product / price
+    Gateway->>Order: Tạo order
+    Order->>DB: Pre-check cart/product tồn tại và đang active (từ chối sớm, chưa mở transaction)
 
     Order->>DB: BEGIN
-    Order->>Inventory: Atomically reserve stock
-    Inventory->>DB: Create 15-minute reservation
-    Order->>DB: Create order + snapshots
-    Order->>Outbox: Write order.created
+    Order->>DB: Đọc lại giá product_variant hiện tại, tạo order + snapshot từ lần đọc đó
+    Order->>Inventory: Reserve stock atomically (gắn với order_id vừa tạo)
+    Inventory->>DB: Tạo reservation 15 phút
+    Order->>Outbox: Ghi order.created
     Order->>DB: COMMIT
 
-    Order->>Payment: Create payment
-    Payment-->>Order: Payment URL or recoverable failure
+    Order->>Payment: Tạo payment
+    Payment-->>Order: Payment URL hoặc lỗi có thể khôi phục
 
-    Outbox-->>Queue: Dispatch at least once
-    Queue-->>Queue: Process idempotently
+    Outbox-->>Queue: Dispatch theo kiểu at-least-once
+    Queue-->>Queue: Xử lý idempotent
 
     Order-->>Gateway: Order + payment URL
     Gateway-->>Client: Response
 ```
 
+**Chính sách giá:** pre-check trước `BEGIN` chỉ là một lượt từ chối rẻ tiền (cart tồn tại, product/variant vẫn đang active) — nó không bao giờ cung cấp giá được ghi vào `order_items`. Giá snapshot luôn đến từ câu `SELECT` thực hiện **bên trong** transaction, ngay trước khi ghi snapshot. Nếu giá thay đổi giữa lúc "xem cart" và "bấm checkout," Order dùng giá hiện hành tại thời điểm tạo Order, không phải giá mà cart đã hiển thị trước đó. Không có cột version hay row lock trên `product_variants` — việc admin sửa giá trùng thời điểm với một lượt checkout đủ hiếm để "giá trị nào transaction đọc được" là một kết quả chấp nhận được; đây là một lựa chọn đơn giản có chủ đích, không phải bỏ sót.
+
 ---
 
-# 5. Checkout System Design
+# 5. Thiết kế Hệ thống Checkout
 
-Checkout is one of the most important flows.
+Checkout là một trong những luồng quan trọng nhất.
 
 ```mermaid
 flowchart TD
-    Start["User clicks Checkout"]
+    Start["User bấm Checkout"]
 
-    ValidateCart["Validate Cart"]
-    ValidateProduct["Validate Product / Price"]
-    Promotion["Calculate Promotion"]
-    Shipping["Calculate Shipping"]
-    Inventory["Reserve Inventory"]
-    CreateOrder["Create Order"]
-    Payment["Create MoMo Payment Attempt"]
-    Result["Return Payment URL"]
-    Pending["Keep PENDING_PAYMENT<br/>retry while reservation is active"]
+    ValidateCart["Pre-check: cart/product tồn tại và active<br/>(từ chối rẻ tiền, ngoài transaction)"]
+    Promotion["Tính Promotion<br/>Phase 5: luôn là 0 — Promotions ra mắt ở Phase 7"]
+    Shipping["Tính Shipping<br/>Phase 5: luôn là 0 — shipping thật ra mắt ở Phase 8"]
+
+    subgraph Tx["Một transaction PostgreSQL"]
+        CreateOrder["Tạo Order + snapshot<br/>(đọc lại giá hiện tại ở đây)"]
+        Inventory["Reserve Inventory<br/>(reservation gắn với order_id)"]
+        Outbox["Ghi order.created vào outbox"]
+    end
+
+    CreateOrder --> Inventory
+    Inventory -->|Thành công| Outbox
+    Inventory -->|Thất bại| Rollback["ROLLBACK toàn bộ transaction<br/>(kể cả Order vừa tạo)"]
+    Rollback --> Error["Hết hàng"]
+
+    Payment["Tạo MoMo Payment Attempt<br/>(ngoài transaction)<br/>⚠️ Chỉ từ Phase 6+ — không thuộc Phase 5"]
+    Result["Trả về Payment URL"]
+    Pending["Giữ PENDING_PAYMENT<br/>retry trong lúc reservation còn hiệu lực"]
 
     Start --> ValidateCart
-    ValidateCart --> ValidateProduct
-    ValidateProduct --> Promotion
+    ValidateCart --> Promotion
     Promotion --> Shipping
-    Shipping --> Inventory
+    Shipping --> CreateOrder
 
-    Inventory -->|Success| CreateOrder
-    Inventory -->|Failed| Error["Out of Stock"]
-
-    CreateOrder --> Payment
+    Outbox --> Payment
     Payment --> Result
-    Payment -->|Timeout / unknown| Pending
+    Payment -->|Timeout / không rõ kết quả| Pending
 ```
+
+Phạm vi Phase 5: `orders.subtotal = orders.total_amount`, `orders.discount_amount = 0`, `orders.shipping_amount = 0` cho tới khi Promotions (Phase 7) và tính phí shipping thật (Phase 8) tồn tại — việc tạo Order không bao giờ bị chặn chờ các module đó; chỉ có phần tính discount/shipping bị hardcode về 0 tới lúc đó.
+
+**Sơ đồ này thể hiện Checkout ở trạng thái cuối cùng, trải dài qua hai phase — không phải mọi thứ được build hết trong Phase 5:**
+
+```text
+Phase 5 mang lại: pre-check → Order + snapshot → Reserve Inventory →
+                  ghi outbox, trong một transaction. Trả về một
+                  contract "Order đã tạo," chưa phải payment URL.
+
+Phase 6 bổ sung:  nhánh Payment/MoMo — Tạo Payment Attempt,
+                  Result, và đường Pending/timeout.
+```
+
+Việc Phase 5 có gọi vào Payment đồng bộ trong cùng request checkout (như sơ đồ vẽ ở trên) hay để client tự gọi `POST /api/v1/payments` riêng khi Payments đã tồn tại (đã có trong catalog ở Mục 8) là quyết định thuộc về implementation plan của Orders/Payments, không bị cố định bởi sơ đồ này — dù theo cách nào, `POST /orders` vẫn phải tự trả về một kết quả dùng được ở Phase 5, trước khi Payment tồn tại.
 
 ---
 
-# 6. Inventory Concurrency
+# 6. Concurrency của Inventory
 
-The system must prevent two customers from purchasing the same final item.
+Hệ thống phải ngăn hai khách hàng cùng mua trúng một sản phẩm cuối cùng.
 
 ```mermaid
 sequenceDiagram
@@ -580,24 +570,29 @@ sequenceDiagram
     participant API as Backend
     participant DB as PostgreSQL
 
-    Note over DB: Available stock = 1
+    Note over DB: Tồn kho khả dụng = 1
 
-    A->>API: Buy product
+    A->>API: Mua sản phẩm
     API->>DB: BEGIN transaction
-    API->>DB: Lock / atomically reserve stock
-    DB-->>API: Stock reserved
+    API->>DB: Lock / reserve stock atomically
+    DB-->>API: Đã reserve stock
 
-    B->>API: Buy product
-    API->>DB: Try reserve stock
-    DB-->>API: Not enough stock
+    B->>API: Mua sản phẩm
+    API->>DB: Thử reserve stock
+    Note over DB: UPDATE của B bị chặn bởi row lock của A —<br/>không fail ngay lập tức
 
+    API->>DB: A COMMIT
+    DB-->>API: Reservation của A giờ đã durable
+
+    DB-->>API: UPDATE của B được mở khóa, đánh giá lại<br/>điều kiện WHERE trên dòng mới
     API-->>B: OUT_OF_STOCK
-    API->>DB: COMMIT
 
-    API-->>A: Order created
+    API-->>A: Order đã được tạo
 ```
 
-The committed target uses an explicit reservation table:
+Nếu A rollback thay vì commit, `UPDATE` đang bị chặn của B sẽ đánh giá lại trên trạng thái đã rollback và vẫn có thể thành công — B không bao giờ bị từ chối trước khi biết kết quả của A. Sơ đồ này giả định câu lệnh reserve của B là một `UPDATE ... WHERE available_quantity >= qty` điều kiện duy nhất, đây chính là kiểu câu lệnh thực sự bị chặn bởi row lock của Postgres; một chiến lược đọc-rồi-ghi bằng hai câu lệnh riêng cần tự có cơ chế khóa riêng (vd `SELECT ... FOR UPDATE`) để đạt hành vi này.
+
+Mục tiêu đã chốt dùng một bảng reservation tường minh:
 
 ```text
 inventory_reservations
@@ -611,7 +606,7 @@ expires_at
 created_at
 ```
 
-Typical statuses:
+Các status thường gặp:
 
 ```text
 ACTIVE
@@ -620,23 +615,21 @@ EXPIRED
 CONSUMED
 ```
 
-The hold expires after **15 minutes**. Creating the Order, OrderItem
-snapshots, reservation, aggregate stock change, and outbox event is one
-PostgreSQL transaction. Database constraints keep all quantities
-non-negative and enforce `reserved_quantity <= quantity`. Payment success
-and reservation expiry compete through an atomic state transition: only one
-can consume or expire an `ACTIVE` reservation.
+Lượt giữ hàng hết hạn sau **15 phút**. Trong một transaction PostgreSQL: Order và snapshot OrderItem của nó được tạo trước (để transaction có `order_id` để gắn vào), sau đó reservation được tạo dựa trên `order_id` đó, rồi bộ đếm tồn kho tổng thay đổi, rồi outbox event được ghi. Ràng buộc database giữ mọi số lượng không âm và enforce `reserved_quantity <= quantity`. Thanh toán thành công và reservation hết hạn cạnh tranh nhau qua một chuyển trạng thái atomic: chỉ một bên được consume hoặc expire một reservation `ACTIVE`.
+
+**Chỉ `status = 'ACTIVE'` không có nghĩa là "vẫn còn trong 15 phút giữ hàng."** Worker cập nhật `status` thành `EXPIRED` có thể trễ hơn `expires_at` (worker downtime, delayed-job chỉ là best-effort, không chính xác tuyệt đối). Việc consume một reservation khi thanh toán thành công phải kiểm tra cả hai điều kiện trong cùng một câu lệnh atomic: `UPDATE ... SET status = 'CONSUMED' WHERE status = 'ACTIVE' AND expires_at > clock_timestamp()`.
+
+**Dùng `clock_timestamp()`, không phải `NOW()`/`transaction_timestamp()`:** trong PostgreSQL, `NOW()` cố định tại thời điểm bắt đầu transaction và không nhích lên trong lúc câu lệnh chờ lock, nên một transaction bắt đầu trước `expires_at` nhưng chỉ giành được row lock sau `expires_at` vẫn sẽ đọc `NOW()` là thời điểm trước khi hết hạn. `clock_timestamp()` đọc đúng thời gian thực tại thời điểm điều kiện được đánh giá. **Đây là chính sách đã chọn: hiệu lực của một reservation được xét tại thời điểm chuyển trạng thái thực sự thực thi (khi giành được row lock và điều kiện được kiểm tra), không phải tại thời điểm transaction bắt đầu** — một webhook đến trễ, bị xếp hàng sau một lock quá `expires_at`, vẫn bị coi là hết hạn, dù transaction của nó mở trước `expires_at`. Một webhook đến sau `expires_at` nhưng trước khi worker đánh dấu dòng đó `EXPIRED` phải fail ở kiểm tra này và rơi vào cùng đường xử lý reconciliation cho late-success mà Mục 9 mô tả — không bao giờ âm thầm xác nhận. Với một Order nhiều sản phẩm, toàn bộ reservation của Order đó được consume hoặc expire cùng nhau trong một câu lệnh/transaction — không bao giờ consume một phần rồi để lại một reservation khác.
+
+**Ngăn hai Order từ cùng một Cart qua hai Idempotency-Key khác nhau:** header Idempotency-Key (Mục 12) chỉ loại trùng các retry _giống hệt nhau_: nó không ngăn được hai request thực sự khác nhau (khác key) cùng cố checkout một Cart. Cơ chế bảo vệ thay vào đó đến từ chính cột `status` của Cart (Mục 7): checkout chỉ hợp lệ với một Cart đang `ACTIVE`, và cùng transaction tạo Order cũng chuyển Cart đó sang `CHECKED_OUT` — vd `UPDATE carts SET status = 'CHECKED_OUT' WHERE id = :cartId AND status = 'ACTIVE'`. Một lượt checkout thứ hai chạy đồng thời trên cùng Cart sẽ thua ở conditional update đó (0 dòng bị ảnh hưởng) và bị từ chối, bất kể dùng Idempotency-Key nào.
+
+**Khoảng trống chưa được xử lý: một CartItem mutation chạy đua với checkout trên cùng một Cart** (vd `PATCH /cart/items/:id` đổi quantity trong lúc checkout đang đọc item của Cart đó để dựng Order). Quy tắc: **CartItem mutation và Checkout phải điều kiện theo cùng một kiểm tra `status` của Cart** — một CartItem mutation chỉ nên thành công khi `carts.status = 'ACTIVE'`, cùng điều kiện mà update `ACTIVE → CHECKED_OUT` của Checkout dùng. Một khi checkout đã chuyển Cart sang `CHECKED_OUT`, một CartItem mutation chạy đồng thời sẽ thua conditional update của chính nó, giống hệt một checkout thứ hai. **Đã quyết định (ADR 0009): dùng row lock (`SELECT ... FOR UPDATE` trên Cart lúc bắt đầu checkout), không dùng cột version kiểu optimistic.** Một Cart chỉ có đúng một chủ sở hữu (`carts.user_id` là unique cho mỗi Cart đang active) và không có kịch bản nhiều agent cùng sửa hợp lệ — tranh chấp ở đây hiếm và ngắn hạn, nên một row lock thông thường đơn giản hơn việc thêm cột `carts.version` cộng logic check-and-increment trên mỗi CartItem mutation. (Schema hiện tại không có cột `version` trên `carts` — row locking không cần migration mới cho việc này.)
 
 ---
 
-# 7. Database Architecture
+# 7. Kiến trúc Database
 
-The ER diagram below is the **real, already-migrated** schema (15 tables —
-see `prisma/schema/schema.prisma`, migration `20260911030156_init_ecommerce`),
-not an aspirational one. `Payments`/`Promotions` are intentionally absent —
-they don't exist yet (see Section 0). Full field-by-field rationale lives in
-`doc/ecommerce-postgresql-database-summary.md` and the step-by-step Prisma
-guide in `doc/convention/ecommerce-prisma-schema-guide.md`; this is the condensed view.
+Sơ đồ ER bên dưới là schema **thật, đã migrate** (15 bảng — xem `prisma/schema/schema.prisma`, migration `20260911030156_init_ecommerce`), không phải một schema kỳ vọng. `Payments`/`Promotions` cố tình vắng mặt — chúng chưa tồn tại (xem Mục 0). Lý do chi tiết từng field nằm ở `doc/ecommerce-postgresql-database-summary.md` và hướng dẫn Prisma từng bước ở `doc/convention/ecommerce-prisma-schema-guide.md`; đây là bản rút gọn.
 
 ```mermaid
 erDiagram
@@ -770,75 +763,35 @@ erDiagram
     }
 ```
 
-**Business rules that don't show up as columns:**
+**Business rule không thể hiện thành cột:**
 
-- **Cart price is live, Order price is a snapshot.** `cart_items` has no
-  `unit_price` — it always reads the current `product_variants.price`, so
-  it can drift between "added to cart" and "checked out". `order_items`
-  freezes `product_name`/`sku`/`unit_price` at order-creation time, so a
-  later product/price edit never rewrites history.
-- **`available_quantity = inventory.quantity - inventory.reserved_quantity`.**
-  `reserved_quantity` only moves on `Order` status transitions, never on
-  cart changes (a cart never reserves stock): Order created (PENDING) →
-  `reserved_quantity += qty`; Order → PAID → `quantity -= qty` and
-  `reserved_quantity -= qty`; Order → CANCELLED → `reserved_quantity -= qty`
-  only in the current schema. **Committed target (ADR 0003):** add an
-  auditable `inventory_reservations` table with 15-minute expiry.
-  Reservation state and the aggregate counters change atomically in
-  PostgreSQL; a worker expires holds, and payment-vs-expiry races use an
-  atomic state transition so only one outcome wins.
-- **Two partial unique indexes exist that Prisma's schema DSL can't
-  express** (added by hand into the migration SQL): one `ACTIVE` cart per
-  user (`carts.user_id WHERE status = 'ACTIVE'`), and one primary image
-  per product (`product_images.product_id WHERE is_primary = true`).
-- **`ON DELETE` differs by table**, not "cascade everywhere": `carts`,
-  `user_roles`, `refresh_tokens`, `password_reset_tokens`,
-  `email_verification_tokens` all `CASCADE` on user deletion (meaningless
-  without the user); `orders` is `RESTRICT` (a financial record must
-  survive user deletion — soft-delete `users` instead of hard-deleting a
-  user who has orders).
-- **Composite indexes for listing/pagination** exist ahead of need on the
-  columns actually filtered/sorted on: `products(category_id, status,
-created_at DESC)`, `orders(user_id, created_at DESC)`,
-  `orders(status, created_at DESC)`, `product_variants(product_id,
-created_at DESC)`. Postgres doesn't index FKs automatically — a leading
-  column in one of these composites doubles as that FK's index, so no
-  separate single-column FK index is needed alongside it.
-- **No multi-warehouse, no guest cart, no category hierarchy** in this
-  schema — `inventory` is one global count per variant (not per
-  warehouse), `carts.user_id` is `NOT NULL` (no anonymous cart), and
-  `categories` is flat (no `parent_id`). All three are documented
-  extension points, not oversights.
+- **Giá của Cart là giá sống (live), giá của Order là snapshot.** `cart_items` không có `unit_price` — nó luôn đọc `product_variants.price` hiện tại, nên có thể trôi giữa lúc "thêm vào cart" và "checkout". `order_items` đóng băng `product_name`/`sku`/`unit_price` tại thời điểm tạo order, nên một lượt sửa product/giá sau đó không bao giờ viết lại lịch sử.
+- **`available_quantity = inventory.quantity - inventory.reserved_quantity`.** `reserved_quantity` chỉ thay đổi theo chuyển trạng thái của `Order`, không bao giờ theo thay đổi của cart (một cart không bao giờ reserve stock): Order được tạo (PENDING) → `reserved_quantity += qty`; Order → PAID → `quantity -= qty` và `reserved_quantity -= qty`; Order → CANCELLED → `reserved_quantity -= qty` chỉ trong schema hiện tại. **Mục tiêu đã chốt (ADR 0003):** thêm một bảng `inventory_reservations` có thể kiểm chứng (auditable), hết hạn sau 15 phút. Trạng thái reservation và bộ đếm tổng thay đổi atomic trong PostgreSQL; một worker sẽ expire các lượt giữ hàng, và cuộc đua giữa thanh toán và hết hạn dùng một chuyển trạng thái atomic để chỉ một kết quả thắng.
+- **Các giá trị `orders.status` ở trên (`PENDING`/`PAID`/`CANCELLED`) là schema đã migrate, không phải state machine mục tiêu đầy đủ.** Bảng trạng thái Order ở Mục 9 thêm `PENDING_PAYMENT`/`CONFIRMED`/`COMPLETED`; việc ánh xạ 3 giá trị hiện tại sang mô hình 4+ trạng thái đó là một trong các "migration đã chốt trước Checkout/Payment" bên dưới, chưa phải điều gì đã được áp dụng.
+- **Hai partial unique index được quản lý bằng migration SQL viết tay, không phải qua Prisma schema**: một cart `ACTIVE` cho mỗi user (`carts.user_id WHERE status = 'ACTIVE'`), và một ảnh chính cho mỗi sản phẩm (`product_images.product_id WHERE is_primary = true`). Prisma đã thêm Preview feature `partialIndexes` từ **v7.4.0**, cho phép `@unique`/`@@unique`/`@@index` nhận một tham số `where` trên PostgreSQL, nên hai index này có thể chuyển vào `schema.prisma` nếu team quyết định bật Preview feature đó — **chỉ khi version Prisma đang cài của project thực sự ≥ 7.4.0** (kiểm tra `package.json`/lockfile; `prisma7.config.ts` chỉ chứng minh định dạng config là v7, không chứng minh đúng minor version). Không bắt buộc — đây là một lựa chọn để cân nhắc, không phải một điều cần sửa cho migration đã áp dụng.
+- **`ON DELETE` khác nhau theo từng bảng**, không phải "cascade khắp nơi": `carts`, `user_roles`, `refresh_tokens`, `password_reset_tokens`, `email_verification_tokens` đều `CASCADE` khi xóa user (vô nghĩa nếu không còn user); `orders` là `RESTRICT` (một bản ghi tài chính phải tồn tại qua cả khi user bị xóa — soft-delete `users` thay vì hard-delete một user còn có order).
+- **Composite index cho listing/pagination** được tạo trước khi cần, trên đúng những cột thực sự được filter/sort: `products(category_id, status, created_at DESC)`, `orders(user_id, created_at DESC)`, `orders(status, created_at DESC)`, `product_variants(product_id, created_at DESC)`. Postgres không tự động index FK — cột dẫn đầu trong một trong các composite này đồng thời đóng vai trò index cho FK đó, nên không cần thêm index FK đơn cột riêng.
+- **Không multi-warehouse, không guest cart, không category phân cấp** trong schema này — `inventory` là một số đếm toàn cục cho mỗi variant (không theo kho), `carts.user_id` là `NOT NULL` (không có cart ẩn danh), và `categories` phẳng (không có `parent_id`). Cả ba đều là điểm mở rộng đã được ghi nhận, không phải bỏ sót.
 
-**Committed migrations before Checkout/Payment:**
+**Migration đã chốt trước Checkout/Payment:**
 
-- Add `inventory_reservations`, idempotency records, outbox events,
-  Payments, Payment Attempts, webhook events, Refunds, and audit records.
-- Add Order money snapshots: `subtotal`, `discount_amount`,
-  `shipping_amount`, `tax_amount`, `total_amount`, and `currency`.
-- Add immutable shipping-address and per-line discount snapshots.
-- Add database checks for positive cart/order quantities, non-negative
-  Inventory, and `reserved_quantity <= quantity`; prevent duplicate
-  `(cart_id, variant_id)` rows and duplicate active
-  `(order_id, variant_id)` reservations.
-- Use one warehouse and VND-only integral amounts for the MVP while keeping
-  an explicit ISO currency on every Order, Payment, and Refund.
+- Thêm `inventory_reservations`, bản ghi idempotency, outbox event, Payments, Payment Attempts, webhook event, Refunds, và bản ghi audit.
+- Thêm các cột snapshot tiền của Order: `subtotal`, `discount_amount`, `shipping_amount`, `tax_amount`, `total_amount`, và `currency`.
+- Thêm snapshot bất biến cho địa chỉ giao hàng và discount theo từng dòng.
+- Thêm check ở database cho số lượng cart/order dương, Inventory không âm, và `reserved_quantity <= quantity`; ngăn dòng `(cart_id, variant_id)` trùng và reservation active `(order_id, variant_id)` trùng.
+- Dùng một kho duy nhất và số tiền nguyên chỉ tính bằng VND cho MVP, trong khi vẫn giữ một mã tiền tệ ISO tường minh trên mỗi Order, Payment, và Refund.
 
 ---
 
-# 8. API Design
+# 8. Thiết kế API
 
-All APIs are versioned:
+Mọi API đều được versioned:
 
 ```text
 /api/v1/...
 ```
 
-This is a **committed target, not current runtime**. The app still exposes
-`/auth/*` until ADR 0002 is implemented. The migration uses Nest URI
-versioning with global prefix `api`, version `1`, no permanent
-unversioned aliases, refresh-cookie path `/api/v1/auth`, and Swagger at
-`/docs`.
+Đây là **mục tiêu đã chốt, chưa phải runtime hiện tại**. App hiện vẫn expose `/auth/*` cho tới khi ADR 0002 được implement. Việc migrate dùng Nest URI versioning với global prefix `api`, version `1`, không có alias không-version vĩnh viễn, đường dẫn refresh-cookie `/api/v1/auth`, và Swagger ở `/docs`.
 
 ## Auth
 
@@ -847,6 +800,7 @@ POST /api/v1/auth/register
 POST /api/v1/auth/login
 POST /api/v1/auth/refresh
 POST /api/v1/auth/logout
+POST /api/v1/auth/logout-all
 POST /api/v1/auth/verify-email
 POST /api/v1/auth/resend-verification
 POST /api/v1/auth/forgot-password
@@ -863,6 +817,8 @@ POST   /api/v1/products
 PATCH  /api/v1/products/:id
 DELETE /api/v1/products/:id
 ```
+
+⚠️ **Contract của Product Variants và product-media (Object Storage) chưa được chốt**, dù cả hai đều ra mắt ở Phase 2 cùng với CRUD này (Mục 22). Việc variant có nằm lồng dưới Products (`/products/:id/variants`) hay là một resource top-level, và cách upload ảnh gắn vào một Product, đều còn mở — danh sách này chỉ là CRUD của Product, chưa phải toàn bộ bề mặt của Phase 2.
 
 ## Categories
 
@@ -908,63 +864,49 @@ GET   /api/v1/inventory/:variantId
 PATCH /api/v1/inventory/:variantId/adjust
 ```
 
-## Users 🔴 not started
+## Users 🔴 chưa bắt đầu
 
-Scope stops where Auth's `GET /auth/me` already ends — this is
-self-service profile edit plus admin management, not another login/me.
+Phạm vi dừng lại ở nơi `GET /auth/me` của Auth đã kết thúc — đây là self-service edit profile cộng quản trị của admin, không phải một login/me khác.
 
 ```http
-PATCH  /api/v1/users/me                — self-edit fullName/phone (JwtAuthGuard only)
-GET    /api/v1/users                   — MASTER_ADMIN — paginated, filter by status/email
+PATCH  /api/v1/users/me                — tự sửa fullName/phone (chỉ cần JwtAuthGuard)
+GET    /api/v1/users                   — MASTER_ADMIN — phân trang, filter theo status/email
 GET    /api/v1/users/:id               — MASTER_ADMIN
 PATCH  /api/v1/users/:id/status        — MASTER_ADMIN block/unblock
-POST   /api/v1/users/:id/roles         — MASTER_ADMIN assign a role
-DELETE /api/v1/users/:id/roles/:roleId — MASTER_ADMIN revoke a role
+POST   /api/v1/users/:id/roles         — MASTER_ADMIN gán một role
+DELETE /api/v1/users/:id/roles/:roleId — MASTER_ADMIN thu hồi một role
 ```
 
-## Promotions 🔴 not started — no Prisma model yet
+## Promotions 🔴 chưa bắt đầu — chưa có Prisma model
 
-Standard coupon-code shape; `POST .../validate` is read-only (checks the
-code against the current cart, returns the discount, doesn't apply
-anything) so a customer can preview it before checkout.
+Hình dạng coupon-code chuẩn; `POST .../validate` chỉ đọc (kiểm tra mã theo cart hiện tại, trả về mức giảm giá, không áp dụng gì cả) để khách hàng có thể xem trước lúc checkout.
 
-The MVP allows one coupon code per Order, no stacking, and no automatic
-promotion. Consumption and usage-limit enforcement are atomic in
-PostgreSQL, and the applied promotion identity/rule/value is stored as an
-Order discount snapshot; Redis counters are never authoritative.
+MVP cho phép một mã coupon cho mỗi Order, không stack, và không có promotion tự động. Việc tiêu thụ và kiểm tra giới hạn sử dụng là atomic trong PostgreSQL, và định danh/rule/giá trị của promotion đã áp dụng được lưu thành một snapshot discount của Order; bộ đếm ở Redis không bao giờ là nguồn xác thực.
 
 ```http
-POST   /api/v1/promotions          — STORE_MANAGER or MASTER_ADMIN
-GET    /api/v1/promotions          — STORE_MANAGER or MASTER_ADMIN
-GET    /api/v1/promotions/:id      — STORE_MANAGER or MASTER_ADMIN
-PATCH  /api/v1/promotions/:id      — STORE_MANAGER or MASTER_ADMIN
-DELETE /api/v1/promotions/:id      — STORE_MANAGER or MASTER_ADMIN
-POST   /api/v1/promotions/validate — CUSTOMER — validate a code against the caller's active cart
+POST   /api/v1/promotions          — STORE_MANAGER hoặc MASTER_ADMIN
+GET    /api/v1/promotions          — STORE_MANAGER hoặc MASTER_ADMIN
+GET    /api/v1/promotions/:id      — STORE_MANAGER hoặc MASTER_ADMIN
+PATCH  /api/v1/promotions/:id      — STORE_MANAGER hoặc MASTER_ADMIN
+DELETE /api/v1/promotions/:id      — STORE_MANAGER hoặc MASTER_ADMIN
+POST   /api/v1/promotions/validate — CUSTOMER — validate một mã theo cart đang active của người gọi
 ```
 
-⚠️ **Schema gap this creates**: applying a promotion at checkout needs
-`orders.subtotal` and `orders.discount_amount` — today `orders` only has
-one final `total_amount` (see Section 7, and the MVP note in
-`ecommerce-postgresql-database-summary.md` §4.8: "chưa có
-discount/shipping/tax nên chưa cần `subtotal`"). A migration adding those
-columns has to land before `POST /orders` can call into Promotions.
+⚠️ **Gap về schema mà điều này tạo ra**: áp dụng một promotion lúc checkout cần `orders.subtotal` và `orders.discount_amount` — hiện tại `orders` chỉ có một `total_amount` cuối cùng (xem Mục 7, và ghi chú MVP trong `ecommerce-postgresql-database-summary.md` §4.8: "chưa có discount/shipping/tax nên chưa cần `subtotal`"). Một migration thêm các cột đó phải xong trước khi `POST /orders` có thể gọi vào Promotions.
 
-## Notifications 🟡 no public API planned for MVP
+## Fulfillment 🔴 chưa bắt đầu — chưa chốt API/event contract
 
-Internal only — triggered by the queue events already listed in
-Section 11 (`order.created`, `payment.completed`, ...), not a REST
-resource. No Prisma model exists for notification history yet, so a
-future `GET /api/v1/notifications` (in-app history) stays **undecided**
-rather than speculated here.
+Phase 8 (Mục 22) đã chốt một workflow shipping nội địa cho Fulfillment và một trục trạng thái `Fulfillment` (Mục 9: `UNFULFILLED → PROCESSING → SHIPPED → DELIVERED | RETURNED`), nhưng chưa có endpoint hay event nào thực sự đưa một Order tới `DELIVERED` tồn tại trong tài liệu này — dù đó là một mutation `PATCH /orders/:id/fulfillment` cho staff, một webhook từ Shipping-provider, hay cả hai, đều **chưa được quyết định**, không phải bị bỏ sót do vô ý.
+
+## Notifications 🟡 chưa có kế hoạch public API cho MVP
+
+Chỉ nội bộ — được kích hoạt bởi các queue event đã liệt kê ở Mục 11 (`order.created`, `payment.completed`, ...), không phải một REST resource. Chưa có Prisma model nào cho lịch sử notification, nên một `GET /api/v1/notifications` (lịch sử in-app) trong tương lai vẫn ở trạng thái **chưa quyết định** thay vì được suy đoán ở đây.
 
 ---
 
-# 9. Payment Architecture
+# 9. Kiến trúc Payment
 
-The frontend redirect is never the source of truth for payment status.
-MoMo is the first production provider for the Vietnam/VND MVP (ADR 0004).
-PayPal is a future international adapter; Stripe is out of scope unless the
-business has an eligible entity in a Stripe-supported country.
+Việc redirect ở frontend không bao giờ là nguồn xác thực cho trạng thái thanh toán. MoMo là provider production đầu tiên cho MVP Việt Nam/VND (ADR 0004). PayPal là một adapter quốc tế cho tương lai; Stripe nằm ngoài phạm vi trừ khi doanh nghiệp có một pháp nhân hợp lệ tại quốc gia mà Stripe hỗ trợ.
 
 ```mermaid
 sequenceDiagram
@@ -974,65 +916,102 @@ sequenceDiagram
     participant Payment as MoMo
     participant DB as PostgreSQL
 
-    User->>Client: Pay Order
-    Client->>API: Create/retry payment with Idempotency-Key
-    API->>DB: Create PaymentAttempt
-    API->>Payment: Signed create request
-    Payment-->>API: payUrl or timeout/unknown
-    API->>DB: Persist provider result
+    User->>Client: Thanh toán Order
+    Client->>API: Tạo/retry payment kèm Idempotency-Key
+    API->>DB: Tạo PaymentAttempt
+    API->>Payment: Gửi request tạo đã ký (signed)
+    Payment-->>API: payUrl hoặc timeout/không rõ kết quả
+    API->>DB: Lưu kết quả từ provider
     API-->>Client: Payment URL
 
     Client->>Payment: Redirect user
-    User->>Payment: Complete payment
+    User->>Payment: Hoàn tất thanh toán
 
     Payment->>API: POST /payments/webhooks/momo
     API->>API: Verify HMAC + order/amount/currency
-    API->>DB: Deduplicate event + atomic state transition + outbox
+    API->>DB: Loại trùng event + chuyển trạng thái atomic + outbox
 
-    API-->>Payment: 204 within 15 seconds
+    API-->>Payment: 204 trong vòng 15 giây
 ```
 
-Minimum persisted records:
+Các bản ghi tối thiểu cần lưu:
 
 ```text
-payments               — one payment obligation for an Order
-payment_attempts       — every provider call, retry, timeout, or unknown result
-payment_webhook_events — verified/deduplicated provider notifications
-refunds                — refund request, actor, reason, provider result
+payments               — một nghĩa vụ thanh toán cho một Order
+payment_attempts       — mỗi lần gọi provider, retry, timeout, hoặc kết quả chưa rõ
+payment_webhook_events — thông báo từ provider đã xác minh/loại trùng
+refunds                — yêu cầu refund, người thực hiện, lý do, kết quả từ provider
 ```
 
-Order, Payment, and Fulfillment are separate state axes:
+Order, Payment, và Fulfillment là ba trục trạng thái riêng biệt. Các danh sách ở bản trước của mục này đọc như một chuỗi liên tiếp (ngụ ý, ví dụ, rằng Payment `FAILED` phải dẫn tới `REFUNDED`); không phải vậy — mỗi dòng bên dưới là một chuyển trạng thái độc lập, không phải một chuỗi cố định:
+
+**Order** (mô hình mục tiêu — schema hiện tại chỉ có `PENDING`/`PAID`/`CANCELLED`; thêm `CONFIRMED`/`COMPLETED` là một trong các "migration đã chốt trước Checkout/Payment" ở Mục 7):
+
+| Từ                | Sang              | Sự kiện                                                                                                                                                                                                                                                                                                                | Ảnh hưởng tồn kho/tiền                                                               |
+| ----------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| _(không có)_      | `PENDING_PAYMENT` | Checkout tạo Order                                                                                                                                                                                                                                                                                                     | reservation được tạo, `reserved_quantity += qty`                                     |
+| `PENDING_PAYMENT` | `CONFIRMED`       | Webhook thanh toán báo `SUCCEEDED` **và** reservation vượt qua đầy đủ kiểm tra consume ở Mục 6 (`status = 'ACTIVE' AND expires_at > clock_timestamp()`, đánh giá atomic tại thời điểm consume — không chỉ "`status` là `ACTIVE`")                                                                                      | reservation → `CONSUMED`; `quantity -= qty`, `reserved_quantity -= qty`              |
+| `PENDING_PAYMENT` | `CANCELLED`       | Reservation hết hạn mà không có thanh toán thành công, hoặc khách/staff hủy trước khi thanh toán                                                                                                                                                                                                                       | reservation → `EXPIRED`/`RELEASED`; `reserved_quantity -= qty`                       |
+| `CONFIRMED`       | `COMPLETED`       | Trục Fulfillment đạt `DELIVERED`                                                                                                                                                                                                                                                                                       | không có                                                                             |
+| `CONFIRMED`       | `CANCELLED`       | **Đã quyết định (ADR 0006):** cho phép staff hủy sau khi đã thanh toán, nhưng chỉ khi Fulfillment vẫn còn `UNFULFILLED` — một khi đạt `PROCESSING`/`SHIPPED`, đây là quy trình return/exception, không phải hủy                                                                                                        | Kích hoạt luồng full-refund bên dưới (MVP chỉ hoàn tiền toàn phần, xem bảng Payment) |
+| `CANCELLED`       | `CANCELLED`       | **Đã quyết định (ADR 0006):** thanh toán thành công sau khi reservation đã hết hạn (late success) — Order giữ nguyên `CANCELLED`; không chuyển sang trạng thái mới nào. Việc "còn tiền cần hoàn" được theo dõi hoàn toàn ở phía Payment (`REFUND_PENDING`/`REFUNDED`), không nhân đôi thành một trạng thái Order riêng | Xem dòng `REFUND_PENDING` ở bảng Payment                                             |
+
+**`payments` và `payment_attempts` là hai đối tượng khác nhau với hai vòng đời khác nhau — chúng không dùng chung một state machine.** Một `payment` là nghĩa vụ thanh toán tổng thể của Order và tổng hợp các attempt của nó.
+
+**Một dòng `payment_attempt` đại diện cho một lần thanh toán hợp lý (logical), được nhận diện bằng một `requestId` của MoMo — không phải một HTTP call.** Một retry ở tầng mạng cho một lời gọi mà kết quả vẫn chưa rõ (client timeout, chưa có response) dùng lại **cùng** dòng attempt và **cùng** `requestId`: đây là điều giúp bản ghi idempotency phía ta (Mục 12) khớp với hợp đồng retry-theo-`requestId` của chính MoMo thay vì xung đột với nó. Một dòng attempt **mới** (với `requestId` mới) chỉ được tạo khi khách hàng bắt đầu một lượt thanh toán mới sau khi lượt trước đã đạt trạng thái terminal (`SUCCEEDED`/`FAILED`, hoặc `EXPIRED` và đã xác nhận không thể khôi phục). Nói theo chiều ngược lại: "MoMo retry một lời gọi dưới cùng `requestId`" mô tả việc _backend của ta_ tự retry lời gọi chưa có response tới MoMo — MoMo là bên thực thi hợp đồng idempotency trên `requestId` đó, không phải bên khởi xướng retry.
+
+**PaymentAttempt** (một dòng cho mỗi lần thanh toán hợp lý):
+
+| Từ           | Sang                      | Sự kiện                                                                                                                                                                               |
+| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _(không có)_ | `PENDING`                 | Dòng attempt được tạo, trước khi gửi lời gọi tới provider                                                                                                                             |
+| `PENDING`    | `PROCESSING`              | Đã gửi request đã ký tới provider                                                                                                                                                     |
+| `PROCESSING` | `SUCCEEDED`               | Webhook xác nhận thành công cho attempt này                                                                                                                                           |
+| `PROCESSING` | `FAILED`                  | Webhook/provider báo từ chối cho attempt này — không có khoản tiền nào được thu                                                                                                       |
+| `PROCESSING` | `EXPIRED`                 | Không có xác nhận trước khi cửa sổ attempt/reservation đóng lại; kết quả chưa rõ, không phải thất bại                                                                                 |
+| `EXPIRED`    | `SUCCEEDED` hoặc `FAILED` | Reconciliation sau đó truy vấn provider theo `requestId`/`transId` và biết được kết quả thật — một attempt `EXPIRED` không phải ngõ cụt, nó được giải quyết một khi biết kết quả thật |
+
+**Payment** (một dòng cho mỗi Order, tổng hợp các attempt của nó):
+
+| Từ                 | Sang                          | Sự kiện                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _(không có)_       | `PENDING`                     | Order được tạo, chưa có attempt nào                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `PENDING`          | `PROCESSING`                  | Attempt đầu tiên chuyển sang `PROCESSING`                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `PROCESSING`       | `SUCCEEDED`                   | **Bất kỳ** attempt nào đạt `SUCCEEDED` — Payment thành công ngay từ attempt thành công đầu tiên, bất kể các attempt `FAILED`/`EXPIRED` trước đó trên cùng Payment                                                                                                                                                                                                                                                                                   |
+| `PROCESSING`       | `FAILED`                      | **Đã quyết định (ADR 0006):** retry được phép không giới hạn số lần miễn Order vẫn còn `PENDING_PAYMENT` và reservation của nó vẫn `ACTIVE` và chưa hết hạn — cửa sổ reservation 15 phút chính là giới hạn retry, không có mức trần số lần attempt riêng cho MVP. `FAILED` chỉ xảy ra khi không còn retry được nữa (xem dòng `EXPIRED` bên dưới; một attempt bị từ chối nhưng reservation vẫn còn mở thì vẫn retry được, nó không làm Payment fail) |
+| `PROCESSING`       | `EXPIRED`                     | Reservation hết hạn (Mục 6) trong khi attempt gần nhất vẫn còn `PROCESSING`/`EXPIRED` và chưa có attempt nào đạt `SUCCEEDED` — nghĩa vụ Payment kết thúc vì Order mà nó thuộc về không thể được confirm nữa, không phải vì bản thân dòng Payment bị timeout                                                                                                                                                                                         |
+| `SUCCEEDED`        | `REFUND_PENDING` → `REFUNDED` | Nhận diện nhu cầu hoàn tiền → gọi refund tới provider → provider xác nhận refund. **Đã quyết định (ADR 0006): chỉ hoàn tiền toàn phần cho MVP** — không hoàn tiền một phần theo OrderItem/số lượng; điều đó được lùi lại tới khi có nhu cầu thật về đổi/trả một phần.                                                                                                                                                                               |
+| `FAILED`/`EXPIRED` | `REFUND_PENDING` → `REFUNDED` | Phát hiện late success trong lúc reconciliation sau khi Payment đã được đánh dấu `FAILED`/`EXPIRED` (Case B ở trên, hoặc một webhook đến trễ) — cùng trạng thái trung gian `REFUND_PENDING` áp dụng                                                                                                                                                                                                                                                 |
+
+**Hai tình huống khác nhau đều trông giống "hai attempt cùng SUCCEEDED" nhưng cần xử lý khác nhau:**
+
+- **Case A — một giao dịch, được thông báo hai lần.** Provider gửi cùng một kết quả (cùng `transId` của MoMo) nhiều hơn một lần — một webhook trùng, hoặc một retry cũ chạy đua với một retry mới, cả hai cùng báo cáo về một giao dịch nền tảng. Việc loại trùng `payment_webhook_events` theo `transId` bắt được trường hợp này: thông báo thứ hai được nhận diện là cùng một event và không tạo thêm tác dụng phụ nào (không xác nhận Order lần hai, không consume inventory lần hai).
+- **Case B — hai giao dịch thực sự khác nhau, cả hai đều thành công.** Hai attempt khác nhau, mỗi cái hoàn tất một `transId` MoMo _khác nhau_, và provider xác nhận cả hai đều thành công (vd khách bị trừ tiền hai lần, hoặc một attempt "thất bại" thực ra vẫn đi qua và một retry cũng thành công). Loại trùng theo `transId` **không** gộp được trường hợp này — thực sự có hai lượt thu tiền thành công. Chuyển trạng thái atomic "`SUCCEEDED` đầu tiên thắng" trên dòng Payment vẫn áp dụng (Order chỉ được confirm đúng một lần, từ `transId` đầu tiên được nhận là thành công), nhưng nó **không** làm khoản thu thứ hai biến mất: cả hai payment event đều phải được lưu lại (cả hai `transId` được ghi vào attempt tương ứng), và khoản thứ hai phải đi vào reconciliation/refund cho phần thu dư — không được coi như "chỉ là một webhook trùng" rồi bỏ qua. **Đã quyết định (ADR 0006): khoản refund cho phần thu dư không tự động kích hoạt** — nó được đưa lên cho `STORE_MANAGER` review (role đã sở hữu refund theo bảng Authorization, Mục 13) trước khi gọi API refund. Việc tự động refund ngay khi phát hiện đã được cân nhắc và loại bỏ cho MVP: trường hợp này hiếm và liên quan tiền thật, chưa có test coverage, nên mặc định an toàn hơn là để một người xác nhận, thay vì hệ thống tự âm thầm chuyển tiền dựa trên suy luận của chính nó.
+
+**Một Payment chỉ chuyển sang `REFUNDED` khi bản thân khoản refund đã được xác nhận, không bao giờ chỉ vì một refund mới được quyết định hoặc yêu cầu.** Đường đi từ "nhận diện thanh toán cần refund" tới `REFUNDED` luôn đi qua: ghi nhận nhu cầu refund (→ `REFUND_PENDING`) → gọi API refund của provider → chờ provider xác nhận đúng khoản refund đó (→ `REFUNDED`). Một yêu cầu refund vẫn đang chờ, hoặc chưa rõ kết quả, ở lại `REFUND_PENDING` thay vì nhảy thẳng sang `REFUNDED`.
+
+**Fulfillment** (một chuỗi tuyến tính duy nhất, không mơ hồ — giữ nguyên dạng list):
 
 ```text
-Order:       PENDING_PAYMENT → CONFIRMED → CANCELLED → COMPLETED
-Payment:     PENDING → PROCESSING → SUCCEEDED | FAILED | EXPIRED → REFUNDED
-Fulfillment: UNFULFILLED → PROCESSING → SHIPPED → DELIVERED | RETURNED
+UNFULFILLED → PROCESSING → SHIPPED → DELIVERED | RETURNED
 ```
 
-Provider calls never live inside a long-running database transaction. If
-payment creation times out, the Order remains `PENDING_PAYMENT`; a
-`PaymentAttempt` records the unknown result and can be reconciled/retried
-while the reservation remains active. A late success after reservation
-expiry enters reconciliation/refund instead of silently confirming an
-unfulfillable Order.
+Các lời gọi tới provider không bao giờ nằm trong một database transaction chạy lâu. Nếu việc tạo payment timeout, Order vẫn giữ `PENDING_PAYMENT`; một `PaymentAttempt` ghi lại kết quả chưa rõ và có thể được reconcile/retry trong khi reservation vẫn còn hiệu lực. Một late success sau khi reservation hết hạn sẽ đi vào reconciliation/refund thay vì âm thầm confirm một Order không thể fulfill được nữa.
 
-Before production, MoMo requires a signed merchant contract, production
-credentials, sandbox/UAT coverage, settlement account and payout cadence,
-an agreed reconciliation artifact, and documented refund/dispute/support
-procedures.
+Trước khi lên production, MoMo yêu cầu một hợp đồng merchant đã ký, thông tin xác thực (credentials) production, sandbox/UAT coverage, tài khoản settlement và chu kỳ payout, một artifact reconciliation đã thống nhất, và quy trình refund/khiếu nại/hỗ trợ đã được ghi tài liệu.
 
 ---
 
-# 10. Redis Architecture
+# 10. Kiến trúc Redis
 
-Redis should be used selectively.
+Redis nên được dùng có chọn lọc.
 
 ```mermaid
 flowchart LR
     API["NestJS"]
 
     Cache["Product Cache"]
-    Session["Optional auth acceleration<br/>(PostgreSQL remains source of truth)"]
+    Session["Auth acceleration tùy chọn<br/>(PostgreSQL vẫn là nguồn xác thực)"]
     Rate["Rate Limiting"]
     Queue["BullMQ"]
 
@@ -1049,7 +1028,7 @@ flowchart LR
     Queue --> Redis
 ```
 
-Potential keys:
+Các key khả dĩ:
 
 ```text
 product:{id}
@@ -1060,20 +1039,17 @@ rate-limit:{ip}
 cart:{userId}
 ```
 
-Use TTL for temporary/cache data.
+Dùng TTL cho dữ liệu tạm thời/cache.
 
-PostgreSQL remains the source of truth for Sessions, Inventory Reservations,
-Orders, Payments, Refunds, idempotency records, and the outbox. Redis loss
-must not lose commercial state: cache falls back to PostgreSQL, outbox rows
-wait for recovery, and payment webhooks persist to PostgreSQL. Security-
-sensitive endpoints that cannot enforce distributed rate limits fail closed
-with `503` rather than silently becoming unlimited.
+PostgreSQL vẫn là nguồn xác thực cho Session, Inventory Reservation, Order, Payment, Refund, bản ghi idempotency, và outbox. Mất Redis không được làm mất trạng thái thương mại: cache rơi về (fallback) PostgreSQL, dòng outbox chờ phục hồi, và webhook thanh toán vẫn được lưu vào PostgreSQL. Các endpoint nhạy cảm bảo mật không thể enforce rate limit phân tán sẽ fail closed với `503` thay vì âm thầm trở nên không giới hạn.
+
+**Cache và BullMQ dùng chung một Redis instance trong thiết kế này — điều đó cần một quyết định deployment tường minh, không phải mặc định.** BullMQ cần `maxmemory-policy=noeviction`: nếu Redis được phép evict key khi thiếu bộ nhớ (hành vi cache thông thường), nó có thể evict job đang queue/delayed giống như evict entry cache, điều này không chấp nhận được với dữ liệu job. Nó cũng cần persistence (AOF hoặc RDB) được cấu hình thay vì giả định một dịch vụ Redis managed đã tự bật sẵn. Việc tách cache và queue thành hai Redis instance chưa bắt buộc ngay, nhưng chính sách persistence/eviction phải là một lựa chọn có chủ đích trước khi BullMQ mang bất kỳ job liên quan thương mại nào (lên lịch retry payment, hết hạn reservation).
 
 ---
 
-# 11. Async Processing
+# 11. Xử lý Bất đồng bộ
 
-Do not make the checkout request wait for every non-critical operation.
+Đừng để request checkout phải chờ mọi thao tác không thiết yếu.
 
 ```mermaid
 flowchart LR
@@ -1082,10 +1058,10 @@ flowchart LR
     Dispatcher["Outbox Dispatcher"]
     Queue["BullMQ"]
 
-    Email["Send Email"]
-    Invoice["Generate Invoice"]
+    Email["Gửi Email"]
+    Invoice["Tạo Hóa đơn"]
     Analytics["Analytics"]
-    Shipping["Create Shipment"]
+    Shipping["Tạo Shipment"]
 
     Order --> Outbox
     Outbox --> Dispatcher
@@ -1097,7 +1073,7 @@ flowchart LR
     Queue --> Shipping
 ```
 
-Examples of jobs:
+Ví dụ các job:
 
 ```text
 order.created
@@ -1108,54 +1084,63 @@ user.registered
 password.reset.requested
 ```
 
-Delivery is **at least once**, not exactly once. The transaction that changes
-domain state also inserts the versioned outbox event. Dispatch may repeat;
-every consumer and external side effect therefore needs a stable
-deduplication key and idempotent state transition.
+Việc giao (delivery) là **at least once**, không phải exactly once. Transaction làm thay đổi trạng thái domain cũng ghi luôn outbox event có version. Việc dispatch có thể lặp lại; do đó mọi consumer và tác dụng phụ ra bên ngoài đều cần một dedup key ổn định và một chuyển trạng thái idempotent.
+
+**Gap được đóng lại ở đây: một dòng outbox đã đánh dấu "dispatched" nhưng job BullMQ của nó sau đó bị mất** (Redis làm mất job trước khi worker kịp nhận). "Consumer idempotent" chỉ bảo vệ khỏi việc job chạy hai lần — nó không làm gì nếu job không bao giờ chạy.
+
+**Đã quyết định (ADR 0007): một dòng outbox chỉ "xong" khi tác dụng phụ downstream xác nhận hoàn tất — không bao giờ tại thời điểm enqueue.** Việc đánh dấu "xong" ngay lúc enqueue chính là nguồn gốc của gap này: một dòng chỉ mới được enqueue phải ở trạng thái pending/dispatched cho tới khi consumer của nó xác nhận thành công (hoặc dùng hết chính sách retry riêng và được escalate). Điều này có nghĩa:
+
+- Bảng outbox cần một status phân biệt "chưa enqueue" vs. "đã enqueue, đang chờ ack" vs. "đã xác nhận xong" — không phải một boolean.
+- Một lượt quét reconciliation (so sánh các dòng "đã enqueue, đang chờ ack" với thời gian chúng đã chờ) là cách phát hiện một job bị mất — một dòng outbox kẹt ở "đang chờ ack" quá một ngưỡng chính là tín hiệu, không phải điều gì đó suy ra từ trạng thái nội bộ của BullMQ.
+- Vẫn còn mở (**TBD**, không còn bị chặn bởi quyết định trên nhưng chưa được chốt ở đây): thời gian retention chính xác cho các dòng đã xác nhận xong, và dedup key riêng cho từng hệ thống ngoài ứng với mỗi loại job trong danh sách Mục 11 (email/invoice/analytics/shipment) — đó vẫn là các quyết định thuộc implementation-plan.
+
+Mỗi tác dụng phụ downstream trong danh sách job ở trên (email, invoice, analytics, shipment) cần một dedup key cụ thể riêng, phù hợp với hệ thống ngoài đó — "consumer idempotent" là một tính chất cần thiết kế riêng cho từng cái, không phải một cơ chế duy nhất phủ hết tất cả.
 
 ---
 
 # 12. Idempotency
 
-Checkout, payment creation/retry, refund requests, and payment webhooks are
-idempotent.
+Checkout, tạo/retry payment, yêu cầu refund, và webhook thanh toán đều idempotent.
 
-Example:
+Ví dụ:
 
 ```http
 POST /api/v1/payments
 Idempotency-Key: 8b7c-1234-...
 ```
 
-If the client retries:
+Nếu client retry:
 
 ```text
-Request #1 → Payment created
-Request #2 → Same Idempotency-Key
-Request #3 → Same Idempotency-Key
+Request #1 → Payment được tạo
+Request #2 → Cùng Idempotency-Key
+Request #3 → Cùng Idempotency-Key
 ```
 
-The backend should not create three payments.
+Backend không được tạo ra ba payment.
 
 ```text
 Idempotency Key
        ↓
-Check PostgreSQL idempotency record
+Kiểm tra bản ghi idempotency trong PostgreSQL
        ↓
-Already processed?
-   ├── YES → Return previous result
-   └── NO  → Process request
+Đã xử lý chưa?
+   ├── CÓ → Trả về kết quả trước đó
+   └── CHƯA → Xử lý request
 ```
 
-The record is unique by `scope + actor/provider + key` and stores a request
-fingerprint, processing state, and response snapshot. Reusing a key with a
-different payload returns `409`; concurrent requests race on the database
-uniqueness constraint so only one executes. Redis may accelerate lookup but
-is not authoritative.
+Bản ghi là unique theo `scope + actor/provider + key` và lưu một request fingerprint, processing state, và response snapshot. Dùng lại một key với payload khác trả về `409`; các request đồng thời đua nhau trên ràng buộc unique của database nên chỉ một request được thực thi. Redis có thể tăng tốc tra cứu nhưng không phải nguồn xác thực.
+
+**Gap chưa được xử lý: backend bị crash trong lúc một bản ghi đang ở trạng thái `processing`.** Nếu lời gọi tới provider thực sự đã thành công trước khi crash, một retry của client không được âm thầm xử lý lại (điều đó sẽ tạo ra một lời gọi/tác dụng phụ thứ hai tới provider); nó cũng không được treo mãi mãi chờ một bản ghi sẽ không bao giờ hoàn tất. Yêu cầu ở mức kiến trúc (cơ chế chính xác là quyết định của implementation-plan, không phát minh ở đây):
+
+- Một bản ghi `processing` cần một ngưỡng "cũ" (staleness threshold) — qua ngưỡng đó, một retry sẽ kích hoạt reconciliation (hỏi provider xem thực sự đã xảy ra gì) thay vì retry mù hoặc trả kết quả mù.
+- Reconciliation cần một cách để hỏi "lời gọi ra bên ngoài đã xảy ra chưa" trước khi tạo một cái mới — đây là lý do idempotency key phía **ta** phải được liên kết với request identity phía **provider**, không coi là hai vấn đề độc lập.
+
+**Khi backend của ta không nhận được response từ MoMo, nó nên retry cùng lời gọi dưới cùng một `requestId`** — hợp đồng idempotency của chính MoMo nhận diện một `requestId` lặp lại là "cùng một thao tác" thay vì một thao tác mới. Điều đó nghĩa là mọi HTTP retry từ client của ta phải ánh xạ về `requestId` của MoMo dựa trên bản ghi idempotency của ta (và, theo định nghĩa PaymentAttempt ở trên, ở lại cùng dòng attempt) — không sinh một `requestId` mới cho mỗi lần HTTP retry — nếu không, retry của ta và cơ chế idempotency của MoMo sẽ xung đột với nhau thay vì phối hợp.
 
 ---
 
-# 13. Authentication & Authorization
+# 13. Xác thực & Phân quyền
 
 ```mermaid
 flowchart TD
@@ -1168,14 +1153,14 @@ flowchart TD
     Request --> Token
     Token --> Guard
 
-    Guard -->|Valid| Role
-    Guard -->|Invalid| Unauthorized["401 Unauthorized"]
+    Guard -->|Hợp lệ| Role
+    Guard -->|Không hợp lệ| Unauthorized["401 Unauthorized"]
 
-    Role -->|Allowed| Controller
-    Role -->|Denied| Forbidden["403 Forbidden"]
+    Role -->|Được phép| Controller
+    Role -->|Bị từ chối| Forbidden["403 Forbidden"]
 ```
 
-Canonical roles (ADR 0005):
+Các role chuẩn (ADR 0005):
 
 ```text
 CUSTOMER
@@ -1184,26 +1169,22 @@ STORE_MANAGER
 MASTER_ADMIN
 ```
 
-Authorization should be based on business permissions, not only UI visibility.
-There is no hidden role hierarchy; every endpoint explicitly lists all
-accepted roles.
+Phân quyền nên dựa trên quyền hạn nghiệp vụ, không chỉ dựa trên việc hiển thị UI. Không có cây phân cấp role ẩn; mỗi endpoint liệt kê tường minh mọi role được chấp nhận.
 
-| Role            | Allowed scope                                                                                         |
-| --------------- | ----------------------------------------------------------------------------------------------------- |
-| `CUSTOMER`      | Own profile, cart, checkout, payment, and eligible Order cancellation                                 |
-| `ORDER_STAFF`   | Read/process Orders and Fulfillment; cannot manage catalog, roles, account status, or execute refunds |
-| `STORE_MANAGER` | Catalog, Inventory, Promotions, Order operations, and refunds                                         |
-| `MASTER_ADMIN`  | User/status/role administration plus all store operations                                             |
+| Role            | Phạm vi được phép                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------- |
+| `CUSTOMER`      | Profile của chính mình, cart, checkout, payment, và hủy Order khi đủ điều kiện                          |
+| `ORDER_STAFF`   | Đọc/xử lý Order và Fulfillment; không được quản lý catalog, role, account status, hoặc thực hiện refund |
+| `STORE_MANAGER` | Catalog, Inventory, Promotions, các thao tác trên Order, và refund                                      |
+| `MASTER_ADMIN`  | Quản trị user/status/role cộng mọi thao tác của cửa hàng                                                |
 
-Role/status changes increment the User's `authorizationVersion`, revoke
-refresh Sessions, and invalidate cached authorization. Protected requests
-must match the current version; privileged authorization fails closed when
-the version cannot be verified. The service also prevents removing,
-blocking, or demoting the last active, verified `MASTER_ADMIN`.
+Thay đổi role/status làm tăng `authorizationVersion` của User, thu hồi các refresh Session, và vô hiệu hóa authorization đã cache. Các request được bảo vệ phải khớp với version hiện tại; authorization đặc quyền fail closed khi không thể xác minh version. Service cũng ngăn việc gỡ bỏ, block, hoặc hạ quyền `MASTER_ADMIN` đang hoạt động, đã xác thực cuối cùng. Bất biến này cần một test concurrency, không chỉ test tuần tự: hai request đồng thời cùng cố block/demote hai admin khác nhau, mà chỉ một trong số đó thực sự là "người cuối cùng" tại thời điểm commit, vẫn phải để lại ít nhất một `MASTER_ADMIN` đứng vững — test từng request độc lập không khai thác được cuộc đua giữa chúng.
+
+Cột `authorizationVersion` ra mắt như một phần của migration role ở Phase 1 (ADR 0005, Mục 0/22) — nó không nằm trong danh sách "migration đã chốt trước Checkout/Payment" ở Mục 7 vì đó là prerequisite của phase đó, không phải một thay đổi schema thương mại.
 
 ---
 
-# 14. Security Layers
+# 14. Các lớp Bảo mật
 
 ```text
 Internet
@@ -1225,22 +1206,22 @@ Business Logic
 Database
 ```
 
-Important controls:
+Các control quan trọng:
 
 - TLS / HTTPS
-- Password hashing
-- Access token validation
-- Refresh token rotation/revocation
+- Hash mật khẩu
+- Validate access token
+- Rotate/thu hồi refresh token
 - Rate limiting
-- Input validation
+- Validate input
 - CORS
-- CSRF protection when applicable
-- Secure cookies when applicable
-- SQL injection protection
-- XSS protection
-- Audit logs
-- Webhook signature verification
-- Secrets stored outside source code
+- Chống CSRF khi cần
+- Cookie an toàn khi cần
+- Chống SQL injection
+- Chống XSS
+- Audit log
+- Xác minh chữ ký webhook
+- Lưu secret ngoài source code
 
 ---
 
@@ -1273,38 +1254,29 @@ flowchart LR
     Collector --> Grafana
 ```
 
-Monitor:
+Cần theo dõi:
 
 ```text
 Request latency
 P50 / P95 / P99
-Error rate
+Tỷ lệ lỗi
 CPU
-Memory
-Database connections
-Redis memory
-Queue length
-Failed jobs
-Payment failures
-Inventory failures
+Bộ nhớ
+Số kết nối database
+Bộ nhớ Redis
+Độ dài queue
+Job thất bại
+Payment thất bại
+Inventory thất bại
 ```
 
-Before production, the baseline includes structured JSON logs with
-request/correlation IDs, audit logs for role/status changes, Inventory
-adjustments, Order transitions and Refunds, plus alerts for outbox backlog,
-failed IPN handling, reservation expiry failures, queue lag, and
-reconciliation mismatch. Advanced dashboards can evolve later; visibility
-into money and stock cannot.
+Trước khi lên production, baseline gồm structured JSON log kèm request/correlation ID, audit log cho thay đổi role/status, điều chỉnh Inventory, chuyển trạng thái Order và Refund, cộng với alert cho outbox backlog, xử lý IPN thất bại, reservation hết hạn thất bại, queue bị trễ, và sai lệch khi reconciliation. Dashboard nâng cao có thể phát triển sau; nhưng khả năng quan sát tiền và tồn kho thì không thể.
 
 ---
 
-# 16. Deployment Architecture
+# 16. Kiến trúc Deployment
 
-The production target uses managed PostgreSQL, managed Redis, and
-S3-compatible object storage, with at least two stateless API replicas and a
-separately scalable worker behind a load balancer. Provider selection stays
-deployment-specific; PostgreSQL and payment state are never stored only in
-an application container.
+Mục tiêu production dùng managed PostgreSQL, managed Redis, và object storage tương thích S3, với ít nhất hai API replica stateless và một worker có thể scale riêng, đứng sau một load balancer. Việc chọn provider tùy theo từng deployment cụ thể; PostgreSQL và trạng thái thanh toán không bao giờ chỉ được lưu trong một application container.
 
 ```mermaid
 flowchart TB
@@ -1344,10 +1316,9 @@ flowchart TB
 
 ---
 
-# 17. Docker Development Architecture
+# 17. Kiến trúc Docker cho Development
 
-This Compose topology is for local development and CI integration tests.
-It is not the production deployment topology described in Section 16.
+Topology Compose này dành cho phát triển local và test tích hợp CI. Nó không phải topology deployment production đã mô tả ở Mục 16.
 
 ```text
 docker-compose.yml
@@ -1390,9 +1361,9 @@ Example:
 
 ---
 
-# 18. Modular Monolith → Microservices Evolution
+# 18. Tiến hóa Modular Monolith → Microservices
 
-Start:
+Bắt đầu:
 
 ```text
                  NestJS
@@ -1406,7 +1377,7 @@ Start:
                PostgreSQL
 ```
 
-Later, if there is a real scaling/team/domain reason:
+Về sau, nếu có lý do thật sự về scaling/team/domain:
 
 ```mermaid
 flowchart LR
@@ -1444,79 +1415,107 @@ flowchart LR
     Queue --> Notification
 ```
 
-Do **not** split into microservices only because the architecture diagram looks more impressive.
+**Không** tách thành microservices chỉ vì sơ đồ kiến trúc trông ấn tượng hơn.
 
 ---
 
-# 19. Important System Design Problems
+# 19. Các Vấn đề System Design Quan trọng
 
-For this e-commerce system, the important problems to solve are:
+Với hệ thống e-commerce này, các vấn đề quan trọng cần giải quyết là:
 
 ## Product
 
 ```text
-How do we handle millions of products?
-How do we search products?
-How do we cache product data?
+Xử lý hàng triệu sản phẩm như thế nào?
+Tìm kiếm sản phẩm như thế nào?
+Cache dữ liệu sản phẩm như thế nào?
 ```
 
 ## Cart
 
 ```text
-Where is cart state stored?
-What happens when product price changes?
-What happens when product becomes unavailable?
+Trạng thái cart được lưu ở đâu?
+Chuyện gì xảy ra khi giá sản phẩm thay đổi?
+Chuyện gì xảy ra khi sản phẩm hết hàng/ngừng bán?
 ```
 
 ## Inventory
 
 ```text
-How do we prevent overselling?
-How do we reserve stock?
-How do reservations expire?
+Ngăn oversell như thế nào?
+Reserve stock như thế nào?
+Reservation hết hạn như thế nào?
 ```
 
 ## Order
 
 ```text
-What is the order state machine?
-How do we handle cancellation?
-How do we handle retry?
+State machine của order là gì?
+Xử lý hủy đơn như thế nào?
+Xử lý retry như thế nào?
 ```
 
 ## Payment
 
 ```text
-How do we verify payment?
-How do we handle duplicate webhook events?
-How do we handle payment timeout?
+Xác minh thanh toán như thế nào?
+Xử lý webhook trùng như thế nào?
+Xử lý payment timeout như thế nào?
 ```
 
 ## Scalability
 
 ```text
-What happens at 10K requests/sec?
-Where is the bottleneck?
-Can API instances scale horizontally?
-Can PostgreSQL handle the workload?
-Where should Redis be introduced?
+Chuyện gì xảy ra ở 10K request/giây?
+Bottleneck nằm ở đâu?
+API instance có scale ngang được không?
+PostgreSQL có chịu được tải không?
+Nên đưa Redis vào ở đâu?
 ```
 
 ## Reliability
 
 ```text
-What if payment provider is down?
-What if Redis is down?
-What if a queue worker crashes?
-What if the webhook is delivered twice?
-What if database connection is exhausted?
+Nếu payment provider down thì sao?
+Nếu Redis down thì sao?
+Nếu một queue worker crash thì sao?
+Nếu webhook bị gửi hai lần thì sao?
+Nếu database connection bị cạn kiệt thì sao?
 ```
+
+## Yêu cầu Phi chức năng (NFR)
+
+**Đã quyết định (2026-09-17): đây hiện là một dự án học tập/portfolio cá nhân, không phải một hệ thống có khách hàng thật hay SLA đã cam kết.** Trạng thái đó thay đổi những gì một số mục dưới đây cần:
+
+| Mục                     | Cần được quyết định                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tải mục tiêu            | **Đã quyết định: chưa đặt benchmark cố định lúc này.** Bước load-testing ở Phase 9 tồn tại để chứng minh thiết kế concurrency/correctness hoạt động đúng dưới tải, không phải để đạt một con số req/s cụ thể mà không ai bị ràng buộc hợp đồng. Chỉ quay lại với số liệu thật nếu dự án phục vụ traffic thật.                                        |
+| Độ trễ                  | Tương tự trên — không đặt mục tiêu cố định; tính đúng đắn dưới tải quan trọng hơn một SLA độ trễ ở giai đoạn này.                                                                                                                                                                                                                                    |
+| Availability            | **Đã quyết định: giữ như một nguyên tắc kiến trúc, không phải một con số.** Topology multi-replica (Mục 16) và backup PostgreSQL tồn tại vì đó là thiết kế tốt, không phải vì đã cam kết một con số uptime cụ thể với ai. Không đặt phần trăm mục tiêu.                                                                                              |
+| RPO                     | **Đã quyết định: không áp dụng ở giai đoạn này** — không có stakeholder nào để đặt một khung mất dữ liệu tối đa chấp nhận được. Quay lại nếu/khi dự án xử lý giao dịch thật cho người dùng thật.                                                                                                                                                     |
+| RTO                     | Tương tự RPO — **không áp dụng ở giai đoạn này**, quay lại nếu phạm vi dự án thay đổi.                                                                                                                                                                                                                                                               |
+| Ngân sách kết nối DB    | Vẫn thực sự hữu ích để tính toán một khi có worker/replica — giữ ở trạng thái **Open**, không bỏ qua như các mục trên, vì đây là câu hỏi về sizing kỹ thuật, không phải câu hỏi cho business stakeholder.                                                                                                                                            |
+| Health check            | **Đã quyết định (ADR 0008):** Redis down không bao giờ làm một replica `unready` — nó chỉ làm suy giảm các tính năng cụ thể phụ thuộc vào nó (route bị rate-limit fail closed với `503` theo Mục 10; mọi thứ dựa trên PostgreSQL, kể cả webhook thanh toán, vẫn hoạt động). Chỉ khi PostgreSQL không thể truy cập mới nên làm một replica `unready`. |
+| Người phụ trách on-call | **Đã quyết định: không áp dụng khi đây còn là dự án solo** — không có team để page. Quay lại mục này nếu/khi có thêm người tham gia vận hành hệ thống.                                                                                                                                                                                               |
+
+## Theo dõi Quyết định Còn mở
+
+Tài liệu này đã tích lũy một số dấu **TBD** rải rác qua các mục (chính sách retry/refund thanh toán, phục hồi outbox, các edge case về thời gian reservation, mục tiêu deployment/vận hành). Đánh dấu một thứ là `TBD` ghi nhận rằng nó đã được nhận ra — không đồng nghĩa với việc đã giải quyết nó. Bảng này tồn tại để những mục đó không bị âm thầm coi là "đã quyết định" chỉ vì có một nhãn:
+
+| Nhóm quyết định      | Cần chốt gì                                                                                                         | Mốc chặn                                                  | Owner                    | Trạng thái                                                                                                                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Payment/Refund**   | Chính sách retry-limit, xử lý giao dịch thành công trùng, giải quyết late-success, hoàn tiền toàn phần vs. một phần | Trước khi implement Payment thật (Phase 6)                | Product/business         | **Đã quyết định** (2026-09-17, ADR 0006) — retry không giới hạn trong cửa sổ reservation; refund cho khoản thu dư qua `STORE_MANAGER` review, không tự động; MVP chỉ full-refund; late-success giữ Order ở `CANCELLED`; cho phép hủy sau `CONFIRMED` khi còn `UNFULFILLED`                    |
+| **Outbox/Worker**    | Khi nào một outbox event tính là "xong," cửa sổ retention/replay, phát hiện job bị mất                              | Trước khi worker mang các job commerce-critical           | Backend/infra            | **Đã quyết định một phần** (2026-09-17, ADR 0007) — "xong" = downstream ack, không phải enqueue (mở khóa phần còn lại); cửa sổ retention và dedup key riêng từng hệ thống vẫn **Open**, ở mức implementation-plan                                                                             |
+| **Cart/Reservation** | Cơ chế khóa cho CartItem-mutation-vs-checkout, ngữ nghĩa reservation-expiry đã chọn ở trên (cần implement)          | Trước khi bắt đầu implement Checkout (Phase 5)            | Backend                  | **Đã quyết định** (2026-09-17, ADR 0009) — row lock (`SELECT ... FOR UPDATE`) trên Cart lúc bắt đầu checkout, không có cột `version`                                                                                                                                                          |
+| **Operations**       | Mục tiêu load/latency/availability/RPO/RTO, phân loại health-check theo dependency, người phụ trách on-call         | Chỉ quay lại nếu dự án phục vụ người dùng/thanh toán thật | Product/business + infra | **Đã quyết định** (2026-09-17) — đây hiện là dự án học tập/portfolio solo: load/latency/availability/RPO/RTO/on-call được đánh dấu không-áp-dụng-lúc-này thay vì để mở; phân loại health-check đã quyết định (ADR 0008); ngân sách kết nối DB là câu hỏi sizing duy nhất thực sự vẫn **Open** |
+
+Mỗi dòng nên có thêm link tới ADR hoặc phần implementation-plan tương ứng một khi đã quyết định, và Trạng thái nên chuyển từ `Open` sang `Đã quyết định` (kèm ngày) — không xóa đi, để lịch sử về thời điểm đóng lại vẫn còn hiển thị.
 
 ---
 
-# 20. Recommended Architecture for the Learning Project
+# 20. Kiến trúc Đề xuất cho Dự án Học tập
 
-For a realistic learning project, use:
+Với một dự án học tập thực tế, dùng:
 
 ```text
 Frontend
@@ -1553,7 +1552,7 @@ NestJS Modular Monolith
                        Workers
 ```
 
-Then add:
+Sau đó thêm:
 
 ```text
 Object Storage
@@ -1566,96 +1565,89 @@ CI/CD
 Docker
 ```
 
-as the system grows.
+khi hệ thống lớn lên.
 
 ---
 
-# 21. Architecture Principles
+# 21. Nguyên tắc Kiến trúc
 
-1. **Modular Monolith first**
-2. **Domain-oriented modules**
-3. **PostgreSQL as transactional source of truth**
-4. **Redis for performance and temporary state**
-5. **Queue for asynchronous work**
-6. **Webhook for payment confirmation**
-7. **Idempotency for retryable operations**
-8. **Transactions for critical inventory/order operations**
-9. **Horizontal scaling for stateless API servers**
-10. **Observability from the beginning**
-11. **Security at every layer**
-12. **Microservices only when there is a concrete reason**
+1. **Modular Monolith trước**
+2. **Module hướng theo domain**
+3. **PostgreSQL là nguồn xác thực giao dịch**
+4. **Redis cho hiệu năng và trạng thái tạm thời**
+5. **Queue cho công việc bất đồng bộ**
+6. **Webhook cho xác nhận thanh toán**
+7. **Idempotency cho các thao tác có thể retry**
+8. **Transaction cho các thao tác inventory/order quan trọng**
+9. **Scale ngang cho API server stateless**
+10. **Observability ngay từ đầu**
+11. **Bảo mật ở mọi lớp**
+12. **Microservices chỉ khi có lý do cụ thể**
 
 ---
 
-# 22. Implementation Order
+# 22. Thứ tự Implementation
 
-A practical implementation sequence for the multi-instance, real-payment
-MVP:
+Một trình tự implementation thực tế cho MVP nhiều instance, thanh toán thật:
 
 ```text
 Phase 1
-├── Migrate routes to /api/v1; Swagger to /docs
-├── Migrate ADMIN to the four canonical roles
-├── Authorization-version revocation and audit foundation
-├── Docker image + local Compose for PostgreSQL/Redis
+├── Migrate route sang /api/v1; Swagger sang /docs
+├── Migrate ADMIN sang bốn role chuẩn
+├── Thu hồi authorization-version và nền tảng audit
+├── Docker image + Compose local cho PostgreSQL/Redis
 ├── CI, migration job, graceful shutdown, liveness/readiness
-└── Structured logs + baseline metrics
+└── Structured logs + metrics cơ bản
 
 Phase 2
 ├── Categories
 ├── Products
 ├── Product Variants
-└── Object Storage for product media
+└── Object Storage cho media sản phẩm
 
 Phase 3
 ├── Users
-└── Staff authorization matrix
+└── Ma trận phân quyền staff
 
 Phase 4
 ├── Cart
 ├── Inventory
-└── 15-minute Inventory Reservations
+└── Inventory Reservation 15 phút
 
 Phase 5
-├── Orders + financial/address snapshots
-├── Checkout concurrency + idempotency
-└── Transactional Outbox + idempotent worker
+├── Orders + snapshot tài chính/địa chỉ
+├── Concurrency + idempotency cho checkout
+└── Transactional Outbox + worker idempotent
 
 Phase 6
 ├── MoMo Payment + Payment Attempts
-├── Signed/deduplicated IPN
+├── IPN có ký và loại trùng
 ├── Refund + reconciliation
-└── Sandbox/UAT and production gates
+└── Sandbox/UAT và các gate production
 
 Phase 7
-└── Single-code Promotions
+└── Promotions dùng một mã duy nhất
 
 Phase 8
-├── Fulfillment + domestic shipping workflow
+├── Fulfillment + workflow shipping nội địa
 └── Notifications
 
 Phase 9
 ├── Load Testing
-├── Database Optimization
-├── Product cache only after measured need
-├── Search engine only after PostgreSQL search is insufficient
-├── PayPal international adapter when required
-└── Microservice extraction only when justified
+├── Tối ưu Database
+├── Cache sản phẩm chỉ sau khi đo được nhu cầu thật
+├── Search engine chỉ khi tìm kiếm bằng PostgreSQL không đủ
+├── Adapter quốc tế PayPal khi cần
+└── Tách microservice chỉ khi có lý do chính đáng
 ```
 
-Every schema rollout across multiple replicas uses
-**expand–migrate–contract**: add backward-compatible schema, deploy dual-
-compatible code, backfill and verify, replace all replicas, then remove the
-old shape in a later release.
+Mọi lượt rollout schema trên nhiều replica dùng **expand–migrate–contract**: thêm schema tương thích ngược, deploy code tương thích cả hai chiều, backfill và xác nhận, thay hết mọi replica, rồi mới xóa hình dạng cũ ở một release sau.
 
-Production payment gates include real PostgreSQL/Redis integration tests,
-oversell and duplicate-checkout concurrency tests, provider contract tests,
-MoMo timeout/duplicate/out-of-order IPN scenarios, worker/outbox replay,
-reservation expiry, rolling migrations, and graceful shutdown.
+Các gate production cho payment gồm integration test thật với PostgreSQL/Redis, test concurrency cho oversell và duplicate-checkout, test hợp đồng với provider, các kịch bản IPN của MoMo bị timeout/trùng/không đúng thứ tự, replay worker/outbox, hết hạn reservation, rolling migration, và graceful shutdown.
 
 ---
 
-## Final Architecture
+## Kiến trúc Cuối cùng
 
 ```mermaid
 flowchart TB

@@ -1,3 +1,3 @@
-# Use MoMo as the first production payment provider
+# Dùng MoMo làm payment provider đầu tiên đưa vào production
 
-The Vietnam-first MVP will process VND through MoMo behind a provider-neutral PaymentProvider boundary. PayPal is deferred as a later international provider, while Stripe is out of scope unless the business obtains an eligible entity in a Stripe-supported country; MoMo production remains gated on merchant contracting, UAT, settlement and reconciliation details, refund/dispute procedures, and production credentials.
+MVP hướng tới thị trường Việt Nam sẽ xử lý VND qua MoMo, đứng sau một ranh giới `PaymentProvider` trung lập (không gắn cứng vào một provider cụ thể). PayPal được lùi lại làm provider quốc tế cho giai đoạn sau, còn Stripe nằm ngoài phạm vi trừ khi doanh nghiệp có pháp nhân hợp lệ tại một quốc gia mà Stripe hỗ trợ; việc đưa MoMo vào production còn phụ thuộc vào hợp đồng merchant, UAT, các chi tiết settlement và reconciliation, quy trình refund/khiếu nại, và thông tin xác thực (credentials) production.
