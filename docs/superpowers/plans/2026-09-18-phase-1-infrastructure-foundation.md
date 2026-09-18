@@ -19,6 +19,26 @@
 - Không wire Redis vào bất kỳ feature nào của app (throttler, cache) trong phase này — service `redis` trong `docker-compose.yml` chỉ là container, app code chưa dùng tới.
 - Không động vào Grafana/Loki/Prometheus-server, production deployment topology, hay bất kỳ module nghiệp vụ nào — ngoài phạm vi theo mục Non-goals của spec.
 
+## Thuật ngữ (Glossary)
+
+Plan này giả định bạn đã quen NestJS cơ bản (module/controller/service/dependency injection) từ việc build Auth trước đó. Phần này giải thích các khái niệm **hạ tầng/tooling** mà Phase 1 mới đưa vào lần đầu — đọc qua 1 lần trước khi bắt đầu Task nào cần tới nó; chú thích ngắn hơn, cụ thể hơn cho từng dòng lệnh/cú pháp thì nằm ngay tại chỗ dùng trong mỗi Task.
+
+- **TDD (Test-Driven Development), "viết test fail trước"**: quy trình viết 1 test mô tả behavior mong muốn TRƯỚC khi code đó tồn tại (nên chạy test lúc này phải FAIL — nếu PASS ngay là test đang không kiểm tra đúng thứ cần kiểm tra), rồi viết code tối thiểu để test đó PASS. Plan gọi bước "chạy test, xác nhận fail" chính là bước xác nhận test thật sự đang test đúng thứ, không phải bước thừa.
+- **Unit test vs E2E test**: unit test (file `.spec.ts`, chạy bằng `vitest`) test 1 class/function riêng lẻ, tự mock (giả lập) mọi dependency của nó (DB, service khác) — chạy rất nhanh, không cần DB thật. E2E test (file `.e2e-spec.ts`, chạy bằng `vitest --config vitest.config.e2e.ts`) khởi động cả app NestJS thật, gọi HTTP request thật, ghi/đọc DB Postgres thật — chậm hơn nhưng xác nhận mọi thành phần khớp nhau đúng như production.
+- **Mock / fixture**: mock là 1 object giả đứng thay cho dependency thật (ví dụ giả `PrismaService` để không cần DB thật khi test unit) — `vi.fn()` tạo 1 function giả, `mockResolvedValue(x)` khiến nó luôn trả về `x` khi được gọi (dạng Promise). Fixture là dữ liệu mẫu dựng sẵn để test dùng lại (ví dụ 1 object `payload` giả lập JWT decode ra).
+- **Schema migration vs data migration**: schema migration đổi cấu trúc bảng (thêm/xoá cột, đổi kiểu dữ liệu) — Prisma tự sinh SQL từ diff giữa `schema.prisma` cũ và mới (`prisma migrate dev --name ...`). Data migration đổi giá trị dữ liệu đang có trong bảng (ví dụ đổi tên 1 dòng), không có diff nào cho Prisma tự sinh, nên phải tạo file migration rỗng (`--create-only`) rồi tự viết tay câu SQL `UPDATE`/`INSERT` vào đó.
+- **Idempotent**: 1 thao tác idempotent là thao tác chạy lại nhiều lần vẫn ra kết quả giống chạy 1 lần, không tạo dữ liệu trùng hay lỗi. Seed script và migration data ở Task 3 được viết idempotent để chạy lại an toàn trên máy dev mới, CI, hoặc sau khi đã chạy rồi.
+- **JWT (JSON Web Token) / payload / Passport strategy**: JWT là 1 chuỗi token mã hoá (nhưng KHÔNG mã hoá nội dung — ai cũng đọc được nếu có token) chứa 1 "payload" (dữ liệu bên trong, ví dụ `{ sub, email, roles }`), được ký bằng 1 secret để chống giả mạo. `JwtStrategy` là adapter của thư viện Passport cho NestJS — khi 1 request có access token, Passport tự verify chữ ký JWT trước, sau đó gọi hàm `validate(payload)` của strategy để kiểm tra thêm logic nghiệp vụ (ở đây: đối chiếu `authorizationVersion`) trước khi cho request đi tiếp.
+- **Fail closed**: khi không thể xác minh chắc chắn 1 điều kiện bảo mật (ví dụ không tìm thấy user, hoặc lỗi khi query DB), hệ thống phải mặc định TỪ CHỐI (401/403) thay vì mặc định CHO QUA. Ngược lại là "fail open" — mặc định cho qua khi không xác minh được, rất nguy hiểm cho các route nhạy cảm.
+- **Health check: liveness vs readiness probe**: 2 loại câu hỏi khác nhau mà hệ thống điều phối (ví dụ Kubernetes, hoặc load balancer) hỏi app định kỳ. Liveness ("process còn sống không?") — trả `200` miễn process chưa treo/crash, dùng để quyết định có cần restart container không. Readiness ("app đã sẵn sàng nhận traffic chưa?") — trả `200` chỉ khi mọi dependency cần thiết (ở đây: Postgres) đang hoạt động, dùng để quyết định có nên đưa traffic vào instance này không.
+- **Graceful shutdown / `SIGTERM`**: khi 1 container/process bị dừng (ví dụ lúc deploy bản mới), OS gửi tín hiệu `SIGTERM` để báo trước ("bạn sắp bị kill, dọn dẹp đi"), cho process 1 khoảng thời gian ngắn để đóng sạch connection pool, hoàn tất request đang chạy, trước khi bị `SIGKILL` buộc dừng ngay. `app.enableShutdownHooks()` là cách NestJS lắng nghe `SIGTERM` đó để tự gọi `onModuleDestroy()` (mọi provider có implement) dọn dẹp trước khi thoát.
+- **Prometheus / metrics: Counter, Histogram, scrape**: Prometheus là hệ thống thu thập số liệu vận hành (không phải log) bằng cách tự định kỳ gọi ("scrape") 1 endpoint `GET /metrics` của app và đọc số liệu app tự tính sẵn ở đó (Phase 1 chưa cài Prometheus thật — chỉ tạo sẵn endpoint để sau này Prometheus scrape được). `Counter` là số chỉ tăng (tổng số request), `Histogram` là phân bố giá trị theo khoảng (độ trễ request rơi vào khoảng nào bao nhiêu lần) — cả hai đến từ thư viện `prom-client`.
+- **NestJS Interceptor / `APP_INTERCEPTOR`**: Interceptor là 1 lớp NestJS chạy quanh (trước và/hoặc sau) mọi request đi qua route handler, dùng để làm việc chung không thuộc business logic của route đó (ở đây: đo thời gian xử lý). `APP_INTERCEPTOR` là 1 injection token đặc biệt để đăng ký 1 interceptor chạy toàn cục (mọi route), giống cách `APP_GUARD`/`APP_FILTER` đã dùng cho `ThrottlerGuard`/`AllExceptionsFilter` trong `app.module.ts`.
+- **Docker: image vs container, base image, multi-stage build**: "image" là 1 bản đóng gói bất biến (code + runtime + dependency), "container" là 1 instance đang chạy của image đó (giống class vs object). "Base image" (`node:24-alpine`) là image nền có sẵn Node.js để build lên trên — "alpine" là bản Linux tối giản, nhẹ. "Multi-stage build" là kỹ thuật dùng nhiều `FROM ... AS <tên-stage>` trong 1 Dockerfile: stage đầu có đủ công cụ để build (TypeScript compiler, devDependencies), stage cuối chỉ copy đúng file đã build xong sang — image cuối cùng nhỏ hơn nhiều vì không mang theo toolchain build.
+- **Docker Compose: service, `depends_on`, volume, port mapping**: trong `docker-compose.yml`, mỗi "service" (`api`, `postgres`, `redis`) là 1 container sẽ được tạo. `depends_on` + `condition: service_healthy` khiến 1 service chờ service khác đạt trạng thái "healthy" (theo định nghĩa ở khối `healthcheck` của nó) trước khi start — tránh việc `api` start trước khi `postgres` sẵn sàng nhận connection. "Volume" (`postgres-data:`) là vùng lưu trữ tồn tại độc lập với container — dữ liệu Postgres không mất khi container bị xoá/tạo lại. Port mapping (`'5432:5432'`) có dạng `host:container` — số bên trái là port trên máy bạn, số bên phải là port bên trong container; 2 số không nhất thiết phải giống nhau.
+- **CI / GitHub Actions: workflow, job, `runs-on`, `needs`, service container**: 1 "workflow" (file `.yml` trong `.github/workflows/`) là tập hợp các "job" chạy khi 1 event xảy ra (ở đây: mở PR hoặc push vào `master`). Mỗi "job" chạy trên 1 máy ảo riêng (`runs-on: ubuntu-latest`), độc lập với job khác trừ khi khai `needs: [job-khác]` (chờ job đó xong trước). `services:` trong 1 job là cách GitHub Actions tự dựng sẵn 1 container phụ trợ (ở đây: Postgres) chạy song song với job đó trong lúc job thực thi — khác với `docker-compose.yml` (Task 8, dùng cho máy dev local), dù cùng ý tưởng "chạy Postgres trong container".
+- **`gh` CLI**: công cụ dòng lệnh chính thức của GitHub để tương tác với repo (tạo PR, xem trạng thái CI run, ...) mà không cần mở trình duyệt — cần cài đặt và đăng nhập (`gh auth login`) trước khi dùng lần đầu trên 1 máy mới.
+
 ---
 
 ### Task 1: API versioning (`/api/v1`), Swagger ở `/docs`, sửa refresh-cookie path
@@ -225,7 +245,7 @@ git commit -m "feat: add users.authorization_version column"
 - [ ] **Step 1: Tạo folder migration bằng tay (data migration, không phải schema diff)**
 
 Chạy: `npx prisma migrate dev --create-only --name rename_admin_to_master_admin`
-Kỳ vọng: tạo `prisma/migrations/<timestamp>_rename_admin_to_master_admin/migration.sql` rỗng, chưa apply gì (schema.prisma không có diff nào đang chờ, nên file sinh ra rỗng).
+Kỳ vọng: tạo `prisma/migrations/<timestamp>_rename_admin_to_master_admin/migration.sql` rỗng, chưa apply gì (schema.prisma không có diff nào đang chờ, nên file sinh ra rỗng). Flag `--create-only` nghĩa là "chỉ tạo file migration, đừng tự áp nó vào DB" — cần flag này vì bước sau bạn phải tự viết tay nội dung SQL vào file trước khi áp (xem "Schema migration vs data migration" ở mục Thuật ngữ).
 
 - [ ] **Step 2: Viết SQL cho data migration**
 
@@ -245,7 +265,7 @@ VALUES
 ON CONFLICT ("name") DO NOTHING;
 ```
 
-(Dòng `MASTER_ADMIN` cuối trong `INSERT` là lưới an toàn cho 1 DB mới hoàn toàn, chưa từng có dòng `ADMIN` để rename — `ON CONFLICT DO NOTHING` khiến cả 2 statement an toàn dù chạy theo thứ tự nào hoặc trên bảng rỗng.)
+(`ON CONFLICT ("name") DO NOTHING` nghĩa là: nếu insert 1 dòng mà giá trị `name` đã tồn tại rồi (vi phạm ràng buộc unique) thì bỏ qua dòng đó thay vì báo lỗi — đây là cú pháp Postgres cho kiểu "insert nếu chưa có, có rồi thì thôi" mà không cần query kiểm tra trước. Dòng `MASTER_ADMIN` cuối trong `INSERT` là lưới an toàn cho 1 DB mới hoàn toàn, chưa từng có dòng `ADMIN` để rename — cơ chế trên khiến cả 2 statement an toàn dù chạy theo thứ tự nào hoặc trên bảng rỗng.)
 
 - [ ] **Step 3: Apply migration**
 
@@ -721,7 +741,7 @@ Chạy: `npm install prom-client`
 
 - [ ] **Step 2: Viết metrics interceptor**
 
-Tạo `src/metrics/metrics.interceptor.ts`:
+Tạo `src/metrics/metrics.interceptor.ts`. `process.hrtime.bigint()` là đồng hồ đo thời gian độ chính xác cao của Node.js, dùng để tính độ trễ request — không dùng `Date.now()` vì độ phân giải của nó quá thô cho việc đo latency ở mức millisecond:
 
 ```typescript
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
@@ -889,7 +909,7 @@ coverage
 
 - [ ] **Step 2: Viết multi-stage `Dockerfile`**
 
-Tạo `Dockerfile`:
+Tạo `Dockerfile`. `npm ci` khác `npm install` ở chỗ nó cài đúng version đã lock trong `package-lock.json` (không tự update version nào), phù hợp cho build tự động/CI hơn là dev local. Flag `--omit=dev` ở stage `runtime` nghĩa là chỉ cài `dependencies`, bỏ qua `devDependencies` (TypeScript, test runner...) — image cuối không cần chúng để chạy:
 
 ```dockerfile
 # Stage 1: build — full devDependencies, compile TS, generate Prisma client.
@@ -1003,7 +1023,7 @@ Kỳ vọng: `HTTP/1.1 200 OK`.
 
 - [ ] **Step 4: Tear down**
 
-Chạy: `docker compose down -v`
+Chạy: `docker compose down -v` (flag `-v` nghĩa là xoá luôn cả named volume `postgres-data` — không có `-v` thì volume vẫn giữ lại, lần `up` sau sẽ thấy lại dữ liệu cũ)
 Kỳ vọng: container và volume bị xoá sạch.
 
 - [ ] **Step 5: Commit**
