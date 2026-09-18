@@ -926,7 +926,7 @@ Mỗi lệnh dưới đây có 2 cột: **Tác dụng** (lệnh này làm gì) v
 
 ### d. Git & PR workflow
 
-> Chi tiết đầy đủ về branching xem `../../docs/git-workflow.md`. Tóm tắt: `main` (trunk ổn định) ← `dev` (integration) ← `feature/*`/`fix/*`/`chore/*`/`docs/*` (checked out từ `dev`, merge lại qua PR). Không commit thẳng vào `main`; hạn chế commit trực tiếp lớn vào `dev`.
+> Chi tiết đầy đủ về branching xem [`git-workflow.md`](./git-workflow.md). Tóm tắt: `main` (trunk ổn định) ← `dev` (integration) ← `feature/*`/`fix/*`/`chore/*`/`docs/*` (checked out từ `dev`, merge lại qua PR). Không commit thẳng vào `main`; hạn chế commit trực tiếp lớn vào `dev`.
 
 | Lệnh                                       | Tác dụng                                                      | Khi nào dùng                                                                                         |
 | ------------------------------------------ | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
