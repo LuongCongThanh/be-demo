@@ -157,8 +157,10 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
 
 - [ ] **Step 3: Xác nhận đường dẫn export enum của Prisma Client**
 
-Chạy: `grep -rn "export.*ProductStatus" src/generated/prisma/enums.ts`
-Kỳ vọng: có match — xác nhận `ProductStatus` export đúng từ file này (Prisma v7 tách enum ra file riêng `enums.ts`, không nằm trong `client.ts`). Nếu không có match, tìm đúng file bằng `grep -rln "ProductStatus" src/generated/prisma/` và sửa lại đường dẫn import ở Step 2.
+Đã verify trực tiếp: `src/generated/prisma/enums.ts` export `ProductStatus` (và `VariantStatus`, dùng ở Task 6) dưới dạng `export const ProductStatus = { ACTIVE: 'ACTIVE', INACTIVE: 'INACTIVE' }` kèm `export type ProductStatus = ...` cùng tên (Prisma v7 sinh enum dạng const object + type alias, không phải TS `enum`) — import `../../generated/prisma/enums.js` ở Step 2 đúng, dùng được ngay với cả `@IsEnum(ProductStatus)` và `@ApiPropertyOptional({ enum: ProductStatus })` (cả 2 decorator nhận object thường, không yêu cầu TS `enum`). Không cần tự verify lại bước này.
+
+Chạy: `npm run typecheck`
+Kỳ vọng: PASS — xác nhận import/type resolve đúng trong toàn bộ file.
 
 - [ ] **Step 4: Viết `PaginationDto` (copy nguyên từ Categories — cùng shape `{ page, limit }`)**
 
