@@ -890,6 +890,11 @@ git commit -m "feat: add baseline Prometheus metrics at GET /metrics"
 - Consumes: không phụ thuộc gì (standalone).
 - Produces: 1 image build được, tag local là `nestjs-demo:local` — được `docker-compose.yml` ở Task 8 (`build: .`) và build step CI ở Task 9 tiêu thụ.
 
+- [ ] **Step 0: Xác nhận Docker đã cài và đang chạy**
+
+Chạy: `docker --version && docker ps`
+Kỳ vọng: cả 2 lệnh chạy được, không lỗi "command not found" hay "cannot connect to the Docker daemon". Nếu lỗi, cài Docker Desktop (Windows/Mac) hoặc Docker Engine (Linux) trước khi tiếp tục — mọi step còn lại trong Task 7 và Task 8 đều cần Docker daemon đang chạy.
+
 - [ ] **Step 1: Viết `.dockerignore`**
 
 Tạo `.dockerignore`:
@@ -1015,8 +1020,10 @@ Kỳ vọng: cả 3 container start; `docker compose ps` hiện `postgres` là `
 
 - [ ] **Step 3: Apply migration vào Postgres của Compose, rồi verify readiness**
 
-Chạy: `docker compose exec api npx prisma migrate deploy`
-Kỳ vọng: mọi migration từ Task 2-3 apply sạch vào Postgres Compose vừa tạo.
+Container `api` chỉ cài `dependencies` (không có `devDependencies` — xem `npm ci --omit=dev` ở Task 7 Step 2), mà `prisma` CLI nằm ở `devDependencies` trong `package.json`, nên **không chạy `prisma migrate deploy` bên trong container `api`**. Thay vào đó, chạy trực tiếp trên máy bạn (máy dev đã có đủ `devDependencies` từ `npm install` bình thường), nhắm vào Postgres của Compose qua port đã map ra host (`'5432:5432'` ở Step 1):
+
+Chạy: `DATABASE_URL=postgresql://nestjs_demo:nestjs_demo@localhost:5432/nestjs_demo npx prisma migrate deploy`
+Kỳ vọng: mọi migration từ Task 2-3 apply sạch vào Postgres Compose vừa tạo. (Chỉ override `DATABASE_URL` cho đúng lệnh này — không sửa file `.env` của bạn, vì `.env` vẫn cần trỏ đúng DB dev thường dùng khi không chạy qua Compose.)
 
 Chạy: `curl -i http://localhost:3000/api/v1/health/ready`
 Kỳ vọng: `HTTP/1.1 200 OK`.
@@ -1161,6 +1168,13 @@ git commit -m "ci: add GitHub Actions workflow (lint, typecheck, unit+e2e test, 
 ---
 
 ## Final Verification Checklist
+
+Đây là checklist **bổ sung cho, không thay thế** checkbox Step trong từng Task ở trên. 2 cấp độ "xong":
+
+- **1 Task coi là xong** khi mọi checkbox Step của nó đã tick và đạt đúng "Kỳ vọng" ghi ở mỗi step.
+- **Cả Phase 1 coi là xong hoàn toàn** khi cả 9 Task đã xong (theo nghĩa trên) **VÀ** toàn bộ checklist dưới đây cũng pass, chạy 1 lần, tốt nhất trên 1 clean clone (clone repo mới, không dùng lại `node_modules`/DB đã có sẵn từ lúc code, để chắc chắn không có gì "chỉ chạy được trên máy tôi").
+
+Mục "1 user login → đổi role..." dưới đây là bước thao tác tay duy nhất trong checklist này — làm nó **sau khi Task 9 (CI) đã xong**, đúng 1 lần, để xác nhận cơ chế revoke bằng `authorizationVersion` (Task 2 + Task 4) hoạt động đúng end-to-end trên môi trường thật; không phải bước cần lặp lại mỗi lần chạy CI.
 
 Chạy qua checklist này sau khi cả 9 task đã commit, tốt nhất trên 1 clean clone:
 
