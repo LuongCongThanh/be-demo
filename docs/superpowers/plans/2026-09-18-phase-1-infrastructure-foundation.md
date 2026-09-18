@@ -1,10 +1,10 @@
 # Phase 1 — Infrastructure Foundation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Cho agent thực thi:** REQUIRED SUB-SKILL: dùng superpowers:subagent-driven-development (khuyến nghị) hoặc superpowers:executing-plans để thực thi plan này theo từng task. Các step dùng checkbox (`- [ ]`) để track tiến độ.
 
-**Goal:** Migrate the runtime to `/api/v1/*` + `/docs`, migrate roles to the 4 canonical roles with a working `authorization_version` revocation mechanism, add health checks + graceful shutdown, add baseline Prometheus metrics, and add local Docker/Compose + CI — the 6 prerequisites in Mục 22 Phase 1 of `doc/ecommerce-backend-architecture-system-design-2.md` that every later phase (Categories, Products, ...) depends on.
+**Mục tiêu:** Migrate runtime sang `/api/v1/*` + `/docs`, migrate role sang 4 role chuẩn kèm cơ chế revoke bằng `authorization_version`, thêm health check + graceful shutdown, thêm Prometheus metrics cơ bản, và thêm Docker/Compose local + CI — 6 prerequisite ở Mục 22 Phase 1 của `doc/ecommerce-backend-architecture-system-design-2.md` mà mọi phase sau (Categories, Products, ...) phụ thuộc vào.
 
-**Architecture:** Purely additive to the existing NestJS modular-monolith layout — no existing file moves, no new top-level business-module folders (Mục 3's tree is the end-state across all 9 phases, not a Phase 1 checklist). Two new infra modules (`src/health/`, `src/metrics/`) sit flat under `src/`, next to `src/mail/`/`src/prisma/`. Versioning/shutdown config lives in the shared `configureApp()` (already used by both `main.ts` and `test/support/create-test-app.ts`, so e2e tests exercise the same config as production).
+**Kiến trúc:** Hoàn toàn additive lên layout NestJS modular-monolith hiện có — không move file nào đã có, không tạo folder module nghiệp vụ mới nào (cây ở Mục 3 là đích cuối của cả 9 phase, không phải checklist của Phase 1). Hai module hạ tầng mới (`src/health/`, `src/metrics/`) nằm phẳng dưới `src/`, cùng cấp `src/mail/`/`src/prisma/`. Config versioning/shutdown nằm ở `configureApp()` dùng chung (đã được cả `main.ts` và `test/support/create-test-app.ts` dùng, nên e2e test chạy đúng cùng config với production).
 
 **Tech Stack:** NestJS 12, Prisma 7 (`@prisma/adapter-pg`), `@nestjs/terminus` (health), `prom-client` (metrics), Docker + Docker Compose, GitHub Actions.
 
@@ -12,33 +12,33 @@
 
 ## Global Constraints
 
-- No new top-level business-module folders (`products/`, `users/`, `cart/`, `orders/`, `inventory/`, `payments/`, `promotions/`) — those are created in their own phase (Mục 22), not here.
-- No barrel files (`index.ts`) anywhere in `src/` — direct file imports only (`docs/convention/coding-style-conventions.md` §3).
-- Inside `src/**` (except `.spec.ts`), imports are always relative — never `@src/...` (that alias is test-only). See `docs/convention/coding-style-conventions.md` §4.
-- No `any` — use `unknown` + type guards or a proper interface if a library lacks types (`docs/convention/coding-style-conventions.md` §5).
-- Do not wire Redis into any app feature (throttler, cache) in this phase — the `redis` service in `docker-compose.yml` is a container only, unused by app code.
-- Do not touch Grafana/Loki/Prometheus-server, production deployment topology, or any business module — out of scope per the spec's Non-goals section.
+- Không tạo folder module nghiệp vụ top-level mới nào (`products/`, `users/`, `cart/`, `orders/`, `inventory/`, `payments/`, `promotions/`) — các module đó được tạo ở phase riêng của chúng (Mục 22), không phải ở đây.
+- Không có barrel file (`index.ts`) ở đâu trong `src/` — import trỏ thẳng tới file thật (`docs/convention/coding-style-conventions.md` §3).
+- Trong `src/**` (trừ `.spec.ts`), import luôn dùng relative — không bao giờ `@src/...` (alias đó chỉ dùng cho test). Xem `docs/convention/coding-style-conventions.md` §4.
+- Không dùng `any` — dùng `unknown` + type guard hoặc interface phù hợp nếu 1 lib thiếu type (`docs/convention/coding-style-conventions.md` §5).
+- Không wire Redis vào bất kỳ feature nào của app (throttler, cache) trong phase này — service `redis` trong `docker-compose.yml` chỉ là container, app code chưa dùng tới.
+- Không động vào Grafana/Loki/Prometheus-server, production deployment topology, hay bất kỳ module nghiệp vụ nào — ngoài phạm vi theo mục Non-goals của spec.
 
 ---
 
-### Task 1: API versioning (`/api/v1`), Swagger at `/docs`, fix refresh-cookie path
+### Task 1: API versioning (`/api/v1`), Swagger ở `/docs`, sửa refresh-cookie path
 
 **Files:**
 
 - Modify: `src/bootstrap/configure-app.ts`
 - Modify: `src/main.ts`
-- Modify: `src/auth/auth.controller.ts:38` (the `REFRESH_TOKEN_COOKIE_PATH` constant)
-- Test: `test/auth-register.e2e-spec.ts` (add one assertion; existing file, no new file)
-- Test: `test/support/versioning.e2e-spec.ts` (new)
+- Modify: `src/auth/auth.controller.ts:38` (constant `REFRESH_TOKEN_COOKIE_PATH`)
+- Test: `test/auth-register.e2e-spec.ts` (thêm 1 assertion; file đã có, không tạo file mới)
+- Test: `test/support/versioning.e2e-spec.ts` (mới)
 
 **Interfaces:**
 
-- Consumes: nothing from other tasks.
-- Produces: every route now lives under `/api/v1/*`; every other task's e2e tests must call `/api/v1/...`, not the bare path.
+- Consumes: không phụ thuộc task nào khác.
+- Produces: mọi route giờ nằm dưới `/api/v1/*`; e2e test của mọi task khác phải gọi `/api/v1/...`, không phải path trần.
 
-- [ ] **Step 1: Write the failing e2e test for versioning**
+- [ ] **Step 1: Viết e2e test cho versioning (fail trước)**
 
-Create `test/support/versioning.e2e-spec.ts`:
+Tạo `test/support/versioning.e2e-spec.ts`:
 
 ```typescript
 import { INestApplication } from '@nestjs/common';
@@ -67,14 +67,14 @@ describe('API versioning (e2e)', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to confirm it fails**
+- [ ] **Step 2: Chạy test, xác nhận fail**
 
-Run: `npm run test:e2e -- versioning`
-Expected: FAIL — `/api/v1/auth/login` currently 404s (versioning not wired yet).
+Chạy: `npm run test:e2e -- versioning`
+Kỳ vọng: FAIL — `/api/v1/auth/login` hiện đang 404 (versioning chưa wire).
 
-- [ ] **Step 3: Wire global prefix + URI versioning into `configureApp()`**
+- [ ] **Step 3: Wire global prefix + URI versioning vào `configureApp()`**
 
-Edit `src/bootstrap/configure-app.ts` — add versioning next to the existing `ValidationPipe`/`cookie-parser` setup so `main.ts` and `create-test-app.ts` share it:
+Sửa `src/bootstrap/configure-app.ts` — thêm versioning cạnh `ValidationPipe`/`cookie-parser` đã có, để `main.ts` và `create-test-app.ts` dùng chung:
 
 ```typescript
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
@@ -98,41 +98,41 @@ export function configureApp(app: INestApplication) {
 }
 ```
 
-- [ ] **Step 4: Move Swagger to `/docs` in `main.ts`**
+- [ ] **Step 4: Chuyển Swagger sang `/docs` trong `main.ts`**
 
-Edit `src/main.ts` — change the `SwaggerModule.setup` call:
+Sửa `src/main.ts` — đổi lời gọi `SwaggerModule.setup`:
 
 ```typescript
 SwaggerModule.setup('docs', app, document);
 ```
 
-(Everything else in `main.ts` — `DocumentBuilder`, `configureApp(app)`, `app.listen(...)` — stays as-is.)
+(Mọi thứ khác trong `main.ts` — `DocumentBuilder`, `configureApp(app)`, `app.listen(...)` — giữ nguyên.)
 
-- [ ] **Step 5: Fix the refresh-token cookie path**
+- [ ] **Step 5: Sửa path của refresh-token cookie**
 
-Edit `src/auth/auth.controller.ts:38` — the cookie's `path` must match the new versioned route or the browser will never send it back on `/api/v1/auth/refresh`:
+Sửa `src/auth/auth.controller.ts:38` — `path` của cookie phải khớp route đã versioned, không thì browser sẽ không bao giờ gửi lại cookie ở `/api/v1/auth/refresh`:
 
 ```typescript
 const REFRESH_TOKEN_COOKIE_PATH = '/api/v1/auth';
 ```
 
-- [ ] **Step 6: Run the versioning e2e test to confirm it passes**
+- [ ] **Step 6: Chạy lại e2e test versioning, xác nhận pass**
 
-Run: `npm run test:e2e -- versioning`
-Expected: PASS
+Chạy: `npm run test:e2e -- versioning`
+Kỳ vọng: PASS
 
-- [ ] **Step 7: Update the existing auth e2e specs to call the versioned path**
+- [ ] **Step 7: Cập nhật các e2e spec hiện có sang path đã versioned**
 
-Every file under `test/*.e2e-spec.ts` that calls `request(app.getHttpServer()).post('/auth/...')` or `.get('/auth/...')` must be updated to `/api/v1/auth/...`. Find every call site:
+Mọi file `test/*.e2e-spec.ts` gọi `request(app.getHttpServer()).post('/auth/...')` hoặc `.get('/auth/...')` phải đổi sang `/api/v1/auth/...`. Tìm hết các chỗ gọi:
 
-Run: `grep -rn "'/auth" test/*.e2e-spec.ts`
+Chạy: `grep -rn "'/auth" test/*.e2e-spec.ts`
 
-Update each match's path string (e.g. `'/auth/register'` → `'/api/v1/auth/register'`) in: `test/app.e2e-spec.ts`, `test/auth-login.e2e-spec.ts`, `test/auth-register.e2e-spec.ts`, `test/auth-register-flow.e2e-spec.ts`, `test/auth-refresh.e2e-spec.ts`, `test/auth-logout.e2e-spec.ts`, `test/auth-verify-email.e2e-spec.ts`, `test/auth-resend-verification.e2e-spec.ts`, `test/auth-forgot-password.e2e-spec.ts`, `test/auth-reset-password.e2e-spec.ts`, `test/auth-rate-limiting.e2e-spec.ts`, `test/mail-smtp.e2e-spec.ts`. Do a plain string replace of the literal path prefix only — do not touch anything else in these files.
+Cập nhật từng path match (vd `'/auth/register'` → `'/api/v1/auth/register'`) ở: `test/app.e2e-spec.ts`, `test/auth-login.e2e-spec.ts`, `test/auth-register.e2e-spec.ts`, `test/auth-register-flow.e2e-spec.ts`, `test/auth-refresh.e2e-spec.ts`, `test/auth-logout.e2e-spec.ts`, `test/auth-verify-email.e2e-spec.ts`, `test/auth-resend-verification.e2e-spec.ts`, `test/auth-forgot-password.e2e-spec.ts`, `test/auth-reset-password.e2e-spec.ts`, `test/auth-rate-limiting.e2e-spec.ts`, `test/mail-smtp.e2e-spec.ts`. Chỉ thay đúng string literal prefix — không đụng gì khác trong các file này.
 
-- [ ] **Step 8: Run the full e2e suite to confirm nothing regressed**
+- [ ] **Step 8: Chạy toàn bộ e2e suite, xác nhận không regression**
 
-Run: `npm run test:e2e`
-Expected: PASS — every e2e spec green.
+Chạy: `npm run test:e2e`
+Kỳ vọng: PASS — mọi e2e spec đều xanh.
 
 - [ ] **Step 9: Commit**
 
@@ -143,20 +143,20 @@ git commit -m "feat: version API under /api/v1, move Swagger to /docs (ADR 0002)
 
 ---
 
-### Task 2: `authorization_version` column (schema migration)
+### Task 2: Cột `authorization_version` (schema migration)
 
 **Files:**
 
-- Modify: `prisma/schema/schema.prisma` (add field to `User`)
-- Create: `prisma/migrations/<timestamp>_add_authorization_version/migration.sql` (generated by Prisma CLI, not hand-written)
+- Modify: `prisma/schema/schema.prisma` (thêm field vào `User`)
+- Create: `prisma/migrations/<timestamp>_add_authorization_version/migration.sql` (Prisma CLI tự sinh, không viết tay)
 
 **Interfaces:**
 
-- Produces: `User.authorizationVersion: number` (Prisma field name; DB column `authorization_version INT NOT NULL DEFAULT 0`) — consumed by Task 4 (JWT payload) and by every future role/status-changing endpoint (Phase 3, out of scope here).
+- Produces: `User.authorizationVersion: number` (tên field Prisma; cột DB `authorization_version INT NOT NULL DEFAULT 0`) — được Task 4 (JWT payload) và mọi endpoint đổi role/status tương lai (Phase 3, ngoài phạm vi ở đây) tiêu thụ.
 
-- [ ] **Step 1: Add the field to the Prisma schema**
+- [ ] **Step 1: Thêm field vào Prisma schema**
 
-Edit `prisma/schema/schema.prisma` — inside `model User { ... }`, add the field right after `status`:
+Sửa `prisma/schema/schema.prisma` — trong `model User { ... }`, thêm field ngay sau `status`:
 
 ```prisma
 model User {
@@ -173,22 +173,22 @@ model User {
   ...
 ```
 
-(Only the one new line — do not reformat the rest of the model; `prisma format` will realign columns automatically in the next step.)
+(Chỉ thêm đúng 1 dòng mới — không reformat lại phần còn lại của model; `prisma format` sẽ tự căn lại cột ở step sau.)
 
-- [ ] **Step 2: Generate the migration**
+- [ ] **Step 2: Generate migration**
 
-Run: `npx prisma migrate dev --name add_authorization_version`
-Expected: creates `prisma/migrations/<timestamp>_add_authorization_version/migration.sql` containing `ALTER TABLE "users" ADD COLUMN "authorization_version" INTEGER NOT NULL DEFAULT 0;`, applies it to your local dev DB, and regenerates `src/generated/prisma/`.
+Chạy: `npx prisma migrate dev --name add_authorization_version`
+Kỳ vọng: tạo `prisma/migrations/<timestamp>_add_authorization_version/migration.sql` chứa `ALTER TABLE "users" ADD COLUMN "authorization_version" INTEGER NOT NULL DEFAULT 0;`, áp migration đó vào DB dev local, và generate lại `src/generated/prisma/`.
 
-- [ ] **Step 3: Verify the generated client has the new field**
+- [ ] **Step 3: Xác nhận generated client đã có field mới**
 
-Run: `grep -rn "authorizationVersion" src/generated/prisma/models/User.ts`
-Expected: a match — confirms `prisma generate` picked up the new field.
+Chạy: `grep -rn "authorizationVersion" src/generated/prisma/models/User.ts`
+Kỳ vọng: có match — xác nhận `prisma generate` đã nhận field mới.
 
-- [ ] **Step 4: Run the full unit test suite (regression check — no behavior changed yet)**
+- [ ] **Step 4: Chạy toàn bộ unit test suite (regression check — chưa đổi behavior gì)**
 
-Run: `npm run test`
-Expected: PASS — this step only added a column with a default; nothing reads or writes it yet.
+Chạy: `npm run test`
+Kỳ vọng: PASS — step này chỉ thêm 1 cột có default; chưa ai đọc/ghi nó.
 
 - [ ] **Step 5: Commit**
 
@@ -199,28 +199,28 @@ git commit -m "feat: add users.authorization_version column"
 
 ---
 
-### Task 3: Role migration — rename `ADMIN` → `MASTER_ADMIN`, seed the 4 canonical roles
+### Task 3: Migrate role — rename `ADMIN` → `MASTER_ADMIN`, seed 4 role chuẩn
 
 **Files:**
 
-- Create: `prisma/migrations/<timestamp>_rename_admin_to_master_admin/migration.sql` (hand-written data migration — see below)
+- Create: `prisma/migrations/<timestamp>_rename_admin_to_master_admin/migration.sql` (data migration viết tay — xem bên dưới)
 - Modify: `prisma/seed.ts`
 - Modify: `src/auth/guards/ownership.guard.ts:23`
 - Modify: `src/auth/guards/ownership.guard.spec.ts:36-44`
 
 **Interfaces:**
 
-- Consumes: nothing from other tasks (independent of Task 2's schema migration, but run after it so migration folders sort in the applied order).
-- Produces: role name `'MASTER_ADMIN'` (DB row, replacing `'ADMIN'`), plus 3 new role rows `'CUSTOMER'`, `'ORDER_STAFF'`, `'STORE_MANAGER'` (idempotent — `'CUSTOMER'` already exists from earlier work, `ON CONFLICT DO NOTHING` must not error on it).
+- Consumes: không phụ thuộc task nào khác (độc lập với schema migration ở Task 2, nhưng chạy sau nó để thứ tự folder migration sort đúng thứ tự áp dụng).
+- Produces: role name `'MASTER_ADMIN'` (dòng DB, thay cho `'ADMIN'`), cộng 3 dòng role mới `'CUSTOMER'`, `'ORDER_STAFF'`, `'STORE_MANAGER'` (idempotent — `'CUSTOMER'` có thể đã tồn tại từ trước, `ON CONFLICT DO NOTHING` không được lỗi với nó).
 
-- [ ] **Step 1: Create the migration folder by hand (data migration, not a schema diff)**
+- [ ] **Step 1: Tạo folder migration bằng tay (data migration, không phải schema diff)**
 
-Run: `npx prisma migrate dev --create-only --name rename_admin_to_master_admin`
-Expected: creates an empty `prisma/migrations/<timestamp>_rename_admin_to_master_admin/migration.sql` without applying anything (schema.prisma has no pending diff, so the generated file is empty).
+Chạy: `npx prisma migrate dev --create-only --name rename_admin_to_master_admin`
+Kỳ vọng: tạo `prisma/migrations/<timestamp>_rename_admin_to_master_admin/migration.sql` rỗng, chưa apply gì (schema.prisma không có diff nào đang chờ, nên file sinh ra rỗng).
 
-- [ ] **Step 2: Write the data migration SQL**
+- [ ] **Step 2: Viết SQL cho data migration**
 
-Replace the contents of the generated (empty) `migration.sql` with:
+Thay nội dung file `migration.sql` (rỗng, vừa sinh) bằng:
 
 ```sql
 -- Rename the legacy ADMIN role to the canonical MASTER_ADMIN (ADR 0005).
@@ -236,21 +236,21 @@ VALUES
 ON CONFLICT ("name") DO NOTHING;
 ```
 
-(The last `MASTER_ADMIN` row in the `INSERT` is a safety net for a fresh DB that never had an `ADMIN` row to rename — `ON CONFLICT DO NOTHING` makes both statements safe to run in either order or on an empty table.)
+(Dòng `MASTER_ADMIN` cuối trong `INSERT` là lưới an toàn cho 1 DB mới hoàn toàn, chưa từng có dòng `ADMIN` để rename — `ON CONFLICT DO NOTHING` khiến cả 2 statement an toàn dù chạy theo thứ tự nào hoặc trên bảng rỗng.)
 
-- [ ] **Step 3: Apply the migration**
+- [ ] **Step 3: Apply migration**
 
-Run: `npx prisma migrate dev`
-Expected: applies the new migration to your local dev DB with no further prompts (no pending schema diff).
+Chạy: `npx prisma migrate dev`
+Kỳ vọng: apply migration mới vào DB dev local, không hỏi thêm gì (không còn schema diff nào đang chờ).
 
-- [ ] **Step 4: Verify the roles table**
+- [ ] **Step 4: Xác nhận bảng roles**
 
-Run: `npx prisma studio` (or `psql "$DATABASE_URL" -c "SELECT name FROM roles ORDER BY name;"`)
-Expected: exactly `CUSTOMER`, `MASTER_ADMIN`, `ORDER_STAFF`, `STORE_MANAGER` — no `ADMIN` row.
+Chạy: `npx prisma studio` (hoặc `psql "$DATABASE_URL" -c "SELECT name FROM roles ORDER BY name;"`)
+Kỳ vọng: đúng `CUSTOMER`, `MASTER_ADMIN`, `ORDER_STAFF`, `STORE_MANAGER` — không có dòng `ADMIN`.
 
-- [ ] **Step 5: Update `prisma/seed.ts` to use the canonical role name**
+- [ ] **Step 5: Cập nhật `prisma/seed.ts` dùng role name chuẩn**
 
-Edit `prisma/seed.ts` — the upsert and the log message:
+Sửa `prisma/seed.ts` — upsert và log message:
 
 ```typescript
 const adminRole = await prisma.role.upsert({
@@ -260,16 +260,16 @@ const adminRole = await prisma.role.upsert({
 });
 ```
 
-(Leave `ADMIN_BOOTSTRAP_EMAIL`/`ADMIN_BOOTSTRAP_PASSWORD` env var names as-is — those name the bootstrap _account_, not a role, and renaming them would be an unrelated env-var churn outside this task's scope.)
+(Giữ nguyên tên env var `ADMIN_BOOTSTRAP_EMAIL`/`ADMIN_BOOTSTRAP_PASSWORD` — chúng đặt tên cho _tài khoản_ bootstrap, không phải role, đổi tên chúng là 1 việc đổi env var không liên quan, ngoài phạm vi task này.)
 
-- [ ] **Step 6: Re-run the seed to confirm it's idempotent against the new role name**
+- [ ] **Step 6: Chạy lại seed, xác nhận idempotent với role name mới**
 
-Run: `npm run db:seed`
-Expected: succeeds, logs either `Created admin <email>.` or `Admin <email> already exists, skipping.` — no error about a missing/duplicate role.
+Chạy: `npm run db:seed`
+Kỳ vọng: thành công, log ra `Created admin <email>.` hoặc `Admin <email> already exists, skipping.` — không lỗi về role bị thiếu/trùng.
 
-- [ ] **Step 7: Write the failing unit test for the `OwnershipGuard` bypass rename**
+- [ ] **Step 7: Viết unit test fail cho việc rename bypass của `OwnershipGuard`**
 
-Edit `src/auth/guards/ownership.guard.spec.ts` — update the existing test at line 36 (do not add a new test, this one is being corrected):
+Sửa `src/auth/guards/ownership.guard.spec.ts` — cập nhật test đã có ở dòng 36 (không thêm test mới, đây là sửa lại test cũ):
 
 ```typescript
 it('bypasses ownership check entirely for a user with the MASTER_ADMIN role, without calling fetch', async () => {
@@ -283,29 +283,29 @@ it('bypasses ownership check entirely for a user with the MASTER_ADMIN role, wit
 });
 ```
 
-- [ ] **Step 8: Run the test to confirm it fails**
+- [ ] **Step 8: Chạy test, xác nhận fail**
 
-Run: `npx vitest run src/auth/guards/ownership.guard.spec.ts`
-Expected: FAIL — `ownership.guard.ts` still checks for `'ADMIN'`, so a `['MASTER_ADMIN']` user is not bypassed and the test hits `fetch` (which is `undefined` in this fixture), throwing.
+Chạy: `npx vitest run src/auth/guards/ownership.guard.spec.ts`
+Kỳ vọng: FAIL — `ownership.guard.ts` vẫn đang check `'ADMIN'`, nên user `['MASTER_ADMIN']` không được bypass và test rơi vào `fetch` (là `undefined` trong fixture này), throw lỗi.
 
-- [ ] **Step 9: Fix `OwnershipGuard`**
+- [ ] **Step 9: Sửa `OwnershipGuard`**
 
-Edit `src/auth/guards/ownership.guard.ts:23`:
+Sửa `src/auth/guards/ownership.guard.ts:23`:
 
 ```typescript
 // MASTER_ADMIN bypass — không cần kiểm tra ownership.
 if (user.roles.includes('MASTER_ADMIN')) return true;
 ```
 
-- [ ] **Step 10: Run the test to confirm it passes**
+- [ ] **Step 10: Chạy test, xác nhận pass**
 
-Run: `npx vitest run src/auth/guards/ownership.guard.spec.ts`
-Expected: PASS
+Chạy: `npx vitest run src/auth/guards/ownership.guard.spec.ts`
+Kỳ vọng: PASS
 
-- [ ] **Step 11: Run the full unit + e2e suites**
+- [ ] **Step 11: Chạy toàn bộ unit + e2e suite**
 
-Run: `npm run test && npm run test:e2e`
-Expected: PASS — `roles.guard.spec.ts`'s `'ADMIN'`/`'STAFF'` fixtures are untouched deliberately (they test `RolesGuard`'s generic string-matching against an arbitrary `@Roles(...)` decorator value, not a real role name — see the comment at `roles.guard.ts:23-25`).
+Chạy: `npm run test && npm run test:e2e`
+Kỳ vọng: PASS — fixture `'ADMIN'`/`'STAFF'` trong `roles.guard.spec.ts` chủ đích không đổi (nó test việc `RolesGuard` so khớp string chung với 1 giá trị `@Roles(...)` tuỳ ý, không phải role name thật — xem comment ở `roles.guard.ts:23-25`).
 
 - [ ] **Step 12: Commit**
 
@@ -316,23 +316,23 @@ git commit -m "feat: migrate ADMIN role to canonical MASTER_ADMIN, seed 4 canoni
 
 ---
 
-### Task 4: Wire `authorizationVersion` into the JWT — issue and verify
+### Task 4: Wire `authorizationVersion` vào JWT — issue và verify
 
 **Files:**
 
 - Modify: `src/auth/strategies/jwt.strategy.ts`
 - Modify: `src/auth/services/auth.service.ts:460-467` (`signAccessToken`)
-- Modify: `src/auth/services/auth.service.spec.ts:487,491,606,615` (existing assertions on `jwtService.sign` payload)
-- Test: `src/auth/strategies/jwt.strategy.spec.ts` (new)
+- Modify: `src/auth/services/auth.service.spec.ts:487,491,606,615` (assertion hiện có trên payload `jwtService.sign`)
+- Test: `src/auth/strategies/jwt.strategy.spec.ts` (mới)
 
 **Interfaces:**
 
-- Consumes: `PrismaService` (already injectable everywhere), `User.authorizationVersion` from Task 2.
-- Produces: `JwtPayload` now has a required `authorizationVersion: number` field — every other place that constructs a `JwtPayload` object (test fixtures in `roles.guard.spec.ts`, `ownership.guard.spec.ts`, `current-user.decorator.ts` consumers) must include it once this task lands, or TypeScript will fail to compile.
+- Consumes: `PrismaService` (đã injectable ở mọi nơi), `User.authorizationVersion` từ Task 2.
+- Produces: `JwtPayload` giờ có field bắt buộc `authorizationVersion: number` — mọi nơi khác dựng object `JwtPayload` (fixture test ở `roles.guard.spec.ts`, `ownership.guard.spec.ts`, nơi dùng `current-user.decorator.ts`) phải thêm field này khi task này xong, nếu không TypeScript sẽ fail compile.
 
-- [ ] **Step 1: Update the `JwtPayload` interface and add DB-backed validation**
+- [ ] **Step 1: Cập nhật interface `JwtPayload` và thêm validate dựa trên DB**
 
-Edit `src/auth/strategies/jwt.strategy.ts` — this is the biggest behavior change in this task: `validate()` currently trusts the token blindly; it now must re-check `authorizationVersion` against the DB on every request, per Mục 13 ("request được bảo vệ phải khớp với version hiện tại; authorization đặc quyền fail closed khi không thể xác minh version"):
+Sửa `src/auth/strategies/jwt.strategy.ts` — đây là thay đổi behavior lớn nhất trong task này: `validate()` hiện đang tin token vô điều kiện; giờ phải re-check `authorizationVersion` đối chiếu DB ở mọi request, theo đúng Mục 13 ("request được bảo vệ phải khớp với version hiện tại; authorization đặc quyền fail closed khi không thể xác minh version"):
 
 ```typescript
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -381,9 +381,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 }
 ```
 
-- [ ] **Step 2: Write the failing unit test for the strategy**
+- [ ] **Step 2: Viết unit test fail cho strategy**
 
-Create `src/auth/strategies/jwt.strategy.spec.ts`:
+Tạo `src/auth/strategies/jwt.strategy.spec.ts`:
 
 ```typescript
 import { UnauthorizedException } from '@nestjs/common';
@@ -429,14 +429,14 @@ describe('JwtStrategy', () => {
 });
 ```
 
-- [ ] **Step 3: Run the test to confirm it currently fails to even compile/pass**
+- [ ] **Step 3: Chạy test, xác nhận hiện tại nó fail (hoặc pass nếu đã áp Step 1)**
 
-Run: `npx vitest run src/auth/strategies/jwt.strategy.spec.ts`
-Expected: FAIL (this test is written against the Step 1 code, so run this _after_ Step 1 — if you're following strict TDD, apply Step 1's edit first, then this becomes a regression-proving run: it should already PASS once Step 1 is in place; if it doesn't, the strategy edit has a bug).
+Chạy: `npx vitest run src/auth/strategies/jwt.strategy.spec.ts`
+Kỳ vọng: FAIL (test này viết theo code ở Step 1, nên chạy bước này _sau_ Step 1 — nếu theo đúng TDD nghiêm ngặt, áp edit của Step 1 trước, thì lần chạy này chỉ để xác nhận không regression: nó phải PASS ngay khi Step 1 đã được áp; nếu không PASS thì edit ở strategy đang có bug).
 
-- [ ] **Step 4: Update `signAccessToken` to include `authorizationVersion` in the issued JWT**
+- [ ] **Step 4: Cập nhật `signAccessToken` để nhúng `authorizationVersion` vào JWT phát ra**
 
-Edit `src/auth/services/auth.service.ts:460-467`:
+Sửa `src/auth/services/auth.service.ts:460-467`:
 
 ```typescript
   private signAccessToken(user: {
@@ -459,14 +459,14 @@ Edit `src/auth/services/auth.service.ts:460-467`:
   }
 ```
 
-Every caller of `signAccessToken(user)` (in `login()` and `refreshToken()`) already passes the full Prisma `user` record it just fetched — since `authorizationVersion` now exists on that record (Task 2), no caller needs to change, only the parameter type widened. Confirm both call sites still type-check:
+Mọi nơi gọi `signAccessToken(user)` (trong `login()` và `refreshToken()`) đều đã truyền sẵn record Prisma `user` đầy đủ vừa fetch — vì `authorizationVersion` giờ đã có trên record đó (Task 2), không caller nào cần sửa, chỉ có kiểu tham số được nới rộng. Xác nhận cả 2 call site vẫn typecheck được:
 
-Run: `npm run typecheck`
-Expected: PASS. If it fails, the caller's Prisma `select`/`include` is missing `authorizationVersion` — check the query and add it to the `select` clause the same way `status`/`emailVerifiedAt` are already selected there.
+Chạy: `npm run typecheck`
+Kỳ vọng: PASS. Nếu fail, `select`/`include` Prisma của caller đang thiếu `authorizationVersion` — kiểm tra query và thêm nó vào `select` giống cách `status`/`emailVerifiedAt` đã được select ở đó.
 
-- [ ] **Step 5: Update the existing `auth.service.spec.ts` assertions**
+- [ ] **Step 5: Cập nhật assertion hiện có trong `auth.service.spec.ts`**
 
-Edit `src/auth/services/auth.service.spec.ts` — lines 487/491 and 606/615 assert the exact object passed to `jwtService.sign`. Find the mock user fixture used by these two tests (search for the fixture object literal that currently omits `authorizationVersion`) and add `authorizationVersion: 0` to it, then update the two assertions:
+Sửa `src/auth/services/auth.service.spec.ts` — dòng 487/491 và 606/615 assert đúng object truyền vào `jwtService.sign`. Tìm fixture user mock mà 2 test này dùng (search object literal hiện đang thiếu `authorizationVersion`) và thêm `authorizationVersion: 0` vào đó, rồi cập nhật 2 assertion:
 
 ```typescript
 expect(jwtService.sign).toHaveBeenCalledWith({
@@ -477,22 +477,22 @@ expect(jwtService.sign).toHaveBeenCalledWith({
 });
 ```
 
-(Apply this same change at both line ~491 and line ~615 — same shape, same fixture value.)
+(Áp đúng thay đổi này ở cả dòng ~491 và ~615 — cùng shape, cùng giá trị fixture.)
 
-- [ ] **Step 6: Fix any other `JwtPayload`-shaped test fixtures that now fail to compile**
+- [ ] **Step 6: Sửa các fixture test dạng `JwtPayload` khác đang fail compile**
 
-Run: `npm run typecheck`
-Expected: lists every fixture object missing `authorizationVersion`. Known locations from the codebase search done during planning: `src/auth/guards/roles.guard.spec.ts` (`createContext({ sub: 'user-1', roles: ['ADMIN'] })`) and `src/auth/guards/ownership.guard.spec.ts` (already touched in Task 3, but re-check). Add `authorizationVersion: 0` to every such object literal until `typecheck` is clean.
+Chạy: `npm run typecheck`
+Kỳ vọng: liệt kê mọi fixture object đang thiếu `authorizationVersion`. Vị trí đã biết từ lúc khảo sát codebase khi lập plan: `src/auth/guards/roles.guard.spec.ts` (`createContext({ sub: 'user-1', roles: ['ADMIN'] })`) và `src/auth/guards/ownership.guard.spec.ts` (đã sửa ở Task 3, nhưng re-check lại). Thêm `authorizationVersion: 0` vào mọi object literal như vậy cho tới khi `typecheck` sạch.
 
-- [ ] **Step 7: Run the full unit test suite**
+- [ ] **Step 7: Chạy toàn bộ unit test suite**
 
-Run: `npm run test`
-Expected: PASS
+Chạy: `npm run test`
+Kỳ vọng: PASS
 
-- [ ] **Step 8: Run the full e2e suite**
+- [ ] **Step 8: Chạy toàn bộ e2e suite**
 
-Run: `npm run test:e2e`
-Expected: PASS — login/refresh e2e specs exercise the real `JwtStrategy` against a real test DB, so this is the strongest signal that issuing and verifying the new payload field works end-to-end.
+Chạy: `npm run test:e2e`
+Kỳ vọng: PASS — e2e spec login/refresh chạy `JwtStrategy` thật đối chiếu DB test thật, nên đây là tín hiệu mạnh nhất rằng việc issue và verify field payload mới hoạt động đúng end-to-end.
 
 - [ ] **Step 9: Commit**
 
@@ -503,7 +503,7 @@ git commit -m "feat: verify authorizationVersion on every request, fail closed o
 
 ---
 
-### Task 5: Health checks (`/health/live`, `/health/ready`) + graceful shutdown
+### Task 5: Health check (`/health/live`, `/health/ready`) + graceful shutdown
 
 **Files:**
 
@@ -516,17 +516,17 @@ git commit -m "feat: verify authorizationVersion on every request, fail closed o
 
 **Interfaces:**
 
-- Consumes: `PrismaService` (existing).
-- Produces: `GET /api/v1/health/live` → `200`; `GET /api/v1/health/ready` → `200`/`503` depending on Postgres reachability. Nothing downstream depends on this yet (Phase 1 is the first consumer of Terminus in this repo).
+- Consumes: `PrismaService` (đã có sẵn).
+- Produces: `GET /api/v1/health/live` → `200`; `GET /api/v1/health/ready` → `200`/`503` tuỳ Postgres còn reachable hay không. Chưa có gì phía sau phụ thuộc vào đây (Phase 1 là consumer đầu tiên của Terminus trong repo này).
 
-- [ ] **Step 1: Install `@nestjs/terminus`**
+- [ ] **Step 1: Cài `@nestjs/terminus`**
 
-Run: `npm install @nestjs/terminus`
-Expected: added to `package.json` `dependencies`.
+Chạy: `npm install @nestjs/terminus`
+Kỳ vọng: được thêm vào `dependencies` trong `package.json`.
 
-- [ ] **Step 2: Write the custom Prisma health indicator**
+- [ ] **Step 2: Viết custom Prisma health indicator**
 
-Create `src/health/prisma-health.indicator.ts`:
+Tạo `src/health/prisma-health.indicator.ts`:
 
 ```typescript
 import { Injectable } from '@nestjs/common';
@@ -556,9 +556,9 @@ export class PrismaHealthIndicator {
 }
 ```
 
-- [ ] **Step 3: Write the health controller**
+- [ ] **Step 3: Viết health controller**
 
-Create `src/health/health.controller.ts`:
+Tạo `src/health/health.controller.ts`:
 
 ```typescript
 import { Controller, Get } from '@nestjs/common';
@@ -587,9 +587,9 @@ export class HealthController {
 }
 ```
 
-- [ ] **Step 4: Write the health module**
+- [ ] **Step 4: Viết health module**
 
-Create `src/health/health.module.ts`:
+Tạo `src/health/health.module.ts`:
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -605,19 +605,19 @@ import { PrismaHealthIndicator } from './prisma-health.indicator.js';
 export class HealthModule {}
 ```
 
-- [ ] **Step 5: Register `HealthModule` in `AppModule`**
+- [ ] **Step 5: Đăng ký `HealthModule` vào `AppModule`**
 
-Edit `src/app.module.ts` — add the import:
+Sửa `src/app.module.ts` — thêm import:
 
 ```typescript
 import { HealthModule } from './health/health.module.js';
 ```
 
-and add `HealthModule` to the `imports: [...]` array (alongside `PrismaModule`, `AuthModule`).
+và thêm `HealthModule` vào array `imports: [...]` (cạnh `PrismaModule`, `AuthModule`).
 
-- [ ] **Step 6: Write the failing e2e test**
+- [ ] **Step 6: Viết e2e test fail trước**
 
-Create `test/health.e2e-spec.ts`:
+Tạo `test/health.e2e-spec.ts`:
 
 ```typescript
 import { INestApplication } from '@nestjs/common';
@@ -661,26 +661,26 @@ describe('Health checks (e2e)', () => {
 });
 ```
 
-- [ ] **Step 7: Run it to confirm the first two pass and see where things stand**
+- [ ] **Step 7: Chạy test, xem hiện trạng**
 
-Run: `npm run test:e2e -- health`
-Expected: if Steps 1-5 are in place, all 3 should already PASS at this point (this task isn't strict red-green since the controller was written before the test) — treat any FAIL here as a bug in Steps 2-5 to fix now, not later.
+Chạy: `npm run test:e2e -- health`
+Kỳ vọng: nếu Step 1-5 đã làm đúng, cả 3 test đều PASS luôn (task này không strict red-green vì controller được viết trước test) — coi bất kỳ FAIL nào ở đây là bug ở Step 2-5, sửa ngay, không để lại.
 
-- [ ] **Step 8: Enable graceful shutdown**
+- [ ] **Step 8: Bật graceful shutdown**
 
-Edit `src/main.ts` — add one line after `configureApp(app)`:
+Sửa `src/main.ts` — thêm 1 dòng sau `configureApp(app)`:
 
 ```typescript
 configureApp(app);
 app.enableShutdownHooks();
 ```
 
-(This makes Nest call `PrismaService.onModuleDestroy()` — already implemented, `await this.$disconnect()` — on `SIGTERM`/`SIGINT`, so the connection pool closes cleanly instead of being killed mid-query during a rolling deploy.)
+(Điều này khiến Nest gọi `PrismaService.onModuleDestroy()` — đã implement sẵn, `await this.$disconnect()` — khi nhận `SIGTERM`/`SIGINT`, để connection pool đóng sạch thay vì bị kill giữa lúc đang query trong 1 lượt rolling deploy.)
 
-- [ ] **Step 9: Run the full e2e suite**
+- [ ] **Step 9: Chạy toàn bộ e2e suite**
 
-Run: `npm run test:e2e`
-Expected: PASS
+Chạy: `npm run test:e2e`
+Kỳ vọng: PASS
 
 - [ ] **Step 10: Commit**
 
@@ -691,7 +691,7 @@ git commit -m "feat: add /health/live and /health/ready (ADR 0008), enable grace
 
 ---
 
-### Task 6: Baseline Prometheus metrics (`GET /metrics`)
+### Task 6: Prometheus metrics cơ bản (`GET /metrics`)
 
 **Files:**
 
@@ -699,20 +699,20 @@ git commit -m "feat: add /health/live and /health/ready (ADR 0008), enable grace
 - Create: `src/metrics/metrics.controller.ts`
 - Create: `src/metrics/metrics.interceptor.ts`
 - Create: `test/metrics.e2e-spec.ts`
-- Modify: `src/app.module.ts` (import `MetricsModule`, register interceptor as `APP_INTERCEPTOR`)
+- Modify: `src/app.module.ts` (import `MetricsModule`, đăng ký interceptor làm `APP_INTERCEPTOR`)
 
 **Interfaces:**
 
-- Consumes: nothing from other tasks.
-- Produces: `GET /metrics` (note: **not** under `/api/v1` — Prometheus scrape convention is a bare `/metrics` path) returning Prometheus exposition-format text. No other task consumes this.
+- Consumes: không phụ thuộc task nào khác.
+- Produces: `GET /metrics` (chú ý: **không** nằm dưới `/api/v1` — convention scrape của Prometheus là path trần `/metrics`) trả text theo Prometheus exposition format. Không có task nào khác tiêu thụ output này.
 
-- [ ] **Step 1: Install `prom-client`**
+- [ ] **Step 1: Cài `prom-client`**
 
-Run: `npm install prom-client`
+Chạy: `npm install prom-client`
 
-- [ ] **Step 2: Write the metrics interceptor**
+- [ ] **Step 2: Viết metrics interceptor**
 
-Create `src/metrics/metrics.interceptor.ts`:
+Tạo `src/metrics/metrics.interceptor.ts`:
 
 ```typescript
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
@@ -751,9 +751,9 @@ export class MetricsInterceptor implements NestInterceptor {
 }
 ```
 
-- [ ] **Step 3: Write the metrics controller**
+- [ ] **Step 3: Viết metrics controller**
 
-Create `src/metrics/metrics.controller.ts`:
+Tạo `src/metrics/metrics.controller.ts`:
 
 ```typescript
 import { Controller, Get, Header } from '@nestjs/common';
@@ -769,9 +769,9 @@ export class MetricsController {
 }
 ```
 
-- [ ] **Step 4: Write the metrics module**
+- [ ] **Step 4: Viết metrics module**
 
-Create `src/metrics/metrics.module.ts`:
+Tạo `src/metrics/metrics.module.ts`:
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -786,21 +786,21 @@ import { MetricsInterceptor } from './metrics.interceptor.js';
 export class MetricsModule {}
 ```
 
-- [ ] **Step 5: Register `MetricsModule` in `AppModule`**
+- [ ] **Step 5: Đăng ký `MetricsModule` vào `AppModule`**
 
-Edit `src/app.module.ts` — add the import and add `MetricsModule` to `imports: [...]`. (No provider changes needed at the `AppModule` level — `MetricsModule` registers its own `APP_INTERCEPTOR`.)
+Sửa `src/app.module.ts` — thêm import và thêm `MetricsModule` vào `imports: [...]`. (Không cần sửa provider gì ở cấp `AppModule` — `MetricsModule` tự đăng ký `APP_INTERCEPTOR` của nó.)
 
-- [ ] **Step 6: Note the `/metrics` route is unversioned/unprefixed**
+- [ ] **Step 6: Ghi chú — route `/metrics` không versioned/không prefix**
 
-Because `MetricsController` uses `@Controller('metrics')` and the global prefix (`app.setGlobalPrefix('api')` from Task 1) applies to _every_ controller by default, `/metrics` would otherwise become `/api/metrics`. Prometheus scrape convention expects a bare `/metrics`. Exclude it from the global prefix — edit `src/bootstrap/configure-app.ts`:
+Vì `MetricsController` dùng `@Controller('metrics')` và global prefix (`app.setGlobalPrefix('api')` từ Task 1) mặc định áp cho _mọi_ controller, `/metrics` sẽ vô tình thành `/api/metrics`. Convention scrape của Prometheus cần path trần `/metrics`. Loại nó khỏi global prefix — sửa `src/bootstrap/configure-app.ts`:
 
 ```typescript
 app.setGlobalPrefix('api', { exclude: ['metrics'] });
 ```
 
-- [ ] **Step 7: Write the failing e2e test**
+- [ ] **Step 7: Viết e2e test fail trước**
 
-Create `test/metrics.e2e-spec.ts`:
+Tạo `test/metrics.e2e-spec.ts`:
 
 ```typescript
 import { INestApplication } from '@nestjs/common';
@@ -830,15 +830,15 @@ describe('Metrics (e2e)', () => {
 });
 ```
 
-- [ ] **Step 8: Run it**
+- [ ] **Step 8: Chạy test**
 
-Run: `npm run test:e2e -- metrics`
-Expected: PASS (same as Task 5 Step 7 — implementation preceded the test here; treat a FAIL as a bug in Steps 2-6, fix now).
+Chạy: `npm run test:e2e -- metrics`
+Kỳ vọng: PASS (giống Task 5 Step 7 — implementation đi trước test ở đây; coi FAIL là bug ở Step 2-6, sửa ngay).
 
-- [ ] **Step 9: Run the full e2e suite to confirm the `exclude: ['metrics']` change didn't break anything else**
+- [ ] **Step 9: Chạy toàn bộ e2e suite, xác nhận `exclude: ['metrics']` không làm gãy gì khác**
 
-Run: `npm run test:e2e`
-Expected: PASS
+Chạy: `npm run test:e2e`
+Kỳ vọng: PASS
 
 - [ ] **Step 10: Commit**
 
@@ -858,12 +858,12 @@ git commit -m "feat: add baseline Prometheus metrics at GET /metrics"
 
 **Interfaces:**
 
-- Consumes: nothing (standalone).
-- Produces: a buildable image tagged locally as `nestjs-demo:local` — consumed by Task 8's `docker-compose.yml` (`build: .`) and Task 9's CI build step.
+- Consumes: không phụ thuộc gì (standalone).
+- Produces: 1 image build được, tag local là `nestjs-demo:local` — được `docker-compose.yml` ở Task 8 (`build: .`) và build step CI ở Task 9 tiêu thụ.
 
-- [ ] **Step 1: Write `.dockerignore`**
+- [ ] **Step 1: Viết `.dockerignore`**
 
-Create `.dockerignore`:
+Tạo `.dockerignore`:
 
 ```text
 node_modules
@@ -878,9 +878,9 @@ test
 coverage
 ```
 
-- [ ] **Step 2: Write the multi-stage `Dockerfile`**
+- [ ] **Step 2: Viết multi-stage `Dockerfile`**
 
-Create `Dockerfile`:
+Tạo `Dockerfile`:
 
 ```dockerfile
 # Stage 1: build — full devDependencies, compile TS, generate Prisma client.
@@ -905,15 +905,15 @@ EXPOSE 3000
 CMD ["node", "dist/main.js"]
 ```
 
-- [ ] **Step 3: Build the image**
+- [ ] **Step 3: Build image**
 
-Run: `docker build -t nestjs-demo:local .`
-Expected: build succeeds, ends with `naming to docker.io/library/nestjs-demo:local`.
+Chạy: `docker build -t nestjs-demo:local .`
+Kỳ vọng: build thành công, kết thúc bằng `naming to docker.io/library/nestjs-demo:local`.
 
-- [ ] **Step 4: Sanity-check the image starts (it will fail fast without env vars — that's expected and correct, per `env.validation.ts`)**
+- [ ] **Step 4: Sanity-check image chạy được (sẽ fail nhanh khi thiếu env var — đúng như kỳ vọng)**
 
-Run: `docker run --rm nestjs-demo:local`
-Expected: process exits non-zero with an error mentioning missing `DATABASE_URL`/`JWT_ACCESS_SECRET`/etc — this proves the fail-fast env validation (`src/config/env.validation.ts`) runs correctly inside the container. This is the expected/correct failure mode standalone; Task 8's Compose setup supplies real env vars.
+Chạy: `docker run --rm nestjs-demo:local`
+Kỳ vọng: process exit non-zero với lỗi nhắc thiếu `DATABASE_URL`/`JWT_ACCESS_SECRET`/v.v — điều này xác nhận đúng cơ chế fail-fast env validation (`src/config/env.validation.ts`) chạy đúng trong container. Đây là failure mode đúng/kỳ vọng khi chạy standalone; setup Compose ở Task 8 sẽ cấp env var thật.
 
 - [ ] **Step 5: Commit**
 
@@ -924,7 +924,7 @@ git commit -m "feat: add multi-stage Dockerfile for production image"
 
 ---
 
-### Task 8: `docker-compose.yml` for local development
+### Task 8: `docker-compose.yml` cho local development
 
 **Files:**
 
@@ -932,12 +932,12 @@ git commit -m "feat: add multi-stage Dockerfile for production image"
 
 **Interfaces:**
 
-- Consumes: `Dockerfile` from Task 7.
-- Produces: a local 3-container stack (`api`, `postgres`, `redis`) — `redis` is unused by app code in this phase (Global Constraints), present only so future phases don't need a Compose change to start using it.
+- Consumes: `Dockerfile` từ Task 7.
+- Produces: 1 stack local 3 container (`api`, `postgres`, `redis`) — `redis` chưa được app code dùng trong phase này (Global Constraints), chỉ để sẵn để các phase sau không cần sửa Compose khi cần dùng tới.
 
-- [ ] **Step 1: Write `docker-compose.yml`**
+- [ ] **Step 1: Viết `docker-compose.yml`**
 
-Create `docker-compose.yml`:
+Tạo `docker-compose.yml`:
 
 ```yaml
 services:
@@ -979,23 +979,23 @@ volumes:
   postgres-data:
 ```
 
-- [ ] **Step 2: Bring the stack up**
+- [ ] **Step 2: Đưa stack lên**
 
-Run: `docker compose up --build -d`
-Expected: all 3 containers start; `docker compose ps` shows `postgres` as `healthy`.
+Chạy: `docker compose up --build -d`
+Kỳ vọng: cả 3 container start; `docker compose ps` hiện `postgres` là `healthy`.
 
-- [ ] **Step 3: Apply migrations against the Compose Postgres, then verify readiness**
+- [ ] **Step 3: Apply migration vào Postgres của Compose, rồi verify readiness**
 
-Run: `docker compose exec api npx prisma migrate deploy`
-Expected: all migrations from Tasks 2-3 apply cleanly to the fresh Compose Postgres.
+Chạy: `docker compose exec api npx prisma migrate deploy`
+Kỳ vọng: mọi migration từ Task 2-3 apply sạch vào Postgres Compose vừa tạo.
 
-Run: `curl -i http://localhost:3000/api/v1/health/ready`
-Expected: `HTTP/1.1 200 OK`.
+Chạy: `curl -i http://localhost:3000/api/v1/health/ready`
+Kỳ vọng: `HTTP/1.1 200 OK`.
 
 - [ ] **Step 4: Tear down**
 
-Run: `docker compose down -v`
-Expected: containers and volumes removed cleanly.
+Chạy: `docker compose down -v`
+Kỳ vọng: container và volume bị xoá sạch.
 
 - [ ] **Step 5: Commit**
 
@@ -1014,12 +1014,12 @@ git commit -m "feat: add docker-compose.yml for local dev (postgres, redis, api)
 
 **Interfaces:**
 
-- Consumes: `Dockerfile` from Task 7 (build job), the full test suite from Tasks 1-6.
-- Produces: a required status check on every PR into `master`.
+- Consumes: `Dockerfile` từ Task 7 (build job), toàn bộ test suite từ Task 1-6.
+- Produces: 1 required status check trên mọi PR vào `master`.
 
-- [ ] **Step 1: Write the workflow**
+- [ ] **Step 1: Viết workflow**
 
-Create `.github/workflows/ci.yml`:
+Tạo `.github/workflows/ci.yml`:
 
 ```yaml
 name: CI
@@ -1111,16 +1111,16 @@ jobs:
       - run: docker build -t nestjs-demo:ci .
 ```
 
-- [ ] **Step 2: Push the branch and open a PR to trigger the workflow**
+- [ ] **Step 2: Push branch, mở PR để trigger workflow**
 
-Run: `git push -u origin HEAD`
+Chạy: `git push -u origin HEAD`
 
-Then open a PR (or push to an existing PR branch) so `pull_request` triggers.
+Sau đó mở PR (hoặc push vào branch PR đã có) để `pull_request` trigger.
 
-- [ ] **Step 3: Watch the run**
+- [ ] **Step 3: Theo dõi run**
 
-Run: `gh run watch` (after the push triggers a run — `gh run list` first if you need the run ID)
-Expected: all 5 jobs (`lint`, `typecheck`, `unit-test`, `e2e-test`, `build`) succeed.
+Chạy: `gh run watch` (sau khi push trigger 1 run — chạy `gh run list` trước nếu cần run ID)
+Kỳ vọng: cả 5 job (`lint`, `typecheck`, `unit-test`, `e2e-test`, `build`) đều thành công.
 
 - [ ] **Step 4: Commit**
 
@@ -1133,19 +1133,19 @@ git commit -m "ci: add GitHub Actions workflow (lint, typecheck, unit+e2e test, 
 
 ## Final Verification Checklist
 
-Run through this once all 9 tasks are committed, on a clean clone if possible:
+Chạy qua checklist này sau khi cả 9 task đã commit, tốt nhất trên 1 clean clone:
 
-- [ ] `npm run lint` — passes
-- [ ] `npm run typecheck` — passes
-- [ ] `npm run test` — all unit tests pass
-- [ ] `npm run test:e2e` — all e2e tests pass, including `versioning`, `health`, `metrics`
-- [ ] `curl http://localhost:3000/auth/login` (unversioned, app running locally) → `404`
+- [ ] `npm run lint` — pass
+- [ ] `npm run typecheck` — pass
+- [ ] `npm run test` — toàn bộ unit test pass
+- [ ] `npm run test:e2e` — toàn bộ e2e test pass, kể cả `versioning`, `health`, `metrics`
+- [ ] `curl http://localhost:3000/auth/login` (path chưa versioned, app chạy local) → `404`
 - [ ] `curl http://localhost:3000/api/v1/health/live` → `200 {"status":"ok"}`
-- [ ] `curl http://localhost:3000/api/v1/health/ready` → `200` (Postgres up), `503` when Postgres is stopped
-- [ ] `curl http://localhost:3000/metrics` → Prometheus exposition text containing `http_requests_total`
-- [ ] `curl http://localhost:3000/docs` → Swagger UI loads
-- [ ] `docker compose up --build` → all 3 services start, `api` reaches `ready`
-- [ ] GitHub Actions CI is green on the PR
-- [ ] `SELECT name FROM roles` → `CUSTOMER`, `ORDER_STAFF`, `STORE_MANAGER`, `MASTER_ADMIN` (no `ADMIN`)
-- [ ] A user's login → role change (manually via `psql`, bump `authorization_version`) → old access token now gets `401` on any protected route
-- [ ] No new folder exists under `src/` for any business module (`products/`, `users/`, `cart/`, etc.) — only `src/health/` and `src/metrics/` were added
+- [ ] `curl http://localhost:3000/api/v1/health/ready` → `200` (Postgres up), `503` khi Postgres bị stop
+- [ ] `curl http://localhost:3000/metrics` → Prometheus exposition text chứa `http_requests_total`
+- [ ] `curl http://localhost:3000/docs` → Swagger UI load được
+- [ ] `docker compose up --build` → cả 3 service start, `api` đạt `ready`
+- [ ] GitHub Actions CI xanh trên PR
+- [ ] `SELECT name FROM roles` → `CUSTOMER`, `ORDER_STAFF`, `STORE_MANAGER`, `MASTER_ADMIN` (không có `ADMIN`)
+- [ ] 1 user login → đổi role (thao tác tay qua `psql`, tăng `authorization_version`) → access token cũ nhận `401` ở bất kỳ route protected nào
+- [ ] Không có folder mới nào dưới `src/` cho bất kỳ module nghiệp vụ nào (`products/`, `users/`, `cart/`, v.v) — chỉ `src/health/` và `src/metrics/` được thêm
