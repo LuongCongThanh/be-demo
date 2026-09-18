@@ -127,7 +127,7 @@ Mọi file `test/*.e2e-spec.ts` gọi `request(app.getHttpServer()).post('/auth/
 
 Chạy: `grep -rn "'/auth" test/*.e2e-spec.ts`
 
-Cập nhật từng path match (vd `'/auth/register'` → `'/api/v1/auth/register'`) ở: `test/app.e2e-spec.ts`, `test/auth-login.e2e-spec.ts`, `test/auth-register.e2e-spec.ts`, `test/auth-register-flow.e2e-spec.ts`, `test/auth-refresh.e2e-spec.ts`, `test/auth-logout.e2e-spec.ts`, `test/auth-verify-email.e2e-spec.ts`, `test/auth-resend-verification.e2e-spec.ts`, `test/auth-forgot-password.e2e-spec.ts`, `test/auth-reset-password.e2e-spec.ts`, `test/auth-rate-limiting.e2e-spec.ts`, `test/mail-smtp.e2e-spec.ts`. Chỉ thay đúng string literal prefix — không đụng gì khác trong các file này.
+Cập nhật từng path match (ví dụ `'/auth/register'` → `'/api/v1/auth/register'`) ở: `test/app.e2e-spec.ts`, `test/auth-login.e2e-spec.ts`, `test/auth-register.e2e-spec.ts`, `test/auth-register-flow.e2e-spec.ts`, `test/auth-refresh.e2e-spec.ts`, `test/auth-logout.e2e-spec.ts`, `test/auth-verify-email.e2e-spec.ts`, `test/auth-resend-verification.e2e-spec.ts`, `test/auth-forgot-password.e2e-spec.ts`, `test/auth-reset-password.e2e-spec.ts`, `test/auth-rate-limiting.e2e-spec.ts`, `test/mail-smtp.e2e-spec.ts`. Chỉ thay đúng string literal prefix — không đụng gì khác trong các file này.
 
 - [ ] **Step 8: Chạy toàn bộ e2e suite, xác nhận không regression**
 
@@ -160,20 +160,29 @@ Sửa `prisma/schema/schema.prisma` — trong `model User { ... }`, thêm field 
 
 ```prisma
 model User {
-  id                  String     @id @default(uuid()) @db.Uuid
-  email               String     @unique @db.VarChar(255)
-  passwordHash        String     @map("password_hash")
-  fullName            String     @map("full_name") @db.VarChar(255)
-  phone               String     @db.VarChar(30)
-  status              UserStatus @default(ACTIVE)
-  authorizationVersion Int       @default(0) @map("authorization_version")
-  emailVerifiedAt     DateTime?  @map("email_verified_at") @db.Timestamptz(6)
-  createdAt           DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
-  ...
+  id                   String     @id @default(uuid()) @db.Uuid
+  email                String     @unique @db.VarChar(255)
+  passwordHash         String     @map("password_hash")
+  fullName             String     @map("full_name") @db.VarChar(255)
+  phone                String     @db.VarChar(30)
+  status               UserStatus @default(ACTIVE)
+  authorizationVersion Int        @default(0) @map("authorization_version")
+  emailVerifiedAt      DateTime?  @map("email_verified_at") @db.Timestamptz(6)
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  carts                   Cart[]
+  orders                  Order[]
+  userRoles               UserRole[]
+  refreshTokens           RefreshToken[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+
+  @@map("users")
+}
 ```
 
-(Chỉ thêm đúng 1 dòng mới — không reformat lại phần còn lại của model; `prisma format` sẽ tự căn lại cột ở step sau.)
+(Chỉ thêm đúng 1 dòng mới — dòng `authorizationVersion` — ngay sau `status`; các dòng còn lại của model giữ nguyên như trong `prisma/schema/schema.prisma` hiện tại. Căn lại cột (alignment) như trên chỉ để dễ đọc trong plan này — `prisma format` sẽ tự căn lại thật ở step sau, không cần căn tay.)
 
 - [ ] **Step 2: Generate migration**
 
@@ -344,7 +353,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 export interface JwtPayload {
   sub: string; // userId
   email: string;
-  roles: string[]; // tên role, vd ['CUSTOMER'] hoặc ['MASTER_ADMIN'] — không hardcode enum (quyết định #6)
+  roles: string[]; // tên role, ví dụ ['CUSTOMER'] hoặc ['MASTER_ADMIN'] — không hardcode enum (quyết định #6)
   authorizationVersion: number; // phải khớp users.authorization_version hiện tại — Mục 13
 }
 
@@ -913,7 +922,7 @@ Kỳ vọng: build thành công, kết thúc bằng `naming to docker.io/library
 - [ ] **Step 4: Sanity-check image chạy được (sẽ fail nhanh khi thiếu env var — đúng như kỳ vọng)**
 
 Chạy: `docker run --rm nestjs-demo:local`
-Kỳ vọng: process exit non-zero với lỗi nhắc thiếu `DATABASE_URL`/`JWT_ACCESS_SECRET`/v.v — điều này xác nhận đúng cơ chế fail-fast env validation (`src/config/env.validation.ts`) chạy đúng trong container. Đây là failure mode đúng/kỳ vọng khi chạy standalone; setup Compose ở Task 8 sẽ cấp env var thật.
+Kỳ vọng: process exit non-zero với lỗi nhắc thiếu `DATABASE_URL`/`JWT_ACCESS_SECRET` hoặc biến môi trường bắt buộc khác — điều này xác nhận đúng cơ chế fail-fast env validation (`src/config/env.validation.ts`) chạy đúng trong container. Đây là failure mode đúng/kỳ vọng khi chạy standalone; setup Compose ở Task 8 sẽ cấp env var thật.
 
 - [ ] **Step 5: Commit**
 
@@ -1148,4 +1157,4 @@ Chạy qua checklist này sau khi cả 9 task đã commit, tốt nhất trên 1 
 - [ ] GitHub Actions CI xanh trên PR
 - [ ] `SELECT name FROM roles` → `CUSTOMER`, `ORDER_STAFF`, `STORE_MANAGER`, `MASTER_ADMIN` (không có `ADMIN`)
 - [ ] 1 user login → đổi role (thao tác tay qua `psql`, tăng `authorization_version`) → access token cũ nhận `401` ở bất kỳ route protected nào
-- [ ] Không có folder mới nào dưới `src/` cho bất kỳ module nghiệp vụ nào (`products/`, `users/`, `cart/`, v.v) — chỉ `src/health/` và `src/metrics/` được thêm
+- [ ] Không có folder mới nào dưới `src/` cho bất kỳ module nghiệp vụ nào (`products/`, `users/`, `cart/`, hoặc các module nghiệp vụ khác) — chỉ `src/health/` và `src/metrics/` được thêm
