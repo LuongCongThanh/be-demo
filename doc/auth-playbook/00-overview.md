@@ -27,7 +27,7 @@
 | 13  | [13-testing.md](./13-testing.md)                         | Unit test + E2E test                                                                                                   |
 | 14  | [14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md)   | Swagger/OpenAPI, đồng bộ `module-auth.md`, quality check cuối                                                          |
 
-> Bản gốc dạng 1 file duy nhất (trước khi tách folder) được giữ lại ở `auth-engineering-playbook.md` làm archive tham khảo. Không dùng để code theo nữa; mọi cập nhật từ nay áp dụng vào folder `doc/auth-playbook/` này.
+> Bản gốc dạng 1 file duy nhất (trước khi tách folder) đã được xoá sau khi tách xong — nội dung đầy đủ hơn đã nằm trong các file `01-setup.md` → `14-swagger-and-wrapup.md`. Mọi cập nhật từ nay áp dụng vào folder `doc/auth-playbook/` này.
 
 ---
 
@@ -327,7 +327,7 @@ Nếu gửi mail fail: log lại, **không rollback DB**. User đã tồn tại 
 
 ## 7. Testing Strategy
 
-Theo `../convention/api-conventions.md`: nhóm `auth` là **bắt buộc phải có e2e test**. Unit test bắt buộc cho mọi service có business logic (`AuthService`, `TokenService`, `PasswordService`).
+Theo `../../docs/convention`: nhóm `auth` là **bắt buộc phải có e2e test**. Unit test bắt buộc cho mọi service có business logic (`AuthService`, `TokenService`, `PasswordService`).
 
 | Endpoint                             | Happy path | Validation | Auth | Security | Edge case |
 | ------------------------------------ | :--------: | :--------: | :--: | :------: | :-------: |
@@ -372,10 +372,10 @@ Auth MVP chỉ được coi là hoàn thành khi:
 - [ ] Refresh token luôn nằm trong cookie `HttpOnly`+`Secure`+`SameSite`, không bao giờ xuất hiện trong response body/log
 - [ ] Mọi response `/auth/*` dùng đúng Response DTO ở bảng mục 5 (không có endpoint nào trả object nội bộ)
 - [ ] Không leak sensitive field (passwordHash, tokenHash...) qua bất kỳ response nào
-- [ ] Toàn bộ error response của `/auth/*` tuân theo error envelope chung `{ statusCode, message }` (theo `../convention/api-conventions.md` §7, lưu ý `PrismaExceptionFilter` global **chưa được implement** trong repo, là gap đã biết non-blocking; lỗi domain đã biết trước ở auth (409 email tồn tại, 401 sai credential...) phải tự ném exception có message rõ ràng ở service, không phó mặc cho filter chưa tồn tại)
+- [ ] Toàn bộ error response của `/auth/*` tuân theo error envelope chung `{ statusCode, message }` (theo `../../docs/convention` §7, lưu ý `PrismaExceptionFilter` global **chưa được implement** trong repo, là gap đã biết non-blocking; lỗi domain đã biết trước ở auth (409 email tồn tại, 401 sai credential...) phải tự ném exception có message rõ ràng ở service, không phó mặc cho filter chưa tồn tại)
 - [ ] Unit tests pass (`npm run test`)
 - [ ] `npm run test:cov` đạt threshold coverage của project
-- [ ] E2E tests pass (`npm run test:e2e`, bắt buộc theo `../convention/api-conventions.md`)
+- [ ] E2E tests pass (`npm run test:e2e`, bắt buộc theo `../../docs/convention`)
 - [ ] Swagger đúng contract
 - [ ] `npm run lint` pass
 - [ ] `npm run format` (hoặc format check) pass

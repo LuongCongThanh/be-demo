@@ -88,7 +88,7 @@ Tên branch sử dụng: tiếng Anh, lowercase, `kebab-case`, ngắn gọn như
 | Feature mới       | `feature/` | `feature/user-authentication`     |
 | Bug fix           | `fix/`     | `fix/login-redirect-error`        |
 | Maintenance       | `chore/`   | `chore/update-eslint-config`      |
-| Documentation     | `docs/`    | `docs/update-readme`              |
+| Documentation     | `..`       | `docs/update-readme`              |
 | Production hotfix | `hotfix/`  | `hotfix/payment-processing-error` |
 
 Không nên sử dụng:

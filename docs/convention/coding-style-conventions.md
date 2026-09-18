@@ -1,6 +1,6 @@
 # Convention: Coding Style & Naming (ecommerce project)
 
-> 📖 Xem [README.md](./README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
+> 📖 Xem [README.md](README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
 
 Tài liệu này dành cho **dev trong team tự đọc và tự viết code**. Đọc xong, bạn biết: đặt tên file/class thế nào, khi nào tách file, import kiểu gì, và vì sao 1 vài quyết định ở đây (đặc biệt phần import alias) lại rắc rối hơn bình thường — vì đã thật sự thử và vấp phải bug trước khi chốt.
 
@@ -49,7 +49,7 @@ Project có 1 alias duy nhất, khai ở `../../tsconfig.json`:
 import { PrismaService } from '@src/prisma/prisma.service.js';
 ```
 
-**Không dùng alias trong code chạy thật (`../../src` — trừ file `.spec.ts`)** — mọi import ở đó vẫn dùng relative (`..`, `../`) như từ trước tới giờ:
+**Không dùng alias trong code chạy thật (`../../src` — trừ file `.spec.ts`)** — mọi import ở đó vẫn dùng relative (`..`, `../../doc`) như từ trước tới giờ:
 
 ```ts
 // ✓ Đúng — trong src/auth/services/auth.service.ts

@@ -8,7 +8,7 @@
 
 **Tech Stack:** NestJS 12, Prisma Client (generated to `src/generated/prisma`), `class-validator` / `class-transformer` for DTOs, `slugify` for slug generation, Vitest + Supertest for unit/e2e tests.
 
-**Spec:** `doc/categories-module-plan.md` (high-level step plan) + `../../../doc/convention/api-conventions.md` §B (CRUD convention, canonical code samples) + `docs/adr/0001-category-delete-restrict.md` (delete business rule)
+**Spec:** `doc/categories-module-plan.md` (high-level step plan) + `../../convention` §B (CRUD convention, canonical code samples) + `docs/adr/0001-category-delete-restrict.md` (delete business rule)
 
 ## Global Constraints
 
@@ -619,7 +619,7 @@ git commit -m "feat(categories): add CategoriesService (slug generation, conflic
 - Consumes: `CategoriesService` (Task 2); `JwtAuthGuard` (`src/auth/guards/jwt-auth.guard.ts`), `RolesGuard` (`src/auth/guards/roles.guard.ts`), `Roles` decorator (`src/auth/decorators/roles.decorator.ts`) — all already implemented
 - Produces (consumed by Task 4): mounted routes `GET/POST /categories`, `GET/PATCH/DELETE /categories/:id`
 
-> This task's real test cycle is the e2e suite in Task 4 — a thin controller (route → guard → delegate to service) has no meaningful unit-test surface beyond "does it call the service," which is low-value (see `../../../doc/convention/api-conventions.md` §8). The steps below still verify locally with `curl` before Task 4 provides the authoritative automated check.
+> This task's real test cycle is the e2e suite in Task 4 — a thin controller (route → guard → delegate to service) has no meaningful unit-test surface beyond "does it call the service," which is low-value (see `../../convention` §8). The steps below still verify locally with `curl` before Task 4 provides the authoritative automated check.
 >
 > Alternative to Steps 1–2: run `nest g resource categories` (transport: REST API, "generate CRUD entry points": Yes) and replace the generated `categories.controller.ts`/`categories.module.ts` content with what's below, then delete the generated `entities/` folder and empty `*.spec.ts` files. Either path produces the same result — the code below is the source of truth.
 

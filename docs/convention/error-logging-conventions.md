@@ -1,6 +1,6 @@
 # Convention: Error Handling & Logging (ecommerce project)
 
-> 📖 Xem [README.md](./README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
+> 📖 Xem [README.md](README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
 
 Tài liệu này dành cho **dev trong team tự đọc và tự viết code**. Đọc xong, bạn biết: lỗi ở mọi tầng (domain, Prisma, không lường trước) đi đâu về đâu, response lỗi client nhận có shape gì, và log ra sao để trace được 1 request cụ thể qua nhiều dòng log.
 

@@ -148,7 +148,7 @@ Repo lớn nhất, chia theo 4 nhóm con để dễ tra cứu.
 
 ### 3f. "Guided journey" — meta-skill điều phối nhiều skill khác (14 skill)
 
-Nhóm này **không làm việc trực tiếp** mà chạy tuần tự nhiều skill ở mục 3a-3e, hỏi người dùng ở mỗi bước và ghi kết quả vào `docs/` để resume qua nhiều phiên. Chỉ nên gọi khi thực sự muốn một hành trình đầy đủ nhiều giai đoạn — nếu chỉ cần một khung riêng lẻ, gọi thẳng skill con.
+Nhóm này **không làm việc trực tiếp** mà chạy tuần tự nhiều skill ở mục 3a-3e, hỏi người dùng ở mỗi bước và ghi kết quả vào `..` để resume qua nhiều phiên. Chỉ nên gọi khi thực sự muốn một hành trình đầy đủ nhiều giai đoạn — nếu chỉ cần một khung riêng lẻ, gọi thẳng skill con.
 
 | Skill                       | Dùng khi                                                                               |
 | --------------------------- | -------------------------------------------------------------------------------------- |

@@ -183,7 +183,7 @@ Ghi chú:
 
 - **Thứ tự middleware đã được sửa lại trong bản này**: middleware global-bound (`app.use()` trong `configure-app.ts`) chạy trước middleware module-bound (`consumer.apply().forRoutes()` trong `app.module.ts`), theo đúng request lifecycle mà NestJS đã tài liệu hóa — bất kể dòng nào xuất hiện trước trong source. Đã xác nhận đối chiếu với binding thật của repo này (`app.module.ts:42`, `configure-app.ts:24`); vẫn nên có một integration test kiểm tra thứ tự request trước khi dựa hẳn vào nó, vì đây là hành vi ở mức framework, không phải điều codebase này tự kiểm soát trực tiếp.
 - Các mục **Global** chạy trên mọi route bất kể code controller. Các mục **Per-route** chỉ chạy ở nơi controller gắn tường minh chúng. Route register/login/verification/reset của Auth là public; logout/logout-all/me dùng `JwtAuthGuard`. `RolesGuard` và `OwnershipGuard` tồn tại cho các module nghiệp vụ nhưng chưa route Auth controller nào hiện tại dùng `RolesGuard`.
-- Mọi exception, dù được throw ở tầng nào, đều được bắt bởi một `AllExceptionsFilter` duy nhất — không có exception filter riêng cho từng module. Xem `doc/convention/error-logging-conventions.md`.
+- Mọi exception, dù được throw ở tầng nào, đều được bắt bởi một `AllExceptionsFilter` duy nhất — không có exception filter riêng cho từng module. Xem `../docs/convention`.
 - `RequestIdMiddleware` mở context `AsyncLocalStorage` của nó trước khi request tới các guard và mọi thứ phía sau (nó vẫn chạy sau `cookie-parser`, theo đúng thứ tự đã sửa ở trên), và context đó vẫn hoạt động trong suốt phần còn lại của request — nên mọi lời gọi `Logger` ở bất kỳ đâu phía sau (guard, service, filter) đều tự động được gắn cùng một request id, không cần sửa code ở nơi gọi.
 
 ---
@@ -248,7 +248,7 @@ Việc Orders gọi vào Inventory/Payments/Promotions trong lúc checkout vẫn
 
 Đây là **toàn bộ repo**, không chỉ `src/` — file thật ở nơi chúng đã tồn tại, cộng với mọi module mà roadmap (Mục 0/22) đã chốt. Ký hiệu trạng thái dùng lại chú giải ở Mục 0: 🟢 xong · 🟡 một phần/đã lên kế hoạch · 🔴 chưa bắt đầu. Bất cứ thứ gì không có ký hiệu là infra đã tồn tại sẵn và không phải "module nghiệp vụ" (config, bootstrap, code generated, tooling).
 
-Quy tắc folder áp dụng cho mọi module nghiệp vụ bên dưới (xem `convention/coding-style-conventions.md` §2): một subfolder (`dto/`, `guards/`, `services/`, ...) chỉ xuất hiện khi **≥ 2 file cùng vai trò** — một module chỉ có 1 file controller/service/module và không có DTO thì giữ phẳng (flat), không tạo folder rỗng. `inventory/dto/` bên dưới là ngoại lệ duy nhất đã được ghi nhận: nó tồn tại với đúng 1 file (`adjust-inventory.dto.ts`) vì file DTO vẫn phải nằm ở đâu đó bất kể số lượng, và Inventory thực sự chỉ cần đúng 1 file — quy tắc này nói về việc không tạo folder rỗng một cách suy đoán trước, không phải bắt buộc một module phải đạt 2 file mới được có folder `dto/`.
+Quy tắc folder áp dụng cho mọi module nghiệp vụ bên dưới (xem `../docs/convention` §2): một subfolder (`dto/`, `guards/`, `services/`, ...) chỉ xuất hiện khi **≥ 2 file cùng vai trò** — một module chỉ có 1 file controller/service/module và không có DTO thì giữ phẳng (flat), không tạo folder rỗng. `inventory/dto/` bên dưới là ngoại lệ duy nhất đã được ghi nhận: nó tồn tại với đúng 1 file (`adjust-inventory.dto.ts`) vì file DTO vẫn phải nằm ở đâu đó bất kể số lượng, và Inventory thực sự chỉ cần đúng 1 file — quy tắc này nói về việc không tạo folder rỗng một cách suy đoán trước, không phải bắt buộc một module phải đạt 2 file mới được có folder `dto/`.
 
 ```text
 nestjs-demo/
@@ -455,7 +455,7 @@ PrismaService
 Database
 ```
 
-Controller không được truy cập PostgreSQL trực tiếp — phải đi qua service. Service gọi `PrismaService` trực tiếp; một lớp `Resource Repository` riêng **không phải** mặc định ở đây (xem `convention/api-conventions.md` §B5b) — chỉ thêm khi có lý do cụ thể (một query phức tạp được tái sử dụng ở nhiều nơi, nhiều aggregate trong một thao tác nghiệp vụ, một transaction lớn, hoặc nhu cầu thật sự cần tách ORM khỏi business logic).
+Controller không được truy cập PostgreSQL trực tiếp — phải đi qua service. Service gọi `PrismaService` trực tiếp; một lớp `Resource Repository` riêng **không phải** mặc định ở đây (xem `../docs/convention` §B5b) — chỉ thêm khi có lý do cụ thể (một query phức tạp được tái sử dụng ở nhiều nơi, nhiều aggregate trong một thao tác nghiệp vụ, một transaction lớn, hoặc nhu cầu thật sự cần tách ORM khỏi business logic).
 
 ---
 
@@ -629,7 +629,7 @@ Lượt giữ hàng hết hạn sau **15 phút**. Trong một transaction Postgr
 
 # 7. Kiến trúc Database
 
-Sơ đồ ER bên dưới là schema **thật, đã migrate** (15 bảng — xem `prisma/schema/schema.prisma`, migration `20260911030156_init_ecommerce`), không phải một schema kỳ vọng. `Payments`/`Promotions` cố tình vắng mặt — chúng chưa tồn tại (xem Mục 0). Lý do chi tiết từng field nằm ở `doc/ecommerce-postgresql-database-summary.md` và hướng dẫn Prisma từng bước ở `doc/convention/ecommerce-prisma-schema-guide.md`; đây là bản rút gọn.
+Sơ đồ ER bên dưới là schema **thật, đã migrate** (15 bảng — xem `prisma/schema/schema.prisma`, migration `20260911030156_init_ecommerce`), không phải một schema kỳ vọng. `Payments`/`Promotions` cố tình vắng mặt — chúng chưa tồn tại (xem Mục 0). Lý do chi tiết từng field nằm ở `doc/ecommerce-postgresql-database-summary.md` và hướng dẫn Prisma từng bước ở `../docs/convention`; đây là bản rút gọn.
 
 ```mermaid
 erDiagram

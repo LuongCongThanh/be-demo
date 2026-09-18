@@ -1,6 +1,6 @@
 # Convention: phát triển API trong NestJS (ecommerce project)
 
-> 📖 Xem [README.md](./README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
+> 📖 Xem [README.md](README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
 
 Tài liệu này dành cho **dev trong team tự đọc và tự viết code** khi tạo 1 API/module mới trong project — không phải prompt hay tài liệu ngữ cảnh để AI agent tự sinh code (vibe coding). Đọc xong, bạn biết cách đi từ requirement tới lúc mở PR cho cả CRUD resource lẫn API nghiệp vụ, theo đúng convention hiện hành của repo.
 
@@ -38,7 +38,7 @@ CRUD chỉ là **một trường hợp riêng** của flow API tổng quát — 
 - [Checklist khi tạo API mới](#checklist-khi-tạo-api-mới)
 - [Phụ lục — Tổng hợp lệnh CLI cần dùng](#phụ-lục--tổng-hợp-lệnh-cli-cần-dùng)
 
-> Tài liệu này là **convention chung, generic** — mô tả _cách_ tạo 1 API/module, không phải bản ghi chi tiết business rule của 1 resource cụ thể. Khi 1 resource thật (vd. `categories`) được lên kế hoạch/implement, business rule cụ thể + code thật của nó sống ở tài liệu/PR riêng của resource đó (vd. `../categories-module-plan.md`), tài liệu đó tham chiếu ngược lại các mục dưới đây cho phần convention dùng chung.
+> Tài liệu này là **convention chung, generic** — mô tả _cách_ tạo 1 API/module, không phải bản ghi chi tiết business rule của 1 resource cụ thể. Khi 1 resource thật (vd. `categories`) được lên kế hoạch/implement, business rule cụ thể + code thật của nó sống ở tài liệu/PR riêng của resource đó (vd. `../../doc/categories-module-plan.md`), tài liệu đó tham chiếu ngược lại các mục dưới đây cho phần convention dùng chung.
 >
 > ⚠️ `../../CONTEXT.md` ở root hiện vẫn mô tả domain "Todo List" cũ, chưa khớp schema ecommerce thật (`docs/agents/domain.md` yêu cầu đọc `CONTEXT.md` trước khi code) — gap đã biết, cần task riêng để cập nhật, không xử lý trong convention này.
 
@@ -76,7 +76,7 @@ Với CRUD đơn giản, nhiều bước co lại gần như không tốn effort
 - _Idempotency_: nếu client gọi lại API này 2 lần (do timeout/retry), có tạo ra 2 bản ghi/2 side-effect không nên có không? (`checkout`, `payment`, `refund`, webhook — cần cân nhắc `Idempotency-Key` hoặc unique constraint chống trùng)
 - _Concurrency_: 2 request cùng lúc có thể cùng đọc một giá trị rồi cùng ghi đè, dẫn tới sai invariant không? Đặc biệt với `inventory`, `coupon usage`, `balance`, `order status` — nếu có, `read → check → write` (kể cả trong transaction) chưa chắc đủ; cần atomic update dạng `UPDATE ... WHERE quantity >= x` hoặc optimistic lock, không chỉ dựa vào transaction.
 
-Cả hai chủ đề này khá sâu (outbox pattern, saga, optimistic locking...) — tài liệu này chỉ đặt câu hỏi checkpoint, chưa đi sâu kỹ thuật vì project hiện chưa có API nào thực sự cần tới; khi có (`checkout`, `payment`...) nên tách thành ADR (Architecture Decision Record — tài liệu ghi lại 1 quyết định kỹ thuật và lý do, xem `../../docs/adr`) hoặc doc riêng.
+Cả hai chủ đề này khá sâu (outbox pattern, saga, optimistic locking...) — tài liệu này chỉ đặt câu hỏi checkpoint, chưa đi sâu kỹ thuật vì project hiện chưa có API nào thực sự cần tới; khi có (`checkout`, `payment`...) nên tách thành ADR (Architecture Decision Record — tài liệu ghi lại 1 quyết định kỹ thuật và lý do, xem `../adr`) hoặc doc riêng.
 
 **§16 Logging / Audit / Metrics** — không phải API nào cũng cần, nhưng nên tự hỏi trước khi coi là xong: có cần log business event không (vd. `order cancelled`, `login failed`)? Có cần audit trail (ai làm gì, lúc nào) không — đặc biệt với hành động có thể tranh chấp (huỷ đơn, hoàn tiền, đổi quyền)? Có metric quan trọng cần theo dõi không (tỷ lệ lỗi checkout, thời gian xử lý payment...)? CRUD nội bộ đơn giản thường không cần gì thêm ngoài log mặc định của framework; API nghiệp vụ nhạy cảm (`checkout`, `payment`, `refund`, `cancelOrder`, `login`) nên có ít nhất audit log. Project đã có logging + request-id chuẩn hoá (xem `error-logging-conventions.md`) — audit trail chi tiết hơn (ai làm gì, lúc nào cho từng hành động nghiệp vụ) vẫn chưa có, thiết kế khi cần thay vì mỗi module tự viết log rời rạc.
 
@@ -86,7 +86,7 @@ Cả hai chủ đề này khá sâu (outbox pattern, saga, optimistic locking...
 
 Bên dưới là flow A áp dụng đầy đủ cho 1 CRUD resource, viết theo khung **generic** — dùng placeholder **`Resource`/`resource`**, thay bằng tên thực thể thật khi bắt đầu 1 resource mới (`Category`/`categories`, `Product`/`products`...).
 
-> **Không nằm trong phạm vi mục này**: business rule cụ thể của từng resource thật (sinh slug, ownership, tính tồn kho, ADR xoá cascade/restrict...). Khi 1 resource cụ thể được lên kế hoạch, business rule + code thật của nó nên sống ở tài liệu riêng của resource đó (vd. `../categories-module-plan.md`), tài liệu đó trỏ ngược lại các mục §B0–§B14 dưới đây cho phần khung sườn dùng chung.
+> **Không nằm trong phạm vi mục này**: business rule cụ thể của từng resource thật (sinh slug, ownership, tính tồn kho, ADR xoá cascade/restrict...). Khi 1 resource cụ thể được lên kế hoạch, business rule + code thật của nó nên sống ở tài liệu riêng của resource đó (vd. `../../doc/categories-module-plan.md`), tài liệu đó trỏ ngược lại các mục §B0–§B14 dưới đây cho phần khung sườn dùng chung.
 
 ### B0. Requirement / Business Rules / API Contract (rút gọn cho CRUD)
 
@@ -511,7 +511,7 @@ describe('Resources (e2e)', () => {
 });
 ```
 
-> **`adminAccessToken` trong ví dụ e2e trên**: lấy bằng cách login qua `POST /auth/login` với tài khoản ADMIN đã có sẵn từ seed script (`../auth-playbook/auth-engineering-playbook.md` STEP 1), thực hiện 1 lần trong `beforeAll` và lưu vào biến dùng chung cho cả file test — không tạo lại user/login lại ở từng test case.
+> **`adminAccessToken` trong ví dụ e2e trên**: lấy bằng cách login qua `POST /auth/login` với tài khoản ADMIN đã có sẵn từ seed script (`../../doc/auth-playbook/01-setup.md` Bước 1), thực hiện 1 lần trong `beforeAll` và lưu vào biến dùng chung cho cả file test — không tạo lại user/login lại ở từng test case.
 
 > **Không duplicate bootstrap config giữa `main.ts` và e2e setup.** Nếu `main.ts` khai báo `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` nhưng e2e chỉ set `{ whitelist: true, transform: true }`, test có thể pass trong khi app thật xử lý khác (vd. field lạ: e2e không set `forbidNonWhitelisted` nên không phát hiện được nếu app thật lẽ ra phải trả 400). Tách phần config chung ra 1 hàm dùng lại ở cả 2 chỗ:
 >
@@ -557,9 +557,9 @@ Endpoint có cần authorization (role/ownership) không?
    Role/Policy Guard
 ```
 
-> ✅ **Auth module đã xong** (`JwtAuthGuard`, `RolesGuard`, `OwnershipGuard`, `@Roles()`, `@CurrentUser()` — xem `../auth-playbook/auth-engineering-playbook.md`). Mọi resource mới tái sử dụng nguyên bộ guard này, không tự viết cơ chế phân quyền riêng. Với resource có khái niệm "chủ sở hữu" (`Cart`, `Order` — chỉ user đó được thao tác trên resource của chính mình), dùng thêm `OwnershipGuard` + `@OwnedResource()` thay vì chỉ `RolesGuard`.
+> ✅ **Auth module đã xong** (`JwtAuthGuard`, `RolesGuard`, `OwnershipGuard`, `@Roles()`, `@CurrentUser()` — xem `../../doc/auth-playbook/00-overview.md`). Mọi resource mới tái sử dụng nguyên bộ guard này, không tự viết cơ chế phân quyền riêng. Với resource có khái niệm "chủ sở hữu" (`Cart`, `Order` — chỉ user đó được thao tác trên resource của chính mình), dùng thêm `OwnershipGuard` + `@OwnedResource()` thay vì chỉ `RolesGuard`.
 >
-> Áp dụng checklist này cho **từng resource mới khi thực sự implement** — xem tài liệu kế hoạch/implementation riêng của resource đó (vd. `../categories-module-plan.md`) để biết resource nào đã đi qua checkpoint này, resource nào còn đang ở dạng kế hoạch.
+> Áp dụng checklist này cho **từng resource mới khi thực sự implement** — xem tài liệu kế hoạch/implementation riêng của resource đó (vd. `../../doc/categories-module-plan.md`) để biết resource nào đã đi qua checkpoint này, resource nào còn đang ở dạng kế hoạch.
 
 ### B11. Response DTO / Serialization
 
@@ -811,7 +811,7 @@ Method tên `cancelOrder()`, không phải `update()` — vì nó không phải 
 
 > Ví dụ trên minh hoạ flow, **chưa có module `orders`/`auth` nào tồn tại trong `../../src` hiện tại** — khi thực sự implement, đối chiếu lại với schema thật (`Order`, `OrderItem`, `Inventory` trong `../../prisma/schema/schema.prisma`) và áp dụng đúng auth guard một khi guard đó đã được xây dựng (xem [§B10](#b10-authorization-checkpoint)).
 >
-> Khi project thực sự có API xử lý payment/refund thật (không còn là ví dụ minh hoạ), nên tách chủ đề **external side effects / outbox / saga / idempotency-key thực thi** thành 1 ADR riêng (`../../docs/adr`) thay vì tiếp tục mở rộng convention này — tài liệu này nên dừng ở mức "biết để hỏi đúng câu hỏi", không phải nơi định nghĩa chi tiết kỹ thuật cho từng pattern.
+> Khi project thực sự có API xử lý payment/refund thật (không còn là ví dụ minh hoạ), nên tách chủ đề **external side effects / outbox / saga / idempotency-key thực thi** thành 1 ADR riêng (`../adr`) thay vì tiếp tục mở rộng convention này — tài liệu này nên dừng ở mức "biết để hỏi đúng câu hỏi", không phải nơi định nghĩa chi tiết kỹ thuật cho từng pattern.
 
 ---
 
@@ -926,7 +926,7 @@ Mỗi lệnh dưới đây có 2 cột: **Tác dụng** (lệnh này làm gì) v
 
 ### d. Git & PR workflow
 
-> Chi tiết đầy đủ về branching xem [`git-workflow.md`](./git-workflow.md). Tóm tắt: `main` (trunk ổn định) ← `dev` (integration) ← `feature/*`/`fix/*`/`chore/*`/`docs/*` (checked out từ `dev`, merge lại qua PR). Không commit thẳng vào `main`; hạn chế commit trực tiếp lớn vào `dev`.
+> Chi tiết đầy đủ về branching xem [`git-workflow.md`](git-workflow.md). Tóm tắt: `main` (trunk ổn định) ← `dev` (integration) ← `feature/*`/`fix/*`/`chore/*`/`docs/*` (checked out từ `dev`, merge lại qua PR). Không commit thẳng vào `main`; hạn chế commit trực tiếp lớn vào `dev`.
 
 | Lệnh                                       | Tác dụng                                                      | Khi nào dùng                                                                                         |
 | ------------------------------------------ | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |

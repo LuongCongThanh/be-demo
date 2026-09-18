@@ -1,6 +1,6 @@
 # Convention: Config & Environment Variables (ecommerce project)
 
-> 📖 Xem [README.md](./README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
+> 📖 Xem [README.md](README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
 
 Tài liệu này dành cho **dev trong team tự đọc và tự viết code** khi cần đọc/thêm 1 biến môi trường mới trong project. Đọc xong, bạn biết: đặt tên biến thế nào, khai bắt buộc hay optional ở đâu, và vì sao app **không boot được** nếu thiếu biến bắt buộc — thay vì tự hỏi tại sao production crash lúc nửa đêm khi gọi tới 1 endpoint ít dùng.
 

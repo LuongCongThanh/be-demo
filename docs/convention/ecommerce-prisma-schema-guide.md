@@ -1,6 +1,6 @@
 # Hướng dẫn viết `schema.prisma` cho Ecommerce (15 bảng) — theo từng bước
 
-> 📖 Xem [README.md](./README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
+> 📖 Xem [README.md](README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
 >
 > Đọc kèm `ecommerce-postgresql-database-summary.md` (thiết kế: bảng, PK/FK/UK, giả định nghiệp vụ). File này là **quy trình từng bước** để gõ thiết kế đó thành code Prisma thật, theo đúng quy ước Prisma v7 project đang dùng (xem `doc/PLAN.md` bước 14-22).
 >
@@ -536,7 +536,7 @@ Mọi keyword bên dưới đều đã xuất hiện ít nhất 1 lần ở các
 | Keyword            | Ý nghĩa                                                                                                                                                      | Ví dụ trong file                     |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
 | `generator client` | Khai báo Prisma tạo ra **Prisma Client** (thư viện TypeScript để code gọi DB) — đã có sẵn đầu file, không đụng vào.                                          | _(không sửa)_                        |
-| `datasource db`    | Khai báo DB thật kết nối tới đâu (Postgres, connection string lấy từ `.env`) — đã có sẵn đầu file, không đụng vào.                                           | _(không sửa)_                        |
+| `datasource db`    | Khai báo DB thật kết nối tới đâu (Postgres, connection string lấy từ `../../.env`) — đã có sẵn đầu file, không đụng vào.                                     | _(không sửa)_                        |
 | `model`            | Khai 1 **bảng**. Tên model viết `PascalCase` số ít (`User`), tên bảng thật trong Postgres viết `snake_case` số nhiều (`users`) — nối 2 tên này bằng `@@map`. | `model User { ... }`                 |
 | `enum`             | Khai 1 kiểu liệt kê giá trị cố định. Postgres sẽ tạo ra kiểu `ENUM` thật, tự chặn giá trị lạ ở tầng DB (không cần `CHECK` tay).                              | `enum UserStatus { ACTIVE BLOCKED }` |
 
@@ -867,7 +867,7 @@ this.prisma.product.findMany({
 - `cursor: { id: lastSeenId }` — bắt đầu lấy dữ liệu **ngay sau** record có `id` này (record cuối của trang trước) — Postgres seek thẳng tới vị trí đó bằng index, không quét từ đầu.
 - `skip: 1` — bỏ qua chính record cursor (đã hiển thị ở trang trước), lấy `pageSize` record **tiếp theo**.
 
-## Bước 27 — Viết `prisma/seed.ts` đầy đủ cho 15 bảng có quan hệ
+## Bước 27 — Viết `../../prisma/seed.ts` đầy đủ cho 15 bảng có quan hệ
 
 Nguyên tắc thứ tự **giống hệt** thứ tự tạo model ở mục 2 (cha trước, con sau) — vì `createMany`/`create` sẽ báo lỗi FK nếu bảng cha chưa có dữ liệu.
 
