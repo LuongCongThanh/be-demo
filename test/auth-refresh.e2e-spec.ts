@@ -73,7 +73,7 @@ describe('Auth — POST /auth/refresh (e2e)', () => {
     const rawToken = await createRefreshTokenFor(user.id);
 
     const res = await request(app.getHttpServer())
-      .post('/auth/refresh')
+      .post('/api/v1/auth/refresh')
       .set('Cookie', [`refresh_token=${rawToken}`])
       .expect(200);
 
@@ -91,7 +91,7 @@ describe('Auth — POST /auth/refresh (e2e)', () => {
   });
 
   it('returns 401 when no refresh token cookie is present', async () => {
-    await request(app.getHttpServer()).post('/auth/refresh').expect(401);
+    await request(app.getHttpServer()).post('/api/v1/auth/refresh').expect(401);
   });
 
   it('returns 401 when the refresh token has expired', async () => {
@@ -99,7 +99,7 @@ describe('Auth — POST /auth/refresh (e2e)', () => {
     const rawToken = await createRefreshTokenFor(user.id, { expiresAt: new Date(Date.now() - 1000) });
 
     await request(app.getHttpServer())
-      .post('/auth/refresh')
+      .post('/api/v1/auth/refresh')
       .set('Cookie', [`refresh_token=${rawToken}`])
       .expect(401);
   });
@@ -110,14 +110,14 @@ describe('Auth — POST /auth/refresh (e2e)', () => {
     const otherValidToken = await createRefreshTokenFor(user.id);
 
     await request(app.getHttpServer())
-      .post('/auth/refresh')
+      .post('/api/v1/auth/refresh')
       .set('Cookie', [`refresh_token=${revokedToken}`])
       .expect(401);
 
     // The other still-valid session must now be revoked too, as a
     // consequence of the reuse detection above.
     await request(app.getHttpServer())
-      .post('/auth/refresh')
+      .post('/api/v1/auth/refresh')
       .set('Cookie', [`refresh_token=${otherValidToken}`])
       .expect(401);
   });
@@ -128,10 +128,10 @@ describe('Auth — POST /auth/refresh (e2e)', () => {
 
     const [first, second] = await Promise.all([
       request(app.getHttpServer())
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .set('Cookie', [`refresh_token=${rawToken}`]),
       request(app.getHttpServer())
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .set('Cookie', [`refresh_token=${rawToken}`]),
     ]);
 

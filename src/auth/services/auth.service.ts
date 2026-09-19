@@ -457,12 +457,22 @@ export class AuthService {
    * không cần thiết (JWT payload không được mã hoá, ai cũng đọc được nếu có
    * token).
    */
-  private signAccessToken(user: { id: string; email: string; userRoles: { role: { name: string } }[] }): {
+  private signAccessToken(user: {
+    id: string;
+    email: string;
+    authorizationVersion: number;
+    userRoles: { role: { name: string } }[];
+  }): {
     accessToken: string;
     roles: string[];
   } {
     const roles = user.userRoles.map((ur) => ur.role.name);
-    const accessToken = this.jwtService.sign({ sub: user.id, email: user.email, roles });
+    const accessToken = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      roles,
+      authorizationVersion: user.authorizationVersion,
+    });
     return { accessToken, roles };
   }
 

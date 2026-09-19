@@ -55,7 +55,7 @@ describe('Auth — POST /auth/forgot-password (e2e)', () => {
     const user = await createUser('exists');
 
     const res = await request(app.getHttpServer())
-      .post('/auth/forgot-password')
+      .post('/api/v1/auth/forgot-password')
       .send({ email: user.email })
       .expect(200);
 
@@ -68,7 +68,7 @@ describe('Auth — POST /auth/forgot-password (e2e)', () => {
 
   it('returns the exact same generic message, without creating a token, when the email does not exist', async () => {
     const res = await request(app.getHttpServer())
-      .post('/auth/forgot-password')
+      .post('/api/v1/auth/forgot-password')
       .send({ email: `nobody${Date.now()}${TEST_EMAIL_DOMAIN}` })
       .expect(200);
 
@@ -78,14 +78,14 @@ describe('Auth — POST /auth/forgot-password (e2e)', () => {
   it('calling it twice for the same email leaves exactly one valid reset token', async () => {
     const user = await createUser('twice');
 
-    await request(app.getHttpServer()).post('/auth/forgot-password').send({ email: user.email }).expect(200);
-    await request(app.getHttpServer()).post('/auth/forgot-password').send({ email: user.email }).expect(200);
+    await request(app.getHttpServer()).post('/api/v1/auth/forgot-password').send({ email: user.email }).expect(200);
+    await request(app.getHttpServer()).post('/api/v1/auth/forgot-password').send({ email: user.email }).expect(200);
 
     const tokens = await prisma.passwordResetToken.findMany({ where: { userId: user.id } });
     expect(tokens).toHaveLength(1);
   }, 15000); // 2 real SMTP sends against the sandbox provider; default 5s can be too tight.
 
   it('returns 400 for an invalid email format', async () => {
-    await request(app.getHttpServer()).post('/auth/forgot-password').send({ email: 'not-an-email' }).expect(400);
+    await request(app.getHttpServer()).post('/api/v1/auth/forgot-password').send({ email: 'not-an-email' }).expect(400);
   });
 });

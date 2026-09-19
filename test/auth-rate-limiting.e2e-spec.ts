@@ -67,7 +67,7 @@ describe('Auth — rate limiting (e2e)', () => {
       // typo must still hit the limit the same as a brute-force attempt; the
       // limit is per-IP, not conditioned on whether the attempt succeeded.
       const res = await request(app.getHttpServer())
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: user.email, password: i === 0 ? 'wrong-password' : VALID_PASSWORD });
       statuses.push(res.status);
     }
@@ -79,17 +79,17 @@ describe('Auth — rate limiting (e2e)', () => {
   it('blocks the 2nd /auth/forgot-password request within 60s for the same email with 429', async () => {
     const user = await createUser('forgot-password-throttle');
 
-    await request(app.getHttpServer()).post('/auth/forgot-password').send({ email: user.email }).expect(200);
+    await request(app.getHttpServer()).post('/api/v1/auth/forgot-password').send({ email: user.email }).expect(200);
 
-    await request(app.getHttpServer()).post('/auth/forgot-password').send({ email: user.email }).expect(429);
+    await request(app.getHttpServer()).post('/api/v1/auth/forgot-password').send({ email: user.email }).expect(429);
   });
 
   it('does not throttle a different email on /auth/forgot-password (per-email tracking, not per-IP)', async () => {
     const userA = await createUser('email-a');
     const userB = await createUser('email-b');
 
-    await request(app.getHttpServer()).post('/auth/forgot-password').send({ email: userA.email }).expect(200);
-    await request(app.getHttpServer()).post('/auth/forgot-password').send({ email: userB.email }).expect(200);
+    await request(app.getHttpServer()).post('/api/v1/auth/forgot-password').send({ email: userA.email }).expect(200);
+    await request(app.getHttpServer()).post('/api/v1/auth/forgot-password').send({ email: userB.email }).expect(200);
   }, 15000); // 2 real SMTP sends against the sandbox provider; default 5s can be too tight.
 
   it('applies the default global limit (20/min/IP) to a route with no route-specific @Throttle(), e.g. GET /auth/me', async () => {
@@ -97,7 +97,7 @@ describe('Auth — rate limiting (e2e)', () => {
     for (let i = 0; i < 21; i++) {
       // No Authorization header — each request would 401 on its own merits,
       // but the throttler guard runs first, so the 21st must be 429, not 401.
-      const res = await request(app.getHttpServer()).get('/auth/me');
+      const res = await request(app.getHttpServer()).get('/api/v1/auth/me');
       statuses.push(res.status);
     }
 

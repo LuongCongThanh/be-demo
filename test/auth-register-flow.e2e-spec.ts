@@ -79,7 +79,7 @@ describe('Auth — full register flow (e2e)', () => {
     const email = uniqueEmail('valid');
 
     const registerRes = await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send(validRegisterPayload(email))
       .expect(201);
 
@@ -92,7 +92,10 @@ describe('Auth — full register flow (e2e)', () => {
     const userBeforeVerify = await prisma.user.findUniqueOrThrow({ where: { email } });
     expect(userBeforeVerify.emailVerifiedAt).toBeNull();
 
-    const verifyRes = await request(app.getHttpServer()).post('/auth/verify-email').send({ email, code }).expect(200);
+    const verifyRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/verify-email')
+      .send({ email, code })
+      .expect(200);
 
     expect(verifyRes.body).toEqual({ message: 'Email verified successfully' });
 
@@ -102,9 +105,9 @@ describe('Auth — full register flow (e2e)', () => {
 
   it('rejects registration with a duplicate email (409)', async () => {
     const email = uniqueEmail('dup');
-    await request(app.getHttpServer()).post('/auth/register').send(validRegisterPayload(email)).expect(201);
+    await request(app.getHttpServer()).post('/api/v1/auth/register').send(validRegisterPayload(email)).expect(201);
 
-    await request(app.getHttpServer()).post('/auth/register').send(validRegisterPayload(email)).expect(409);
+    await request(app.getHttpServer()).post('/api/v1/auth/register').send(validRegisterPayload(email)).expect(409);
 
     // Only the first attempt should have gone through the mail step.
     expect(mailService.sendVerificationEmail).toHaveBeenCalledTimes(1);
@@ -112,7 +115,7 @@ describe('Auth — full register flow (e2e)', () => {
 
   it('rejects registration with invalid input (400) and never sends an email', async () => {
     await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send({ email: 'not-an-email', password: 'short', fullName: '', phone: '' })
       .expect(400);
 
@@ -121,9 +124,9 @@ describe('Auth — full register flow (e2e)', () => {
 
   it('fails verify-email with a wrong code right after registering', async () => {
     const email = uniqueEmail('wrong-code');
-    await request(app.getHttpServer()).post('/auth/register').send(validRegisterPayload(email)).expect(201);
+    await request(app.getHttpServer()).post('/api/v1/auth/register').send(validRegisterPayload(email)).expect(201);
 
-    await request(app.getHttpServer()).post('/auth/verify-email').send({ email, code: '000000' }).expect(404);
+    await request(app.getHttpServer()).post('/api/v1/auth/verify-email').send({ email, code: '000000' }).expect(404);
 
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
     expect(user.emailVerifiedAt).toBeNull();

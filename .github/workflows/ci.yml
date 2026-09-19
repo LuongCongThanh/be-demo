@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate --schema prisma/schema
+      - run: npm run typecheck
+
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate --schema prisma/schema
+      - run: npm run test
+
+  e2e-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: nestjs_demo
+          POSTGRES_PASSWORD: nestjs_demo
+          POSTGRES_DB: nestjs_demo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nestjs_demo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://nestjs_demo:nestjs_demo@localhost:5432/nestjs_demo
+      JWT_ACCESS_SECRET: ci-test-secret-at-least-32-characters-long
+      ADMIN_BOOTSTRAP_EMAIL: admin@example.com
+      ADMIN_BOOTSTRAP_PASSWORD: ChangeMe123!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate --schema prisma/schema
+      - run: npx prisma migrate deploy
+      - run: npm run test:e2e
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, unit-test, e2e-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate --schema prisma/schema
+      - run: npm run build
+      - run: docker build -t nestjs-demo:ci .
