@@ -7,6 +7,7 @@ import { configureApp } from './bootstrap/configure-app.js';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   configureApp(app);
+  app.enableShutdownHooks();
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Ecommerce API')
