@@ -13,8 +13,8 @@ export class PrismaHealthIndicator {
     private readonly healthIndicatorService: HealthIndicatorService,
   ) {}
 
-  async isHealthy(key: string) {
-    const indicator = this.healthIndicatorService.check(key);
+  async isHealthy() {
+    const indicator = this.healthIndicatorService.check('postgres');
     try {
       await this.prisma.$queryRaw`SELECT 1`;
       return indicator.up();

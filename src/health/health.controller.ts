@@ -19,6 +19,6 @@ export class HealthController {
   @Get('ready')
   @HealthCheck()
   ready() {
-    return this.health.check([() => this.prismaHealth.isHealthy('postgres')]);
+    return this.health.check([() => this.prismaHealth.isHealthy()]);
   }
 }

@@ -1,21 +1,11 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { Counter, Histogram } from 'prom-client';
 import { Observable } from 'rxjs';
-
-const httpRequestsTotal = new Counter({
-  name: 'http_requests_total',
-  help: 'Total number of HTTP requests',
-  labelNames: ['method', 'route', 'status_code'],
-});
-
-const httpRequestDurationSeconds = new Histogram({
-  name: 'http_request_duration_seconds',
-  help: 'HTTP request latency in seconds',
-  labelNames: ['method', 'route', 'status_code'],
-});
+import { MetricsService } from './metrics.service.js';
 
 @Injectable()
 export class MetricsInterceptor implements NestInterceptor {
+  constructor(private readonly metrics: MetricsService) {}
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
@@ -30,12 +20,14 @@ export class MetricsInterceptor implements NestInterceptor {
     // 'finish' chỉ fire sau khi response đã thực sự được gửi đi, nên
     // statusCode lúc đó luôn là giá trị cuối cùng, đúng cho cả 2xx lẫn lỗi.
     response.on('finish', () => {
-      const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
-      const labels = { method: request.method, route, status_code: String(response.statusCode) };
-      httpRequestsTotal.inc(labels);
-      httpRequestDurationSeconds.observe(labels, durationSeconds);
+      this.recordRequestMetrics(request.method, route, response.statusCode, start);
     });
 
     return next.handle();
+  }
+
+  private recordRequestMetrics(method: string, route: string, statusCode: number, start: bigint): void {
+    const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
+    this.metrics.recordRequest({ method, route, status_code: String(statusCode) }, durationSeconds);
   }
 }
