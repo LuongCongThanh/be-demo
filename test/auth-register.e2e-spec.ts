@@ -55,6 +55,9 @@ describe('Auth — POST /auth/register (e2e)', () => {
       .send(validRegisterPayload({ email }))
       .expect(201);
 
+    // Verify API versioning is enforced: unversioned path must return 404
+    await request(app.getHttpServer()).post('/auth/register').send(validRegisterPayload({ email })).expect(404);
+
     expect(res.body).toEqual({ id: expect.any(String), email });
     expect(res.body).not.toHaveProperty('passwordHash');
 

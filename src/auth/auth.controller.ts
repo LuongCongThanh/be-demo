@@ -31,10 +31,10 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import type { JwtPayload } from './strategies/jwt.strategy.js';
 
-// Phải khớp đúng path prefix route auth thực tế của app (main.ts hiện không
-// set global prefix, nên route thật là '/auth/*'). Dùng chung cho mọi nơi
-// set/clear cookie refresh token (login, refresh, logout) để không copy-paste
-// path này rải rác và dễ lệch nhau.
+// Phải khớp đúng path prefix route auth thực tế của app (với API versioning,
+// route thật là '/api/v1/auth'). Dùng chung cho mọi nơi set/clear cookie
+// refresh token (login, refresh, logout) để không copy-paste path này rải rác
+// và dễ lệch nhau.
 const REFRESH_TOKEN_COOKIE_PATH = '/api/v1/auth';
 
 // Mức throttle mặc định (20 request/phút) cho các route không cần siết chặt
