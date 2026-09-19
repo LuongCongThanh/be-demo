@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { PrismaService } from '../src/prisma/prisma.service.js';
+import { PrismaService } from '@src/prisma/prisma.service.js';
 import { createTestApp } from './support/create-test-app.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-register.e2e-test.local';

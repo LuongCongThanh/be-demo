@@ -1,15 +1,18 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
+import { validate } from './config/env.validation.js';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
+import { RequestIdMiddleware } from './common/request-id.middleware.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate }),
     // Default cho mọi route không khai @Throttle() riêng — 20 request/phút/IP
     // (quyết định #11, doc/auth-playbook/00-overview.md).
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 20 }]),
@@ -28,6 +31,14 @@ import { AuthModule } from './auth/auth.module.js';
     // limiting itself (see test/support/create-test-app.ts).
     ThrottlerGuard,
     { provide: APP_GUARD, useExisting: ThrottlerGuard },
+    // Cùng lý do `useExisting` như trên — APP_FILTER cũng là token multi:
+    // true (xem doc/error-logging-conventions.md).
+    AllExceptionsFilter,
+    { provide: APP_FILTER, useExisting: AllExceptionsFilter },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}

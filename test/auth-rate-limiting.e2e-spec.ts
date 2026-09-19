@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../src/app.module.js';
-import { PrismaService } from '../src/prisma/prisma.service.js';
-import { PasswordService } from '../src/auth/services/password.service.js';
-import { configureApp } from '../src/bootstrap/configure-app.js';
+import { AppModule } from '@src/app.module.js';
+import { PrismaService } from '@src/prisma/prisma.service.js';
+import { PasswordService } from '@src/auth/services/password.service.js';
+import { configureApp } from '@src/bootstrap/configure-app.js';
 import { createTestUser } from './support/create-test-user.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-rate-limiting.e2e-test.local';

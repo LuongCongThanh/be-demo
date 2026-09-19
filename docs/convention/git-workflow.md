@@ -83,13 +83,13 @@ Tên branch sử dụng: tiếng Anh, lowercase, `kebab-case`, ngắn gọn như
 
 > Dự án cá nhân này không dùng Jira/ticket tracker, nên **không cần** gắn task ID vào tên nhánh — chỉ cần mô tả ngắn gọn nội dung thay đổi.
 
-| Loại công việc     | Prefix     | Ví dụ                              |
-| ------------------ | ---------- | ----------------------------------- |
-| Feature mới        | `feature/` | `feature/user-authentication`       |
-| Bug fix            | `fix/`     | `fix/login-redirect-error`          |
-| Maintenance        | `chore/`   | `chore/update-eslint-config`        |
-| Documentation      | `docs/`    | `docs/update-readme`                |
-| Production hotfix  | `hotfix/`  | `hotfix/payment-processing-error`   |
+| Loại công việc    | Prefix     | Ví dụ                             |
+| ----------------- | ---------- | --------------------------------- |
+| Feature mới       | `feature/` | `feature/user-authentication`     |
+| Bug fix           | `fix/`     | `fix/login-redirect-error`        |
+| Maintenance       | `chore/`   | `chore/update-eslint-config`      |
+| Documentation     | `..`       | `docs/update-readme`              |
+| Production hotfix | `hotfix/`  | `hotfix/payment-processing-error` |
 
 Không nên sử dụng:
 
@@ -265,15 +265,15 @@ chore: update eslint configuration
 ```
 
 | Prefix     | Mục đích                               |
-| ---------- | --------------------------------------- |
-| `feat`     | Feature mới                             |
-| `fix`      | Bug fix                                 |
-| `refactor` | Refactor code                           |
-| `test`     | Thêm hoặc sửa test                      |
-| `docs`     | Documentation                           |
-| `chore`    | Maintenance/configuration               |
-| `style`    | Formatting/style không ảnh hưởng logic  |
-| `perf`     | Performance improvement                 |
+| ---------- | -------------------------------------- |
+| `feat`     | Feature mới                            |
+| `fix`      | Bug fix                                |
+| `refactor` | Refactor code                          |
+| `test`     | Thêm hoặc sửa test                     |
+| `docs`     | Documentation                          |
+| `chore`    | Maintenance/configuration              |
+| `style`    | Formatting/style không ảnh hưởng logic |
+| `perf`     | Performance improvement                |
 
 ---
 
@@ -338,15 +338,15 @@ Branch trunk chính thức của repository là `main`. Default branch trên Git
 
 ## 16. Complete Workflow Summary
 
-| Branch      | Tạo từ               | Merge vào            | Mục đích                     |
-| ----------- | -------------------- | --------------------- | ----------------------------- |
-| `main`      | —                     | —                      | Production                    |
-| `dev`       | `main` (khởi tạo)     | `main`                 | Development integration       |
-| `feature/*` | `dev`                 | `dev`                  | Feature mới                   |
-| `fix/*`     | `dev`                 | `dev`                  | Bug trong development         |
-| `chore/*`   | `dev`                 | `dev`                  | Maintenance                    |
-| `docs/*`    | `dev`                 | `dev`                  | Documentation                  |
-| `hotfix/*`  | `main`                | `main` + sync `dev`    | Production emergency fix (TODO — khi có production) |
+| Branch      | Tạo từ            | Merge vào           | Mục đích                                            |
+| ----------- | ----------------- | ------------------- | --------------------------------------------------- |
+| `main`      | —                 | —                   | Production                                          |
+| `dev`       | `main` (khởi tạo) | `main`              | Development integration                             |
+| `feature/*` | `dev`             | `dev`               | Feature mới                                         |
+| `fix/*`     | `dev`             | `dev`               | Bug trong development                               |
+| `chore/*`   | `dev`             | `dev`               | Maintenance                                         |
+| `docs/*`    | `dev`             | `dev`               | Documentation                                       |
+| `hotfix/*`  | `main`            | `main` + sync `dev` | Production emergency fix (TODO — khi có production) |
 
 ```text
 feature/* ─┐
