@@ -12,8 +12,8 @@ export function configureApp(app: INestApplication) {
   // doc/error-logging-conventions.md).
   app.useLogger(new AppLogger());
 
-  app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+  app.setGlobalPrefix('api', { exclude: ['metrics'] });
 
   app.useGlobalPipes(
     new ValidationPipe({
