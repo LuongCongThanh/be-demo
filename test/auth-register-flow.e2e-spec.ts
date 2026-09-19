@@ -2,11 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
-import { AppModule } from '../src/app.module.js';
-import { PrismaService } from '../src/prisma/prisma.service.js';
-import { MailService } from '../src/mail/mail.service.js';
-import { EmailThrottlerGuard } from '../src/auth/guards/email-throttler.guard.js';
-import { configureApp } from '../src/bootstrap/configure-app.js';
+import { AppModule } from '@src/app.module.js';
+import { PrismaService } from '@src/prisma/prisma.service.js';
+import { MailService } from '@src/mail/mail.service.js';
+import { EmailThrottlerGuard } from '@src/auth/guards/email-throttler.guard.js';
+import { configureApp } from '@src/bootstrap/configure-app.js';
 
 const ALWAYS_ALLOW = { canActivate: () => true };
 

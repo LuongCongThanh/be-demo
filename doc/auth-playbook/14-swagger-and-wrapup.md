@@ -2,7 +2,7 @@
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [13-testing.md](./13-testing.md): toàn bộ endpoint đã có test pass. Tham chiếu chung: [00-overview.md](./00-overview.md).
 
-Đây là file cuối cùng của cả playbook Auth. Còn 2 việc trước khi mở PR: cho toàn bộ endpoint `/auth/*` có Swagger doc đúng contract, và đồng bộ lại `doc/module-auth.md` với những gì bạn vừa xây xong.
+Đây là file cuối cùng của cả playbook Auth. Còn 2 việc trước khi mở PR: cho toàn bộ endpoint `/auth/*` có Swagger doc đúng contract, và đồng bộ lại `module-auth.md` với những gì bạn vừa xây xong.
 
 ---
 
@@ -72,9 +72,9 @@ Kiểm tra 2 điều: mọi endpoint `/auth/*` phải xuất hiện trong Swagge
 
 ---
 
-## Bước 2: Đồng bộ `doc/module-auth.md` và kiểm tra chất lượng cuối
+## Bước 2: Đồng bộ `module-auth.md` và kiểm tra chất lượng cuối
 
-Cập nhật `doc/module-auth.md` theo danh sách sau. Trước khi commit, luôn `git status`/`git diff --stat doc/module-auth.md` để tự xác nhận đúng nội dung bạn vừa sửa đang được stage (thói quen chung, không phải chỉ riêng file này).
+Cập nhật `module-auth.md` theo danh sách sau. Trước khi commit, luôn `git status`/`git diff --stat doc/module-auth.md` để tự xác nhận đúng nội dung bạn vừa sửa đang được stage (thói quen chung, không phải chỉ riêng file này).
 
 - Bảng API tổng kết (mục 4) có đủ dòng `POST /auth/logout-all`. Kiểm tra lại, có thể đã có sẵn từ trước (không phải do bước này), không cần sửa nếu đã đúng.
 - Bổ sung đoạn mô tả reuse detection (và giới hạn access-token không bị revoke ngay) vào mục liên quan tới refresh token.
@@ -91,7 +91,7 @@ npm run format
 npm run build
 ```
 
-Coi toàn bộ playbook là xong khi: `npm run lint` pass không có warning bị ignore mà không rõ lý do; `npm run format` (hoặc format check) pass; `npm run build` pass; `doc/module-auth.md` đã đồng bộ đủ 6 mục ở trên và đã stage đúng nội dung đã sửa. Phần checklist tổng còn lại (test coverage, không leak secret trong log, error envelope chung, PR reviewed...) không lặp lại ở đây để tránh 2 nơi lệch nhau khi checklist đổi. Xem đầy đủ ở [00-overview.md § Definition of Done](./00-overview.md) và rà lại lần cuối trước khi mở PR.
+Coi toàn bộ playbook là xong khi: `npm run lint` pass không có warning bị ignore mà không rõ lý do; `npm run format` (hoặc format check) pass; `npm run build` pass; `module-auth.md` đã đồng bộ đủ 6 mục ở trên và đã stage đúng nội dung đã sửa. Phần checklist tổng còn lại (test coverage, không leak secret trong log, error envelope chung, PR reviewed...) không lặp lại ở đây để tránh 2 nơi lệch nhau khi checklist đổi. Xem đầy đủ ở [00-overview.md § Definition of Done](./00-overview.md) và rà lại lần cuối trước khi mở PR.
 
 ---
 

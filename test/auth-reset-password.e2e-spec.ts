@@ -1,9 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { PrismaService } from '../src/prisma/prisma.service.js';
-import { PasswordService } from '../src/auth/services/password.service.js';
-import { TokenService } from '../src/auth/services/token.service.js';
+import { PrismaService } from '@src/prisma/prisma.service.js';
+import { PasswordService } from '@src/auth/services/password.service.js';
+import { TokenService } from '@src/auth/services/token.service.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
 

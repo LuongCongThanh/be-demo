@@ -2,7 +2,7 @@
 
 > Trước khi bắt đầu, đảm bảo bạn đã làm xong [12-rate-limiting.md](./12-rate-limiting.md): toàn bộ endpoint, guard, và rate limit đã implement. Tham chiếu chung: [00-overview.md](./00-overview.md).
 
-Toàn bộ service có business logic (`AuthService`, `TokenService`, `PasswordService`) cần có unit test; toàn bộ flow `/auth/*` cần có e2e test. Đây là yêu cầu bắt buộc theo `doc/api-conventions.md`, không phải tuỳ chọn.
+Toàn bộ service có business logic (`AuthService`, `TokenService`, `PasswordService`) cần có unit test; toàn bộ flow `/auth/*` cần có e2e test. Đây là yêu cầu bắt buộc theo `../../docs/convention`, không phải tuỳ chọn.
 
 > 📘 **Khái niệm: Unit test vs E2E test, vì sao cần cả 2?**
 >

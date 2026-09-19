@@ -1,4 +1,4 @@
-import { PrismaService } from '../../src/prisma/prisma.service.js';
+import { PrismaService } from '@src/prisma/prisma.service.js';
 
 export interface CreateTestUserOptions {
   emailDomain: string;

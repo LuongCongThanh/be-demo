@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { PrismaService } from '../src/prisma/prisma.service.js';
+import { PrismaService } from '@src/prisma/prisma.service.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
 
