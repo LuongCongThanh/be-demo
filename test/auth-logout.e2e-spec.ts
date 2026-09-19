@@ -54,7 +54,7 @@ describe('Auth — POST /auth/logout, POST /auth/logout-all (e2e)', () => {
   }
 
   async function loginAndGetTokens(email: string): Promise<{ accessToken: string; rawRefreshToken: string }> {
-    const res = await request(app.getHttpServer()).post('/auth/login').send({ email, password: VALID_PASSWORD });
+    const res = await request(app.getHttpServer()).post('/api/v1/auth/login').send({ email, password: VALID_PASSWORD });
     const setCookie = res.headers['set-cookie'] as unknown as string[];
     const refreshCookie = setCookie.find((c) => c.startsWith('refresh_token='))!;
     const rawRefreshToken = refreshCookie.split(';')[0].split('=')[1];
@@ -79,7 +79,7 @@ describe('Auth — POST /auth/logout, POST /auth/logout-all (e2e)', () => {
 
   describe('POST /auth/logout', () => {
     it('returns 401 without a valid access token', async () => {
-      await request(app.getHttpServer()).post('/auth/logout').expect(401);
+      await request(app.getHttpServer()).post('/api/v1/auth/logout').expect(401);
     });
 
     it('revokes only the refresh token in the cookie and clears the cookie, leaving other sessions usable', async () => {
@@ -88,7 +88,7 @@ describe('Auth — POST /auth/logout, POST /auth/logout-all (e2e)', () => {
       const otherSessionToken = await createRefreshTokenFor(user.id);
 
       const res = await request(app.getHttpServer())
-        .post('/auth/logout')
+        .post('/api/v1/auth/logout')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('Cookie', [`refresh_token=${rawRefreshToken}`])
         .expect(200);
@@ -109,7 +109,7 @@ describe('Auth — POST /auth/logout, POST /auth/logout-all (e2e)', () => {
 
       // The other session must be unaffected and still usable.
       await request(app.getHttpServer())
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .set('Cookie', [`refresh_token=${otherSessionToken}`])
         .expect(200);
     });
@@ -117,7 +117,7 @@ describe('Auth — POST /auth/logout, POST /auth/logout-all (e2e)', () => {
 
   describe('POST /auth/logout-all', () => {
     it('returns 401 without a valid access token', async () => {
-      await request(app.getHttpServer()).post('/auth/logout-all').expect(401);
+      await request(app.getHttpServer()).post('/api/v1/auth/logout-all').expect(401);
     });
 
     it('revokes every session of the current user and does not affect other users', async () => {
@@ -130,7 +130,7 @@ describe('Auth — POST /auth/logout, POST /auth/logout-all (e2e)', () => {
       const otherUserToken = await createRefreshTokenFor(otherUser.id);
 
       const res = await request(app.getHttpServer())
-        .post('/auth/logout-all')
+        .post('/api/v1/auth/logout-all')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
@@ -138,13 +138,13 @@ describe('Auth — POST /auth/logout, POST /auth/logout-all (e2e)', () => {
 
       for (const token of [rawRefreshToken, secondSessionToken, thirdSessionToken]) {
         await request(app.getHttpServer())
-          .post('/auth/refresh')
+          .post('/api/v1/auth/refresh')
           .set('Cookie', [`refresh_token=${token}`])
           .expect(401);
       }
 
       await request(app.getHttpServer())
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .set('Cookie', [`refresh_token=${otherUserToken}`])
         .expect(200);
     });

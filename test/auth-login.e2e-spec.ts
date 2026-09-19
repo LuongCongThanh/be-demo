@@ -60,7 +60,7 @@ describe('Auth — POST /auth/login (e2e)', () => {
     const user = await createUser('valid');
 
     const res = await request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: user.email, password: VALID_PASSWORD })
       .expect(200);
 
@@ -87,12 +87,12 @@ describe('Auth — POST /auth/login (e2e)', () => {
     const user = await createUser('wrong-pw');
 
     const nonExistent = await request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: `nobody${Date.now()}${TEST_EMAIL_DOMAIN}`, password: VALID_PASSWORD })
       .expect(401);
 
     const wrongPassword = await request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: user.email, password: 'wrong-password' })
       .expect(401);
 
@@ -103,7 +103,7 @@ describe('Auth — POST /auth/login (e2e)', () => {
     const user = await createUser('blocked', { status: 'BLOCKED' });
 
     await request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: user.email, password: VALID_PASSWORD })
       .expect(401);
   });
@@ -112,14 +112,14 @@ describe('Auth — POST /auth/login (e2e)', () => {
     const user = await createUser('unverified', { emailVerifiedAt: null });
 
     await request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: user.email, password: VALID_PASSWORD })
       .expect(401);
   });
 
   it('returns 400 when the request body fails validation', async () => {
     await request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: 'not-an-email', password: VALID_PASSWORD })
       .expect(400);
   });

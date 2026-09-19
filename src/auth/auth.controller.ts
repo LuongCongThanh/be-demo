@@ -35,7 +35,7 @@ import type { JwtPayload } from './strategies/jwt.strategy.js';
 // set global prefix, nên route thật là '/auth/*'). Dùng chung cho mọi nơi
 // set/clear cookie refresh token (login, refresh, logout) để không copy-paste
 // path này rải rác và dễ lệch nhau.
-const REFRESH_TOKEN_COOKIE_PATH = '/auth';
+const REFRESH_TOKEN_COOKIE_PATH = '/api/v1/auth';
 
 // Mức throttle mặc định (20 request/phút) cho các route không cần siết chặt
 // hơn mức global — dùng chung để đổi 1 chỗ thay vì lặp lại object này ở từng

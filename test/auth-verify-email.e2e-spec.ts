@@ -70,7 +70,7 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
     const code = await createCodeFor(user.id);
 
     const res = await request(app.getHttpServer())
-      .post('/auth/verify-email')
+      .post('/api/v1/auth/verify-email')
       .send({ email: user.email, code })
       .expect(200);
 
@@ -87,7 +87,7 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
 
   it('returns 404 when the email does not exist', async () => {
     await request(app.getHttpServer())
-      .post('/auth/verify-email')
+      .post('/api/v1/auth/verify-email')
       .send({ email: `nobody${Date.now()}${TEST_EMAIL_DOMAIN}`, code: randomCode() })
       .expect(404);
   });
@@ -97,7 +97,7 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
     await createCodeFor(user.id);
 
     await request(app.getHttpServer())
-      .post('/auth/verify-email')
+      .post('/api/v1/auth/verify-email')
       .send({ email: user.email, code: randomCode() })
       .expect(404);
   });
@@ -107,23 +107,23 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
     const other = await createUser('other');
     const code = await createCodeFor(owner.id);
 
-    await request(app.getHttpServer()).post('/auth/verify-email').send({ email: other.email, code }).expect(404);
+    await request(app.getHttpServer()).post('/api/v1/auth/verify-email').send({ email: other.email, code }).expect(404);
   });
 
   it('returns 400 when the code was already used (replay protection)', async () => {
     const user = await createUser('replay');
     const code = await createCodeFor(user.id);
 
-    await request(app.getHttpServer()).post('/auth/verify-email').send({ email: user.email, code }).expect(200);
+    await request(app.getHttpServer()).post('/api/v1/auth/verify-email').send({ email: user.email, code }).expect(200);
 
-    await request(app.getHttpServer()).post('/auth/verify-email').send({ email: user.email, code }).expect(400);
+    await request(app.getHttpServer()).post('/api/v1/auth/verify-email').send({ email: user.email, code }).expect(400);
   });
 
   it('returns 400 when the code has expired', async () => {
     const user = await createUser('expired');
     const code = await createCodeFor(user.id, { expiresAt: new Date(Date.now() - 1000) });
 
-    await request(app.getHttpServer()).post('/auth/verify-email').send({ email: user.email, code }).expect(400);
+    await request(app.getHttpServer()).post('/api/v1/auth/verify-email').send({ email: user.email, code }).expect(400);
 
     const updatedUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
     expect(updatedUser.emailVerifiedAt).toBeNull();
@@ -134,7 +134,7 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
     await createCodeFor(user.id);
 
     await request(app.getHttpServer())
-      .post('/auth/verify-email')
+      .post('/api/v1/auth/verify-email')
       .send({ email: user.email, code: '12a456' })
       .expect(400);
   });
@@ -145,12 +145,12 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
 
     for (let i = 0; i < MAX_VERIFY_ATTEMPTS; i++) {
       await request(app.getHttpServer())
-        .post('/auth/verify-email')
+        .post('/api/v1/auth/verify-email')
         .send({ email: user.email, code: randomCode() })
         .expect(404);
     }
 
-    await request(app.getHttpServer()).post('/auth/verify-email').send({ email: user.email, code }).expect(400);
+    await request(app.getHttpServer()).post('/api/v1/auth/verify-email').send({ email: user.email, code }).expect(400);
 
     const updatedUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
     expect(updatedUser.emailVerifiedAt).toBeNull();
@@ -161,8 +161,8 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
     const code = await createCodeFor(user.id);
 
     const [first, second] = await Promise.all([
-      request(app.getHttpServer()).post('/auth/verify-email').send({ email: user.email, code }),
-      request(app.getHttpServer()).post('/auth/verify-email').send({ email: user.email, code }),
+      request(app.getHttpServer()).post('/api/v1/auth/verify-email').send({ email: user.email, code }),
+      request(app.getHttpServer()).post('/api/v1/auth/verify-email').send({ email: user.email, code }),
     ]);
 
     const statuses = [first.status, second.status].sort();

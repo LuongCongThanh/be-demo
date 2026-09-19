@@ -1,4 +1,4 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { AppLogger } from '../common/app-logger.js';
 
@@ -11,6 +11,9 @@ export function configureApp(app: INestApplication) {
   // có trong codebase tự động dùng logger này, không cần sửa từng chỗ (xem
   // doc/error-logging-conventions.md).
   app.useLogger(new AppLogger());
+
+  app.setGlobalPrefix('api');
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
   app.useGlobalPipes(
     new ValidationPipe({
