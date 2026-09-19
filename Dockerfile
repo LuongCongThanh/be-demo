@@ -12,7 +12,7 @@ FROM node:24-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --omit=optional
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/generated ./src/generated
 COPY --from=build /app/prisma ./prisma

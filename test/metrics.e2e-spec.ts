@@ -22,4 +22,15 @@ describe('Metrics (e2e)', () => {
     expect(res.text).toContain('http_requests_total');
     expect(res.text).toContain('http_request_duration_seconds');
   });
+
+  it('GET /metrics counts failed (non-2xx) requests with the correct status_code label', async () => {
+    const failing = await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({ email: 'not-an-email', password: 'irrelevant' });
+    expect(failing.status).toBe(400);
+
+    const res = await request(app.getHttpServer()).get('/metrics');
+    expect(res.status).toBe(200);
+    expect(res.text).toMatch(/http_requests_total\{[^}]*status_code="400"[^}]*\}/);
+  });
 });
