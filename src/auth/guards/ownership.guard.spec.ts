@@ -33,12 +33,12 @@ describe('OwnershipGuard', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('bypasses ownership check entirely for a user with the ADMIN role, without calling fetch', async () => {
+  it('bypasses ownership check entirely for a user with the MASTER_ADMIN role, without calling fetch', async () => {
     const fetch = vi.fn();
     const { guard } = createGuard({ paramIdKey: 'id', fetch });
 
     await expect(
-      guard.canActivate(createContext({ sub: 'admin-1', roles: ['ADMIN'] }, { id: 'resource-1' })),
+      guard.canActivate(createContext({ sub: 'admin-1', roles: ['MASTER_ADMIN'] }, { id: 'resource-1' })),
     ).resolves.toBe(true);
     expect(fetch).not.toHaveBeenCalled();
   });
