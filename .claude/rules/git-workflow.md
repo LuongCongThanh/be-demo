@@ -8,3 +8,4 @@
 - Merge strategy: feature branch → `dev` dùng Squash and Merge; `dev` → `main` dùng Merge Commit.
 - Xoá branch sau khi PR đã merge.
 - Không gom nhiều feature không liên quan vào 1 branch.
+- Chạy `/code-review` trên diff trước khi mở PR — bắt lỗi sớm trước khi qua bước rebase/squash-merge.
