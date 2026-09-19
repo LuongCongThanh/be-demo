@@ -1,5 +1,30 @@
 {
   "enabledPlugins": {
     "mattpocock-skills@mattpocock": true
+  },
+  "permissions": {
+    "allow": ["Bash(pnpm typecheck)", "Bash(pnpm lint)", "Bash(pnpm test)", "mcp__claude_ai_Figma__get_screenshot"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protect-files.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/enforce-git-workflow.sh"
+          }
+        ]
+      }
+    ]
   }
 }
