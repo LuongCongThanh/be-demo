@@ -1,15 +1,34 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { PrismaService } from '@src/prisma/prisma.service.js';
+import { PasswordService } from '@src/auth/services/password.service.js';
+import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
+
+// Prefix cố định cho mọi category tạo trong file này — dùng để cleanup ở
+// afterAll (startsWith), tránh category test cộng dồn vĩnh viễn qua các lần chạy.
+const TEST_NAME_PREFIX = 'CategoriesE2E';
+const TEST_EMAIL_DOMAIN = '@categories.e2e-test.local';
+const VALID_PASSWORD = 'Abc@1234';
 
 describe('Categories (e2e)', () => {
   let app: INestApplication;
+  let prisma: PrismaService;
+  let passwordService: PasswordService;
   let masterAdminAccessToken: string;
 
   beforeAll(async () => {
     const created = await createTestApp();
     app = created.app;
+    prisma = created.moduleFixture.get(PrismaService);
+    passwordService = created.moduleFixture.get(PasswordService);
+
+    await prisma.role.upsert({
+      where: { name: 'CUSTOMER' },
+      update: {},
+      create: { name: 'CUSTOMER' },
+    });
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -23,18 +42,52 @@ describe('Categories (e2e)', () => {
   });
 
   afterAll(async () => {
+    // FK product.categoryId → category.id: xoá product trước category.
+    await prisma.product.deleteMany({ where: { category: { name: { startsWith: TEST_NAME_PREFIX } } } });
+    await prisma.category.deleteMany({ where: { name: { startsWith: TEST_NAME_PREFIX } } });
+    await prisma.user.deleteMany({ where: { email: { endsWith: TEST_EMAIL_DOMAIN } } });
     await app.close();
   });
 
+  async function createCustomerAndLogin(): Promise<string> {
+    const passwordHash = await passwordService.hash(VALID_PASSWORD);
+    const user = await createTestUser(prisma, {
+      emailDomain: TEST_EMAIL_DOMAIN,
+      emailSuffix: 'customer-',
+      passwordHash,
+      emailVerifiedAt: new Date(),
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: user.email, password: VALID_PASSWORD })
+      .expect(200);
+
+    return res.body.accessToken;
+  }
+
   it('POST /api/v1/categories without a Bearer token returns 401', async () => {
-    await request(app.getHttpServer()).post('/api/v1/categories').send({ name: 'Shoes' }).expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: `${TEST_NAME_PREFIX} Shoes ${Date.now()}` })
+      .expect(401);
+  });
+
+  it('POST /api/v1/categories as an authenticated CUSTOMER (non-privileged role) returns 403', async () => {
+    const customerAccessToken = await createCustomerAndLogin();
+
+    await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .set('Authorization', `Bearer ${customerAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} Forbidden ${Date.now()}` })
+      .expect(403);
   });
 
   it('POST /api/v1/categories as MASTER_ADMIN creates a category and returns 201', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/categories')
       .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-      .send({ name: `Shoes ${Date.now()}` })
+      .send({ name: `${TEST_NAME_PREFIX} Shoes ${Date.now()}` })
       .expect(201);
 
     expect(res.body).toMatchObject({ name: expect.stringContaining('Shoes') });
@@ -50,7 +103,7 @@ describe('Categories (e2e)', () => {
   });
 
   it('POST /api/v1/categories with a duplicate name returns 409', async () => {
-    const name = `Duplicate ${Date.now()}`;
+    const name = `${TEST_NAME_PREFIX} Duplicate ${Date.now()}`;
     await request(app.getHttpServer())
       .post('/api/v1/categories')
       .set('Authorization', `Bearer ${masterAdminAccessToken}`)
@@ -81,5 +134,47 @@ describe('Categories (e2e)', () => {
 
   it('DELETE /api/v1/categories/:id without a Bearer token returns 401', async () => {
     await request(app.getHttpServer()).delete('/api/v1/categories/00000000-0000-0000-0000-000000000000').expect(401);
+  });
+
+  it('PATCH /api/v1/categories/:id as MASTER_ADMIN regenerates the slug from the new name', async () => {
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} Before ${Date.now()}` })
+      .expect(201);
+
+    const originalSlug = createRes.body.slug;
+    const newName = `${TEST_NAME_PREFIX} After ${Date.now()}`;
+
+    const patchRes = await request(app.getHttpServer())
+      .patch(`/api/v1/categories/${createRes.body.id}`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: newName })
+      .expect(200);
+
+    expect(patchRes.body.slug).not.toBe(originalSlug);
+    expect(patchRes.body.slug).toContain('after');
+  });
+
+  it('DELETE /api/v1/categories/:id as MASTER_ADMIN returns 409 (real FK) when a product still references it', async () => {
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} HasProduct ${Date.now()}` })
+      .expect(201);
+
+    const categoryId = createRes.body.id;
+    await prisma.product.create({
+      data: {
+        categoryId,
+        name: `${TEST_NAME_PREFIX} Product ${Date.now()}`,
+        slug: `${TEST_NAME_PREFIX.toLowerCase()}-product-${Date.now()}`,
+      },
+    });
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/categories/${categoryId}`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .expect(409);
   });
 });

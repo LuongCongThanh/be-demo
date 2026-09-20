@@ -28,7 +28,7 @@ Model `Category` **đã có sẵn** trong `prisma/schema/schema.prisma` và **đ
 
 > Cập nhật phần này khi code tiến triển — phần còn lại của file là kế hoạch, không đổi theo tiến độ.
 
-**Tình trạng hiện tại: 0/8 step đã xong.** Chưa có file nào dưới `src/categories/`.
+**Tình trạng hiện tại: 8/8 step đã xong.** Module `src/categories/` đã có đủ DTO, service, controller, module wiring vào `AppModule`, unit test (`categories.service.spec.ts`) và e2e test (`test/categories.e2e-spec.ts`); `npm run lint`/`npm run build` chạy sạch.
 
 Chú giải: 🔴 Chưa làm · 🟡 Đang làm / scaffold rỗng · 🟢 Đã xong.
 
@@ -36,7 +36,7 @@ Chú giải: 🔴 Chưa làm · 🟡 Đang làm / scaffold rỗng · 🟢 Đã x
 
 ## 4. Implementation Steps
 
-### STEP 1 — Cài dependency `slugify` — 🔴
+### STEP 1 — Cài dependency `slugify` — 🟢
 
 **CLI:**
 
@@ -46,11 +46,11 @@ npm install slugify
 
 **Acceptance Criteria:**
 
-- [ ] `package.json` có `slugify` trong `dependencies`.
+- [x] `package.json` có `slugify` trong `dependencies`.
 
 ---
 
-### STEP 2 — Scaffold module — 🔴
+### STEP 2 — Scaffold module — 🟢
 
 **Goal:** Khung thư mục đúng convention `../docs/convention` §3.
 
@@ -64,11 +64,11 @@ Trả lời CLI prompt: transport = **REST API**, và **"Would you like to gener
 
 **Chỉnh tay sau khi CLI sinh xong:**
 
-- [ ] Xoá `src/categories/entities/`.
-- [ ] Xoá `*.spec.ts` rỗng do CLI sinh (viết lại đúng ở STEP 7).
-- [ ] Sửa mọi import nội bộ thêm đuôi `.js` (ESM).
-- [ ] Thêm `src/categories/dto/pagination.dto.ts` (dùng chung shape `{ page, limit }`).
-- [ ] Kiểm tra `src/categories/categories.module.ts` do CLI sinh khớp đúng shape sau (không cần chỉnh nếu CLI đã tự wiring đúng):
+- [x] Xoá `src/categories/entities/`.
+- [x] Xoá `*.spec.ts` rỗng do CLI sinh (viết lại đúng ở STEP 7).
+- [x] Sửa mọi import nội bộ thêm đuôi `.js` (ESM).
+- [x] Thêm `src/categories/dto/pagination.dto.ts` (dùng chung shape `{ page, limit }`).
+- [x] Kiểm tra `src/categories/categories.module.ts` do CLI sinh khớp đúng shape sau (không cần chỉnh nếu CLI đã tự wiring đúng):
 
   ```ts
   // src/categories/categories.module.ts
@@ -87,12 +87,12 @@ Trả lời CLI prompt: transport = **REST API**, và **"Would you like to gener
 
 **Acceptance Criteria:**
 
-- [ ] `npm run build` không lỗi (dù logic bên trong còn rỗng).
-- [ ] `CategoriesModule` đã được `nest g resource` tự thêm vào `AppModule.imports`.
+- [x] `npm run build` không lỗi (dù logic bên trong còn rỗng).
+- [x] `CategoriesModule` đã được `nest g resource` tự thêm vào `AppModule.imports`.
 
 ---
 
-### STEP 3 — DTO — 🔴
+### STEP 3 — DTO — 🟢
 
 **Files:** `src/categories/dto/create-category.dto.ts`, `update-category.dto.ts`, `pagination.dto.ts`
 
@@ -129,18 +129,18 @@ export class UpdateCategoryDto extends PartialType(CreateCategoryDto) {}
 
 > Import `PartialType` từ **`@nestjs/swagger`**, không phải `@nestjs/mapped-types` — xem lý do ở `../docs/convention` §4.
 
-- [ ] `CreateCategoryDto`: `name` (bắt buộc, `@IsString @MaxLength(150)`), `description` (optional). **Không có field `slug`.**
-- [ ] `UpdateCategoryDto extends PartialType(CreateCategoryDto)`.
-- [ ] `PaginationDto`: `page` (default 1), `limit` (default 20, `@Max(100)`) — dùng nguyên code mẫu ở `../docs/convention` §13, không cần đổi gì cho `Category`.
+- [x] `CreateCategoryDto`: `name` (bắt buộc, `@IsString @MaxLength(150)`), `description` (optional). **Không có field `slug`.**
+- [x] `UpdateCategoryDto extends PartialType(CreateCategoryDto)`.
+- [x] `PaginationDto`: `page` (default 1), `limit` (default 20, `@Max(100)`) — dùng nguyên code mẫu ở `../docs/convention` §13, không cần đổi gì cho `Category`.
 
 **Acceptance Criteria:**
 
-- [ ] Gửi `{ slug: 'x', name: 'A' }` qua `ValidationPipe` global (`forbidNonWhitelisted`) → 400 (field lạ bị chặn).
-- [ ] Thiếu `name` → 400.
+- [x] Gửi `{ slug: 'x', name: 'A' }` qua `ValidationPipe` global (`forbidNonWhitelisted`) → 400 (field lạ bị chặn).
+- [x] Thiếu `name` → 400.
 
 ---
 
-### STEP 4 — Service — 🔴
+### STEP 4 — Service — 🟢
 
 **Files:** `src/categories/categories.service.ts`
 
@@ -234,62 +234,62 @@ export class CategoriesService {
 >
 > ⚠️ Pre-check unique/FK ở trên vẫn có race condition (2 request gần như đồng thời) — xem giải thích đầy đủ ở `../docs/convention` §5 ("Pre-check không thay thế unique constraint ở DB"). Unique constraint trên `slug` + FK `RESTRICT` trên `products.category_id` ở DB mới là lớp bảo vệ cuối cùng.
 
-- [ ] `create()`: sinh slug, check trùng → 409 (`Category name "..." already exists`) nếu trùng, không tự thêm hậu tố.
-- [ ] `findAll(pagination)`: `skip/take` + `orderBy` tie-breaker → trả `{ data, meta }`.
-- [ ] `findOne(id)`: 404 nếu không tồn tại.
-- [ ] `update(id, dto)`: nếu đổi `name` → sinh lại slug, check trùng (loại trừ chính record đang sửa).
-- [ ] `remove(id)`: đếm `prisma.product.count({ where: { categoryId: id } })` → 409 (`Category still has N product(s)...`) nếu > 0, ngược lại `delete`.
+- [x] `create()`: sinh slug, check trùng → 409 (`Category name "..." already exists`) nếu trùng, không tự thêm hậu tố.
+- [x] `findAll(pagination)`: `skip/take` + `orderBy` tie-breaker → trả `{ data, meta }`.
+- [x] `findOne(id)`: 404 nếu không tồn tại.
+- [x] `update(id, dto)`: nếu đổi `name` → sinh lại slug, check trùng (loại trừ chính record đang sửa).
+- [x] `remove(id)`: đếm `prisma.product.count({ where: { categoryId: id } })` → 409 (`Category still has N product(s)...`) nếu > 0, ngược lại `delete`.
 
 **Acceptance Criteria:**
 
-- [ ] Tạo 2 category cùng tên → lần 2 nhận 409.
-- [ ] Sửa `name` → `slug` đổi theo.
-- [ ] Xoá category không có product → thành công.
-- [ ] Xoá category còn product → 409, không đụng tới DB (product không bị xoá/không đổi).
+- [x] Tạo 2 category cùng tên → lần 2 nhận 409.
+- [x] Sửa `name` → `slug` đổi theo.
+- [x] Xoá category không có product → thành công.
+- [x] Xoá category còn product → 409, không đụng tới DB (product không bị xoá/không đổi).
 
 ---
 
-### STEP 5 — Controller — 🔴
+### STEP 5 — Controller — 🟢
 
 **Files:** `src/categories/categories.controller.ts`
 
 **Implementation** (theo `../docs/convention` §6):
 
-- [ ] `GET /api/v1/categories`, `GET /api/v1/categories/:id` — public, không guard, `ParseUUIDPipe` cho `:id`.
-- [ ] `POST /api/v1/categories`, `PATCH /api/v1/categories/:id`, `DELETE /api/v1/categories/:id` — `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles('STORE_MANAGER', 'MASTER_ADMIN')` + `@ApiBearerAuth()`.
-- [ ] `DELETE` trả `204 No Content`.
+- [x] `GET /api/v1/categories`, `GET /api/v1/categories/:id` — public, không guard, `ParseUUIDPipe` cho `:id`.
+- [x] `POST /api/v1/categories`, `PATCH /api/v1/categories/:id`, `DELETE /api/v1/categories/:id` — `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles('STORE_MANAGER', 'MASTER_ADMIN')` + `@ApiBearerAuth()`.
+- [x] `DELETE` trả `204 No Content`.
 
 **Acceptance Criteria:**
 
-- [ ] Gọi `POST /api/v1/categories` không kèm Bearer token → 401.
-- [ ] Gọi `POST /api/v1/categories` với token user role `CUSTOMER` → 403.
-- [ ] Gọi `POST /api/v1/categories` với token STORE_MANAGER hoặc MASTER_ADMIN → 201.
+- [x] Gọi `POST /api/v1/categories` không kèm Bearer token → 401.
+- [x] Gọi `POST /api/v1/categories` với token user role `CUSTOMER` → 403.
+- [x] Gọi `POST /api/v1/categories` với token STORE_MANAGER hoặc MASTER_ADMIN → 201.
 
 ---
 
-### STEP 6 — Swagger — 🔴
+### STEP 6 — Swagger — 🟢
 
 **Implementation** (theo `../docs/convention` §12):
 
-- [ ] `@ApiTags('categories')` ở controller.
-- [ ] `@ApiOkResponse`/`@ApiCreatedResponse`/`@ApiNoContentResponse` có `type:` (dùng thẳng Prisma `Category` type — không cần Response DTO riêng vì không có field nhạy cảm, theo §11.a).
-- [ ] Sau khi xong, chạy `npm run postman:sync` để đồng bộ Postman collection.
+- [x] `@ApiTags('categories')` ở controller.
+- [x] `@ApiOkResponse`/`@ApiCreatedResponse`/`@ApiNoContentResponse` có `type:` (dùng thẳng Prisma `Category` type — không cần Response DTO riêng vì không có field nhạy cảm, theo §11.a).
+- [x] Sau khi xong, chạy `npm run postman:sync` để đồng bộ Postman collection.
 
 **Acceptance Criteria:**
 
-- [ ] `http://localhost:3000/api` hiển thị đủ 5 route với đúng request/response shape.
+- [x] `http://localhost:3000/api` hiển thị đủ 5 route với đúng request/response shape.
 
 ---
 
-### STEP 7 — Testing — 🔴
+### STEP 7 — Testing — 🟢
 
 **Files:** `src/categories/categories.service.spec.ts`, `test/categories.e2e-spec.ts`
 
 **Implementation** (theo `../docs/convention` §8 — code mẫu đầy đủ):
 
-- [ ] Unit test service (mock `PrismaService`): `create` sinh đúng slug + gọi `prisma.category.create`; `create` ném `ConflictException` khi trùng tên; `findOne` ném `NotFoundException`; `remove` ném `ConflictException` khi còn product.
-- [ ] e2e test (`supertest`, dùng `configureApp()` chung với `main.ts`): 401 khi thiếu token, 201 khi MASTER_ADMIN tạo thành công, 400 khi thiếu `name`, 409 khi trùng tên, 404 khi `GET /categories/:id` không tồn tại, 400 khi `:id` không phải UUID.
-- [ ] e2e cần `masterAdminAccessToken` — lấy bằng cách gọi thật `POST /api/v1/auth/login` trong `beforeAll`, **sau khi Phase 1 đã migrate seed/config** sang `MASTER_ADMIN_BOOTSTRAP_EMAIL`/`MASTER_ADMIN_BOOTSTRAP_PASSWORD`:
+- [x] Unit test service (mock `PrismaService`): `create` sinh đúng slug + gọi `prisma.category.create`; `create` ném `ConflictException` khi trùng tên; `findOne` ném `NotFoundException`; `remove` ném `ConflictException` khi còn product.
+- [x] e2e test (`supertest`, dùng `configureApp()` chung với `main.ts`): 401 khi thiếu token, 201 khi MASTER_ADMIN tạo thành công, 400 khi thiếu `name`, 409 khi trùng tên, 404 khi `GET /categories/:id` không tồn tại, 400 khi `:id` không phải UUID.
+- [x] e2e cần `masterAdminAccessToken` — lấy bằng cách gọi thật `POST /api/v1/auth/login` trong `beforeAll`, **sau khi Phase 1 đã migrate seed/config** sang `MASTER_ADMIN_BOOTSTRAP_EMAIL`/`MASTER_ADMIN_BOOTSTRAP_PASSWORD`:
 
   ```ts
   // test/categories.e2e-spec.ts — trong beforeAll, sau khi app.init()
@@ -308,12 +308,12 @@ export class CategoriesService {
 
 **Acceptance Criteria:**
 
-- [ ] `npm run test` pass.
-- [ ] `npm run test:e2e` pass.
+- [x] `npm run test` pass.
+- [x] `npm run test:e2e` pass.
 
 ---
 
-### STEP 8 — Lint / Build / PR — 🔴
+### STEP 8 — Lint / Build / PR — 🟢
 
 **CLI:**
 
@@ -325,17 +325,17 @@ npm run build
 
 **Acceptance Criteria:**
 
-- [ ] Cả 3 lệnh trên chạy sạch, không lỗi.
-- [ ] Đối chiếu lại [Definition of Done](../docs/convention/api-conventions.md#definition-of-done) trước khi mở PR (dùng `ship-pr` skill).
+- [x] Cả 3 lệnh trên chạy sạch, không lỗi.
+- [x] Đối chiếu lại [Definition of Done](../docs/convention/api-conventions.md#definition-of-done) trước khi mở PR (dùng `ship-pr` skill).
 
 ---
 
 ## 5. Gap đã biết (không block Categories, nhưng cần nhớ)
 
-| Gap                                          | Mức độ                                          | Ghi chú                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| -------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Chưa có `PrismaExceptionFilter` global       | Non-blocking cho luồng test tuần tự bình thường | Service đã tự pre-check (409 rõ ràng cho trùng tên / còn product), nhưng pre-check có race window đã ghi nhận ở `../docs/convention` §5 — 2 request tạo trùng tên gần như đồng thời có thể rớt xuống Prisma `P2002` → **500** thay vì 409, vì chưa có filter map lỗi đó. Rủi ro thấp cho e2e test tuần tự, nhưng **thật** nếu có 2 client thật gọi đồng thời — cân nhắc làm filter này sớm nếu ship thật, không chỉ "khi rảnh". |
-| ~~Chưa có `src/bootstrap/configure-app.ts`~~ | **Đã xong**                                     | File đã tồn tại và đã wiring vào `main.ts` (`configureApp(app)`) — STEP 7 chỉ cần _dùng lại_, không cần tạo mới. (Gap này từng đúng lúc viết `../docs/convention`, đã lỗi thời — nếu thấy dòng tương tự ở `../docs/convention` §8, đó cũng là thông tin cũ.)                                                                                                                                                                    |
+| Gap                                                           | Mức độ                      | Ghi chú                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Race window giữa pre-check và write (không phải thiếu filter) | Đã giảm nhẹ — không còn 500 | Service đã tự pre-check (409 rõ ràng cho trùng tên / còn product), nhưng pre-check vẫn có race window đã ghi nhận ở `../docs/convention` §5 — 2 request tạo trùng tên gần như đồng thời có thể rớt xuống Prisma `P2002` ở tầng DB. `src/common/filters/all-exceptions.filter.ts` (`AllExceptionsFilter.resolvePrismaError()`) đã map sẵn `P2002`→409, `P2003`→409, `P2025`→404 (global, áp dụng cho mọi module) nên trong race window đó client vẫn nhận **409** thật qua filter này, không phải 500 — không cần viết thêm `PrismaExceptionFilter` riêng cho lý do này. |
+| ~~Chưa có `src/bootstrap/configure-app.ts`~~                  | **Đã xong**                 | File đã tồn tại và đã wiring vào `main.ts` (`configureApp(app)`) — STEP 7 chỉ cần _dùng lại_, không cần tạo mới. (Gap này từng đúng lúc viết `../docs/convention`, đã lỗi thời — nếu thấy dòng tương tự ở `../docs/convention` §8, đó cũng là thông tin cũ.)                                                                                                                                                                                                                                                                                                            |
 
 ## 6. Sau khi Categories xong
 
