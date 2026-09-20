@@ -1,6 +1,6 @@
 # Phase 1 — Nền tảng hạ tầng: Design Spec
 
-> Phase 1 trong `doc/ecommerce-backend-architecture-system-design-2.md` Mục 22. Đây là prerequisite bắt buộc trước khi bất kỳ module nghiệp vụ mới nào (Phase 2+: Categories, Products, ...) được build.
+> Phase 1 trong `docs/ecommerce-backend-architecture-system-design.md` Mục 22. Đây là prerequisite bắt buộc trước khi bất kỳ module nghiệp vụ mới nào (Phase 2+: Categories, Products, ...) được build.
 
 ## 1. Bối cảnh & vấn đề
 

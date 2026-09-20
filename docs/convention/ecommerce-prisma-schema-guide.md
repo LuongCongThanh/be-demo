@@ -2,7 +2,7 @@
 
 > 📖 Xem [README.md](README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
 >
-> Đọc kèm `ecommerce-postgresql-database-summary.md` (thiết kế: bảng, PK/FK/UK, giả định nghiệp vụ). File này là **quy trình từng bước** để gõ thiết kế đó thành code Prisma thật, theo đúng quy ước Prisma v7 project đang dùng (xem `doc/PLAN.md` bước 14-22).
+> Đọc kèm `../ecommerce-postgresql-database-summary.md` (thiết kế: bảng, PK/FK/UK, giả định nghiệp vụ). File này là **quy trình từng bước** để gõ thiết kế đó thành code Prisma thật, theo đúng quy ước Prisma v7 project đang dùng (⚠️ tham chiếu `doc/PLAN.md` bước 14-22 — file này không còn tồn tại, dead link có từ trước, chưa rõ nên trỏ về đâu).
 >
 > Không có bước nào tôi chạy hộ — bạn tự gõ/copy và tự chạy lệnh.
 
@@ -662,7 +662,7 @@ npx prisma studio
 
 # Phần 2 — Dùng Prisma Client trong NestJS cho Ecommerce
 
-> Nối tiếp sau khi 15 bảng đã tồn tại thật trong DB (hết Bước 20 ở trên). Phần này giả định `PrismaService` + `PrismaModule` (`@Global()`) **đã có sẵn** từ `doc/PLAN.md` Bước 20 — không tạo lại, mọi domain module bên dưới chỉ **inject** `PrismaService` có sẵn đó.
+> Nối tiếp sau khi 15 bảng đã tồn tại thật trong DB (hết Bước 20 ở trên). Phần này giả định `PrismaService` + `PrismaModule` (`@Global()`) **đã có sẵn** (⚠️ tham chiếu gốc `doc/PLAN.md` Bước 20 — file này không còn tồn tại, dead link có từ trước) — không tạo lại, mọi domain module bên dưới chỉ **inject** `PrismaService` có sẵn đó.
 
 ## Bước 21 — Tổ chức module theo domain, dùng chung 1 `PrismaService`
 

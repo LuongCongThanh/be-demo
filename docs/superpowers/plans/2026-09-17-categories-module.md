@@ -8,7 +8,7 @@
 
 **Tech Stack:** NestJS 12, Prisma Client (generated to `src/generated/prisma`), `class-validator` / `class-transformer` for DTOs, `slugify` for slug generation, Vitest + Supertest for unit/e2e tests.
 
-**Spec:** `doc/categories-module-plan.md` (high-level step plan) + `../../convention` §B (CRUD convention, canonical code samples) + `docs/adr/0001-category-delete-restrict.md` (delete business rule)
+**Spec:** `docs/categories-module-plan.md` (high-level step plan) + `../../convention` §B (CRUD convention, canonical code samples) + `docs/adr/0001-category-delete-restrict.md` (delete business rule)
 
 ## Global Constraints
 
@@ -932,6 +932,6 @@ Expected: clean — `postman:sync` writes to Postman's API directly, not to loca
 
 ## Self-Review Notes
 
-- **Spec coverage:** every decision from `doc/categories-module-plan.md` §2 (Q3, Q5/ADR 0001, Q6, Q8, Q9, Q10, Q7/Q11, English runtime messages) maps to a concrete step above — see Global Constraints for the one-line form of each, and Task 2/3 for where each is implemented.
+- **Spec coverage:** every decision from `docs/categories-module-plan.md` §2 (Q3, Q5/ADR 0001, Q6, Q8, Q9, Q10, Q7/Q11, English runtime messages) maps to a concrete step above — see Global Constraints for the one-line form of each, and Task 2/3 for where each is implemented.
 - **Type consistency:** `CreateCategoryDto`, `UpdateCategoryDto`, `PaginationDto`, `CategoryResponseDto`, and the 5 `CategoriesService` method signatures are named identically everywhere they're referenced across Tasks 1–4.
 - **No placeholders:** every step above contains complete, copy-pasteable code or an exact shell command — nothing marked TBD/"add validation"/"similar to Task N".

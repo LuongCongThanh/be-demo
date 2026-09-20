@@ -4,7 +4,7 @@ import { RequestContext } from './request-context.js';
 // Đăng ký qua `app.useLogger(new AppLogger())` trong main.ts — mọi
 // `new Logger(ClassName.name)` sẵn có trong codebase tự động dùng logger này
 // (NestJS route instance Logger qua logger đã đăng ký toàn cục), không cần
-// sửa từng chỗ gọi log. Xem doc/error-logging-conventions.md.
+// sửa từng chỗ gọi log. Xem docs/convention/error-logging-conventions.md.
 //
 // Override `stringifyMessage` (không phải log/error/warn/...) vì đây là điểm
 // duy nhất Nest gọi để format message thành text cho MỌI kiểu message (string,

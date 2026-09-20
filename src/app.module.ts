@@ -16,7 +16,7 @@ import { RequestIdMiddleware } from './common/request-id.middleware.js';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate }),
     // Default cho mọi route không khai @Throttle() riêng — 20 request/phút/IP
-    // (quyết định #11, doc/auth-playbook/00-overview.md).
+    // (quyết định #11, docs/auth-playbook/00-overview.md).
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 20 }]),
     PrismaModule,
     AuthModule,
@@ -36,7 +36,7 @@ import { RequestIdMiddleware } from './common/request-id.middleware.js';
     ThrottlerGuard,
     { provide: APP_GUARD, useExisting: ThrottlerGuard },
     // Cùng lý do `useExisting` như trên — APP_FILTER cũng là token multi:
-    // true (xem doc/error-logging-conventions.md).
+    // true (xem docs/convention/error-logging-conventions.md).
     AllExceptionsFilter,
     { provide: APP_FILTER, useExisting: AllExceptionsFilter },
   ],

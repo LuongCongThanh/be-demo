@@ -25,7 +25,7 @@ Mục 1-22 bên dưới mô tả kiến trúc **mục tiêu**. Mục này nói r
 | Component                                | Status                 | Ghi chú                                                                                                                                                                                                                                                         |
 | ---------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Auth                                     | 🟢 Xong                | register/login/refresh/logout/verify-email/forgot-reset-password, RBAC qua `Role`/`UserRole` (do DB điều khiển, không phải enum hardcode), có rate limiting                                                                                                     |
-| Categories                               | 🟡 Đã lên kế hoạch     | Plan sẵn ở `doc/categories-module-plan.md`, 0/8 bước đã xong. Module tiếp theo cần build.                                                                                                                                                                       |
+| Categories                               | 🟡 Đã lên kế hoạch     | Plan sẵn ở `docs/categories-module-plan.md`, 0/8 bước đã xong. Module tiếp theo cần build.                                                                                                                                                                      |
 | Users, Products, Cart, Inventory, Orders | 🔴 Chưa build          | Đã model trong `prisma/schema/schema.prisma`, chưa có code module                                                                                                                                                                                               |
 | Payments                                 | 🟡 Đã chốt, chưa build | Chưa có model/module thanh toán; MoMo là provider MVP đã được duyệt, đứng sau một ranh giới trung lập với provider (ADR 0004)                                                                                                                                   |
 | Promotions                               | 🔴 Chưa bắt đầu        | Chưa model, chưa thiết kế                                                                                                                                                                                                                                       |
@@ -271,7 +271,7 @@ nestjs-demo/
 ├── docs/
 │   └── adr/                        # Architecture Decision Records — một file bất biến cho mỗi quyết định lớn (vd 0001-category-delete-restrict.md)
 │
-├── doc/                            # tài liệu cho người đọc: convention, playbook, kiến trúc (file này), plan từng module
+├── docs/                           # tài liệu cho người đọc: convention, playbook, kiến trúc (file này), plan từng module
 │
 ├── scripts/
 │   └── sync-postman-collection.ts  # tạo lại Postman collection từ Swagger doc đang chạy (npm run postman:sync)
@@ -357,7 +357,7 @@ nestjs-demo/
     │   │   └── owned-resource.decorator.ts
     │   └── dto/                    # mỗi file cho một hình dạng request/response — register, login, refresh, forgot/reset-password, verify-email, resend-verification, message-response, auth-user-response
     │
-    ├── categories/                 # 🟡 đã lên kế hoạch tiếp theo — doc/categories-module-plan.md, 0/8 bước
+    ├── categories/                 # 🟡 đã lên kế hoạch tiếp theo — docs/categories-module-plan.md, 0/8 bước
     │   ├── categories.module.ts
     │   ├── categories.controller.ts # GET public; ghi → STORE_MANAGER hoặc MASTER_ADMIN
     │   ├── categories.service.ts    # gọi thẳng PrismaService — không có lớp repository (api-conventions.md §B5b)
@@ -629,7 +629,7 @@ Lượt giữ hàng hết hạn sau **15 phút**. Trong một transaction Postgr
 
 # 7. Kiến trúc Database
 
-Sơ đồ ER bên dưới là schema **thật, đã migrate** (15 bảng — xem `prisma/schema/schema.prisma`, migration `20260911030156_init_ecommerce`), không phải một schema kỳ vọng. `Payments`/`Promotions` cố tình vắng mặt — chúng chưa tồn tại (xem Mục 0). Lý do chi tiết từng field nằm ở `doc/ecommerce-postgresql-database-summary.md` và hướng dẫn Prisma từng bước ở `../docs/convention`; đây là bản rút gọn.
+Sơ đồ ER bên dưới là schema **thật, đã migrate** (15 bảng — xem `prisma/schema/schema.prisma`, migration `20260911030156_init_ecommerce`), không phải một schema kỳ vọng. `Payments`/`Promotions` cố tình vắng mặt — chúng chưa tồn tại (xem Mục 0). Lý do chi tiết từng field nằm ở `ecommerce-postgresql-database-summary.md` và hướng dẫn Prisma từng bước ở `convention/`; đây là bản rút gọn.
 
 ```mermaid
 erDiagram

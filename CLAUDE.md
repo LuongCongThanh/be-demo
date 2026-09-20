@@ -18,7 +18,7 @@ Top-down index and reading order for all convention docs: `docs/convention`.
 
 ### API conventions (NestJS)
 
-Single generic convention doc — flow for any API (CRUD or business/use-case), step-by-step CRUD walkthrough using a placeholder `Resource` entity (module/controller/service/DTO, Prisma migration, Swagger, testing), Definition of Done and checklist. Written for devs to read and write the code themselves, not as agent context for autogenerating code. See `docs/convention`. Resource-specific business rules and real implementation status live in that resource's own plan doc (e.g. `doc/categories-module-plan.md`), not in this convention doc.
+Single generic convention doc — flow for any API (CRUD or business/use-case), step-by-step CRUD walkthrough using a placeholder `Resource` entity (module/controller/service/DTO, Prisma migration, Swagger, testing), Definition of Done and checklist. Written for devs to read and write the code themselves, not as agent context for autogenerating code. See `docs/convention`. Resource-specific business rules and real implementation status live in that resource's own plan doc (e.g. `docs/categories-module-plan.md`), not in this convention doc.
 
 ### Config & environment conventions
 

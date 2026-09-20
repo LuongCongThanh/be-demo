@@ -74,7 +74,7 @@ Kiểm tra 2 điều: mọi endpoint `/auth/*` phải xuất hiện trong Swagge
 
 ## Bước 2: Đồng bộ `module-auth.md` và kiểm tra chất lượng cuối
 
-Cập nhật `module-auth.md` theo danh sách sau. Trước khi commit, luôn `git status`/`git diff --stat doc/module-auth.md` để tự xác nhận đúng nội dung bạn vừa sửa đang được stage (thói quen chung, không phải chỉ riêng file này).
+Cập nhật `module-auth.md` theo danh sách sau. Trước khi commit, luôn `git status`/`git diff --stat docs/auth-playbook/module-auth.md` để tự xác nhận đúng nội dung bạn vừa sửa đang được stage (thói quen chung, không phải chỉ riêng file này).
 
 - Bảng API tổng kết (mục 4) có đủ dòng `POST /auth/logout-all`. Kiểm tra lại, có thể đã có sẵn từ trước (không phải do bước này), không cần sửa nếu đã đúng.
 - Bổ sung đoạn mô tả reuse detection (và giới hạn access-token không bị revoke ngay) vào mục liên quan tới refresh token.

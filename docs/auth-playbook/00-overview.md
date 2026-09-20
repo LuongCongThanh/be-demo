@@ -27,7 +27,7 @@
 | 13  | [13-testing.md](./13-testing.md)                         | Unit test + E2E test                                                                                                   |
 | 14  | [14-swagger-and-wrapup.md](./14-swagger-and-wrapup.md)   | Swagger/OpenAPI, đồng bộ `module-auth.md`, quality check cuối                                                          |
 
-> Bản gốc dạng 1 file duy nhất (trước khi tách folder) đã được xoá sau khi tách xong — nội dung đầy đủ hơn đã nằm trong các file `01-setup.md` → `14-swagger-and-wrapup.md`. Mọi cập nhật từ nay áp dụng vào folder `doc/auth-playbook/` này.
+> Bản gốc dạng 1 file duy nhất (trước khi tách folder) đã được xoá sau khi tách xong — nội dung đầy đủ hơn đã nằm trong các file `01-setup.md` → `14-swagger-and-wrapup.md`. Mọi cập nhật từ nay áp dụng vào folder `docs/auth-playbook/` này.
 
 ---
 
@@ -136,7 +136,7 @@ Controller
 Service               (business rule sâu hơn ownership — xem quy tắc Guard vs Service ở mục 5)
 ```
 
-### Thứ tự triển khai tổng quát (theo tên file trong `doc/auth-playbook/`)
+### Thứ tự triển khai tổng quát (theo tên file trong `docs/auth-playbook/`)
 
 ```text
 01-setup.md   (domain decisions, schema readiness, shared services: Password/Token/Mail)

@@ -2,7 +2,7 @@
 
 > **Cho agent thực thi:** REQUIRED SUB-SKILL: dùng superpowers:subagent-driven-development (khuyến nghị) hoặc superpowers:executing-plans để thực thi plan này theo từng task. Các step dùng checkbox (`- [ ]`) để track tiến độ.
 
-**Mục tiêu:** Migrate runtime sang `/api/v1/*` + `/docs`, migrate role sang 4 role chuẩn kèm cơ chế revoke bằng `authorization_version`, thêm health check + graceful shutdown, thêm Prometheus metrics cơ bản, và thêm Docker/Compose local + CI — 6 prerequisite ở Mục 22 Phase 1 của `doc/ecommerce-backend-architecture-system-design-2.md` mà mọi phase sau (Categories, Products, ...) phụ thuộc vào.
+**Mục tiêu:** Migrate runtime sang `/api/v1/*` + `/docs`, migrate role sang 4 role chuẩn kèm cơ chế revoke bằng `authorization_version`, thêm health check + graceful shutdown, thêm Prometheus metrics cơ bản, và thêm Docker/Compose local + CI — 6 prerequisite ở Mục 22 Phase 1 của `docs/ecommerce-backend-architecture-system-design.md` mà mọi phase sau (Categories, Products, ...) phụ thuộc vào.
 
 **Kiến trúc:** Hoàn toàn additive lên layout NestJS modular-monolith hiện có — không move file nào đã có, không tạo folder module nghiệp vụ mới nào (cây ở Mục 3 là đích cuối của cả 9 phase, không phải checklist của Phase 1). Hai module hạ tầng mới (`src/health/`, `src/metrics/`) nằm phẳng dưới `src/`, cùng cấp `src/mail/`/`src/prisma/`. Config versioning/shutdown nằm ở `configureApp()` dùng chung (đã được cả `main.ts` và `test/support/create-test-app.ts` dùng, nên e2e test chạy đúng cùng config với production).
 
