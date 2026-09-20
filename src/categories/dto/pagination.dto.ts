@@ -15,6 +15,6 @@ export class PaginationDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100) // blocks a client requesting ?limit=1000000 and overloading the DB
+  @Max(100) // chặn client gửi ?limit=1000000 làm quá tải DB
   limit: number = 20;
 }

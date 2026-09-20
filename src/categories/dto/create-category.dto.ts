@@ -8,9 +8,9 @@ export class CreateCategoryDto {
   @MaxLength(150)
   name: string;
 
-  // No `slug` field — the server derives it from `name` (see CategoriesService,
-  // Task 2). A client-sent `slug` is rejected with 400 by the global
-  // ValidationPipe (`forbidNonWhitelisted: true`), not silently dropped.
+  // Không có field `slug` — server tự sinh từ `name` (xem CategoriesService).
+  // Client gửi `slug` lên sẽ bị ValidationPipe global từ chối với 400
+  // (`forbidNonWhitelisted: true`), không bị âm thầm bỏ qua.
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -11,12 +11,12 @@ export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
-    const slug = slugify(createCategoryDto.name, { lower: true, locale: 'vi', strict: true });
+    const slug = this.toSlug(createCategoryDto.name);
 
     const existing = await this.prisma.category.findUnique({ where: { slug } });
     if (existing) {
-      // Duplicate name (=> duplicate slug) is rejected outright — never
-      // auto-append a numeric suffix (design decision: no silent renaming).
+      // Trùng tên (=> trùng slug) bị từ chối thẳng — không tự thêm hậu tố số
+      // (quyết định thiết kế: không âm thầm đổi tên client gửi lên).
       throw new ConflictException(`Category name "${createCategoryDto.name}" already exists`);
     }
 
@@ -29,8 +29,8 @@ export class CategoriesService {
       this.prisma.category.findMany({
         skip: (page - 1) * limit,
         take: limit,
-        // createdAt can collide within the same millisecond — id is always
-        // added as a tie-breaker so pagination stays deterministic.
+        // createdAt có thể trùng nhau trong cùng 1 millisecond — luôn thêm
+        // id làm tie-breaker để thứ tự phân trang ổn định, xác định.
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       }),
       this.prisma.category.count(),
@@ -47,11 +47,15 @@ export class CategoriesService {
   }
 
   async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
-    await this.findOne(id); // 404 pre-fetch — also needed below for the slug-collision check
+    // Pre-fetch cần thiết ở đây (khác với remove()): phải biết category có
+    // tồn tại hay không TRƯỚC khi check trùng slug, để đảm bảo thứ tự lỗi
+    // đúng — đổi tên 1 id không tồn tại phải trả 404, không được rơi xuống
+    // nhánh 409 (trùng tên) chỉ vì chưa kiểm tra tồn tại trước.
+    await this.findOne(id);
 
     const data: UpdateCategoryDto & { slug?: string } = { ...updateCategoryDto };
     if (updateCategoryDto.name) {
-      const slug = slugify(updateCategoryDto.name, { lower: true, locale: 'vi', strict: true });
+      const slug = this.toSlug(updateCategoryDto.name);
       const existing = await this.prisma.category.findUnique({ where: { slug } });
       if (existing && existing.id !== id) {
         throw new ConflictException(`Category name "${updateCategoryDto.name}" already exists`);
@@ -63,16 +67,23 @@ export class CategoriesService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.findOne(id);
-
-    // ADR 0001: products.categoryId -> categories.id is RESTRICT at the DB
-    // level. Pre-check and return a clear 409 with the blocking count
-    // instead of letting a raw FK violation (P2003) surface as a 500.
+    // Không pre-fetch chỉ để xác nhận tồn tại — nếu id không tồn tại,
+    // prisma.category.delete() bên dưới tự ném P2025, đã được
+    // AllExceptionsFilter map sẵn thành 404 (khác update() ở trên, vì ở đây
+    // không có nhánh 409 nào khác cần xác định thứ tự lỗi trước).
     const productCount = await this.prisma.product.count({ where: { categoryId: id } });
+
+    // ADR 0001: products.categoryId -> categories.id là RESTRICT ở tầng DB.
+    // Pre-check và trả 409 rõ ràng kèm số lượng đang chặn, thay vì để lỗi
+    // FK (P2003) thô rơi xuống thành thông báo khó hiểu.
     if (productCount > 0) {
       throw new ConflictException(`Category still has ${productCount} product(s) — reassign them before deleting`);
     }
 
     await this.prisma.category.delete({ where: { id } });
+  }
+
+  private toSlug(name: string): string {
+    return slugify(name, { lower: true, locale: 'vi', strict: true });
   }
 }

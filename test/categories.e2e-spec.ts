@@ -136,6 +136,13 @@ describe('Categories (e2e)', () => {
     await request(app.getHttpServer()).delete('/api/v1/categories/00000000-0000-0000-0000-000000000000').expect(401);
   });
 
+  it('DELETE /api/v1/categories/:id as MASTER_ADMIN returns 404 when the category does not exist', async () => {
+    await request(app.getHttpServer())
+      .delete('/api/v1/categories/00000000-0000-0000-0000-000000000000')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .expect(404);
+  });
+
   it('PATCH /api/v1/categories/:id as MASTER_ADMIN regenerates the slug from the new name', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/categories')

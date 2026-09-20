@@ -134,7 +134,6 @@ describe('CategoriesService', () => {
 
   describe('remove', () => {
     it('deletes the category when no products reference it', async () => {
-      prismaMock.category.findUnique.mockResolvedValueOnce({ id: '1', name: 'Shoes', slug: 'shoes' });
       prismaMock.product.count.mockResolvedValue(0);
       prismaMock.category.delete.mockResolvedValue(undefined);
 
@@ -145,16 +144,22 @@ describe('CategoriesService', () => {
     });
 
     it('throws ConflictException when products still reference the category', async () => {
-      prismaMock.category.findUnique.mockResolvedValueOnce({ id: '1', name: 'Shoes', slug: 'shoes' });
       prismaMock.product.count.mockResolvedValue(3);
 
       await expect(service.remove('1')).rejects.toThrow(ConflictException);
       expect(prismaMock.category.delete).not.toHaveBeenCalled();
     });
 
-    it('throws NotFoundException when the category does not exist', async () => {
-      prismaMock.category.findUnique.mockResolvedValueOnce(null);
-      await expect(service.remove('missing-id')).rejects.toThrow(NotFoundException);
+    // Không pre-fetch findOne() trước khi xoá (khác update()) — nếu id
+    // không tồn tại, prisma.category.delete() tự ném lỗi not-found (P2025
+    // ở DB thật), và remove() phải để lỗi đó truyền nguyên vẹn lên trên cho
+    // AllExceptionsFilter tự map thành 404, không được nuốt hay che lỗi.
+    it('propagates the error from delete() untouched when the category does not exist', async () => {
+      prismaMock.product.count.mockResolvedValue(0);
+      const notFoundError = new Error('Record not found');
+      prismaMock.category.delete.mockRejectedValue(notFoundError);
+
+      await expect(service.remove('missing-id')).rejects.toThrow(notFoundError);
     });
   });
 });
