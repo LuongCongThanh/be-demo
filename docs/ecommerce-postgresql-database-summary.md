@@ -307,17 +307,17 @@ CREATE INDEX ON product_variants (product_id, created_at DESC);
 
 Lưu thông tin người dùng.
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID user |
-| `email` | VARCHAR(255) | Email |
-| `password_hash` | TEXT | Password đã hash |
-| `full_name` | VARCHAR(255) | Họ tên |
-| `phone` | VARCHAR(30) | Số điện thoại |
-| `status` | VARCHAR(30) | ACTIVE / BLOCKED |
+| Field               | Type gợi ý             | Ý nghĩa                    |
+| ------------------- | ---------------------- | -------------------------- |
+| `id`                | UUID                   | ID user                    |
+| `email`             | VARCHAR(255)           | Email                      |
+| `password_hash`     | TEXT                   | Password đã hash           |
+| `full_name`         | VARCHAR(255)           | Họ tên                     |
+| `phone`             | VARCHAR(30)            | Số điện thoại              |
+| `status`            | VARCHAR(30)            | ACTIVE / BLOCKED           |
 | `email_verified_at` | TIMESTAMPTZ (nullable) | NULL = chưa xác thực email |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật |
+| `created_at`        | TIMESTAMPTZ            | Ngày tạo                   |
+| `updated_at`        | TIMESTAMPTZ            | Ngày cập nhật              |
 
 ### Khóa
 
@@ -349,14 +349,14 @@ Giày
 Phụ kiện
 ```
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID category |
-| `name` | VARCHAR(150) | Tên category |
-| `slug` | VARCHAR(150) | URL slug |
-| `description` | TEXT | Mô tả |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật |
+| Field         | Type gợi ý   | Ý nghĩa       |
+| ------------- | ------------ | ------------- |
+| `id`          | UUID         | ID category   |
+| `name`        | VARCHAR(150) | Tên category  |
+| `slug`        | VARCHAR(150) | URL slug      |
+| `description` | TEXT         | Mô tả         |
+| `created_at`  | TIMESTAMPTZ  | Ngày tạo      |
+| `updated_at`  | TIMESTAMPTZ  | Ngày cập nhật |
 
 ### Khóa
 
@@ -386,16 +386,16 @@ Nike Air Max
 Adidas Polo
 ```
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID product |
-| `category_id` | UUID | Category của product |
-| `name` | VARCHAR(255) | Tên product |
-| `slug` | VARCHAR(255) | URL slug |
-| `description` | TEXT | Mô tả |
-| `status` | VARCHAR(30) | ACTIVE / INACTIVE |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật |
+| Field         | Type gợi ý   | Ý nghĩa              |
+| ------------- | ------------ | -------------------- |
+| `id`          | UUID         | ID product           |
+| `category_id` | UUID         | Category của product |
+| `name`        | VARCHAR(255) | Tên product          |
+| `slug`        | VARCHAR(255) | URL slug             |
+| `description` | TEXT         | Mô tả                |
+| `status`      | VARCHAR(30)  | ACTIVE / INACTIVE    |
+| `created_at`  | TIMESTAMPTZ  | Ngày tạo             |
+| `updated_at`  | TIMESTAMPTZ  | Ngày cập nhật        |
 
 ### Khóa
 
@@ -433,15 +433,15 @@ Nike T-Shirt
 └── ảnh 3 (sort_order = 2)
 ```
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID image |
-| `product_id` | UUID | Product cha |
-| `url` | TEXT | Đường dẫn ảnh (CDN) |
-| `alt_text` | VARCHAR(255) | Mô tả ảnh (accessibility/SEO) |
-| `sort_order` | INTEGER | Thứ tự hiển thị |
-| `is_primary` | BOOLEAN | Ảnh đại diện (dùng ở listing/thumbnail) |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
+| Field        | Type gợi ý   | Ý nghĩa                                 |
+| ------------ | ------------ | --------------------------------------- |
+| `id`         | UUID         | ID image                                |
+| `product_id` | UUID         | Product cha                             |
+| `url`        | TEXT         | Đường dẫn ảnh (CDN)                     |
+| `alt_text`   | VARCHAR(255) | Mô tả ảnh (accessibility/SEO)           |
+| `sort_order` | INTEGER      | Thứ tự hiển thị                         |
+| `is_primary` | BOOLEAN      | Ảnh đại diện (dùng ở listing/thumbnail) |
+| `created_at` | TIMESTAMPTZ  | Ngày tạo                                |
 
 ### Khóa
 
@@ -485,17 +485,17 @@ Nike T-Shirt
 └── White / L
 ```
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID variant |
-| `product_id` | UUID | Product cha |
-| `sku` | VARCHAR(100) | Mã SKU |
-| `color` | VARCHAR(50) | Màu |
-| `size` | VARCHAR(50) | Size |
-| `price` | NUMERIC(12,2) | Giá |
-| `status` | VARCHAR(30) | Trạng thái |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật |
+| Field        | Type gợi ý    | Ý nghĩa       |
+| ------------ | ------------- | ------------- |
+| `id`         | UUID          | ID variant    |
+| `product_id` | UUID          | Product cha   |
+| `sku`        | VARCHAR(100)  | Mã SKU        |
+| `color`      | VARCHAR(50)   | Màu           |
+| `size`       | VARCHAR(50)   | Size          |
+| `price`      | NUMERIC(12,2) | Giá           |
+| `status`     | VARCHAR(30)   | Trạng thái    |
+| `created_at` | TIMESTAMPTZ   | Ngày tạo      |
+| `updated_at` | TIMESTAMPTZ   | Ngày cập nhật |
 
 ### Khóa
 
@@ -524,13 +524,13 @@ Product 1 : N ProductVariant
 
 Lưu tồn kho của từng variant.
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID inventory |
-| `variant_id` | UUID | Variant |
-| `quantity` | INTEGER | Tổng số lượng |
-| `reserved_quantity` | INTEGER | Số lượng đang được giữ |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật |
+| Field               | Type gợi ý  | Ý nghĩa                |
+| ------------------- | ----------- | ---------------------- |
+| `id`                | UUID        | ID inventory           |
+| `variant_id`        | UUID        | Variant                |
+| `quantity`          | INTEGER     | Tổng số lượng          |
+| `reserved_quantity` | INTEGER     | Số lượng đang được giữ |
+| `updated_at`        | TIMESTAMPTZ | Ngày cập nhật          |
 
 ### Khóa
 
@@ -589,13 +589,13 @@ Không có bước này thì `available_quantity` không phản ánh đúng số
 
 Lưu giỏ hàng của User.
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID cart |
-| `user_id` | UUID | User sở hữu cart |
-| `status` | VARCHAR(30) | ACTIVE / CHECKED_OUT |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật |
+| Field        | Type gợi ý  | Ý nghĩa              |
+| ------------ | ----------- | -------------------- |
+| `id`         | UUID        | ID cart              |
+| `user_id`    | UUID        | User sở hữu cart     |
+| `status`     | VARCHAR(30) | ACTIVE / CHECKED_OUT |
+| `created_at` | TIMESTAMPTZ | Ngày tạo             |
+| `updated_at` | TIMESTAMPTZ | Ngày cập nhật        |
 
 ### Khóa
 
@@ -631,14 +631,14 @@ CREATE UNIQUE INDEX ON carts (user_id) WHERE status = 'ACTIVE';
 
 Lưu những Variant đang nằm trong Cart.
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID cart item |
-| `cart_id` | UUID | Cart |
-| `variant_id` | UUID | Product Variant |
-| `quantity` | INTEGER | Số lượng |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật |
+| Field        | Type gợi ý  | Ý nghĩa         |
+| ------------ | ----------- | --------------- |
+| `id`         | UUID        | ID cart item    |
+| `cart_id`    | UUID        | Cart            |
+| `variant_id` | UUID        | Product Variant |
+| `quantity`   | INTEGER     | Số lượng        |
+| `created_at` | TIMESTAMPTZ | Ngày tạo        |
+| `updated_at` | TIMESTAMPTZ | Ngày cập nhật   |
 
 ### Khóa
 
@@ -675,15 +675,15 @@ ProductVariant 1 : N CartItem
 
 Lưu đơn hàng sau khi checkout.
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID order (khoá kỹ thuật, không hiển thị cho khách) |
-| `order_number` | VARCHAR(30) | Mã đơn hàng dễ đọc, hiển thị cho khách (VD: `#1001`) |
-| `user_id` | UUID | User đặt hàng |
-| `status` | VARCHAR(30) | PENDING / PAID / CANCELLED |
-| `total_amount` | NUMERIC(12,2) | Tổng cuối |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật |
+| Field          | Type gợi ý    | Ý nghĩa                                              |
+| -------------- | ------------- | ---------------------------------------------------- |
+| `id`           | UUID          | ID order (khoá kỹ thuật, không hiển thị cho khách)   |
+| `order_number` | VARCHAR(30)   | Mã đơn hàng dễ đọc, hiển thị cho khách (VD: `#1001`) |
+| `user_id`      | UUID          | User đặt hàng                                        |
+| `status`       | VARCHAR(30)   | PENDING / PAID / CANCELLED                           |
+| `total_amount` | NUMERIC(12,2) | Tổng cuối                                            |
+| `created_at`   | TIMESTAMPTZ   | Ngày tạo                                             |
+| `updated_at`   | TIMESTAMPTZ   | Ngày cập nhật                                        |
 
 ### Khóa
 
@@ -719,17 +719,17 @@ User 1 : N Order
 
 Lưu các sản phẩm trong một Order.
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID order item |
-| `order_id` | UUID | Order |
-| `variant_id` | UUID | Product Variant |
-| `product_name` | VARCHAR(255) | Snapshot tên sản phẩm |
-| `sku` | VARCHAR(100) | Snapshot SKU |
-| `quantity` | INTEGER | Số lượng |
-| `unit_price` | NUMERIC(12,2) | Giá tại thời điểm mua |
-| `total_price` | NUMERIC(12,2) | quantity × unit_price |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
+| Field          | Type gợi ý    | Ý nghĩa               |
+| -------------- | ------------- | --------------------- |
+| `id`           | UUID          | ID order item         |
+| `order_id`     | UUID          | Order                 |
+| `variant_id`   | UUID          | Product Variant       |
+| `product_name` | VARCHAR(255)  | Snapshot tên sản phẩm |
+| `sku`          | VARCHAR(100)  | Snapshot SKU          |
+| `quantity`     | INTEGER       | Số lượng              |
+| `unit_price`   | NUMERIC(12,2) | Giá tại thời điểm mua |
+| `total_price`  | NUMERIC(12,2) | quantity × unit_price |
+| `created_at`   | TIMESTAMPTZ   | Ngày tạo              |
 
 ### Khóa
 
@@ -782,11 +782,11 @@ STAFF
 ADMIN
 ```
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID role |
-| `name` | VARCHAR(50) | Tên role |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
+| Field        | Type gợi ý  | Ý nghĩa                          |
+| ------------ | ----------- | -------------------------------- |
+| `id`         | UUID        | ID role                          |
+| `name`       | VARCHAR(50) | Tên role                         |
+| `created_at` | TIMESTAMPTZ | Ngày tạo                         |
 | `updated_at` | TIMESTAMPTZ | Ngày cập nhật (khi đổi tên role) |
 
 ### Khóa
@@ -805,10 +805,10 @@ name
 
 Bảng nối (junction table) — gán role cho user, hỗ trợ **nhiều role / user**.
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `user_id` | UUID | User |
-| `role_id` | UUID | Role |
+| Field        | Type gợi ý  | Ý nghĩa       |
+| ------------ | ----------- | ------------- |
+| `user_id`    | UUID        | User          |
+| `role_id`    | UUID        | Role          |
 | `created_at` | TIMESTAMPTZ | Ngày gán role |
 
 ### Khóa
@@ -844,14 +844,14 @@ User M : N Role
 
 Lưu refresh token đã phát cho user, dùng để cấp lại access token mới mà không cần đăng nhập lại.
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID refresh token |
-| `user_id` | UUID | User sở hữu token |
-| `token_hash` | TEXT | Hash của refresh token (không lưu token gốc) |
-| `expires_at` | TIMESTAMPTZ | Hạn dùng |
+| Field        | Type gợi ý             | Ý nghĩa                                                                   |
+| ------------ | ---------------------- | ------------------------------------------------------------------------- |
+| `id`         | UUID                   | ID refresh token                                                          |
+| `user_id`    | UUID                   | User sở hữu token                                                         |
+| `token_hash` | TEXT                   | Hash của refresh token (không lưu token gốc)                              |
+| `expires_at` | TIMESTAMPTZ            | Hạn dùng                                                                  |
 | `revoked_at` | TIMESTAMPTZ (nullable) | NULL = còn hiệu lực; có giá trị = đã bị thu hồi (logout, đổi mật khẩu...) |
-| `created_at` | TIMESTAMPTZ | Ngày phát hành |
+| `created_at` | TIMESTAMPTZ            | Ngày phát hành                                                            |
 
 ### Khóa
 
@@ -886,14 +886,14 @@ User 1 : N RefreshToken
 
 Lưu token dùng 1 lần để đặt lại mật khẩu khi user quên mật khẩu.
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID token |
-| `user_id` | UUID | User yêu cầu reset |
-| `token_hash` | TEXT | Hash của token gửi qua email |
-| `expires_at` | TIMESTAMPTZ | Hạn dùng (thường ngắn, VD: 15-30 phút) |
-| `used_at` | TIMESTAMPTZ (nullable) | NULL = chưa dùng; có giá trị = đã dùng, không cho dùng lại |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
+| Field        | Type gợi ý             | Ý nghĩa                                                    |
+| ------------ | ---------------------- | ---------------------------------------------------------- |
+| `id`         | UUID                   | ID token                                                   |
+| `user_id`    | UUID                   | User yêu cầu reset                                         |
+| `token_hash` | TEXT                   | Hash của token gửi qua email                               |
+| `expires_at` | TIMESTAMPTZ            | Hạn dùng (thường ngắn, VD: 15-30 phút)                     |
+| `used_at`    | TIMESTAMPTZ (nullable) | NULL = chưa dùng; có giá trị = đã dùng, không cho dùng lại |
+| `created_at` | TIMESTAMPTZ            | Ngày tạo                                                   |
 
 ### Khóa
 
@@ -928,14 +928,14 @@ Là bảng riêng (không nhét vào `users`) vì **1:N theo thời gian** — u
 
 Lưu token xác thực email khi user đăng ký tài khoản.
 
-| Field | Type gợi ý | Ý nghĩa |
-|---|---|---|
-| `id` | UUID | ID token |
-| `user_id` | UUID | User cần xác thực |
-| `token_hash` | TEXT | Hash của token gửi qua email |
-| `expires_at` | TIMESTAMPTZ | Hạn dùng |
+| Field         | Type gợi ý             | Ý nghĩa                                                       |
+| ------------- | ---------------------- | ------------------------------------------------------------- |
+| `id`          | UUID                   | ID token                                                      |
+| `user_id`     | UUID                   | User cần xác thực                                             |
+| `token_hash`  | TEXT                   | Hash của token gửi qua email                                  |
+| `expires_at`  | TIMESTAMPTZ            | Hạn dùng                                                      |
 | `verified_at` | TIMESTAMPTZ (nullable) | NULL = chưa xác thực; có giá trị = đã xác thực bằng token này |
-| `created_at` | TIMESTAMPTZ | Ngày tạo |
+| `created_at`  | TIMESTAMPTZ            | Ngày tạo                                                      |
 
 ### Khóa
 
@@ -968,23 +968,23 @@ Khi user xác thực thành công qua token này → set `verified_at` ở đây
 
 # 5. Tổng hợp Primary Key và Foreign Key
 
-| Table | Primary Key | Foreign Key | Unique |
-|---|---|---|---|
-| `users` | `id` | — | `email` |
-| `categories` | `id` | — | `slug` |
-| `products` | `id` | `category_id → categories.id` | `slug` |
-| `product_images` | `id` | `product_id → products.id` | — (xem giả định `is_primary` ở mục 4.3.1) |
-| `product_variants` | `id` | `product_id → products.id` | `sku` |
-| `inventory` | `id` | `variant_id → product_variants.id` | `variant_id` |
-| `carts` | `id` | `user_id → users.id` | `user_id` (partial, `WHERE status = 'ACTIVE'`) |
-| `cart_items` | `id` | `cart_id → carts.id`, `variant_id → product_variants.id` | — |
-| `orders` | `id` | `user_id → users.id` | `order_number` |
-| `order_items` | `id` | `order_id → orders.id`, `variant_id → product_variants.id` | — |
-| `roles` | `id` | — | `name` |
-| `user_roles` | `(user_id, role_id)` composite | `user_id → users.id`, `role_id → roles.id` | — |
-| `refresh_tokens` | `id` | `user_id → users.id` | `token_hash` |
-| `password_reset_tokens` | `id` | `user_id → users.id` | `token_hash` |
-| `email_verification_tokens` | `id` | `user_id → users.id` | `token_hash` |
+| Table                       | Primary Key                    | Foreign Key                                                | Unique                                         |
+| --------------------------- | ------------------------------ | ---------------------------------------------------------- | ---------------------------------------------- |
+| `users`                     | `id`                           | —                                                          | `email`                                        |
+| `categories`                | `id`                           | —                                                          | `slug`                                         |
+| `products`                  | `id`                           | `category_id → categories.id`                              | `slug`                                         |
+| `product_images`            | `id`                           | `product_id → products.id`                                 | — (xem giả định `is_primary` ở mục 4.3.1)      |
+| `product_variants`          | `id`                           | `product_id → products.id`                                 | `sku`                                          |
+| `inventory`                 | `id`                           | `variant_id → product_variants.id`                         | `variant_id`                                   |
+| `carts`                     | `id`                           | `user_id → users.id`                                       | `user_id` (partial, `WHERE status = 'ACTIVE'`) |
+| `cart_items`                | `id`                           | `cart_id → carts.id`, `variant_id → product_variants.id`   | —                                              |
+| `orders`                    | `id`                           | `user_id → users.id`                                       | `order_number`                                 |
+| `order_items`               | `id`                           | `order_id → orders.id`, `variant_id → product_variants.id` | —                                              |
+| `roles`                     | `id`                           | —                                                          | `name`                                         |
+| `user_roles`                | `(user_id, role_id)` composite | `user_id → users.id`, `role_id → roles.id`                 | —                                              |
+| `refresh_tokens`            | `id`                           | `user_id → users.id`                                       | `token_hash`                                   |
+| `password_reset_tokens`     | `id`                           | `user_id → users.id`                                       | `token_hash`                                   |
+| `email_verification_tokens` | `id`                           | `user_id → users.id`                                       | `token_hash`                                   |
 
 ---
 
@@ -1087,14 +1087,14 @@ email_verification_tokens.user_id
 
 Mặc định Postgres cho FK là `ON DELETE RESTRICT` (chặn xoá nếu còn con tham chiếu tới). Tài liệu trước đây chưa nói rõ dòng nào cần đổi — dưới đây là hành vi khuyến nghị cho các FK trỏ về `users.id`:
 
-| FK | ON DELETE | Vì sao |
-|---|---|---|
-| `carts.user_id → users.id` | `CASCADE` | Giỏ hàng không còn ý nghĩa khi user không còn |
-| `user_roles.user_id → users.id` | `CASCADE` | Gán quyền vô nghĩa khi user không còn |
-| `refresh_tokens.user_id → users.id` | `CASCADE` | Token gắn chặt với user, xoá user thì token vô nghĩa |
-| `password_reset_tokens.user_id → users.id` | `CASCADE` | Tương tự |
-| `email_verification_tokens.user_id → users.id` | `CASCADE` | Tương tự |
-| `orders.user_id → users.id` | `RESTRICT` (giữ mặc định) | Đơn hàng là hồ sơ tài chính — **không được xoá** chỉ vì user bị xoá |
+| FK                                             | ON DELETE                 | Vì sao                                                              |
+| ---------------------------------------------- | ------------------------- | ------------------------------------------------------------------- |
+| `carts.user_id → users.id`                     | `CASCADE`                 | Giỏ hàng không còn ý nghĩa khi user không còn                       |
+| `user_roles.user_id → users.id`                | `CASCADE`                 | Gán quyền vô nghĩa khi user không còn                               |
+| `refresh_tokens.user_id → users.id`            | `CASCADE`                 | Token gắn chặt với user, xoá user thì token vô nghĩa                |
+| `password_reset_tokens.user_id → users.id`     | `CASCADE`                 | Tương tự                                                            |
+| `email_verification_tokens.user_id → users.id` | `CASCADE`                 | Tương tự                                                            |
+| `orders.user_id → users.id`                    | `RESTRICT` (giữ mặc định) | Đơn hàng là hồ sơ tài chính — **không được xoá** chỉ vì user bị xoá |
 
 ### Hệ quả của dòng cuối cùng
 

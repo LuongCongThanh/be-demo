@@ -8,7 +8,7 @@ paths:
 
 # API conventions — agent-condensed (đầy đủ walkthrough từng bước + code mẫu: docs/convention/api-conventions.md)
 
-Đây là bản rút gọn cho agent viết code — chỉ liệt kê điểm hành động/dễ sai. Đọc doc gốc khi cần code mẫu đầy đủ hoặc business rule của 1 resource cụ thể (sống ở doc riêng resource đó, vd. `doc/categories-module-plan.md`).
+Đây là bản rút gọn cho agent viết code — chỉ liệt kê điểm hành động/dễ sai. Đọc doc gốc khi cần code mẫu đầy đủ hoặc business rule của 1 resource cụ thể (sống ở doc riêng resource đó, vd. `docs/categories-module-plan.md`).
 
 ## Flow tổng quát (20 bước, xem §A trong doc gốc để chi tiết)
 

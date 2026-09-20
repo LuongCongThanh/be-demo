@@ -62,7 +62,7 @@ export class MailService {
   // Fallback dev/CI dùng chung cho mọi loại email: khi chưa cấu hình SMTP thì
   // chỉ log `devLogMessage` chứ không thử gửi thật. `devLogMessage` do caller
   // truyền vào — KHÔNG bao giờ chứa raw code/token (quy tắc bảo mật,
-  // doc/auth-playbook/00-overview.md §5), vì đây vẫn là secret còn dùng được.
+  // docs/auth-playbook/00-overview.md §5), vì đây vẫn là secret còn dùng được.
   private async send(
     to: string,
     devLogMessage: string,

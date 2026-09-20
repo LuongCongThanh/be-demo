@@ -4,7 +4,7 @@
 
 **Mục tiêu:** Build module `products` — CRUD `Product`, CRUD `ProductVariant` (nested dưới Product), và tự tạo dòng `Inventory` (quantity=0) trong cùng transaction khi tạo variant mới.
 
-**Kiến trúc:** Module phẳng `src/products/` — 1 controller xử lý cả route Product và route Variant (nested resource, cùng owner module theo đúng "quyền sở hữu dữ liệu" ở Mục 2 tài liệu kiến trúc), 1 service chứa toàn bộ business logic (slug generation, category/product existence check, transaction tạo variant+inventory). Theo đúng pattern đã dùng ở Categories (`doc/categories-module-plan.md`) — không có Repository layer riêng, service gọi thẳng `PrismaService`.
+**Kiến trúc:** Module phẳng `src/products/` — 1 controller xử lý cả route Product và route Variant (nested resource, cùng owner module theo đúng "quyền sở hữu dữ liệu" ở Mục 2 tài liệu kiến trúc), 1 service chứa toàn bộ business logic (slug generation, category/product existence check, transaction tạo variant+inventory). Theo đúng pattern đã dùng ở Categories (`docs/categories-module-plan.md`) — không có Repository layer riêng, service gọi thẳng `PrismaService`.
 
 **Tech Stack:** NestJS 12, Prisma 7, `slugify` (sinh slug từ tên, giống Category), `class-validator`/`class-transformer` (DTO), Vitest + `supertest` (test).
 
@@ -13,7 +13,7 @@
 **Tiền đề (phải xong trước khi bắt đầu plan này):**
 
 - **Phase 1 đã hoàn tất** — route dưới `/api/v1/*`, role `MASTER_ADMIN`/`STORE_MANAGER` đã tồn tại trong DB (không còn `ADMIN`), env var bootstrap admin đã đổi tên thành `MASTER_ADMIN_BOOTSTRAP_EMAIL`/`MASTER_ADMIN_BOOTSTRAP_PASSWORD`. Plan này dùng thẳng các giá trị đó — nếu Phase 1 chưa xong, mọi ví dụ path/role/env var dưới đây sẽ sai.
-- **Categories module đã build xong** (`doc/categories-module-plan.md`) — cần category thật tồn tại trong DB để test `categoryId` FK, không mock.
+- **Categories module đã build xong** (`docs/categories-module-plan.md`) — cần category thật tồn tại trong DB để test `categoryId` FK, không mock.
 
 ## Thuật ngữ (Glossary)
 

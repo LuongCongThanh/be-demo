@@ -1,6 +1,6 @@
 # Products + Product Variants — Design Spec
 
-> Phase 2 (Mục 22) — phần còn lại sau Categories (`doc/categories-module-plan.md`). Không bao gồm product images/Object Storage — đó là sub-project riêng, brainstorm sau khi module này xong.
+> Phase 2 (Mục 22) — phần còn lại sau Categories (`docs/categories-module-plan.md`). Không bao gồm product images/Object Storage — đó là sub-project riêng, brainstorm sau khi module này xong.
 
 ## 1. Bối cảnh & vấn đề
 

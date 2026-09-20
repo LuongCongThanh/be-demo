@@ -116,12 +116,12 @@ _(3 skill trên nằm ngoài 17+8 = 25 skill "engineering + productivity" nêu �
 
 ## 3. Áp dụng cụ thể vào project `nestjs-demo` này
 
-Đối chiếu với các việc đã/đang làm trong `doc/PLAN.md` và các doc ecommerce đã viết:
+Đối chiếu với các việc đã/đang làm (⚠️ tham chiếu gốc `doc/PLAN.md` — file này không còn tồn tại, dead link có từ trước) và các doc ecommerce đã viết:
 
 | Việc đã/sẽ làm trong project                                                                                        | Skill nên dùng                                                                                                                                      |
 | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Bắt đầu 1 tính năng ecommerce mới (vd: "thêm tính năng review sản phẩm")                                            | `grill-with-docs` — phỏng vấn để chốt rõ yêu cầu trước khi code, tự ghi lại vào `../../CONTEXT.md`/ADR.                                             |
-| Thuật ngữ ecommerce còn mơ hồ (vd: "status" của Order vs Cart vs Product nghĩa khác nhau)                           | `domain-modeling` — đã từng áp dụng ngầm khi review thiết kế enum ở `../../doc/ecommerce-postgresql-database-summary.md`.                           |
+| Thuật ngữ ecommerce còn mơ hồ (vd: "status" của Order vs Cart vs Product nghĩa khác nhau)                           | `domain-modeling` — đã từng áp dụng ngầm khi review thiết kế enum ở `../ecommerce-postgresql-database-summary.md`.                                  |
 | Việc lớn hơn 1 session (vd: toàn bộ module Orders + Checkout + Payment)                                             | `to-spec` → `to-tickets` → `implement` từng ticket.                                                                                                 |
 | Viết `ProductsService`/`OrdersService` mới (đã phác thảo CRUD ở `ecommerce-prisma-schema-guide.md` Phần 2)          | `tdd` — viết test theo seam (interface public của service) trước, rồi mới code, đúng tinh thần "vertical slice" thay vì viết hết test rồi mới code. |
 | Trước khi merge nhánh `chore/remove-todo-module` (đã làm ở phiên trước) vào `dev`                                   | `code-review` — review theo Standards + Spec trước khi merge, thay vì merge thẳng.                                                                  |

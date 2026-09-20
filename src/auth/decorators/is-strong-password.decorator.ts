@@ -4,7 +4,7 @@ import { Matches, MinLength } from 'class-validator';
 /**
  * Password policy: at least 8 characters, with an uppercase letter, a
  * lowercase letter, a number, and a special character (decision #9,
- * doc/auth-playbook/00-overview.md). Shared between RegisterDto and
+ * docs/auth-playbook/00-overview.md). Shared between RegisterDto and
  * ResetPasswordDto so the rule only needs to change in one place.
  */
 export function IsStrongPassword() {

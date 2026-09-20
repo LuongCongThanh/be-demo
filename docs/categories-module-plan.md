@@ -1,13 +1,13 @@
 # Categories Module — Implementation Plan
 
-> Nguồn: buổi `/grill-with-docs` ngày 2026-09-17, dựa trên `doc/ecommerce-postgresql-database-summary.md` + quyết định chốt trong session (Q1–Q11) + `docs/adr/0001-category-delete-restrict.md`.
+> Nguồn: buổi `/grill-with-docs` ngày 2026-09-17, dựa trên `ecommerce-postgresql-database-summary.md` + quyết định chốt trong session (Q1–Q11) + `adr/0001-category-delete-restrict.md`.
 > Convention chi tiết (DTO/service/controller/test mẫu) đã có sẵn ở `../docs/convention` mục B — file này chỉ là **checklist thực thi theo thứ tự**, không lặp lại code mẫu.
 
 ---
 
 ## 1. Vì sao Categories trước
 
-Theo `doc/ecommerce-postgresql-database-summary.md` mục 7, luồng nghiệp vụ là `Catalog → Cart → Checkout`. `products.category_id → categories.id` là FK bắt buộc, nên `categories` phải tồn tại và có API thật trước khi làm `products`. Auth đã xong (`JwtAuthGuard`/`RolesGuard`/`OwnershipGuard`) — Categories là module non-Auth đầu tiên, tái sử dụng nguyên guard đó.
+Theo `ecommerce-postgresql-database-summary.md` mục 7, luồng nghiệp vụ là `Catalog → Cart → Checkout`. `products.category_id → categories.id` là FK bắt buộc, nên `categories` phải tồn tại và có API thật trước khi làm `products`. Auth đã xong (`JwtAuthGuard`/`RolesGuard`/`OwnershipGuard`) — Categories là module non-Auth đầu tiên, tái sử dụng nguyên guard đó.
 
 ## 2. Quyết định đã chốt (tham chiếu nhanh)
 
@@ -196,7 +196,7 @@ export class CategoriesService {
   }
 
   async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
-    await this.findOne(id); // xem lưu ý pre-fetch ở doc/api-conventions.md §5
+    await this.findOne(id); // xem lưu ý pre-fetch ở docs/convention/api-conventions.md §5
 
     // Q9: đổi `name` → sinh lại `slug` theo tên mới (chấp nhận link cũ 404 ở
     // MVP này — chưa có cơ chế redirect slug cũ).
