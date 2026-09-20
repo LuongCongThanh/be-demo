@@ -12,9 +12,9 @@ async function main() {
   // fresh dev machine, every CI run, every deploy) never creates duplicate
   // roles.
   const adminRole = await prisma.role.upsert({
-    where: { name: 'ADMIN' },
+    where: { name: 'MASTER_ADMIN' },
     update: {},
-    create: { name: 'ADMIN' },
+    create: { name: 'MASTER_ADMIN' },
   });
   await prisma.role.upsert({
     where: { name: 'CUSTOMER' },

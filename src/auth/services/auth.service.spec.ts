@@ -434,6 +434,7 @@ describe('AuthService.login', () => {
       passwordHash: 'hashed',
       status: 'ACTIVE',
       emailVerifiedAt: new Date(),
+      authorizationVersion: 0,
       userRoles: [{ role: { name: 'CUSTOMER' } }],
       ...overrides,
     };
@@ -488,7 +489,12 @@ describe('AuthService.login', () => {
 
     const result = await service.login({ email: 'user@example.com', password: 'Abc@1234' });
 
-    expect(jwtService.sign).toHaveBeenCalledWith({ sub: 'user-1', email: 'user@example.com', roles: ['CUSTOMER'] });
+    expect(jwtService.sign).toHaveBeenCalledWith({
+      sub: 'user-1',
+      email: 'user@example.com',
+      roles: ['CUSTOMER'],
+      authorizationVersion: 0,
+    });
     expect(tokenService.createRefreshToken).toHaveBeenCalledWith('user-1');
     // toEqual pins the exact shape below, so it also proves passwordHash is
     // absent — no separate not.toHaveProperty() assertion needed.
@@ -515,7 +521,7 @@ describe('AuthService.refreshToken', () => {
       userId: 'user-1',
       revokedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
-      user: { id: 'user-1', email: 'user@example.com', userRoles: [] },
+      user: { id: 'user-1', email: 'user@example.com', authorizationVersion: 0, userRoles: [] },
       ...overrides,
     };
   }
@@ -599,7 +605,12 @@ describe('AuthService.refreshToken', () => {
     const { service, prisma, tokenService, jwtService } = createHarness();
     prisma.refreshToken.findUnique.mockResolvedValue(
       validRefreshTokenRecord({
-        user: { id: 'user-1', email: 'user@example.com', userRoles: [{ role: { name: 'CUSTOMER' } }] },
+        user: {
+          id: 'user-1',
+          email: 'user@example.com',
+          authorizationVersion: 0,
+          userRoles: [{ role: { name: 'CUSTOMER' } }],
+        },
       }),
     );
     tokenService.createRefreshToken.mockResolvedValue('new-raw-refresh-token');
@@ -612,7 +623,12 @@ describe('AuthService.refreshToken', () => {
       data: { revokedAt: expect.any(Date) },
     });
     expect(tokenService.createRefreshToken).toHaveBeenCalledWith('user-1');
-    expect(jwtService.sign).toHaveBeenCalledWith({ sub: 'user-1', email: 'user@example.com', roles: ['CUSTOMER'] });
+    expect(jwtService.sign).toHaveBeenCalledWith({
+      sub: 'user-1',
+      email: 'user@example.com',
+      roles: ['CUSTOMER'],
+      authorizationVersion: 0,
+    });
     expect(result).toEqual({
       accessToken: 'new-signed-access-token',
       newRawRefreshToken: 'new-raw-refresh-token',

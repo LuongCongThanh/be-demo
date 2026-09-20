@@ -60,3 +60,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Local Postman collection/environment (not part of the repo)
 /postman
+
+# Subagent-driven-development scratch workspace (ledger, briefs, reports)
+/.superpowers

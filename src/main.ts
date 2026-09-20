@@ -7,6 +7,7 @@ import { configureApp } from './bootstrap/configure-app.js';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   configureApp(app);
+  app.enableShutdownHooks();
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Ecommerce API')
@@ -19,7 +20,7 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('docs', app, document);
 
   const configService = app.get(ConfigService);
   await app.listen(configService.get('PORT', 3000));

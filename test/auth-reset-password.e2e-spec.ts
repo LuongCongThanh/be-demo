@@ -88,7 +88,7 @@ describe('Auth — POST /auth/reset-password (e2e)', () => {
     const oldRefreshToken2 = await createRefreshTokenFor(user.id);
 
     const res = await request(app.getHttpServer())
-      .post('/auth/reset-password')
+      .post('/api/v1/auth/reset-password')
       .send({ token: rawResetToken, password: NEW_PASSWORD, confirmPassword: NEW_PASSWORD })
       .expect(200);
 
@@ -96,18 +96,18 @@ describe('Auth — POST /auth/reset-password (e2e)', () => {
 
     // Old password no longer works, new one does.
     await request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: user.email, password: VALID_PASSWORD })
       .expect(401);
     await request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: user.email, password: NEW_PASSWORD })
       .expect(200);
 
     // Every prior refresh token session must be revoked.
     for (const token of [oldRefreshToken1, oldRefreshToken2]) {
       await request(app.getHttpServer())
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .set('Cookie', [`refresh_token=${token}`])
         .expect(401);
     }
@@ -115,7 +115,7 @@ describe('Auth — POST /auth/reset-password (e2e)', () => {
 
   it('returns 400 for a token that does not exist', async () => {
     await request(app.getHttpServer())
-      .post('/auth/reset-password')
+      .post('/api/v1/auth/reset-password')
       .send({ token: 'not-a-real-token', password: NEW_PASSWORD, confirmPassword: NEW_PASSWORD })
       .expect(400);
   });
@@ -125,12 +125,12 @@ describe('Auth — POST /auth/reset-password (e2e)', () => {
     const rawResetToken = await createResetTokenFor(user.id, { usedAt: new Date() });
 
     await request(app.getHttpServer())
-      .post('/auth/reset-password')
+      .post('/api/v1/auth/reset-password')
       .send({ token: rawResetToken, password: NEW_PASSWORD, confirmPassword: NEW_PASSWORD })
       .expect(400);
 
     await request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: user.email, password: VALID_PASSWORD })
       .expect(200);
   });
@@ -140,7 +140,7 @@ describe('Auth — POST /auth/reset-password (e2e)', () => {
     const rawResetToken = await createResetTokenFor(user.id, { expiresAt: new Date(Date.now() - 1000) });
 
     await request(app.getHttpServer())
-      .post('/auth/reset-password')
+      .post('/api/v1/auth/reset-password')
       .send({ token: rawResetToken, password: NEW_PASSWORD, confirmPassword: NEW_PASSWORD })
       .expect(400);
   });
@@ -150,7 +150,7 @@ describe('Auth — POST /auth/reset-password (e2e)', () => {
     const rawResetToken = await createResetTokenFor(user.id);
 
     await request(app.getHttpServer())
-      .post('/auth/reset-password')
+      .post('/api/v1/auth/reset-password')
       .send({ token: rawResetToken, password: NEW_PASSWORD, confirmPassword: 'Different@1234' })
       .expect(400);
   });
@@ -160,7 +160,7 @@ describe('Auth — POST /auth/reset-password (e2e)', () => {
     const rawResetToken = await createResetTokenFor(user.id);
 
     await request(app.getHttpServer())
-      .post('/auth/reset-password')
+      .post('/api/v1/auth/reset-password')
       .send({ token: rawResetToken, password: 'weak', confirmPassword: 'weak' })
       .expect(400);
   });
@@ -171,10 +171,10 @@ describe('Auth — POST /auth/reset-password (e2e)', () => {
 
     const [first, second] = await Promise.all([
       request(app.getHttpServer())
-        .post('/auth/reset-password')
+        .post('/api/v1/auth/reset-password')
         .send({ token: rawResetToken, password: NEW_PASSWORD, confirmPassword: NEW_PASSWORD }),
       request(app.getHttpServer())
-        .post('/auth/reset-password')
+        .post('/api/v1/auth/reset-password')
         .send({ token: rawResetToken, password: NEW_PASSWORD, confirmPassword: NEW_PASSWORD }),
     ]);
 

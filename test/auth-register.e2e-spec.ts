@@ -51,9 +51,12 @@ describe('Auth — POST /auth/register (e2e)', () => {
     const email = `new-user${Date.now()}${TEST_EMAIL_DOMAIN}`;
 
     const res = await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send(validRegisterPayload({ email }))
       .expect(201);
+
+    // Verify API versioning is enforced: unversioned path must return 404
+    await request(app.getHttpServer()).post('/auth/register').send(validRegisterPayload({ email })).expect(404);
 
     expect(res.body).toEqual({ id: expect.any(String), email });
     expect(res.body).not.toHaveProperty('passwordHash');
@@ -75,14 +78,14 @@ describe('Auth — POST /auth/register (e2e)', () => {
   it('returns 409 when the email is already registered', async () => {
     const email = `dup${Date.now()}${TEST_EMAIL_DOMAIN}`;
 
-    await request(app.getHttpServer()).post('/auth/register').send(validRegisterPayload({ email })).expect(201);
+    await request(app.getHttpServer()).post('/api/v1/auth/register').send(validRegisterPayload({ email })).expect(201);
 
-    await request(app.getHttpServer()).post('/auth/register').send(validRegisterPayload({ email })).expect(409);
+    await request(app.getHttpServer()).post('/api/v1/auth/register').send(validRegisterPayload({ email })).expect(409);
   });
 
   it('returns 400 when the password does not meet the policy', async () => {
     await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send(
         validRegisterPayload({
           email: `weak${Date.now()}${TEST_EMAIL_DOMAIN}`,
@@ -94,14 +97,14 @@ describe('Auth — POST /auth/register (e2e)', () => {
 
   it('returns 400 for a malformed email', async () => {
     await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send(validRegisterPayload({ email: 'not-an-email' }))
       .expect(400);
   });
 
   it('returns 400 when fullName is missing', async () => {
     await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send({
         email: `nofullname${Date.now()}${TEST_EMAIL_DOMAIN}`,
         password: 'Abc@1234',
@@ -112,7 +115,7 @@ describe('Auth — POST /auth/register (e2e)', () => {
 
   it('returns 400 when phone is missing', async () => {
     await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send({
         email: `nophone${Date.now()}${TEST_EMAIL_DOMAIN}`,
         password: 'Abc@1234',
@@ -123,7 +126,7 @@ describe('Auth — POST /auth/register (e2e)', () => {
 
   it('returns 400 when the body has an unexpected extra field', async () => {
     await request(app.getHttpServer())
-      .post('/auth/register')
+      .post('/api/v1/auth/register')
       .send(
         validRegisterPayload({
           email: `extra${Date.now()}${TEST_EMAIL_DOMAIN}`,

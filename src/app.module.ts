@@ -6,6 +6,8 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
+import { HealthModule } from './health/health.module.js';
+import { MetricsModule } from './metrics/metrics.module.js';
 import { validate } from './config/env.validation.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { RequestIdMiddleware } from './common/request-id.middleware.js';
@@ -18,6 +20,8 @@ import { RequestIdMiddleware } from './common/request-id.middleware.js';
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 20 }]),
     PrismaModule,
     AuthModule,
+    HealthModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [

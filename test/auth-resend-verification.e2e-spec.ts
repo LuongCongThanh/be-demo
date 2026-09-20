@@ -46,7 +46,7 @@ describe('Auth — POST /auth/resend-verification (e2e)', () => {
     const user = await createUser('valid');
 
     const res = await request(app.getHttpServer())
-      .post('/auth/resend-verification')
+      .post('/api/v1/auth/resend-verification')
       .send({ email: user.email })
       .expect(200);
 
@@ -62,13 +62,16 @@ describe('Auth — POST /auth/resend-verification (e2e)', () => {
   });
 
   it('returns 400 when the email is not a valid email address', async () => {
-    await request(app.getHttpServer()).post('/auth/resend-verification').send({ email: 'not-an-email' }).expect(400);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/resend-verification')
+      .send({ email: 'not-an-email' })
+      .expect(400);
   });
 
   it('returns the same generic message and creates no token when the email does not exist', async () => {
     const email = `nobody${Date.now()}${TEST_EMAIL_DOMAIN}`;
 
-    const res = await request(app.getHttpServer()).post('/auth/resend-verification').send({ email }).expect(200);
+    const res = await request(app.getHttpServer()).post('/api/v1/auth/resend-verification').send({ email }).expect(200);
 
     expect(res.body).toEqual({
       message: 'If the email exists and is not yet verified, a new verification email has been sent.',
@@ -82,7 +85,7 @@ describe('Auth — POST /auth/resend-verification (e2e)', () => {
     const user = await createUser('verified', { emailVerifiedAt: new Date() });
 
     const res = await request(app.getHttpServer())
-      .post('/auth/resend-verification')
+      .post('/api/v1/auth/resend-verification')
       .send({ email: user.email })
       .expect(200);
 
