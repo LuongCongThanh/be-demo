@@ -138,4 +138,40 @@ describe('ProductsService', () => {
       expect(result).toEqual(createdVariant);
     });
   });
+
+  describe('findOneVariant', () => {
+    it('ném NotFoundException khi variant không tồn tại hoặc không thuộc product này', async () => {
+      // findOneVariant() chỉ query productVariant.findFirst({ where: { id, productId } })
+      // — không cần product.findUnique riêng, vì where đã lọc theo cả 2 điều kiện cùng lúc.
+      prismaMock.productVariant.findFirst.mockResolvedValue(null);
+
+      await expect(service.findOneVariant('p1', 'missing-variant')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateVariant', () => {
+    it('chặn trùng sku khi đổi sku (loại trừ chính record đang sửa)', async () => {
+      prismaMock.productVariant.findFirst.mockResolvedValueOnce({ id: 'v1', productId: 'p1', sku: 'SKU-OLD' });
+      prismaMock.productVariant.findUnique.mockResolvedValueOnce({ id: 'v1', sku: 'SKU-NEW' });
+      prismaMock.productVariant.update.mockResolvedValue({ id: 'v1', sku: 'SKU-NEW' });
+
+      const result = await service.updateVariant('p1', 'v1', { sku: 'SKU-NEW' });
+
+      expect(prismaMock.productVariant.update).toHaveBeenCalledWith({
+        where: { id: 'v1' },
+        data: { sku: 'SKU-NEW' },
+      });
+      expect(result.sku).toBe('SKU-NEW');
+    });
+  });
+
+  describe('removeVariant', () => {
+    it('xoá variant sau khi xác nhận thuộc đúng product', async () => {
+      prismaMock.productVariant.findFirst.mockResolvedValue({ id: 'v1', productId: 'p1' });
+
+      await service.removeVariant('p1', 'v1');
+
+      expect(prismaMock.productVariant.delete).toHaveBeenCalledWith({ where: { id: 'v1' } });
+    });
+  });
 });

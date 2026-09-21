@@ -6,6 +6,8 @@ import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 import { ListProductsQueryDto } from './dto/list-products-query.dto.js';
 import { CreateVariantDto } from './dto/create-variant.dto.js';
+import { UpdateVariantDto } from './dto/update-variant.dto.js';
+import { PaginationDto } from './dto/pagination.dto.js';
 
 @Injectable()
 export class ProductsService {
@@ -93,5 +95,51 @@ export class ProductsService {
       await tx.inventory.create({ data: { variantId: variant.id, quantity: 0, reservedQuantity: 0 } });
       return variant;
     });
+  }
+
+  async findAllVariants(productId: string, { page, limit }: PaginationDto) {
+    await this.findOne(productId); // 404 nếu product không tồn tại
+
+    const where = { productId };
+    const [data, total] = await Promise.all([
+      this.prisma.productVariant.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      }),
+      this.prisma.productVariant.count({ where }),
+    ]);
+    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async findOneVariant(productId: string, variantId: string): Promise<ProductVariant> {
+    const variant = await this.prisma.productVariant.findFirst({ where: { id: variantId, productId } });
+    if (!variant) {
+      throw new NotFoundException(`Variant #${variantId} not found on product #${productId}`);
+    }
+    return variant;
+  }
+
+  async updateVariant(
+    productId: string,
+    variantId: string,
+    updateVariantDto: UpdateVariantDto,
+  ): Promise<ProductVariant> {
+    await this.findOneVariant(productId, variantId); // 404 nếu không thuộc đúng product
+
+    if (updateVariantDto.sku) {
+      const existing = await this.prisma.productVariant.findUnique({ where: { sku: updateVariantDto.sku } });
+      if (existing && existing.id !== variantId) {
+        throw new ConflictException(`SKU "${updateVariantDto.sku}" already exists`);
+      }
+    }
+
+    return this.prisma.productVariant.update({ where: { id: variantId }, data: updateVariantDto });
+  }
+
+  async removeVariant(productId: string, variantId: string): Promise<void> {
+    await this.findOneVariant(productId, variantId);
+    await this.prisma.productVariant.delete({ where: { id: variantId } });
   }
 }
