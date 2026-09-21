@@ -1,5 +1,6 @@
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductsService } from './products.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -37,7 +38,7 @@ describe('ProductsService', () => {
   });
 
   describe('create', () => {
-    it('ném NotFoundException khi categoryId không tồn tại', async () => {
+    it('throws NotFoundException when categoryId does not exist', async () => {
       prismaMock.category.findUnique.mockResolvedValue(null);
 
       await expect(service.create({ name: 'Áo thun', categoryId: 'missing-category-id' })).rejects.toThrow(
@@ -46,7 +47,7 @@ describe('ProductsService', () => {
       expect(prismaMock.product.create).not.toHaveBeenCalled();
     });
 
-    it('ném ConflictException khi trùng slug', async () => {
+    it('throws ConflictException when the slug already exists', async () => {
       prismaMock.category.findUnique.mockResolvedValue({ id: 'cat-1' });
       prismaMock.product.findUnique.mockResolvedValue({ id: 'existing-product', slug: 'ao-thun' });
 
@@ -54,7 +55,7 @@ describe('ProductsService', () => {
       expect(prismaMock.product.create).not.toHaveBeenCalled();
     });
 
-    it('sinh đúng slug từ name và gọi prisma.product.create', async () => {
+    it('generates the correct slug from name and calls prisma.product.create', async () => {
       prismaMock.category.findUnique.mockResolvedValue({ id: 'cat-1' });
       prismaMock.product.findUnique.mockResolvedValue(null);
       prismaMock.product.create.mockResolvedValue({ id: 'p1', name: 'Áo Thun', slug: 'ao-thun', categoryId: 'cat-1' });
@@ -71,7 +72,7 @@ describe('ProductsService', () => {
     // chặn (đã trim ở DTO, chuỗi trimmed không rỗng) nhưng slugify() trả về
     // "" — phải chặn ở service, nếu không product đầu tiên kiểu này sẽ có
     // slug rỗng và mọi tên "vô nghĩa" khác sau đó bị báo trùng tên sai.
-    it('ném BadRequestException khi name sinh ra slug rỗng', async () => {
+    it('throws BadRequestException when name produces an empty slug', async () => {
       prismaMock.category.findUnique.mockResolvedValue({ id: 'cat-1' });
 
       await expect(service.create({ name: '!!!', categoryId: 'cat-1' })).rejects.toThrow(BadRequestException);
@@ -81,14 +82,14 @@ describe('ProductsService', () => {
   });
 
   describe('findOne', () => {
-    it('ném NotFoundException khi không tìm thấy', async () => {
+    it('throws NotFoundException when not found', async () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
       await expect(service.findOne('missing-id')).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', () => {
-    it('sinh lại slug khi đổi name, chặn trùng (loại trừ chính record đang sửa)', async () => {
+    it('regenerates the slug when name changes, excluding the record being updated from the duplicate check', async () => {
       prismaMock.product.findUnique
         .mockResolvedValueOnce({ id: 'p1', name: 'Áo cũ', slug: 'ao-cu', categoryId: 'cat-1' }) // pre-fetch trong update()
         .mockResolvedValueOnce({ id: 'p1', slug: 'ao-moi' }); // check trùng slug mới — trùng chính nó, phải bỏ qua
@@ -103,7 +104,7 @@ describe('ProductsService', () => {
       expect(result.slug).toBe('ao-moi');
     });
 
-    it('ném BadRequestException khi name mới sinh ra slug rỗng', async () => {
+    it('throws BadRequestException when the new name produces an empty slug', async () => {
       prismaMock.product.findUnique.mockResolvedValueOnce({
         id: 'p1',
         name: 'Áo cũ',
@@ -117,7 +118,7 @@ describe('ProductsService', () => {
   });
 
   describe('remove', () => {
-    it('xoá product sau khi xác nhận tồn tại', async () => {
+    it('deletes the product after confirming it exists', async () => {
       prismaMock.product.findUnique.mockResolvedValue({ id: 'p1' });
       await service.remove('p1');
       expect(prismaMock.product.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
@@ -125,7 +126,7 @@ describe('ProductsService', () => {
   });
 
   describe('createVariant', () => {
-    it('ném NotFoundException khi productId không tồn tại', async () => {
+    it('throws NotFoundException when productId does not exist', async () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
 
       await expect(service.createVariant('missing-product-id', { sku: 'SKU-1', price: 100000 })).rejects.toThrow(
@@ -134,7 +135,7 @@ describe('ProductsService', () => {
       expect(prismaMock.$transaction).not.toHaveBeenCalled();
     });
 
-    it('ném ConflictException khi trùng sku', async () => {
+    it('throws ConflictException when the sku already exists', async () => {
       prismaMock.product.findUnique.mockResolvedValue({ id: 'p1' });
       prismaMock.productVariant.findUnique.mockResolvedValue({ id: 'existing-variant', sku: 'SKU-1' });
 
@@ -142,7 +143,7 @@ describe('ProductsService', () => {
       expect(prismaMock.$transaction).not.toHaveBeenCalled();
     });
 
-    it('tạo variant + inventory (quantity=0) trong cùng 1 transaction', async () => {
+    it('creates the variant + inventory (quantity=0) in the same transaction', async () => {
       prismaMock.product.findUnique.mockResolvedValue({ id: 'p1' });
       prismaMock.productVariant.findUnique.mockResolvedValue(null);
 
@@ -164,7 +165,7 @@ describe('ProductsService', () => {
   });
 
   describe('findOneVariant', () => {
-    it('ném NotFoundException khi variant không tồn tại hoặc không thuộc product này', async () => {
+    it('throws NotFoundException when the variant does not exist or does not belong to this product', async () => {
       // findOneVariant() chỉ query productVariant.findFirst({ where: { id, productId } })
       // — không cần product.findUnique riêng, vì where đã lọc theo cả 2 điều kiện cùng lúc.
       prismaMock.productVariant.findFirst.mockResolvedValue(null);
@@ -174,7 +175,7 @@ describe('ProductsService', () => {
   });
 
   describe('updateVariant', () => {
-    it('chặn trùng sku khi đổi sku (loại trừ chính record đang sửa)', async () => {
+    it('rejects a duplicate sku when changing sku, excluding the record being updated from the duplicate check', async () => {
       prismaMock.productVariant.findFirst.mockResolvedValueOnce({ id: 'v1', productId: 'p1', sku: 'SKU-OLD' });
       prismaMock.productVariant.findUnique.mockResolvedValueOnce({ id: 'v1', sku: 'SKU-NEW' });
       prismaMock.productVariant.update.mockResolvedValue({ id: 'v1', sku: 'SKU-NEW' });
@@ -190,7 +191,7 @@ describe('ProductsService', () => {
   });
 
   describe('removeVariant', () => {
-    it('xoá variant sau khi xác nhận thuộc đúng product', async () => {
+    it('deletes the variant after confirming it belongs to the right product', async () => {
       prismaMock.productVariant.findFirst.mockResolvedValue({ id: 'v1', productId: 'p1' });
 
       await service.removeVariant('p1', 'v1');

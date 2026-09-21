@@ -30,6 +30,10 @@ import { ListProductsQueryDto } from './dto/list-products-query.dto.js';
 import { CreateVariantDto } from './dto/create-variant.dto.js';
 import { UpdateVariantDto } from './dto/update-variant.dto.js';
 import { PaginationDto } from './dto/pagination.dto.js';
+import { ProductResponseDto } from './dto/product-response.dto.js';
+import { PaginatedProductResponseDto } from './dto/paginated-product-response.dto.js';
+import { VariantResponseDto } from './dto/variant-response.dto.js';
+import { PaginatedVariantResponseDto } from './dto/paginated-variant-response.dto.js';
 
 @ApiTags('Products')
 @Controller('products')
@@ -41,21 +45,21 @@ export class ProductsController {
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new product (STORE_MANAGER/MASTER_ADMIN only)' })
-  @ApiCreatedResponse({ description: 'Product created' })
+  @ApiCreatedResponse({ type: ProductResponseDto })
   create(@Body() createProductDto: CreateProductDto) {
     return this.productsService.create(createProductDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'List products (paginated, filterable by category/status, public)' })
-  @ApiOkResponse({ description: 'Paginated list of products' })
+  @ApiOkResponse({ type: PaginatedProductResponseDto })
   findAll(@Query() query: ListProductsQueryDto) {
     return this.productsService.findAll(query);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a product by id (public)' })
-  @ApiOkResponse({ description: 'Product detail' })
+  @ApiOkResponse({ type: ProductResponseDto })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.findOne(id);
   }
@@ -67,7 +71,7 @@ export class ProductsController {
   @ApiOperation({
     summary: 'Update a product, regenerating its slug if the name changes (STORE_MANAGER/MASTER_ADMIN only)',
   })
-  @ApiOkResponse({ description: 'Product updated' })
+  @ApiOkResponse({ type: ProductResponseDto })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateProductDto: UpdateProductDto) {
     return this.productsService.update(id, updateProductDto);
   }
@@ -93,21 +97,21 @@ export class ProductsController {
     summary:
       'Create a variant under a product, atomically creating its inventory row (STORE_MANAGER/MASTER_ADMIN only)',
   })
-  @ApiCreatedResponse({ description: 'Variant created (with its inventory row)' })
+  @ApiCreatedResponse({ type: VariantResponseDto })
   createVariant(@Param('id', ParseUUIDPipe) productId: string, @Body() createVariantDto: CreateVariantDto) {
     return this.productsService.createVariant(productId, createVariantDto);
   }
 
   @Get(':id/variants')
   @ApiOperation({ summary: 'List variants of a product (paginated, public)' })
-  @ApiOkResponse({ description: 'Paginated list of variants for the product' })
+  @ApiOkResponse({ type: PaginatedVariantResponseDto })
   findAllVariants(@Param('id', ParseUUIDPipe) productId: string, @Query() pagination: PaginationDto) {
     return this.productsService.findAllVariants(productId, pagination);
   }
 
   @Get(':id/variants/:variantId')
   @ApiOperation({ summary: 'Get a variant by id, scoped to its parent product (public)' })
-  @ApiOkResponse({ description: 'Variant detail' })
+  @ApiOkResponse({ type: VariantResponseDto })
   findOneVariant(@Param('id', ParseUUIDPipe) productId: string, @Param('variantId', ParseUUIDPipe) variantId: string) {
     return this.productsService.findOneVariant(productId, variantId);
   }
@@ -117,7 +121,7 @@ export class ProductsController {
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a variant (STORE_MANAGER/MASTER_ADMIN only)' })
-  @ApiOkResponse({ description: 'Variant updated' })
+  @ApiOkResponse({ type: VariantResponseDto })
   updateVariant(
     @Param('id', ParseUUIDPipe) productId: string,
     @Param('variantId', ParseUUIDPipe) variantId: string,
