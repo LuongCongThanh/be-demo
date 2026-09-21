@@ -179,13 +179,13 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateResourceDto {
-  @ApiProperty({ maxLength: 255 })
+  @ApiProperty({ maxLength: 255, example: 'Wireless Mouse' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
   name: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ example: 'Ergonomic wireless mouse with USB-C charging' })
   @IsOptional()
   @IsString()
   description?: string;
@@ -199,6 +199,10 @@ export class UpdateResourceDto extends PartialType(CreateResourceDto) {}
 ```
 
 > ⚠️ Import `PartialType` từ **`@nestjs/swagger`**, không phải `@nestjs/mapped-types`. Cả hai đều làm mọi field optional, nhưng bản của `@nestjs/swagger` mới giữ đúng metadata OpenAPI (`@ApiProperty`) khi generate document — dùng `@nestjs/mapped-types` cho DTO có Swagger decorator sẽ làm lệch contract OpenAPI sinh ra.
+
+**Bắt buộc `example:` cho field client gửi lên** (`CreateResourceDto`, và field mới thêm ở `UpdateResourceDto` nếu không kế thừa từ `Create`) — không chỉ `description`/`maxLength`. Lý do: Swagger UI "Try it out" tự điền request body mẫu từ `example`; thiếu nó, người gọi API (kể cả frontend dev, người ngoài team) phải tự đoán format hợp lệ (chuỗi số? enum giá trị nào? định dạng ngày?), đặc biệt sai lệch với field có ràng buộc business (email, slug, mã theo pattern...). Tham khảo `src/auth/dto/register.dto.ts` — mọi field đều có `example`.
+
+**Không bắt buộc** `example:` cho: Response DTO (server tự sinh giá trị, không cần mock), `PaginationDto` (đã có `default`, tự giải thích), field mà tên đã đủ rõ nghĩa và kiểu `boolean`/`enum` hẹp (Swagger tự liệt kê giá trị hợp lệ cho enum).
 
 > Nếu 1 field do **server tự sinh** (vd. slug sinh từ tên, mã đơn tự tăng...), field đó **không** xuất hiện trong `CreateResourceDto` — client gửi field đó lên sẽ bị `ValidationPipe` global (`forbidNonWhitelisted`) từ chối 400, không bị âm thầm bỏ qua. Xem ví dụ business rule thật ở tài liệu riêng của resource đó.
 
@@ -313,7 +317,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
@@ -333,6 +344,7 @@ export class ResourcesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new resource' })
   @ApiCreatedResponse({ description: 'Tạo thành công' })
   create(@Body() createResourceDto: CreateResourceDto) {
     return this.resourcesService.create(createResourceDto);
@@ -340,12 +352,14 @@ export class ResourcesController {
 
   // Read → public nếu resource không cần bảo vệ, bỏ guard.
   @Get()
+  @ApiOperation({ summary: 'List resources (paginated)' })
   @ApiOkResponse({ description: 'Danh sách resource' })
   findAll(@Query() pagination: PaginationDto) {
     return this.resourcesService.findAll(pagination);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a resource by id' })
   @ApiOkResponse({ description: 'Chi tiết 1 resource' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.resourcesService.findOne(id);
@@ -355,6 +369,7 @@ export class ResourcesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a resource' })
   @ApiOkResponse({ description: 'Cập nhật thành công' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateResourceDto: UpdateResourceDto) {
     return this.resourcesService.update(id, updateResourceDto);
@@ -365,6 +380,7 @@ export class ResourcesController {
   @Roles('ADMIN')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a resource' })
   @ApiNoContentResponse({ description: 'Xoá thành công' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.resourcesService.remove(id);
@@ -623,6 +639,20 @@ const config = new DocumentBuilder()
   .build();
 ```
 
+**`@ApiOperation({ summary: '...' })`: bắt buộc cho mọi route, không chỉ resource CRUD đơn giản.** Tên route + HTTP method (`POST /categories`) không tự nói lên nghiệp vụ thật (vd. route trả 404 hay 200 khi rỗng? side-effect nào xảy ra? ai được gọi?). `summary` là 1 câu ngắn ở thì mệnh lệnh, mô tả đúng hành vi — không lặp lại tên method (`create()` → không viết summary là `"Create"`, mà là `"Create a new category"` hoặc cụ thể hơn nếu có business rule đáng chú ý):
+
+```ts
+@Post()
+@ApiOperation({ summary: 'Register a new CUSTOMER account' })
+create(@Body() dto: CreateResourceDto) { ... }
+
+@Post('verify-email')
+@ApiOperation({ summary: 'Verify email address using the 6-digit code sent by email' })
+verify(@Body() dto: VerifyEmailDto) { ... }
+```
+
+> Tham khảo `src/auth/auth.controller.ts` — mọi route đều có `@ApiOperation`. Đây là pattern đã tồn tại từ module đầu tiên trong repo; convention này chỉ ghi lại nó thành yêu cầu tường minh để resource mới (scaffold theo §B3) không bị rơi mất.
+
 Ngoài mô tả bằng `description` (đủ cho người đọc), nên khai **response type** để OpenAPI document biết chính xác shape trả về — phục vụ generate client/type cho frontend, contract testing:
 
 ```ts
@@ -679,6 +709,7 @@ Response nên bọc trong envelope có `meta` thay vì trả mảng trần, đ�
 ```ts
 // resources.controller.ts
 @Get()
+@ApiOperation({ summary: 'List resources (paginated)' })
 @ApiOkResponse({ description: 'Danh sách resource' })
 findAll(@Query() pagination: PaginationDto) {
   return this.resourcesService.findAll(pagination);
@@ -825,7 +856,7 @@ Một API được coi là **xong**, không phải "code chạy được", khi t
 - Lỗi được map đúng HTTP status (không rơi vào `500` cho case đã biết trước)
 - Response contract rõ ràng — không rò field nhạy cảm không cố ý
 - Test pass: service unit test (nếu có business logic) + e2e (nếu là endpoint public/quan trọng)
-- Swagger phản ánh đúng request/response thật (có `type:`, không chỉ `description`)
+- Swagger phản ánh đúng request/response thật (có `type:`, không chỉ `description`), mỗi route có `@ApiOperation({ summary })`, mỗi field DTO client gửi lên có `example:` (xem [§B12](#b12-swagger--openapi))
 - `npm run lint` + `npm run format` + `npm run build` sạch
 - PR đã mở, review xong (`ship-pr` skill)
 
@@ -838,13 +869,14 @@ Checklist chi tiết bên dưới là cách để đạt Definition of Done này
 - [ ] Model (hoặc enum) đã có trong `../../prisma/schema/schema.prisma` (hoặc `prisma/schema/enums.prisma`) + đã `migrate dev` + `generate` (2 lệnh riêng — Prisma v7 không tự generate)
 - [ ] Sinh khung bằng `nest g resource RESOURCE_NAME` (chọn REST API, Yes cho CRUD entry points)
 - [ ] Xoá `entities/` sinh sẵn, xoá/viết lại `*.spec.ts` mẫu
-- [ ] DTO có đủ `class-validator` + `@ApiProperty`/`@ApiPropertyOptional`; `UpdateDto` dùng `PartialType` từ **`@nestjs/swagger`**
+- [ ] DTO có đủ `class-validator` + `@ApiProperty`/`@ApiPropertyOptional`, có `example:` cho field client gửi lên; `UpdateDto` dùng `PartialType` từ **`@nestjs/swagger`**
 - [ ] Param id dùng đúng pipe (`ParseUUIDPipe`/`ParseIntPipe` theo đúng kiểu trong schema)
 - [ ] Business error đã biết trước (vd. trùng field unique) ném exception có message nghiệp vụ ở service, không phó mặc cho Prisma filter
 - [ ] Service unit test — bắt buộc nếu service có business logic (not-found, conflict, tính toán...); service chỉ gọi thẳng Prisma không rẽ nhánh thì có thể bỏ qua
 - [ ] API e2e test cho endpoint public/quan trọng — bắt buộc; cho CRUD thường — khuyến nghị
 - [ ] Response DTO (allow-list) nếu model có field nhạy cảm; `@Exclude` chấp nhận được cho resource nhỏ ổn định
 - [ ] Swagger có `type:` cho response (`@ApiOkResponse`/`@ApiCreatedResponse`), không chỉ `description`
+- [ ] Mỗi route có `@ApiOperation({ summary: '...' })` mô tả đúng hành vi, không lặp lại tên method (xem [§B12](#b12-swagger--openapi))
 - [ ] `@ApiTags()` đủ nghĩa nếu tên path là viết tắt/không tự giải thích (xem [§B12](#b12-swagger--openapi))
 - [ ] Pagination + `@Max(limit)` cho mọi `findAll()` — kể cả resource ít bản ghi, để giữ response shape nhất quán (xem [§B13](#b13-pagination-cho-findall))
 - [ ] Đã đi qua [Authorization checkpoint](#b10-authorization-checkpoint)
