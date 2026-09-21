@@ -61,5 +61,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Local Postman collection/environment (not part of the repo)
 /postman
 
+# Personal docker-compose port/volume overrides (e.g. host port 5432 taken by
+# another local Postgres) — copy docker-compose.override.yml.example if needed
+docker-compose.override.yml
+
 # Subagent-driven-development scratch workspace (ledger, briefs, reports)
 /.superpowers
