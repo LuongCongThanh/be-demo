@@ -21,6 +21,7 @@ import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
 import { PaginationDto } from './dto/pagination.dto.js';
 import { CategoryResponseDto } from './dto/category-response.dto.js';
+import { PaginatedCategoryResponseDto } from './dto/paginated-category-response.dto.js';
 
 @ApiTags('categories')
 @Controller('categories')
@@ -37,7 +38,7 @@ export class CategoriesController {
   }
 
   @Get()
-  @ApiOkResponse({ description: 'Paginated category list' })
+  @ApiOkResponse({ type: PaginatedCategoryResponseDto })
   findAll(@Query() pagination: PaginationDto) {
     return this.categoriesService.findAll(pagination);
   }

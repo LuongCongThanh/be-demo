@@ -101,10 +101,14 @@ Trả lời CLI prompt: transport = **REST API**, và **"Would you like to gener
 ```ts
 // create-category.dto.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateCategoryDto {
   @ApiProperty({ maxLength: 150 })
+  // Trim trước khi validate — tên chỉ gồm khoảng trắng phải bị @IsNotEmpty()
+  // từ chối thay vì lọt qua rồi sinh slug rỗng (xem CategoriesService.toSlug()).
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsNotEmpty()
   @IsString()
   @MaxLength(150)
@@ -148,7 +152,7 @@ export class UpdateCategoryDto extends PartialType(CreateCategoryDto) {}
 
 ```ts
 // categories.service.ts
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
 import type { Category } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -161,7 +165,7 @@ export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
-    const slug = slugify(createCategoryDto.name, { lower: true, locale: 'vi', strict: true });
+    const slug = this.toSlug(createCategoryDto.name);
 
     const existing = await this.prisma.category.findUnique({ where: { slug } });
     if (existing) {
@@ -196,13 +200,16 @@ export class CategoriesService {
   }
 
   async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
-    await this.findOne(id); // xem lưu ý pre-fetch ở docs/convention/api-conventions.md §5
+    // Pre-fetch cần thiết ở đây (khác remove() bên dưới): phải biết category
+    // có tồn tại hay không TRƯỚC khi check trùng slug, để đổi tên 1 id không
+    // tồn tại trả đúng 404 thay vì rơi nhầm xuống nhánh 409 (trùng tên).
+    await this.findOne(id);
 
     // Q9: đổi `name` → sinh lại `slug` theo tên mới (chấp nhận link cũ 404 ở
     // MVP này — chưa có cơ chế redirect slug cũ).
     const data: UpdateCategoryDto & { slug?: string } = { ...updateCategoryDto };
     if (updateCategoryDto.name) {
-      const slug = slugify(updateCategoryDto.name, { lower: true, locale: 'vi', strict: true });
+      const slug = this.toSlug(updateCategoryDto.name);
       const existing = await this.prisma.category.findUnique({ where: { slug } });
       if (existing && existing.id !== id) {
         throw new ConflictException(`Category name "${updateCategoryDto.name}" already exists`);
@@ -214,18 +221,33 @@ export class CategoriesService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.findOne(id);
+    // Không pre-fetch chỉ để xác nhận tồn tại — nếu id không tồn tại,
+    // prisma.category.delete() bên dưới tự ném P2025, đã được
+    // AllExceptionsFilter map sẵn thành 404 (khác update() ở trên, vì ở đây
+    // không có nhánh 409 nào khác cần xác định thứ tự lỗi trước).
+    const productCount = await this.prisma.product.count({ where: { categoryId: id } });
 
     // ADR 0001: FK `products.category_id → categories.id` là RESTRICT — thay
     // vì để lỗi P2003 rơi xuống Prisma filter (500/khó hiểu), tự kiểm tra
     // trước và trả 409 kèm số lượng, để store manager biết chính xác phải làm gì
     // (chuyển product sang category khác trước khi xoá được).
-    const productCount = await this.prisma.product.count({ where: { categoryId: id } });
     if (productCount > 0) {
       throw new ConflictException(`Category still has ${productCount} product(s) — reassign them before deleting`);
     }
 
     await this.prisma.category.delete({ where: { id } });
+  }
+
+  private toSlug(name: string): string {
+    const slug = slugify(name, { lower: true, locale: 'vi', strict: true });
+    // Tên chỉ gồm ký tự đặc biệt/dấu câu (vd. "!!!") vẫn qua được @IsNotEmpty()
+    // (đã trim ở DTO) nhưng slugify trả về "" — nếu cho lọt qua, category đầu
+    // tiên kiểu này sẽ có slug rỗng và mọi tên "vô nghĩa" sau đó sẽ bị báo
+    // trùng tên (409) dù nhìn không giống nhau chút nào.
+    if (!slug) {
+      throw new BadRequestException(`Category name "${name}" does not produce a valid slug`);
+    }
+    return slug;
   }
 }
 ```
