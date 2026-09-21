@@ -27,23 +27,11 @@ export class ProductsService {
       throw new ConflictException(`Product name "${createProductDto.name}" already exists`);
     }
 
-    try {
-      return await this.prisma.product.create({ data: { ...createProductDto, slug } });
-    } catch (err) {
-      // Pre-check ở trên chỉ chặn được phần lớn trường hợp trùng tên; 2
-      // request đồng thời cùng tên đều có thể pass check đó (race window),
-      // nên unique constraint trên `slug` mới là chốt chặn thật sự. Chuyển
-      // race đó thành cùng lỗi 409 thân thiện như pre-check, thay vì để rơi
-      // xuống message thô của Prisma qua AllExceptionsFilter.
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002' &&
-        getUniqueConstraintTarget(err)?.includes('slug')
-      ) {
-        throw new ConflictException(`Product name "${createProductDto.name}" already exists`);
-      }
-      throw err;
-    }
+    return this.writeUnique(
+      () => this.prisma.product.create({ data: { ...createProductDto, slug } }),
+      'slug',
+      `Product name "${createProductDto.name}" already exists`,
+    );
   }
 
   async findAll({ page, limit, categoryId, status }: ListProductsQueryDto): Promise<{
@@ -91,20 +79,11 @@ export class ProductsService {
       data.slug = slug;
     }
 
-    try {
-      return await this.prisma.product.update({ where: { id }, data });
-    } catch (err) {
-      // Cùng race window như create() — 2 request đổi tên sang cùng 1 slug
-      // gần như đồng thời đều có thể pass pre-check ở trên.
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002' &&
-        getUniqueConstraintTarget(err)?.includes('slug')
-      ) {
-        throw new ConflictException(`Product name "${updateProductDto.name}" already exists`);
-      }
-      throw err;
-    }
+    return this.writeUnique(
+      () => this.prisma.product.update({ where: { id }, data }),
+      'slug',
+      `Product name "${updateProductDto.name}" already exists`,
+    );
   }
 
   async remove(id: string): Promise<void> {
@@ -124,24 +103,16 @@ export class ProductsService {
     // cùng không tồn tại — không có trạng thái "có variant nhưng thiếu
     // inventory" (Mục 3 tài liệu kiến trúc). Inventory module (Phase 4) chỉ
     // đọc/điều chỉnh dòng này, không phải nơi tạo dòng đầu tiên.
-    try {
-      return await this.prisma.$transaction(async (tx) => {
-        const variant = await tx.productVariant.create({ data: { ...createVariantDto, productId } });
-        await tx.inventory.create({ data: { variantId: variant.id, quantity: 0, reservedQuantity: 0 } });
-        return variant;
-      });
-    } catch (err) {
-      // Cùng race window như create() ở Product — 2 request tạo variant
-      // cùng sku gần như đồng thời đều có thể pass pre-check ở trên.
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002' &&
-        getUniqueConstraintTarget(err)?.includes('sku')
-      ) {
-        throw new ConflictException(`SKU "${createVariantDto.sku}" already exists`);
-      }
-      throw err;
-    }
+    return this.writeUnique(
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          const variant = await tx.productVariant.create({ data: { ...createVariantDto, productId } });
+          await tx.inventory.create({ data: { variantId: variant.id, quantity: 0, reservedQuantity: 0 } });
+          return variant;
+        }),
+      'sku',
+      `SKU "${createVariantDto.sku}" already exists`,
+    );
   }
 
   async findAllVariants(
@@ -185,25 +156,37 @@ export class ProductsService {
       }
     }
 
-    try {
-      return await this.prisma.productVariant.update({ where: { id: variantId }, data: updateVariantDto });
-    } catch (err) {
-      // Cùng race window như update() ở Product — 2 request đổi sang cùng
-      // 1 sku gần như đồng thời đều có thể pass pre-check ở trên.
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002' &&
-        getUniqueConstraintTarget(err)?.includes('sku')
-      ) {
-        throw new ConflictException(`SKU "${updateVariantDto.sku}" already exists`);
-      }
-      throw err;
-    }
+    return this.writeUnique(
+      () => this.prisma.productVariant.update({ where: { id: variantId }, data: updateVariantDto }),
+      'sku',
+      `SKU "${updateVariantDto.sku}" already exists`,
+    );
   }
 
   async removeVariant(productId: string, variantId: string): Promise<void> {
     await this.findOneVariant(productId, variantId);
     await this.prisma.productVariant.delete({ where: { id: variantId } });
+  }
+
+  // Pre-check unique ở mỗi caller chỉ chặn được phần lớn trường hợp trùng
+  // — 2 request gần như đồng thời vẫn có thể cùng pass pre-check (race
+  // window), nên unique constraint của DB mới là chốt chặn thật sự. Helper
+  // này chạy write thật, và nếu DB từ chối đúng bằng P2002 trên field kỳ
+  // vọng, dịch nó thành cùng 1 lỗi 409 thân thiện như pre-check — thay vì
+  // để rơi xuống message thô của Prisma qua AllExceptionsFilter.
+  private async writeUnique<T>(write: () => Promise<T>, uniqueField: string, conflictMessage: string): Promise<T> {
+    try {
+      return await write();
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002' &&
+        getUniqueConstraintTarget(err)?.includes(uniqueField)
+      ) {
+        throw new ConflictException(conflictMessage);
+      }
+      throw err;
+    }
   }
 
   private toSlug(name: string): string {
