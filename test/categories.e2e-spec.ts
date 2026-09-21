@@ -163,7 +163,7 @@ describe('Categories (e2e)', () => {
     expect(patchRes.body.slug).toContain('after');
   });
 
-  it('DELETE /api/v1/categories/:id as MASTER_ADMIN returns 409 (real FK) when a product still references it', async () => {
+  it('DELETE /api/v1/categories/:id as MASTER_ADMIN returns 409 via the service pre-check when a product still references it', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/categories')
       .set('Authorization', `Bearer ${masterAdminAccessToken}`)
@@ -179,9 +179,36 @@ describe('Categories (e2e)', () => {
       },
     });
 
+    // Nhánh này chỉ chứng minh service.remove() pre-check (đếm product) hoạt
+    // động — CategoriesService.remove() throw ConflictException trước khi
+    // gọi prisma.category.delete(), nên FK RESTRICT ở DB (ADR 0001) chưa bao
+    // giờ được kích hoạt ở test này. Test dưới mới verify tầng DB thật.
     await request(app.getHttpServer())
       .delete(`/api/v1/categories/${categoryId}`)
       .set('Authorization', `Bearer ${masterAdminAccessToken}`)
       .expect(409);
+  });
+
+  it('DB-level FK RESTRICT (ADR 0001) rejects deleting a category with a product, bypassing the service pre-check', async () => {
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} DbFkRestrict ${Date.now()}` })
+      .expect(201);
+
+    const categoryId = createRes.body.id;
+    await prisma.product.create({
+      data: {
+        categoryId,
+        name: `${TEST_NAME_PREFIX} Product ${Date.now()}`,
+        slug: `${TEST_NAME_PREFIX.toLowerCase()}-product-db-fk-${Date.now()}`,
+      },
+    });
+
+    // Gọi thẳng Prisma, bỏ qua CategoriesService.remove() (và pre-check của
+    // nó), để buộc request chạm thật vào FK constraint RESTRICT ở Postgres.
+    await expect(prisma.category.delete({ where: { id: categoryId } })).rejects.toMatchObject({
+      code: 'P2003',
+    });
   });
 });

@@ -1,8 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateCategoryDto {
   @ApiProperty({ maxLength: 150 })
+  // Trim trước khi validate — tên chỉ gồm khoảng trắng phải bị @IsNotEmpty()
+  // từ chối thay vì lọt qua rồi sinh slug rỗng (xem toSlug() trong service).
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsNotEmpty()
   @IsString()
   @MaxLength(150)

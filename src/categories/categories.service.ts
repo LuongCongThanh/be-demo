@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
 import type { Category } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -84,6 +84,14 @@ export class CategoriesService {
   }
 
   private toSlug(name: string): string {
-    return slugify(name, { lower: true, locale: 'vi', strict: true });
+    const slug = slugify(name, { lower: true, locale: 'vi', strict: true });
+    // Tên chỉ gồm ký tự đặc biệt/dấu câu (vd. "!!!") vẫn qua được @IsNotEmpty()
+    // (đã trim ở DTO) nhưng slugify trả về "" — nếu cho lọt qua, category đầu
+    // tiên kiểu này sẽ có slug rỗng và mọi tên "vô nghĩa" sau đó sẽ bị báo
+    // trùng tên (409) dù nhìn không giống nhau chút nào.
+    if (!slug) {
+      throw new BadRequestException(`Category name "${name}" does not produce a valid slug`);
+    }
+    return slug;
   }
 }

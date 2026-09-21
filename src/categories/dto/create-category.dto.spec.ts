@@ -30,4 +30,17 @@ describe('CreateCategoryDto', () => {
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
   });
+
+  it('trims name before validation, so a whitespace-only name fails @IsNotEmpty()', async () => {
+    const dto = plainToInstance(CreateCategoryDto, { name: '   ' });
+    const errors = await validate(dto);
+    expect(errors.some((e) => e.property === 'name')).toBe(true);
+  });
+
+  it('trims leading/trailing whitespace from a valid name', async () => {
+    const dto = plainToInstance(CreateCategoryDto, { name: '  Shoes  ' });
+    const errors = await validate(dto);
+    expect(errors).toHaveLength(0);
+    expect(dto.name).toBe('Shoes');
+  });
 });

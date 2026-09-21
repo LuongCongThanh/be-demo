@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -45,6 +45,16 @@ describe('CategoriesService', () => {
       prismaMock.category.findUnique.mockResolvedValue({ id: 'existing', name: 'Shoes', slug: 'shoes' });
 
       await expect(service.create({ name: 'Shoes' })).rejects.toThrow(ConflictException);
+      expect(prismaMock.category.create).not.toHaveBeenCalled();
+    });
+
+    // Tên chỉ gồm ký tự đặc biệt/dấu câu (vd. "!!!") không bị @IsNotEmpty()
+    // chặn (đã trim ở DTO, chuỗi trimmed không rỗng) nhưng slugify() trả về
+    // "" — phải chặn ở service, nếu không category đầu tiên kiểu này sẽ có
+    // slug rỗng và mọi tên "vô nghĩa" khác sau đó bị báo trùng tên sai.
+    it('throws BadRequestException when name produces an empty slug', async () => {
+      await expect(service.create({ name: '!!!' })).rejects.toThrow(BadRequestException);
+      expect(prismaMock.category.findUnique).not.toHaveBeenCalled();
       expect(prismaMock.category.create).not.toHaveBeenCalled();
     });
   });
@@ -129,6 +139,13 @@ describe('CategoriesService', () => {
     it('throws NotFoundException when the category does not exist', async () => {
       prismaMock.category.findUnique.mockResolvedValueOnce(null);
       await expect(service.update('missing-id', { name: 'X' })).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws BadRequestException when the new name produces an empty slug', async () => {
+      prismaMock.category.findUnique.mockResolvedValueOnce({ id: '1', name: 'Shoes', slug: 'shoes' }); // findOne() pre-fetch
+
+      await expect(service.update('1', { name: '!!!' })).rejects.toThrow(BadRequestException);
+      expect(prismaMock.category.update).not.toHaveBeenCalled();
     });
   });
 
