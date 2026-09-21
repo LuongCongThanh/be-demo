@@ -279,4 +279,38 @@ describe('Products + Variants (e2e)', () => {
     expect(await prisma.productVariant.findUnique({ where: { id: variantId } })).toBeNull();
     expect(await prisma.inventory.findUnique({ where: { variantId } })).toBeNull();
   });
+
+  it('PATCH /api/v1/products/:id with an explicit null name returns 400, not 500', async () => {
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/products')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} NullName ${Date.now()}`, categoryId })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/products/${createRes.body.id}`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: null })
+      .expect(400);
+  });
+
+  it('PATCH /api/v1/products/:id/variants/:variantId with an explicit null sku returns 400, not 500', async () => {
+    const productRes = await request(app.getHttpServer())
+      .post('/api/v1/products')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} Product for null sku ${Date.now()}`, categoryId })
+      .expect(201);
+
+    const variantRes = await request(app.getHttpServer())
+      .post(`/api/v1/products/${productRes.body.id}/variants`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ sku: `SKU-NULL-${Date.now()}`, price: 100000 })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/products/${productRes.body.id}/variants/${variantRes.body.id}`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ sku: null })
+      .expect(400);
+  });
 });
