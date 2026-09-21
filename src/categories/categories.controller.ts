@@ -30,7 +30,7 @@ import { PaginationDto } from './dto/pagination.dto.js';
 import { CategoryResponseDto } from './dto/category-response.dto.js';
 import { PaginatedCategoryResponseDto } from './dto/paginated-category-response.dto.js';
 
-@ApiTags('categories')
+@ApiTags('Categories')
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}

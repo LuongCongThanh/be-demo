@@ -17,7 +17,7 @@ async function bootstrap() {
       'Authentication & Authorization',
       'Register, email verification, login/refresh/logout, and role/ownership-based access control',
     )
-    .addTag('categories', 'Product category CRUD — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public')
+    .addTag('Categories', 'Product category CRUD — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public')
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
