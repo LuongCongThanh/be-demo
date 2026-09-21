@@ -187,6 +187,60 @@ describe('Products + Variants (e2e)', () => {
       .expect(404);
   });
 
+  it('PATCH /api/v1/products/:id/variants/:variantId returns 404 when the variant belongs to a different product', async () => {
+    const productARes = await request(app.getHttpServer())
+      .post('/api/v1/products')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} Product A patch ${Date.now()}`, categoryId })
+      .expect(201);
+    const productBRes = await request(app.getHttpServer())
+      .post('/api/v1/products')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} Product B patch ${Date.now()}`, categoryId })
+      .expect(201);
+
+    const variantOfARes = await request(app.getHttpServer())
+      .post(`/api/v1/products/${productARes.body.id}/variants`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ sku: `SKU-PATCH-A-${Date.now()}`, price: 100000 })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/products/${productBRes.body.id}/variants/${variantOfARes.body.id}`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ price: 999000 })
+      .expect(404);
+
+    const stillOriginal = await prisma.productVariant.findUnique({ where: { id: variantOfARes.body.id } });
+    expect(stillOriginal?.price.toNumber()).toBe(100000);
+  });
+
+  it('DELETE /api/v1/products/:id/variants/:variantId returns 404 when the variant belongs to a different product', async () => {
+    const productARes = await request(app.getHttpServer())
+      .post('/api/v1/products')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} Product A delete ${Date.now()}`, categoryId })
+      .expect(201);
+    const productBRes = await request(app.getHttpServer())
+      .post('/api/v1/products')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} Product B delete ${Date.now()}`, categoryId })
+      .expect(201);
+
+    const variantOfARes = await request(app.getHttpServer())
+      .post(`/api/v1/products/${productARes.body.id}/variants`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ sku: `SKU-DEL-A-${Date.now()}`, price: 100000 })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/products/${productBRes.body.id}/variants/${variantOfARes.body.id}`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .expect(404);
+
+    expect(await prisma.productVariant.findUnique({ where: { id: variantOfARes.body.id } })).not.toBeNull();
+  });
+
   it('POST /api/v1/products as an authenticated CUSTOMER (non-privileged role) returns 403', async () => {
     const customerAccessToken = await createCustomerAndLogin();
 
