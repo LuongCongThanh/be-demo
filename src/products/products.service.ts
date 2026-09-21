@@ -79,6 +79,9 @@ export class ProductsService {
       data.slug = slug;
     }
 
+    // Nhánh P2002-trên-'slug' trong writeUnique() chỉ có thể trigger khi data.slug
+    // được set ở trên, tức updateProductDto.name luôn có giá trị ở đây — message
+    // dưới đây không bao giờ in "undefined".
     return this.writeUnique(
       () => this.prisma.product.update({ where: { id }, data }),
       'slug',
@@ -149,6 +152,10 @@ export class ProductsService {
   ): Promise<ProductVariant> {
     await this.findOneVariant(productId, variantId); // 404 nếu không thuộc đúng product
 
+    // Write bên dưới chỉ where theo variantId (không kèm productId) vì
+    // findOneVariant() ở trên đã xác nhận đúng cặp (variantId, productId), và
+    // không có route nào cho phép đổi productId của 1 variant đã tạo. Nếu sau
+    // này productId trở thành field có thể sửa, phải where theo cả 2.
     if (updateVariantDto.sku) {
       const existing = await this.prisma.productVariant.findUnique({ where: { sku: updateVariantDto.sku } });
       if (existing && existing.id !== variantId) {
@@ -164,7 +171,8 @@ export class ProductsService {
   }
 
   async removeVariant(productId: string, variantId: string): Promise<void> {
-    await this.findOneVariant(productId, variantId);
+    await this.findOneVariant(productId, variantId); // xác nhận đúng cặp (variantId, productId)
+    // Where theo variantId là đủ — xem comment ở updateVariant() cho lý do.
     await this.prisma.productVariant.delete({ where: { id: variantId } });
   }
 

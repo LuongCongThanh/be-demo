@@ -41,21 +41,21 @@ export class ProductsController {
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new product (STORE_MANAGER/MASTER_ADMIN only)' })
-  @ApiCreatedResponse({ description: 'Tạo product thành công' })
+  @ApiCreatedResponse({ description: 'Product created' })
   create(@Body() createProductDto: CreateProductDto) {
     return this.productsService.create(createProductDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'List products (paginated, filterable by category/status, public)' })
-  @ApiOkResponse({ description: 'Danh sách product' })
+  @ApiOkResponse({ description: 'Paginated list of products' })
   findAll(@Query() query: ListProductsQueryDto) {
     return this.productsService.findAll(query);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a product by id (public)' })
-  @ApiOkResponse({ description: 'Chi tiết 1 product' })
+  @ApiOkResponse({ description: 'Product detail' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.findOne(id);
   }
@@ -67,7 +67,7 @@ export class ProductsController {
   @ApiOperation({
     summary: 'Update a product, regenerating its slug if the name changes (STORE_MANAGER/MASTER_ADMIN only)',
   })
-  @ApiOkResponse({ description: 'Cập nhật product thành công' })
+  @ApiOkResponse({ description: 'Product updated' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateProductDto: UpdateProductDto) {
     return this.productsService.update(id, updateProductDto);
   }
@@ -80,7 +80,7 @@ export class ProductsController {
   @ApiOperation({
     summary: 'Delete a product, cascading to its variants and inventory (STORE_MANAGER/MASTER_ADMIN only)',
   })
-  @ApiNoContentResponse({ description: 'Xoá product thành công' })
+  @ApiNoContentResponse({ description: 'Product deleted' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.remove(id);
   }
@@ -93,21 +93,21 @@ export class ProductsController {
     summary:
       'Create a variant under a product, atomically creating its inventory row (STORE_MANAGER/MASTER_ADMIN only)',
   })
-  @ApiCreatedResponse({ description: 'Tạo variant (kèm inventory) thành công' })
+  @ApiCreatedResponse({ description: 'Variant created (with its inventory row)' })
   createVariant(@Param('id', ParseUUIDPipe) productId: string, @Body() createVariantDto: CreateVariantDto) {
     return this.productsService.createVariant(productId, createVariantDto);
   }
 
   @Get(':id/variants')
   @ApiOperation({ summary: 'List variants of a product (paginated, public)' })
-  @ApiOkResponse({ description: 'Danh sách variant của 1 product' })
+  @ApiOkResponse({ description: 'Paginated list of variants for the product' })
   findAllVariants(@Param('id', ParseUUIDPipe) productId: string, @Query() pagination: PaginationDto) {
     return this.productsService.findAllVariants(productId, pagination);
   }
 
   @Get(':id/variants/:variantId')
   @ApiOperation({ summary: 'Get a variant by id, scoped to its parent product (public)' })
-  @ApiOkResponse({ description: 'Chi tiết 1 variant' })
+  @ApiOkResponse({ description: 'Variant detail' })
   findOneVariant(@Param('id', ParseUUIDPipe) productId: string, @Param('variantId', ParseUUIDPipe) variantId: string) {
     return this.productsService.findOneVariant(productId, variantId);
   }
@@ -117,7 +117,7 @@ export class ProductsController {
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a variant (STORE_MANAGER/MASTER_ADMIN only)' })
-  @ApiOkResponse({ description: 'Cập nhật variant thành công' })
+  @ApiOkResponse({ description: 'Variant updated' })
   updateVariant(
     @Param('id', ParseUUIDPipe) productId: string,
     @Param('variantId', ParseUUIDPipe) variantId: string,
@@ -132,7 +132,7 @@ export class ProductsController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a variant, cascading to its inventory (STORE_MANAGER/MASTER_ADMIN only)' })
-  @ApiNoContentResponse({ description: 'Xoá variant thành công' })
+  @ApiNoContentResponse({ description: 'Variant deleted' })
   removeVariant(@Param('id', ParseUUIDPipe) productId: string, @Param('variantId', ParseUUIDPipe) variantId: string) {
     return this.productsService.removeVariant(productId, variantId);
   }
