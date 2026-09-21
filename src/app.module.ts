@@ -8,6 +8,7 @@ import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MetricsModule } from './metrics/metrics.module.js';
+import { CategoriesModule } from './categories/categories.module.js';
 import { validate } from './config/env.validation.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { RequestIdMiddleware } from './common/request-id.middleware.js';
@@ -22,6 +23,7 @@ import { RequestIdMiddleware } from './common/request-id.middleware.js';
     AuthModule,
     HealthModule,
     MetricsModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [
