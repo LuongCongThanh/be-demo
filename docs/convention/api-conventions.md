@@ -627,7 +627,7 @@ Swagger đã bật sẵn trong `main.ts`, xem tại `http://localhost:3000/api`.
 export class AuthController { ... }
 ```
 
-Nếu cần mô tả thêm ngữ cảnh cho cả nhóm (không chỉ 1 dòng tên), khai kèm ở `main.ts` qua `DocumentBuilder.addTag(name, description)`, dùng đúng tên tag đã khai ở `@ApiTags()` để 2 bên khớp nhau:
+**Bắt buộc khai `DocumentBuilder.addTag(name, description)` ở `main.ts` cho mọi module** — không chỉ khi "cần mô tả thêm". `@ApiTags()` chỉ cho 1 cái tên nhóm (title); `description` là câu tóm tắt module đó làm gì, hiển thị ngay đầu nhóm route trong Swagger UI, giúp người đọc (kể cả người ngoài team) hiểu phạm vi module mà không cần mở từng route. `name` truyền vào `addTag()` phải khớp **chính xác** chuỗi đã khai ở `@ApiTags()` (phân biệt hoa/thường, dấu cách) — lệch tên thì Swagger UI hiển thị nhóm đó không có mô tả, không báo lỗi:
 
 ```ts
 // src/main.ts
@@ -636,8 +636,11 @@ const config = new DocumentBuilder()
     'Authentication & Authorization',
     'Register, email verification, login/refresh/logout, and role/ownership-based access control',
   )
+  .addTag('categories', 'Product category CRUD — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public')
   .build();
 ```
+
+> Nếu resource CRUD đơn giản chỉ dùng path số nhiều trần làm tag (`@ApiTags('resources')`), description vẫn bắt buộc — 1 câu ngắn nói rõ resource đó quản lý gì và có ràng buộc quyền gì đáng chú ý (public/protected, role nào), không cần dài dòng như module nghiệp vụ phức tạp (`auth`).
 
 **`@ApiOperation({ summary: '...' })`: bắt buộc cho mọi route, không chỉ resource CRUD đơn giản.** Tên route + HTTP method (`POST /categories`) không tự nói lên nghiệp vụ thật (vd. route trả 404 hay 200 khi rỗng? side-effect nào xảy ra? ai được gọi?). `summary` là 1 câu ngắn ở thì mệnh lệnh, mô tả đúng hành vi — không lặp lại tên method (`create()` → không viết summary là `"Create"`, mà là `"Create a new category"` hoặc cụ thể hơn nếu có business rule đáng chú ý):
 
@@ -856,7 +859,7 @@ Một API được coi là **xong**, không phải "code chạy được", khi t
 - Lỗi được map đúng HTTP status (không rơi vào `500` cho case đã biết trước)
 - Response contract rõ ràng — không rò field nhạy cảm không cố ý
 - Test pass: service unit test (nếu có business logic) + e2e (nếu là endpoint public/quan trọng)
-- Swagger phản ánh đúng request/response thật (có `type:`, không chỉ `description`), mỗi route có `@ApiOperation({ summary })`, mỗi field DTO client gửi lên có `example:` (xem [§B12](#b12-swagger--openapi))
+- Swagger phản ánh đúng request/response thật (có `type:`, không chỉ `description`), mỗi route có `@ApiOperation({ summary })`, mỗi field DTO client gửi lên có `example:`, module có tag title + description khớp nhau giữa `@ApiTags()` và `main.ts` `addTag()` (xem [§B12](#b12-swagger--openapi))
 - `npm run lint` + `npm run format` + `npm run build` sạch
 - PR đã mở, review xong (`ship-pr` skill)
 
@@ -877,7 +880,7 @@ Checklist chi tiết bên dưới là cách để đạt Definition of Done này
 - [ ] Response DTO (allow-list) nếu model có field nhạy cảm; `@Exclude` chấp nhận được cho resource nhỏ ổn định
 - [ ] Swagger có `type:` cho response (`@ApiOkResponse`/`@ApiCreatedResponse`), không chỉ `description`
 - [ ] Mỗi route có `@ApiOperation({ summary: '...' })` mô tả đúng hành vi, không lặp lại tên method (xem [§B12](#b12-swagger--openapi))
-- [ ] `@ApiTags()` đủ nghĩa nếu tên path là viết tắt/không tự giải thích (xem [§B12](#b12-swagger--openapi))
+- [ ] `@ApiTags()` đủ nghĩa nếu tên path là viết tắt/không tự giải thích; `main.ts` có `addTag(name, description)` khớp tên với `@ApiTags()`, mọi module đều phải có (xem [§B12](#b12-swagger--openapi))
 - [ ] Pagination + `@Max(limit)` cho mọi `findAll()` — kể cả resource ít bản ghi, để giữ response shape nhất quán (xem [§B13](#b13-pagination-cho-findall))
 - [ ] Đã đi qua [Authorization checkpoint](#b10-authorization-checkpoint)
 - [ ] `npm run test` (unit) pass
