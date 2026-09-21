@@ -163,6 +163,20 @@ describe('Categories (e2e)', () => {
     expect(patchRes.body.slug).toContain('after');
   });
 
+  it('PATCH /api/v1/categories/:id with an explicit null name returns 400, not 500', async () => {
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} NullName ${Date.now()}` })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/categories/${createRes.body.id}`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: null })
+      .expect(400);
+  });
+
   it('DELETE /api/v1/categories/:id as MASTER_ADMIN returns 409 via the service pre-check when a product still references it', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/categories')
