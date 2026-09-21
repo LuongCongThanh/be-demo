@@ -26,7 +26,9 @@ export class CreateVariantDto {
 
   @ApiProperty({ example: 199000 })
   @IsNotEmpty()
-  @IsNumber()
+  // Map tới cột Decimal(12,2) — chặn client gửi quá 2 số thập phân thay vì
+  // để Postgres tự làm tròn âm thầm.
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   price: number;
 
