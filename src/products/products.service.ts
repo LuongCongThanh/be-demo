@@ -1,8 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
-import { Prisma } from '../generated/prisma/client.js';
 import type { Product, ProductVariant } from '../generated/prisma/client.js';
-import { getUniqueConstraintTarget } from '../common/prisma-error.util.js';
+import { writeUnique } from '../common/prisma-error.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
@@ -27,7 +26,7 @@ export class ProductsService {
       throw new ConflictException(`Product name "${createProductDto.name}" already exists`);
     }
 
-    return this.writeUnique(
+    return writeUnique(
       () => this.prisma.product.create({ data: { ...createProductDto, slug } }),
       'slug',
       `Product name "${createProductDto.name}" already exists`,
@@ -82,7 +81,7 @@ export class ProductsService {
     // Nhánh P2002-trên-'slug' trong writeUnique() chỉ có thể trigger khi data.slug
     // được set ở trên, tức updateProductDto.name luôn có giá trị ở đây — message
     // dưới đây không bao giờ in "undefined".
-    return this.writeUnique(
+    return writeUnique(
       () => this.prisma.product.update({ where: { id }, data }),
       'slug',
       `Product name "${updateProductDto.name}" already exists`,
@@ -106,7 +105,7 @@ export class ProductsService {
     // cùng không tồn tại — không có trạng thái "có variant nhưng thiếu
     // inventory" (Mục 3 tài liệu kiến trúc). Inventory module (Phase 4) chỉ
     // đọc/điều chỉnh dòng này, không phải nơi tạo dòng đầu tiên.
-    return this.writeUnique(
+    return writeUnique(
       () =>
         this.prisma.$transaction(async (tx) => {
           const variant = await tx.productVariant.create({ data: { ...createVariantDto, productId } });
@@ -163,7 +162,7 @@ export class ProductsService {
       }
     }
 
-    return this.writeUnique(
+    return writeUnique(
       () => this.prisma.productVariant.update({ where: { id: variantId }, data: updateVariantDto }),
       'sku',
       `SKU "${updateVariantDto.sku}" already exists`,
@@ -174,27 +173,6 @@ export class ProductsService {
     await this.findOneVariant(productId, variantId); // xác nhận đúng cặp (variantId, productId)
     // Where theo variantId là đủ — xem comment ở updateVariant() cho lý do.
     await this.prisma.productVariant.delete({ where: { id: variantId } });
-  }
-
-  // Pre-check unique ở mỗi caller chỉ chặn được phần lớn trường hợp trùng
-  // — 2 request gần như đồng thời vẫn có thể cùng pass pre-check (race
-  // window), nên unique constraint của DB mới là chốt chặn thật sự. Helper
-  // này chạy write thật, và nếu DB từ chối đúng bằng P2002 trên field kỳ
-  // vọng, dịch nó thành cùng 1 lỗi 409 thân thiện như pre-check — thay vì
-  // để rơi xuống message thô của Prisma qua AllExceptionsFilter.
-  private async writeUnique<T>(write: () => Promise<T>, uniqueField: string, conflictMessage: string): Promise<T> {
-    try {
-      return await write();
-    } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002' &&
-        getUniqueConstraintTarget(err)?.includes(uniqueField)
-      ) {
-        throw new ConflictException(conflictMessage);
-      }
-      throw err;
-    }
   }
 
   private toSlug(name: string): string {

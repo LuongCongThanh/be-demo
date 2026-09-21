@@ -1,6 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
+import { Prisma } from '../generated/prisma/client.js';
 import type { Category } from '../generated/prisma/client.js';
+import { writeUnique } from '../common/prisma-error.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { PaginationDto } from './dto/pagination.dto.js';
@@ -20,7 +22,11 @@ export class CategoriesService {
       throw new ConflictException(`Category name "${createCategoryDto.name}" already exists`);
     }
 
-    return this.prisma.category.create({ data: { ...createCategoryDto, slug } });
+    return writeUnique(
+      () => this.prisma.category.create({ data: { ...createCategoryDto, slug } }),
+      'slug',
+      `Category name "${createCategoryDto.name}" already exists`,
+    );
   }
 
   async findAll(pagination: PaginationDto) {
@@ -63,7 +69,14 @@ export class CategoriesService {
       data.slug = slug;
     }
 
-    return this.prisma.category.update({ where: { id }, data });
+    // Nhánh P2002-trên-'slug' trong writeUnique() chỉ có thể trigger khi
+    // data.slug được set ở trên, tức updateCategoryDto.name luôn có giá trị
+    // ở đây — message dưới đây không bao giờ in "undefined".
+    return writeUnique(
+      () => this.prisma.category.update({ where: { id }, data }),
+      'slug',
+      `Category name "${updateCategoryDto.name}" already exists`,
+    );
   }
 
   async remove(id: string): Promise<void> {
@@ -80,7 +93,19 @@ export class CategoriesService {
       throw new ConflictException(`Category still has ${productCount} product(s) — reassign them before deleting`);
     }
 
-    await this.prisma.category.delete({ where: { id } });
+    // TOCTOU: pre-check ở trên thấy 0 product, nhưng 1 request khác có thể
+    // tạo/gán product vào category này ngay trước dòng delete() bên dưới —
+    // pre-check không bắt được race window này, chỉ FK constraint (P2003) ở
+    // DB mới chặn được thật. Dịch nó thành cùng 1 lỗi 409 thân thiện như
+    // pre-check, thay vì để rơi xuống message generic của AllExceptionsFilter.
+    try {
+      await this.prisma.category.delete({ where: { id } });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
+        throw new ConflictException('Category still has product(s) — reassign them before deleting');
+      }
+      throw err;
+    }
   }
 
   private toSlug(name: string): string {

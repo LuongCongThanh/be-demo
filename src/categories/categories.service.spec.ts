@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CategoriesService } from './categories.service.js';
 
@@ -56,6 +57,19 @@ describe('CategoriesService', () => {
       await expect(service.create({ name: '!!!' })).rejects.toThrow(BadRequestException);
       expect(prismaMock.category.findUnique).not.toHaveBeenCalled();
       expect(prismaMock.category.create).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictException when create() races another request past the pre-check and hits P2002 on slug', async () => {
+      prismaMock.category.findUnique.mockResolvedValue(null); // pre-check passes
+      prismaMock.category.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: ['slug'] },
+        }),
+      );
+
+      await expect(service.create({ name: 'Shoes' })).rejects.toThrow(ConflictException);
     });
   });
 
@@ -147,6 +161,21 @@ describe('CategoriesService', () => {
       await expect(service.update('1', { name: '!!!' })).rejects.toThrow(BadRequestException);
       expect(prismaMock.category.update).not.toHaveBeenCalled();
     });
+
+    it('throws ConflictException when update() races another request past the pre-check and hits P2002 on slug', async () => {
+      prismaMock.category.findUnique
+        .mockResolvedValueOnce({ id: '1', name: 'Shoes', slug: 'shoes' }) // findOne() pre-fetch
+        .mockResolvedValueOnce(null); // slug uniqueness pre-check passes
+      prismaMock.category.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: ['slug'] },
+        }),
+      );
+
+      await expect(service.update('1', { name: 'Sneakers' })).rejects.toThrow(ConflictException);
+    });
   });
 
   describe('remove', () => {
@@ -177,6 +206,21 @@ describe('CategoriesService', () => {
       prismaMock.category.delete.mockRejectedValue(notFoundError);
 
       await expect(service.remove('missing-id')).rejects.toThrow(notFoundError);
+    });
+
+    // TOCTOU: product.count() thấy 0, nhưng 1 product mới được tạo/gán vào
+    // category này ngay trước khi delete() chạy — pre-check không bắt được
+    // race window này, chỉ FK constraint (P2003) ở DB mới chặn được thật.
+    it('throws ConflictException when delete() races a concurrent insert and hits P2003', async () => {
+      prismaMock.product.count.mockResolvedValue(0); // pre-check thấy 0, race xảy ra ngay sau đó
+      prismaMock.category.delete.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed', {
+          code: 'P2003',
+          clientVersion: 'test',
+        }),
+      );
+
+      await expect(service.remove('1')).rejects.toThrow(ConflictException);
     });
   });
 });
