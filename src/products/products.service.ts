@@ -1,10 +1,11 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
-import type { Product } from '../generated/prisma/client.js';
+import type { Product, ProductVariant } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 import { ListProductsQueryDto } from './dto/list-products-query.dto.js';
+import { CreateVariantDto } from './dto/create-variant.dto.js';
 
 @Injectable()
 export class ProductsService {
@@ -73,5 +74,24 @@ export class ProductsService {
   async remove(id: string): Promise<void> {
     await this.findOne(id);
     await this.prisma.product.delete({ where: { id } });
+  }
+
+  async createVariant(productId: string, createVariantDto: CreateVariantDto): Promise<ProductVariant> {
+    await this.findOne(productId); // 404 nếu product không tồn tại
+
+    const existing = await this.prisma.productVariant.findUnique({ where: { sku: createVariantDto.sku } });
+    if (existing) {
+      throw new ConflictException(`SKU "${createVariantDto.sku}" already exists`);
+    }
+
+    // Transaction: variant và inventory (quantity=0) phải cùng tồn tại hoặc
+    // cùng không tồn tại — không có trạng thái "có variant nhưng thiếu
+    // inventory" (Mục 3 tài liệu kiến trúc). Inventory module (Phase 4) chỉ
+    // đọc/điều chỉnh dòng này, không phải nơi tạo dòng đầu tiên.
+    return this.prisma.$transaction(async (tx) => {
+      const variant = await tx.productVariant.create({ data: { ...createVariantDto, productId } });
+      await tx.inventory.create({ data: { variantId: variant.id, quantity: 0, reservedQuantity: 0 } });
+      return variant;
+    });
   }
 }

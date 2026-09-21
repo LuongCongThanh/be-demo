@@ -99,4 +99,43 @@ describe('ProductsService', () => {
       expect(prismaMock.product.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
     });
   });
+
+  describe('createVariant', () => {
+    it('ném NotFoundException khi productId không tồn tại', async () => {
+      prismaMock.product.findUnique.mockResolvedValue(null);
+
+      await expect(service.createVariant('missing-product-id', { sku: 'SKU-1', price: 100000 })).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('ném ConflictException khi trùng sku', async () => {
+      prismaMock.product.findUnique.mockResolvedValue({ id: 'p1' });
+      prismaMock.productVariant.findUnique.mockResolvedValue({ id: 'existing-variant', sku: 'SKU-1' });
+
+      await expect(service.createVariant('p1', { sku: 'SKU-1', price: 100000 })).rejects.toThrow(ConflictException);
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('tạo variant + inventory (quantity=0) trong cùng 1 transaction', async () => {
+      prismaMock.product.findUnique.mockResolvedValue({ id: 'p1' });
+      prismaMock.productVariant.findUnique.mockResolvedValue(null);
+
+      const createdVariant = { id: 'v1', productId: 'p1', sku: 'SKU-1', price: 100000 };
+      const txVariantCreate = vi.fn().mockResolvedValue(createdVariant);
+      const txInventoryCreate = vi
+        .fn()
+        .mockResolvedValue({ id: 'inv1', variantId: 'v1', quantity: 0, reservedQuantity: 0 });
+      prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
+        callback({ productVariant: { create: txVariantCreate }, inventory: { create: txInventoryCreate } }),
+      );
+
+      const result = await service.createVariant('p1', { sku: 'SKU-1', price: 100000 });
+
+      expect(txVariantCreate).toHaveBeenCalledWith({ data: { sku: 'SKU-1', price: 100000, productId: 'p1' } });
+      expect(txInventoryCreate).toHaveBeenCalledWith({ data: { variantId: 'v1', quantity: 0, reservedQuantity: 0 } });
+      expect(result).toEqual(createdVariant);
+    });
+  });
 });
