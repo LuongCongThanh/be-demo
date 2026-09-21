@@ -12,7 +12,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
@@ -32,18 +39,21 @@ export class CategoriesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new category (STORE_MANAGER/MASTER_ADMIN only)' })
   @ApiCreatedResponse({ type: CategoryResponseDto })
   create(@Body() createCategoryDto: CreateCategoryDto) {
     return this.categoriesService.create(createCategoryDto);
   }
 
   @Get()
+  @ApiOperation({ summary: 'List categories (paginated, public)' })
   @ApiOkResponse({ type: PaginatedCategoryResponseDto })
   findAll(@Query() pagination: PaginationDto) {
     return this.categoriesService.findAll(pagination);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a category by id (public)' })
   @ApiOkResponse({ type: CategoryResponseDto })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.findOne(id);
@@ -53,6 +63,9 @@ export class CategoriesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update a category, regenerating its slug if the name changes (STORE_MANAGER/MASTER_ADMIN only)',
+  })
   @ApiOkResponse({ type: CategoryResponseDto })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
     return this.categoriesService.update(id, updateCategoryDto);
@@ -63,6 +76,10 @@ export class CategoriesController {
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary:
+      'Delete a category (blocked with 409 while any product still references it, STORE_MANAGER/MASTER_ADMIN only)',
+  })
   @ApiNoContentResponse({ description: 'Deleted' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.remove(id);
