@@ -67,4 +67,36 @@ describe('ProductsService', () => {
       expect(result.slug).toBe('ao-thun');
     });
   });
+
+  describe('findOne', () => {
+    it('ném NotFoundException khi không tìm thấy', async () => {
+      prismaMock.product.findUnique.mockResolvedValue(null);
+      await expect(service.findOne('missing-id')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('update', () => {
+    it('sinh lại slug khi đổi name, chặn trùng (loại trừ chính record đang sửa)', async () => {
+      prismaMock.product.findUnique
+        .mockResolvedValueOnce({ id: 'p1', name: 'Áo cũ', slug: 'ao-cu', categoryId: 'cat-1' }) // pre-fetch trong update()
+        .mockResolvedValueOnce({ id: 'p1', slug: 'ao-moi' }); // check trùng slug mới — trùng chính nó, phải bỏ qua
+      prismaMock.product.update.mockResolvedValue({ id: 'p1', name: 'Áo mới', slug: 'ao-moi' });
+
+      const result = await service.update('p1', { name: 'Áo mới' });
+
+      expect(prismaMock.product.update).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        data: { name: 'Áo mới', slug: 'ao-moi' },
+      });
+      expect(result.slug).toBe('ao-moi');
+    });
+  });
+
+  describe('remove', () => {
+    it('xoá product sau khi xác nhận tồn tại', async () => {
+      prismaMock.product.findUnique.mockResolvedValue({ id: 'p1' });
+      await service.remove('p1');
+      expect(prismaMock.product.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
+    });
+  });
 });
