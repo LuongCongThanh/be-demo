@@ -4,12 +4,12 @@ import { ProductStatus } from '../../generated/prisma/enums.js';
 import { PaginationDto } from './pagination.dto.js';
 
 export class ListProductsQueryDto extends PaginationDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000' })
   @IsOptional()
   @IsUUID()
   categoryId?: string;
 
-  @ApiPropertyOptional({ enum: ProductStatus })
+  @ApiPropertyOptional({ enum: ProductStatus, example: ProductStatus.ACTIVE })
   @IsOptional()
   @IsEnum(ProductStatus)
   status?: ProductStatus;

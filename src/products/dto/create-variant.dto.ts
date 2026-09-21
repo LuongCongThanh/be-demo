@@ -2,25 +2,29 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsOptional, IsString, Min, MaxLength } from 'class-validator';
 
 export class CreateVariantDto {
-  @ApiProperty({ maxLength: 100, description: 'Client tự đặt theo quy ước riêng của store — không tự sinh' })
+  @ApiProperty({
+    maxLength: 100,
+    description: 'Client tự đặt theo quy ước riêng của store — không tự sinh',
+    example: 'TSHIRT-BLK-M',
+  })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
   sku: string;
 
-  @ApiPropertyOptional({ maxLength: 50 })
+  @ApiPropertyOptional({ maxLength: 50, example: 'Black' })
   @IsOptional()
   @IsString()
   @MaxLength(50)
   color?: string;
 
-  @ApiPropertyOptional({ maxLength: 50 })
+  @ApiPropertyOptional({ maxLength: 50, example: 'M' })
   @IsOptional()
   @IsString()
   @MaxLength(50)
   size?: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 199000 })
   @IsNotEmpty()
   @IsNumber()
   @Min(0)

@@ -4,7 +4,7 @@ import { VariantStatus } from '../../generated/prisma/enums.js';
 import { CreateVariantDto } from './create-variant.dto.js';
 
 export class UpdateVariantDto extends PartialType(CreateVariantDto) {
-  @ApiPropertyOptional({ enum: VariantStatus })
+  @ApiPropertyOptional({ enum: VariantStatus, example: VariantStatus.INACTIVE })
   @IsOptional()
   @IsEnum(VariantStatus)
   status?: VariantStatus;
