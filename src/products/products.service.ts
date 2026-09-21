@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
 import type { Product, ProductVariant } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -19,7 +19,7 @@ export class ProductsService {
       throw new NotFoundException(`Category #${createProductDto.categoryId} not found`);
     }
 
-    const slug = slugify(createProductDto.name, { lower: true, locale: 'vi', strict: true });
+    const slug = this.toSlug(createProductDto.name);
     const existing = await this.prisma.product.findUnique({ where: { slug } });
     if (existing) {
       throw new ConflictException(`Product name "${createProductDto.name}" already exists`);
@@ -62,7 +62,7 @@ export class ProductsService {
 
     const data: UpdateProductDto & { slug?: string } = { ...updateProductDto };
     if (updateProductDto.name) {
-      const slug = slugify(updateProductDto.name, { lower: true, locale: 'vi', strict: true });
+      const slug = this.toSlug(updateProductDto.name);
       const existing = await this.prisma.product.findUnique({ where: { slug } });
       if (existing && existing.id !== id) {
         throw new ConflictException(`Product name "${updateProductDto.name}" already exists`);
@@ -141,5 +141,17 @@ export class ProductsService {
   async removeVariant(productId: string, variantId: string): Promise<void> {
     await this.findOneVariant(productId, variantId);
     await this.prisma.productVariant.delete({ where: { id: variantId } });
+  }
+
+  private toSlug(name: string): string {
+    const slug = slugify(name, { lower: true, locale: 'vi', strict: true });
+    // Tên chỉ gồm ký tự đặc biệt/dấu câu (vd. "!!!") vẫn qua được @IsNotEmpty()
+    // (đã trim ở DTO) nhưng slugify trả về "" — nếu cho lọt qua, product đầu
+    // tiên kiểu này sẽ có slug rỗng và mọi tên "vô nghĩa" sau đó sẽ bị báo
+    // trùng tên (409) dù nhìn không giống nhau chút nào.
+    if (!slug) {
+      throw new BadRequestException(`Product name "${name}" does not produce a valid slug`);
+    }
+    return slug;
   }
 }

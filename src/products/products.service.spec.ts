@@ -1,4 +1,4 @@
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ProductsService } from './products.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -66,6 +66,18 @@ describe('ProductsService', () => {
       });
       expect(result.slug).toBe('ao-thun');
     });
+
+    // Tên chỉ gồm ký tự đặc biệt/dấu câu (vd. "!!!") không bị @IsNotEmpty()
+    // chặn (đã trim ở DTO, chuỗi trimmed không rỗng) nhưng slugify() trả về
+    // "" — phải chặn ở service, nếu không product đầu tiên kiểu này sẽ có
+    // slug rỗng và mọi tên "vô nghĩa" khác sau đó bị báo trùng tên sai.
+    it('ném BadRequestException khi name sinh ra slug rỗng', async () => {
+      prismaMock.category.findUnique.mockResolvedValue({ id: 'cat-1' });
+
+      await expect(service.create({ name: '!!!', categoryId: 'cat-1' })).rejects.toThrow(BadRequestException);
+      expect(prismaMock.product.findUnique).not.toHaveBeenCalled();
+      expect(prismaMock.product.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('findOne', () => {
@@ -89,6 +101,18 @@ describe('ProductsService', () => {
         data: { name: 'Áo mới', slug: 'ao-moi' },
       });
       expect(result.slug).toBe('ao-moi');
+    });
+
+    it('ném BadRequestException khi name mới sinh ra slug rỗng', async () => {
+      prismaMock.product.findUnique.mockResolvedValueOnce({
+        id: 'p1',
+        name: 'Áo cũ',
+        slug: 'ao-cu',
+        categoryId: 'cat-1',
+      }); // findOne() pre-fetch trong update()
+
+      await expect(service.update('p1', { name: '!!!' })).rejects.toThrow(BadRequestException);
+      expect(prismaMock.product.update).not.toHaveBeenCalled();
     });
   });
 
