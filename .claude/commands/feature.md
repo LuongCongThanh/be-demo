@@ -1,5 +1,5 @@
 ---
-description: "Discover → Spec → (Tickets) → Implement/TDD → Verify cho một feature/fix, theo Matt Pocock skill family, trước khi chạy /ship (Review → Ship). Dùng $ARGUMENTS làm mô tả yêu cầu."
+description: 'Discover → Spec → (Tickets) → Implement/TDD → Verify cho một feature/fix, theo Matt Pocock skill family, trước khi chạy /ship (Review → Ship). Dùng $ARGUMENTS làm mô tả yêu cầu.'
 ---
 
 `/feature` dùng một skill family duy nhất — **Matt Pocock** (`grill-with-docs → to-spec → to-tickets → implement → tdd`) — để giữ tính nhất quán về state/artifact/naming giữa các bước, không trộn với methodology của Superpowers. Chỉ mượn từ Superpowers các skill **utility trung lập** (không cạnh tranh phase nào): `using-git-worktrees`, `systematic-debugging`, `verification-before-completion`, `subagent-driven-development`.
@@ -12,21 +12,21 @@ Nếu task **không có business rule/behavior mới cần làm rõ** (migrate l
 
 ## Bảng routing skill
 
-| Tình huống | Skill |
-| --- | --- |
-| Hiểu codebase/requirement trước khi code | `mattpocock-skills:grill-with-docs` |
-| Khảo sát rộng code hiện có | agent `Explore` |
-| Domain rule/entity/quan hệ chưa rõ | `mattpocock-skills:domain-modeling` |
-| Chốt spec — nguồn plan duy nhất | `mattpocock-skills:to-spec` |
-| Phản biện spec/draft trước khi trình user | `mattpocock-skills:grilling` |
-| Chia nhỏ việc lớn thành ticket (vertical slice) | `mattpocock-skills:to-tickets` |
-| Tách work khỏi working tree hiện tại | `using-git-worktrees` |
-| Thực thi implement theo spec/ticket | `mattpocock-skills:implement` |
-| Viết code theo TDD | `mattpocock-skills:tdd` |
-| Việc độc lập theo trách nhiệm/vertical slice | `subagent-driven-development` |
-| Lỗi kỹ thuật/tooling bất ngờ | `systematic-debugging` |
-| Bug nghiệp vụ chưa rõ root cause | `mattpocock-skills:diagnosing-bugs` |
-| Trước khi báo "xong" | `verification-before-completion` |
+| Tình huống                                      | Skill                               |
+| ----------------------------------------------- | ----------------------------------- |
+| Hiểu codebase/requirement trước khi code        | `mattpocock-skills:grill-with-docs` |
+| Khảo sát rộng code hiện có                      | agent `Explore`                     |
+| Domain rule/entity/quan hệ chưa rõ              | `mattpocock-skills:domain-modeling` |
+| Chốt spec — nguồn plan duy nhất                 | `mattpocock-skills:to-spec`         |
+| Phản biện spec/draft trước khi trình user       | `mattpocock-skills:grilling`        |
+| Chia nhỏ việc lớn thành ticket (vertical slice) | `mattpocock-skills:to-tickets`      |
+| Tách work khỏi working tree hiện tại            | `using-git-worktrees`               |
+| Thực thi implement theo spec/ticket             | `mattpocock-skills:implement`       |
+| Viết code theo TDD                              | `mattpocock-skills:tdd`             |
+| Việc độc lập theo trách nhiệm/vertical slice    | `subagent-driven-development`       |
+| Lỗi kỹ thuật/tooling bất ngờ                    | `systematic-debugging`              |
+| Bug nghiệp vụ chưa rõ root cause                | `mattpocock-skills:diagnosing-bugs` |
+| Trước khi báo "xong"                            | `verification-before-completion`    |
 
 ## Invariant
 
@@ -97,3 +97,10 @@ Tách work khỏi working tree hiện tại trước khi implement — **một w
 Khi Verify xong cho toàn bộ feature (Medium: 1 slice; Large: tất cả ticket trong cùng worktree), báo user và gợi ý chạy `/ship` (review đầy đủ + rebase + PR nằm ở đó, không lặp lại ở `/feature`).
 
 Ghi chú: verify ở bước 6 và verify trong `/ship` là hai state khác nhau — sau review fix/rebase/resolve conflict, `/ship` verify lại từ đầu, không dùng lại kết quả verify cũ của `/feature`.
+
+### 7. Remember (tuỳ chọn, sau khi Verify pass)
+
+Không phải phase family cạnh tranh với Matt Pocock (không tạo plan/spec mới) — chỉ ghi lại vào memory system sẵn có những gì **bất ngờ/non-obvious** vừa phát sinh trong Discover/Specify/Implement, để lần sau khỏi research lại hoặc lặp lại sai lầm/quyết định đã chốt. Ví dụ: domain rule dễ hiểu sai, convention hay bị áp dụng nhầm, quyết định user chốt khác với giả định ban đầu, root cause bất ngờ của bug.
+
+- Không có gì bất ngờ đáng ghi → bỏ qua bước này, không ép viết memory cho việc hiển nhiên.
+- Có → ghi 1-2 memory ngắn (loại `feedback` hoặc `project` tuỳ nội dung), không lặp lại thứ đã derive được từ code/spec/git history.
