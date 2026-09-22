@@ -71,6 +71,7 @@ jobs:
       - run: npm ci
       - run: npx prisma generate --schema prisma/schema
       - run: npx prisma migrate deploy
+      - run: npm run db:seed
       - run: npm run test:e2e
 
   build:

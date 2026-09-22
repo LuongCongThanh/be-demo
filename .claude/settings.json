@@ -1,7 +1,4 @@
 {
-  "enabledPlugins": {
-    "mattpocock-skills@mattpocock": true
-  },
   "permissions": {
     "allow": ["Bash(pnpm typecheck)", "Bash(pnpm lint)", "Bash(pnpm test)", "mcp__claude_ai_Figma__get_screenshot"]
   },
