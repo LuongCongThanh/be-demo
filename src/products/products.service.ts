@@ -162,6 +162,10 @@ export class ProductsService {
       }
     }
 
+    // Nhánh P2002-trên-'sku' trong writeUnique() chỉ có thể trigger khi
+    // updateVariantDto.sku có giá trị (data không chứa sku thì không thể vi
+    // phạm unique constraint của sku) — message dưới đây không bao giờ in
+    // "undefined". Cùng lý do đã áp dụng cho update() ở trên với 'slug'.
     return writeUnique(
       () => this.prisma.productVariant.update({ where: { id: variantId }, data: updateVariantDto }),
       'sku',
