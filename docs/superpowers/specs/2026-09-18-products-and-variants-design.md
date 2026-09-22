@@ -18,7 +18,7 @@ Tài liệu kiến trúc (Mục 8) tự ghi nhận 2 quyết định còn mở c
 
 - **Product images / Object Storage** — upload ảnh, chọn ảnh primary, chọn storage provider (S3/MinIO/local disk) — sub-project riêng, brainstorm sau.
 - **Inventory API** (`GET`/`PATCH /inventory/:variantId/adjust`) — thuộc Phase 4 (Mục 22), không phải phạm vi module này. Module này chỉ _tạo_ dòng inventory ban đầu, không expose endpoint đọc/sửa nó.
-- **Cart/Order tham chiếu variant** — Cart/Orders là Phase 4/5, chưa tồn tại lúc module này build; mọi cân nhắc về "xoá variant đang được Cart/Order tham chiếu" chưa áp dụng được ở đây (xem Mục 6 — Non-goals hiện tại, cần rà soát lại khi Cart/Orders build).
+- **Cart/Order API** — module/service `Cart`/`Orders` là Phase 4/5, chưa build lúc module này build. Model `CartItem`/`OrderItem` **đã tồn tại trong schema** (cùng migration `20260910101956_init` với `Product`/`ProductVariant`) với FK `variant_id → product_variants` là `ON DELETE RESTRICT` — xem Mục 4.5, hành vi xoá variant/product khi có cart/order tham chiếu **đã được DB chặn sẵn**, không phải khoảng trống chờ Phase 4/5.
 - **Search/filter nâng cao** (full-text search sản phẩm) — Mục 19 để dành cho Phase 9 khi có nhu cầu đo được.
 
 ## 4. Kiến trúc & quyết định đã chốt
@@ -69,7 +69,14 @@ await this.prisma.$transaction(async (tx) => {
 
 ### 4.5 Xoá Product / Variant
 
-Schema hiện tại đã có `onDelete: Cascade` từ `ProductVariant`/`ProductImage` → `Product`, và từ `Inventory` → `ProductVariant` — xoá Product cascade xoá variant + inventory của nó, không cần thêm logic chặn nào ở Phase 2 (khác với Category→Product, vốn dùng RESTRICT có chủ đích — ADR 0001). Lý do khác biệt: Cart/Order (nơi thật sự cần bảo vệ dữ liệu lịch sử) chưa tồn tại ở Phase 2, nên chưa có rủi ro mất dữ liệu giao dịch khi xoá variant/product. **Cần rà soát lại quyết định này khi Cart (Phase 4) và Orders (Phase 5) được build** — lúc đó `cart_items`/`order_items` có thể tham chiếu variant, và cascade delete từ Product có thể cần đổi thành RESTRICT giống Category, hoặc chặn ở tầng service.
+Schema hiện tại có `onDelete: Cascade` từ `ProductVariant`/`ProductImage` → `Product`, và từ `Inventory` → `ProductVariant` — xoá Product tự cascade xoá variant "mồ côi" (không ai tham chiếu) + inventory của nó.
+
+_Đã kiểm chứng lại (không phải giả định):_ `CartItem.variant`/`OrderItem.variant` → `product_variants` **không** cascade — migration `20260910101956_init` sinh `ON DELETE RESTRICT` cho cả hai (mặc định implicit của Prisma cho required relation khi `schema.prisma` không khai `onDelete`, xem `prisma/schema/schema.prisma` model `CartItem`/`OrderItem`). Nghĩa là: xoá một `ProductVariant` (trực tiếp, hoặc gián tiếp qua cascade từ xoá `Product`) đang có `cart_items`/`order_items` tham chiếu **đã bị Postgres chặn ngay từ bây giờ**, không phải chờ tới khi Cart/Orders (Phase 4/5) build — hai model đó đã tồn tại trong schema từ migration ban đầu, chỉ _module/service_ của chúng chưa build. Lỗi FK vi phạm rơi vào Prisma `P2003`, được `AllExceptionsFilter` map sẵn thành `409` (theo `docs/convention/error-logging-conventions.md`) — không rơi xuống 500 thô.
+
+Vẫn có 2 việc nhỏ đáng làm (không thuộc scope Phase 2, ghi lại để không quên):
+
+1. Khai tường minh `onDelete: Restrict` trên `CartItem.variant`/`OrderItem.variant` trong `schema.prisma`, khớp đúng SQL đã tạo — hiện đang ăn theo default, vi phạm quy tắc "`onDelete` luôn khai rõ tay" (`docs/convention/ecommerce-prisma-schema-guide.md`). Đổi kiểu này không sinh migration mới (SQL không đổi).
+2. `409` hiện tại là message Prisma dịch chung (generic), không phải domain message rõ ràng kiểu "Không thể xoá sản phẩm/biến thể đang có trong giỏ hàng/đơn hàng" — cân nhắc thêm khi Cart/Orders service (Phase 4/5) build, lúc đó mới có ngữ cảnh để viết message chính xác.
 
 ## 5. Testing
 
