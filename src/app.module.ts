@@ -12,6 +12,7 @@ import { CategoriesModule } from './categories/categories.module.js';
 import { validate } from './config/env.validation.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { RequestIdMiddleware } from './common/request-id.middleware.js';
+import { ProductsModule } from './products/products.module.js';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { RequestIdMiddleware } from './common/request-id.middleware.js';
     HealthModule,
     MetricsModule,
     CategoriesModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [
