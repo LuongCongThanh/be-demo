@@ -1,6 +1,8 @@
 # Products + Product Variants — Design Spec
 
 > Phase 2 (Mục 22) — phần còn lại sau Categories (`docs/categories-module-plan.md`). Không bao gồm product images/Object Storage — đó là sub-project riêng, brainstorm sau khi module này xong.
+>
+> **Cập nhật:** §4.1 (API surface), §4.3, §4.5 ("Xoá Product/Variant") của doc này đã được thiết kế lại — xem GitHub issue [#23](https://github.com/LuongCongThanh/be-demo/issues/23) cho spec đầy đủ (nested `variants[]` khi tạo/sửa product, `PATCH` full-sync + soft-delete qua `VariantStatus.DISCONTINUED`, bỏ các route ghi variant lẻ). Các phần còn lại của doc này (Product CRUD, slug generation, category FK check) vẫn đúng, không đổi.
 
 ## 1. Bối cảnh & vấn đề
 

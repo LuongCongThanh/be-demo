@@ -11,6 +11,7 @@ enum ProductStatus {
 enum VariantStatus {
   ACTIVE
   INACTIVE
+  DISCONTINUED
 }
 
 enum CartStatus {
