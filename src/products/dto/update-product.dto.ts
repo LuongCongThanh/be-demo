@@ -19,7 +19,10 @@ import { HasUniqueVariantSkus } from '../validators/unique-variant-skus.validato
 // của PATCH (`UpdateVariantEntryDto`, có `id` optional) không phải subtype
 // của kiểu phần tử lúc tạo (`CreateVariantDto`), nên không thể `declare`
 // override trực tiếp field kế thừa từ PartialType(CreateProductDto) (TS2416).
-export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['variants'] as const)) {
+// `images` cũng bị omit — PATCH không hỗ trợ batch images như lúc tạo, ảnh
+// sau khi product tồn tại quản lý qua API riêng (attach/delete/set-primary),
+// xem docs/superpowers/specs 2026-09-18-product-images-object-storage-design.md.
+export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['variants', 'images'] as const)) {
   // Override `name` thay vì để nguyên field @IsOptional() PartialType tự sinh —
   // cùng lý do đã áp dụng ở UpdateCategoryDto: @IsOptional() coi `null` như
   // "absent" nên { "name": null } lọt qua validation rồi Prisma từ chối `null`

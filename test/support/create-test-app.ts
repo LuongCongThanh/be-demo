@@ -4,6 +4,8 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppModule } from '@src/app.module.js';
 import { EmailThrottlerGuard } from '@src/auth/guards/email-throttler.guard.js';
 import { configureApp } from '@src/bootstrap/configure-app.js';
+import { OBJECT_STORAGE_SERVICE } from '@src/products/object-storage/object-storage.service.js';
+import { FakeObjectStorageService } from '@src/products/object-storage/fake-object-storage.service.js';
 
 const ALWAYS_ALLOW = { canActivate: () => true };
 
@@ -18,7 +20,13 @@ const ALWAYS_ALLOW = { canActivate: () => true };
  * Rate limiting itself is verified for real, unstubbed, in
  * `auth-rate-limiting.e2e-spec.ts`.
  */
-export async function createTestApp(): Promise<{ app: INestApplication; moduleFixture: TestingModule }> {
+export async function createTestApp(): Promise<{
+  app: INestApplication;
+  moduleFixture: TestingModule;
+  objectStorage: FakeObjectStorageService;
+}> {
+  const objectStorage = new FakeObjectStorageService();
+
   const moduleFixture = await Test.createTestingModule({
     imports: [AppModule],
   })
@@ -30,11 +38,18 @@ export async function createTestApp(): Promise<{ app: INestApplication; moduleFi
     .useValue(ALWAYS_ALLOW)
     .overrideGuard(EmailThrottlerGuard)
     .useValue(ALWAYS_ALLOW)
+    // Fake in-memory object storage — avoids depending on a real MinIO
+    // instance in CI just to exercise business logic (validate/attach/
+    // primary-swap). Real storage is covered by S3ObjectStorageService's own
+    // unit tests (policy shape) — see docs/superpowers/specs
+    // 2026-09-18-product-images-object-storage-design.md §4.3.
+    .overrideProvider(OBJECT_STORAGE_SERVICE)
+    .useValue(objectStorage)
     .compile();
 
   const app = moduleFixture.createNestApplication();
   configureApp(app);
   await app.init();
 
-  return { app, moduleFixture };
+  return { app, moduleFixture, objectStorage };
 }

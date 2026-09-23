@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator';
 import { CreateVariantDto } from './create-variant.dto.js';
+import { AttachImageDto } from './attach-image.dto.js';
 import { HasUniqueVariantSkus } from '../validators/unique-variant-skus.validator.js';
 
 export class CreateProductDto {
@@ -36,4 +37,16 @@ export class CreateProductDto {
   @Type(() => CreateVariantDto)
   @HasUniqueVariantSkus()
   variants?: CreateVariantDto[];
+
+  @ApiPropertyOptional({
+    type: [AttachImageDto],
+    description:
+      'Images tạo kèm ngay khi tạo product (key lấy từ POST /products/images/presign) — không ai isPrimary → phần tử đầu tự động primary; ≥2 phần tử cùng isPrimary → 400',
+    example: [{ key: 'products/uploads/abc.jpg', altText: 'Front view' }],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AttachImageDto)
+  images?: AttachImageDto[];
 }

@@ -1,6 +1,6 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
-import type { Product, ProductVariant } from '../generated/prisma/client.js';
+import type { Product, ProductImage, ProductVariant } from '../generated/prisma/client.js';
 import { VariantStatus } from '../generated/prisma/enums.js';
 import { writeUnique } from '../common/prisma-error.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -10,13 +10,22 @@ import { ListProductsQueryDto } from './dto/list-products-query.dto.js';
 import { CreateVariantDto } from './dto/create-variant.dto.js';
 import { UpdateVariantEntryDto } from './dto/update-variant-entry.dto.js';
 import { ListVariantsQueryDto } from './dto/list-variants-query.dto.js';
+import { ProductImagesService } from './product-images.service.js';
+import { OBJECT_STORAGE_SERVICE } from './object-storage/object-storage.service.js';
+import type { ObjectStorageService } from './object-storage/object-storage.service.js';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly productImagesService: ProductImagesService,
+    @Inject(OBJECT_STORAGE_SERVICE) private readonly storage: ObjectStorageService,
+  ) {}
 
-  async create(createProductDto: CreateProductDto): Promise<Product & { variants: ProductVariant[] }> {
-    const { variants, ...productFields } = createProductDto;
+  async create(
+    createProductDto: CreateProductDto,
+  ): Promise<Product & { variants: ProductVariant[]; images: ProductImage[] }> {
+    const { variants, images, ...productFields } = createProductDto;
 
     const category = await this.prisma.category.findUnique({ where: { id: productFields.categoryId } });
     if (!category) {
@@ -36,30 +45,53 @@ export class ProductsService {
       }
     }
 
-    if (!variants || variants.length === 0) {
+    // resolveBatchPrimary() cũng là nơi validate ≥2 ảnh cùng isPrimary → 400 —
+    // chạy trước khi mở transaction, cùng tinh thần với pre-check sku ở trên.
+    const resolvedImages = images ? this.productImagesService.resolveBatchPrimary(images) : [];
+
+    if ((!variants || variants.length === 0) && resolvedImages.length === 0) {
       return writeUnique(
-        () => this.prisma.product.create({ data: { ...productFields, slug }, include: { variants: true } }),
+        () =>
+          this.prisma.product.create({
+            data: { ...productFields, slug },
+            include: { variants: true, images: true },
+          }),
         'slug',
         `Product name "${productFields.name}" already exists`,
       );
     }
 
-    // Product + variants + inventory (quantity=0) phải cùng thành công hoặc
-    // cùng thất bại như 1 đơn vị — không có trạng thái "product đã tạo nhưng
-    // thiếu vài variant" (docs/superpowers/specs 2026-09-18-products-and-variants-design.md).
+    // Product + variants + inventory (quantity=0) + images phải cùng thành
+    // công hoặc cùng thất bại như 1 đơn vị — không có trạng thái "product đã
+    // tạo nhưng thiếu vài variant/ảnh" (docs/superpowers/specs
+    // 2026-09-18-products-and-variants-design.md).
     return writeUnique(
       () =>
         this.prisma.$transaction(async (tx) => {
           const product = await tx.product.create({ data: { ...productFields, slug } });
-          for (const variant of variants) {
+          for (const variant of variants ?? []) {
             const created = await tx.productVariant.create({ data: { ...variant, productId: product.id } });
             await tx.inventory.create({ data: { variantId: created.id, quantity: 0, reservedQuantity: 0 } });
           }
-          // Refetch trong cùng transaction để response embed đúng variants
-          // vừa tạo — `product` ở trên chỉ có field của chính nó, chưa có
-          // quan hệ (variants được tạo sau, không thể `include` ngược lại).
-          // Non-null: vừa create() ở trên trong cùng transaction, chắc chắn tồn tại.
-          return (await tx.product.findUnique({ where: { id: product.id }, include: { variants: true } }))!;
+          for (const image of resolvedImages) {
+            await tx.productImage.create({
+              data: {
+                productId: product.id,
+                url: this.storage.publicUrl(image.key),
+                altText: image.altText,
+                isPrimary: image.isPrimary,
+              },
+            });
+          }
+          // Refetch trong cùng transaction để response embed đúng
+          // variants/images vừa tạo — `product` ở trên chỉ có field của
+          // chính nó, chưa có quan hệ (được tạo sau, không thể `include`
+          // ngược lại). Non-null: vừa create() ở trên trong cùng
+          // transaction, chắc chắn tồn tại.
+          return (await tx.product.findUnique({
+            where: { id: product.id },
+            include: { variants: true, images: true },
+          }))!;
         }),
       'slug',
       `Product name "${productFields.name}" already exists`,
@@ -77,7 +109,7 @@ export class ProductsService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        include: { variants: true },
+        include: { variants: true, images: true },
       }),
       this.prisma.product.count({ where }),
     ]);
@@ -88,7 +120,7 @@ export class ProductsService {
     // Luôn embed variants (kể cả DISCONTINUED, không lọc mặc định) — xem
     // docs/superpowers/specs 2026-09-18-products-and-variants-design.md,
     // mục "GET .../variants embedded".
-    const product = await this.prisma.product.findUnique({ where: { id }, include: { variants: true } });
+    const product = await this.prisma.product.findUnique({ where: { id }, include: { variants: true, images: true } });
     if (!product) {
       throw new NotFoundException(`Product #${id} not found`);
     }
@@ -122,7 +154,7 @@ export class ProductsService {
       // được set ở trên, tức updateProductDto.name luôn có giá trị ở đây — message
       // dưới đây không bao giờ in "undefined".
       updatedProduct = await writeUnique(
-        () => this.prisma.product.update({ where: { id }, data, include: { variants: true } }),
+        () => this.prisma.product.update({ where: { id }, data, include: { variants: true, images: true } }),
         'slug',
         `Product name "${updateProductDto.name}" already exists`,
       );

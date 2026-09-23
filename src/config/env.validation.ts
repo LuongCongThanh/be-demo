@@ -70,6 +70,26 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsString()
   FRONTEND_URL?: string;
+
+  @IsString()
+  @MinLength(1)
+  S3_ENDPOINT: string;
+
+  @IsString()
+  @MinLength(1)
+  S3_BUCKET: string;
+
+  @IsString()
+  @MinLength(1)
+  S3_REGION: string;
+
+  @IsString()
+  @MinLength(1)
+  S3_ACCESS_KEY_ID: string;
+
+  @IsString()
+  @MinLength(1)
+  S3_SECRET_ACCESS_KEY: string;
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {

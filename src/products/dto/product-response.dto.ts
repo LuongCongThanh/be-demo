@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProductStatus } from '../../generated/prisma/enums.js';
+import { VariantResponseDto } from './variant-response.dto.js';
+import { ImageResponseDto } from './image-response.dto.js';
 
 export class ProductResponseDto {
   @ApiProperty()
@@ -25,4 +27,10 @@ export class ProductResponseDto {
 
   @ApiProperty()
   updatedAt: Date;
+
+  @ApiProperty({ type: [VariantResponseDto] })
+  variants: VariantResponseDto[];
+
+  @ApiProperty({ type: [ImageResponseDto] })
+  images: ImageResponseDto[];
 }

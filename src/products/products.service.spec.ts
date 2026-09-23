@@ -4,9 +4,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductsService } from './products.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { OBJECT_STORAGE_SERVICE } from './object-storage/object-storage.service.js';
+import { ProductImagesService } from './product-images.service.js';
 
 describe('ProductsService', () => {
   let service: ProductsService;
+  const productImagesServiceMock = {
+    resolveBatchPrimary: vi.fn((entries: { key: string; altText?: string; isPrimary?: boolean }[]) => {
+      const hasExplicit = entries.some((e) => e.isPrimary);
+      return entries.map((e, i) => ({ ...e, isPrimary: hasExplicit ? Boolean(e.isPrimary) : i === 0 }));
+    }),
+  };
+  const storageMock = {
+    presignBatch: vi.fn(),
+    delete: vi.fn(),
+    publicUrl: vi.fn((key: string) => `https://fake-storage.local/${key}`),
+    keyFromUrl: vi.fn(),
+  };
   const prismaMock = {
     category: { findUnique: vi.fn() },
     product: {
@@ -31,11 +45,23 @@ describe('ProductsService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [ProductsService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        ProductsService,
+        { provide: PrismaService, useValue: prismaMock },
+        { provide: ProductImagesService, useValue: productImagesServiceMock },
+        { provide: OBJECT_STORAGE_SERVICE, useValue: storageMock },
+      ],
     }).compile();
 
     service = moduleRef.get(ProductsService);
     vi.clearAllMocks();
+    storageMock.publicUrl.mockImplementation((key: string) => `https://fake-storage.local/${key}`);
+    productImagesServiceMock.resolveBatchPrimary.mockImplementation(
+      (entries: { key: string; altText?: string; isPrimary?: boolean }[]) => {
+        const hasExplicit = entries.some((e) => e.isPrimary);
+        return entries.map((e, i) => ({ ...e, isPrimary: hasExplicit ? Boolean(e.isPrimary) : i === 0 }));
+      },
+    );
   });
 
   describe('create', () => {
@@ -65,7 +91,7 @@ describe('ProductsService', () => {
 
       expect(prismaMock.product.create).toHaveBeenCalledWith({
         data: { name: 'Áo Thun', categoryId: 'cat-1', slug: 'ao-thun' },
-        include: { variants: true },
+        include: { variants: true, images: true },
       });
       expect(result.slug).toBe('ao-thun');
     });
@@ -77,7 +103,7 @@ describe('ProductsService', () => {
       await service.findAll({ page: 1, limit: 10 });
 
       expect(prismaMock.product.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ include: { variants: true } }),
+        expect.objectContaining({ include: { variants: true, images: true } }),
       );
     });
 
@@ -125,6 +151,42 @@ describe('ProductsService', () => {
       expect(txInventoryCreate).toHaveBeenCalledWith({ data: { variantId: 'v1', quantity: 0, reservedQuantity: 0 } });
       expect(result.variants).toEqual([{ id: 'v1', productId: 'p1', sku: 'SKU-1', price: 100000 }]);
     });
+
+    it('creates the product with images, resolving the primary and persisting all rows in the same transaction', async () => {
+      prismaMock.category.findUnique.mockResolvedValue({ id: 'cat-1' });
+      prismaMock.product.findUnique.mockResolvedValue(null);
+
+      const createdProduct = { id: 'p1', name: 'Áo Thun', slug: 'ao-thun', categoryId: 'cat-1' };
+      const txProductCreate = vi.fn().mockResolvedValue(createdProduct);
+      const txProductFindUnique = vi.fn().mockResolvedValue({ ...createdProduct, variants: [], images: [] });
+      const txImageCreate = vi.fn().mockResolvedValue({ id: 'img1' });
+      prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
+        callback({
+          product: { create: txProductCreate, findUnique: txProductFindUnique },
+          productImage: { create: txImageCreate },
+        }),
+      );
+
+      await service.create({
+        name: 'Áo Thun',
+        categoryId: 'cat-1',
+        images: [
+          { key: 'k1', altText: 'Front' },
+          { key: 'k2', isPrimary: true },
+        ],
+      });
+
+      expect(productImagesServiceMock.resolveBatchPrimary).toHaveBeenCalledWith([
+        { key: 'k1', altText: 'Front' },
+        { key: 'k2', isPrimary: true },
+      ]);
+      expect(txImageCreate).toHaveBeenCalledWith({
+        data: { productId: 'p1', url: 'https://fake-storage.local/k1', altText: 'Front', isPrimary: false },
+      });
+      expect(txImageCreate).toHaveBeenCalledWith({
+        data: { productId: 'p1', url: 'https://fake-storage.local/k2', altText: undefined, isPrimary: true },
+      });
+    });
   });
 
   describe('findOne', () => {
@@ -138,7 +200,10 @@ describe('ProductsService', () => {
 
       await service.findOne('p1');
 
-      expect(prismaMock.product.findUnique).toHaveBeenCalledWith({ where: { id: 'p1' }, include: { variants: true } });
+      expect(prismaMock.product.findUnique).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        include: { variants: true, images: true },
+      });
     });
   });
 
@@ -154,7 +219,7 @@ describe('ProductsService', () => {
       expect(prismaMock.product.update).toHaveBeenCalledWith({
         where: { id: 'p1' },
         data: { name: 'Áo mới', slug: 'ao-moi' },
-        include: { variants: true },
+        include: { variants: true, images: true },
       });
       expect(result.slug).toBe('ao-moi');
     });
