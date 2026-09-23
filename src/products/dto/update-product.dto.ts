@@ -13,6 +13,7 @@ import {
 import { ProductStatus } from '../../generated/prisma/enums.js';
 import { CreateProductDto } from './create-product.dto.js';
 import { UpdateVariantEntryDto } from './update-variant-entry.dto.js';
+import { HasUniqueVariantSkus } from '../validators/unique-variant-skus.validator.js';
 
 // `variants` bị omit khỏi base rồi khai lại riêng bên dưới — kiểu phần tử
 // của PATCH (`UpdateVariantEntryDto`, có `id` optional) không phải subtype
@@ -51,5 +52,6 @@ export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['v
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateVariantEntryDto)
+  @HasUniqueVariantSkus()
   variants?: UpdateVariantEntryDto[];
 }

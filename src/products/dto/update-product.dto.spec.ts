@@ -49,4 +49,29 @@ describe('UpdateProductDto', () => {
     const errors = await validate(dto);
     expect(errors.some((e) => e.property === 'status')).toBe(true);
   });
+
+  // Cùng lý do đã áp dụng cho CreateProductDto.variants — 2 entry mới (không
+  // id) trùng sku trong cùng 1 PATCH request phải bị chặn 400 ở DTO, không để
+  // lọt xuống unique constraint của DB.
+  it('fails validation when two new (no-id) variants entries share the same sku', async () => {
+    const dto = plainToInstance(UpdateProductDto, {
+      variants: [
+        { sku: 'SKU-1', price: 100000 },
+        { sku: 'SKU-1', price: 120000 },
+      ],
+    });
+    const errors = await validate(dto);
+    expect(errors.some((e) => e.property === 'variants')).toBe(true);
+  });
+
+  it('passes validation when variants entries have distinct skus', async () => {
+    const dto = plainToInstance(UpdateProductDto, {
+      variants: [
+        { sku: 'SKU-1', price: 100000 },
+        { sku: 'SKU-2', price: 120000 },
+      ],
+    });
+    const errors = await validate(dto);
+    expect(errors).toHaveLength(0);
+  });
 });

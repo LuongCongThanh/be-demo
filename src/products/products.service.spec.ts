@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductsService } from './products.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { Prisma } from '../generated/prisma/client.js';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -224,6 +225,26 @@ describe('ProductsService', () => {
         BadRequestException,
       );
       expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws a friendly ConflictException (not a raw Prisma error) when a new variant entry races another request on sku', async () => {
+      prismaMock.product.findUnique.mockResolvedValueOnce({ id: 'p1', name: 'Áo', slug: 'ao', categoryId: 'cat-1' });
+      prismaMock.productVariant.findMany.mockResolvedValue([]);
+
+      const txVariantCreate = vi.fn().mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: ['sku'] },
+        }),
+      );
+      prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
+        callback({ productVariant: { create: txVariantCreate, update: vi.fn() }, inventory: { create: vi.fn() } }),
+      );
+
+      await expect(service.update('p1', { variants: [{ sku: 'SKU-RACE', price: 100000 }] })).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 

@@ -156,20 +156,35 @@ export class ProductsService {
     const incomingIds = new Set(entries.filter((e) => e.id).map((e) => e.id));
     const toDiscontinue = existing.filter((v) => !incomingIds.has(v.id));
 
-    await this.prisma.$transaction(async (tx) => {
-      for (const entry of entries) {
-        const { id, ...fields } = entry;
-        if (id) {
-          await tx.productVariant.update({ where: { id }, data: fields });
-        } else {
-          const created = await tx.productVariant.create({ data: { ...(fields as CreateVariantDto), productId } });
-          await tx.inventory.create({ data: { variantId: created.id, quantity: 0, reservedQuantity: 0 } });
-        }
-      }
-      for (const variant of toDiscontinue) {
-        await tx.productVariant.update({ where: { id: variant.id }, data: { status: VariantStatus.DISCONTINUED } });
-      }
-    });
+    // Bọc `writeUnique` quanh cả transaction — race window giữa pre-check
+    // existingIds ở trên và write thật vẫn tồn tại (2 request PATCH gần như
+    // đồng thời cùng thêm 1 sku mới), nên P2002 trên 'sku' phải dịch thành
+    // 409 rõ ràng thay vì rơi xuống message thô của Prisma qua
+    // AllExceptionsFilter (cùng lý do writeUnique đã áp dụng cho create()).
+    await writeUnique(
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          for (const entry of entries) {
+            const { id, ...fields } = entry;
+            if (id) {
+              await tx.productVariant.update({ where: { id }, data: fields });
+            } else {
+              const created = await tx.productVariant.create({
+                data: { ...(fields as CreateVariantDto), productId },
+              });
+              await tx.inventory.create({ data: { variantId: created.id, quantity: 0, reservedQuantity: 0 } });
+            }
+          }
+          for (const variant of toDiscontinue) {
+            await tx.productVariant.update({
+              where: { id: variant.id },
+              data: { status: VariantStatus.DISCONTINUED },
+            });
+          }
+        }),
+      'sku',
+      `SKU already exists`,
+    );
   }
 
   async remove(id: string): Promise<void> {
