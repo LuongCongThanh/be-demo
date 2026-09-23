@@ -1,3 +1,13 @@
+---
+decision_status: accepted
+implementation_status: implemented
+decided_at: 2026-09-17
+last_verified: 2026-09-23
+related_spec: ../specs/01-auth.md
+---
+
 # Dùng hợp đồng API versioned theo URI
 
 Hợp đồng HTTP công khai sẽ dùng global prefix `api` và Nest URI version `1`, tạo ra các route dưới dạng `/api/v1`. Việc versioning được đưa vào trước khi các module thương mại được triển khai để những thay đổi phá vỡ tương thích (breaking change) sau này có thể tồn tại song song thay vì phải thay thế toàn bộ route cùng lúc; các route `/auth/*` chưa versioned hiện tại sẽ được migrate thay vì giữ lại như alias vĩnh viễn. Swagger sẽ chuyển sang `/docs` để tài liệu không bị nhầm lẫn với API prefix.
+
+Đã xác minh trong bootstrap runtime, Swagger setup và versioning E2E test; `/auth/*` không còn là route hợp lệ.

@@ -1,3 +1,13 @@
-# Một outbox event chỉ "xong" khi có downstream acknowledgement, không phải khi enqueue
+---
+decision_status: accepted
+implementation_status: planned
+decided_at: 2026-09-17
+last_verified: 2026-09-23
+related_spec: ../specs/05-inventory.md
+---
 
-Một dòng outbox chỉ được đánh dấu hoàn tất khi tác dụng phụ downstream của nó (email, hóa đơn, vận chuyển, v.v.) xác nhận thành công hoặc đã dùng hết chính sách retry riêng của nó — không bao giờ tại thời điểm nó được đưa vào hàng đợi BullMQ. Việc đánh dấu "xong" ngay khi enqueue chính là nguồn gốc của một lỗ hổng không thể phục hồi: nếu Redis làm mất một job sau khi đã enqueue nhưng trước khi worker chạy nó, một dòng outbox kiểu "enqueue = xong" sẽ không bao giờ được retry hay phát hiện. Cách này tốn thêm một trạng thái riêng phân biệt "chưa enqueue" vs. "đã enqueue, đang chờ ack" vs. "đã xác nhận xong," cùng với một lượt quét đối chiếu (reconciliation sweep) cho các dòng bị kẹt ở "đang chờ ack," nhưng đây là điều duy nhất giúp một job bị mất có thể được phát hiện, thay vì âm thầm biến mất.
+# Outbox chỉ hoàn tất thành công sau downstream acknowledgement
+
+Một dòng outbox chỉ hoàn tất thành công (`ACKNOWLEDGED`) khi downstream xác nhận tác dụng phụ của nó; enqueue vào BullMQ không phải completion. Nếu dùng hết retry mà chưa có acknowledgement, dòng chuyển thành `DEAD_LETTER`, vẫn có thể quan sát/replay và không được gọi là "done". Nếu Redis làm mất job sau enqueue nhưng trước khi worker chạy, reconciliation sweep phải phát hiện dòng đang chờ acknowledgement và phục hồi nó.
+
+Chưa implement: chưa có Outbox schema, worker, acknowledgement protocol hoặc reconciliation sweep. Retention và dedup key theo consumer vẫn là quyết định implementation còn mở.

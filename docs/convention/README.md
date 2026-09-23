@@ -1,6 +1,6 @@
 # Convention — mục lục & thứ tự đọc
 
-Thư mục này chứa các convention **chung, generic** cho toàn bộ ecommerce project — mô tả _cách_ viết code (naming, cấu trúc, config, error handling, API flow, schema), không phải business rule của 1 resource cụ thể (business rule của từng resource sống ở tài liệu/plan riêng của resource đó, vd. `../categories-module-plan.md`).
+Thư mục này chứa các convention **chung, generic** cho toàn bộ ecommerce project — mô tả _cách_ viết code (naming, cấu trúc, config, error handling, API flow, schema), không phải business rule của 1 resource cụ thể (business rule sống trong [Module Specifications Index](../specs/MODULE-SPECS.md)).
 
 Đọc theo đúng thứ tự dưới đây nếu bạn mới vào project — mỗi mục sau dựa trên/tham chiếu ngược lại mục trước:
 
@@ -13,4 +13,4 @@ Thư mục này chứa các convention **chung, generic** cho toàn bộ ecommer
 | 5   | [ecommerce-prisma-schema-guide.md](ecommerce-prisma-schema-guide.md)   | Viết `schema.prisma` cho 15 bảng ecommerce từng bước, và cách dùng Prisma Client (CRUD, transaction, phân trang, N+1) trong NestJS                                                           | Khi cần model/quan hệ DB mới, hoặc tham chiếu từ `api-conventions.md` §B1 |
 | 6   | [git-workflow.md](git-workflow.md)                                     | Branching strategy (`main`/`dev`/`feature`/`fix`/`chore`/`docs`/`hotfix`), commit convention, PR & merge strategy                                                                            | Trước khi tạo branch/PR mới, hoặc khi cần tra quy tắc commit/merge        |
 
-Glossary thuật ngữ kỹ thuật (HTTP, NestJS, Auth, Prisma, testing...) nằm ở [`../auth-playbook/GLOSSARY.md`](../auth-playbook/GLOSSARY.md) — không phải ở thư mục này, vì nội dung viết riêng cho playbook Auth.
+Ngôn ngữ nghiệp vụ canonical nằm ở [`../../CONTEXT.md`](../../CONTEXT.md); trạng thái và kiến trúc tổng nằm ở [`../README.md`](../README.md).

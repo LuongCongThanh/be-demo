@@ -167,10 +167,10 @@ Pull Request nên:
 - Không còn unresolved conflict.
 - Được review trước khi merge (khi có từ 2 người trở lên tham gia repo).
 - Không chứa code/debug không cần thiết.
-- Pass CI **khi CI đã được thiết lập** (xem mục 14 — hiện tại repo chưa có CI).
+- Pass CI (workflow tại `.github/workflows/ci.yml`).
 
 ```text
-Feature Branch → Push → Pull Request → Code Review → (CI) → Approve → Merge → dev
+Feature Branch → Push → Pull Request → Code Review → CI → Approve → Merge → dev
 ```
 
 ---
@@ -314,9 +314,9 @@ Co-Authored-By: Claude
 
 ---
 
-## 14. CI & Branch Protection — TODO (chưa thiết lập)
+## 14. CI & Branch Protection
 
-> Hiện tại repo **chưa có** CI workflow (`.github/workflows`) và **chưa bật** Branch Protection trên GitHub cho `main`/`dev`. Mục này ghi lại **cấu hình mục tiêu** để thiết lập khi cần (ví dụ khi thêm CI hoặc khi có người khác cùng làm việc trên repo).
+Repo đã có CI workflow tại `.github/workflows/ci.yml`, chạy lint, typecheck, unit test, E2E, build và Docker build. Branch Protection cho `main`/`dev` vẫn cần cấu hình trên GitHub nếu chưa bật.
 
 Khi thiết lập, khuyến nghị bật Branch Protection cho `main` và `dev`:
 
@@ -324,7 +324,7 @@ Khi thiết lập, khuyến nghị bật Branch Protection cho `main` và `dev`:
 
 **`dev`**: Require Pull Request, Require CI checks, Block force push, Block direct push.
 
-Cho tới khi thiết lập xong, các quy tắc ở mục 6–8 (review, CI pass) mang tính khuyến nghị/tự giác, chưa được GitHub enforce.
+Nếu Branch Protection chưa được bật, các quy tắc review và CI pass vẫn mang tính tự giác dù workflow CI đã tồn tại.
 
 ---
 

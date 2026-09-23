@@ -1,5 +1,20 @@
 ## Agent skills
 
+### Start here
+
+- Package manager: **npm** (`package-lock.json` is authoritative). Do not use pnpm or yarn.
+- Install dependencies: `npm ci`.
+- Generate Prisma Client after install/schema changes: `npx prisma generate --schema prisma/schema`.
+- Run the standard quality gate: `npm run verify` (lint, typecheck, unit tests, build).
+- Run `npm run test:e2e` as well when a change touches the database, HTTP contracts, authentication, or a multi-step business flow. E2E requires the PostgreSQL/environment setup documented in `.env.example` and `docker-compose.yml`.
+- Before editing, read `CONTEXT.md`, the applicable file under `docs/convention/`, and relevant ADRs. Keep changes scoped; do not rewrite unrelated user work.
+
+### Reusable workflows
+
+- `/feature <request>`: discover, specify, implement with TDD, and verify a feature or fix.
+- `/verify`: run the repository quality gate and report failures with actionable context.
+- `/ship`: verify, review, rebase, push, and open a PR after implementation is complete.
+
 ### Issue tracker
 
 Issues live as GitHub Issues on this repo (`gh` CLI). See `docs/agents/issue-tracker.md`.

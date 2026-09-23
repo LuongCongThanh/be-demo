@@ -15,6 +15,7 @@
     "start:prod": "node dist/main",
     "lint": "oxlint src/ test/",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",

@@ -1,3 +1,13 @@
-# Dùng row lock cho Cart khi checkout, không dùng cột version kiểu optimistic
+---
+decision_status: accepted
+implementation_status: planned
+decided_at: 2026-09-17
+last_verified: 2026-09-23
+related_spec: ../specs/06-cart.md
+---
 
-Việc phối hợp giữa checkout và các CartItem mutation chạy đồng thời trên cùng một Cart dùng row lock (`SELECT ... FOR UPDATE` trên Cart lúc bắt đầu checkout), không dùng một cột `carts.version` kiểu optimistic-locking. Một Cart chỉ có đúng một chủ sở hữu (`carts.user_id` là unique cho mỗi Cart đang `ACTIVE`) và không có kịch bản nhiều agent hợp lệ cùng sửa một Cart, nên tranh chấp ở đây hiếm và ngắn hạn — một row lock thông thường đơn giản hơn việc thêm cột `version` cộng logic check-and-increment trên mọi CartItem mutation, và không cần migration mới (schema hiện tại không có cột `version` trên `carts`). Phương án optimistic version đã được cân nhắc và loại bỏ: nó là lựa chọn hợp lý hơn khi có nhiều actor cùng sửa một bản ghi (ví dụ tài liệu cộng tác), nhưng đó không phải tình huống của một giỏ hàng cá nhân.
+# Dùng shared Cart row-lock protocol, không dùng optimistic version
+
+Checkout và mọi CartItem mutation chạy đồng thời trên cùng Cart phải tuân theo một lock protocol: bắt đầu transaction, khóa cùng Cart row bằng `SELECT ... FOR UPDATE`, xác nhận Cart còn `ACTIVE`, rồi mới đọc/thay đổi Cart Items hoặc chuyển Cart sang `CHECKED_OUT`. Chỉ khóa ở Checkout là không đủ để serialize mutation trên child rows.
+
+Không dùng `carts.version` kiểu optimistic locking: một Cart chỉ có một chủ sở hữu, tranh chấp hiếm và ngắn hạn, nên shared row lock đơn giản hơn check-and-increment trên mọi mutation. Chưa implement: schema có Cart/Cart Item nhưng chưa có module, checkout hay concurrency test.
