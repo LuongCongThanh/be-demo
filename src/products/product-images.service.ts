@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { ProductImage } from '../generated/prisma/client.js';
+import type { Prisma, ProductImage } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { OBJECT_STORAGE_SERVICE } from './object-storage/object-storage.service.js';
 import type { ObjectStorageService, PresignedUploadTarget } from './object-storage/object-storage.service.js';
@@ -64,7 +64,7 @@ export class ProductImagesService {
     // isPrimary=true, tránh khoảnh khắc 2 ảnh cùng primary (partial unique
     // index `product_images_product_id_primary_unique`).
     return this.prisma.$transaction(async (tx) => {
-      await tx.productImage.updateMany({ where: { productId, isPrimary: true }, data: { isPrimary: false } });
+      await this.unsetExistingPrimary(tx, productId);
       return tx.productImage.create({ data: { productId, url, altText: dto.altText, isPrimary: true } });
     });
   }
@@ -85,9 +85,17 @@ export class ProductImagesService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.productImage.updateMany({ where: { productId, isPrimary: true }, data: { isPrimary: false } });
+      await this.unsetExistingPrimary(tx, productId);
       return tx.productImage.update({ where: { id: imageId }, data: { isPrimary: true } });
     });
+  }
+
+  // Dùng chung bởi attachImage()/setPrimary() — cả 2 đều cần "unset ảnh
+  // primary cũ trước khi set/tạo ảnh mới" trong cùng transaction, tránh
+  // khoảnh khắc 2 ảnh cùng primary (partial unique index
+  // `product_images_product_id_primary_unique`).
+  private async unsetExistingPrimary(tx: Prisma.TransactionClient, productId: string): Promise<void> {
+    await tx.productImage.updateMany({ where: { productId, isPrimary: true }, data: { isPrimary: false } });
   }
 
   async removeImage(productId: string, imageId: string): Promise<void> {

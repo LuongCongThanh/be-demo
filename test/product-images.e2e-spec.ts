@@ -90,6 +90,21 @@ describe('Product Images (e2e)', () => {
     expect(res.body[0]).toMatchObject({ key: expect.any(String), uploadUrl: expect.any(String) });
   });
 
+  it('a presigned target rejects an oversized upload and a wrong-content-type upload (policy enforcement)', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/products/images/presign')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ files: [{ filename: 'front.jpg', contentType: 'image/jpeg' }] })
+      .expect(201);
+    const target = res.body[0];
+
+    expect(() => objectStorage.simulateUpload(target, { sizeBytes: 1024, contentType: 'image/jpeg' })).not.toThrow();
+    expect(() =>
+      objectStorage.simulateUpload(target, { sizeBytes: 6 * 1024 * 1024, contentType: 'image/jpeg' }),
+    ).toThrow();
+    expect(() => objectStorage.simulateUpload(target, { sizeBytes: 1024, contentType: 'image/gif' })).toThrow();
+  });
+
   it('POST /api/v1/products with images[] persists rows atomically, embedded in the response', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/products')
