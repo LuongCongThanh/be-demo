@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductsService } from './products.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { Prisma } from '../generated/prisma/client.js';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -64,8 +65,20 @@ describe('ProductsService', () => {
 
       expect(prismaMock.product.create).toHaveBeenCalledWith({
         data: { name: 'Áo Thun', categoryId: 'cat-1', slug: 'ao-thun' },
+        include: { variants: true },
       });
       expect(result.slug).toBe('ao-thun');
+    });
+
+    it('finds all embeds variants for each product in the page', async () => {
+      prismaMock.product.findMany.mockResolvedValue([]);
+      prismaMock.product.count.mockResolvedValue(0);
+
+      await service.findAll({ page: 1, limit: 10 });
+
+      expect(prismaMock.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ include: { variants: true } }),
+      );
     });
 
     // Tên chỉ gồm ký tự đặc biệt/dấu câu (vd. "!!!") không bị @IsNotEmpty()
@@ -79,12 +92,53 @@ describe('ProductsService', () => {
       expect(prismaMock.product.findUnique).not.toHaveBeenCalled();
       expect(prismaMock.product.create).not.toHaveBeenCalled();
     });
+
+    it('creates the product, its variants, and their inventory rows in the same transaction', async () => {
+      prismaMock.category.findUnique.mockResolvedValue({ id: 'cat-1' });
+      prismaMock.product.findUnique.mockResolvedValue(null);
+      prismaMock.productVariant.findUnique.mockResolvedValue(null);
+
+      const createdProduct = { id: 'p1', name: 'Áo Thun', slug: 'ao-thun', categoryId: 'cat-1' };
+      const createdVariant = { id: 'v1', productId: 'p1', sku: 'SKU-1', price: 100000 };
+      const txProductCreate = vi.fn().mockResolvedValue(createdProduct);
+      const txProductFindUnique = vi.fn().mockResolvedValue({ ...createdProduct, variants: [createdVariant] });
+      const txVariantCreate = vi.fn().mockResolvedValue(createdVariant);
+      const txInventoryCreate = vi.fn().mockResolvedValue({ id: 'inv1', variantId: 'v1', quantity: 0 });
+      prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
+        callback({
+          product: { create: txProductCreate, findUnique: txProductFindUnique },
+          productVariant: { create: txVariantCreate },
+          inventory: { create: txInventoryCreate },
+        }),
+      );
+
+      const result = await service.create({
+        name: 'Áo Thun',
+        categoryId: 'cat-1',
+        variants: [{ sku: 'SKU-1', price: 100000 }],
+      });
+
+      expect(txProductCreate).toHaveBeenCalledWith({
+        data: { name: 'Áo Thun', categoryId: 'cat-1', slug: 'ao-thun' },
+      });
+      expect(txVariantCreate).toHaveBeenCalledWith({ data: { sku: 'SKU-1', price: 100000, productId: 'p1' } });
+      expect(txInventoryCreate).toHaveBeenCalledWith({ data: { variantId: 'v1', quantity: 0, reservedQuantity: 0 } });
+      expect(result.variants).toEqual([{ id: 'v1', productId: 'p1', sku: 'SKU-1', price: 100000 }]);
+    });
   });
 
   describe('findOne', () => {
     it('throws NotFoundException when not found', async () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
       await expect(service.findOne('missing-id')).rejects.toThrow(NotFoundException);
+    });
+
+    it('embeds variants (including discontinued) in the response', async () => {
+      prismaMock.product.findUnique.mockResolvedValue({ id: 'p1', variants: [{ id: 'v1', status: 'DISCONTINUED' }] });
+
+      await service.findOne('p1');
+
+      expect(prismaMock.product.findUnique).toHaveBeenCalledWith({ where: { id: 'p1' }, include: { variants: true } });
     });
   });
 
@@ -100,6 +154,7 @@ describe('ProductsService', () => {
       expect(prismaMock.product.update).toHaveBeenCalledWith({
         where: { id: 'p1' },
         data: { name: 'Áo mới', slug: 'ao-moi' },
+        include: { variants: true },
       });
       expect(result.slug).toBe('ao-moi');
     });
@@ -115,6 +170,82 @@ describe('ProductsService', () => {
       await expect(service.update('p1', { name: '!!!' })).rejects.toThrow(BadRequestException);
       expect(prismaMock.product.update).not.toHaveBeenCalled();
     });
+
+    it('leaves existing variants untouched when the variants field is omitted', async () => {
+      prismaMock.product.findUnique.mockResolvedValueOnce({ id: 'p1', name: 'Áo', slug: 'ao', categoryId: 'cat-1' });
+      prismaMock.product.update.mockResolvedValue({ id: 'p1', name: 'Áo mới' });
+
+      await service.update('p1', { name: 'Áo mới' });
+
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('reconciles a full variants array in one transaction: updates known ids, creates new entries, discontinues missing ones', async () => {
+      prismaMock.product.findUnique
+        .mockResolvedValueOnce({ id: 'p1', name: 'Áo', slug: 'ao', categoryId: 'cat-1' }) // pre-fetch trong update()
+        .mockResolvedValueOnce({ id: 'p1', name: 'Áo', slug: 'ao', categoryId: 'cat-1', variants: [] }); // re-fetch cuối cùng để trả response
+      prismaMock.productVariant.findMany.mockResolvedValue([
+        { id: 'v-keep', productId: 'p1', sku: 'SKU-KEEP' },
+        { id: 'v-retire', productId: 'p1', sku: 'SKU-RETIRE' },
+      ]);
+
+      const txVariantUpdate = vi.fn().mockResolvedValue({ id: 'v-keep', sku: 'SKU-KEEP', price: 150000 });
+      const txVariantCreate = vi.fn().mockResolvedValue({ id: 'v-new', sku: 'SKU-NEW', price: 90000 });
+      const txInventoryCreate = vi.fn().mockResolvedValue({ id: 'inv-new', variantId: 'v-new' });
+      prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
+        callback({
+          productVariant: { update: txVariantUpdate, create: txVariantCreate },
+          inventory: { create: txInventoryCreate },
+        }),
+      );
+
+      await service.update('p1', {
+        variants: [
+          { id: 'v-keep', sku: 'SKU-KEEP', price: 150000 },
+          { sku: 'SKU-NEW', price: 90000 },
+        ],
+      });
+
+      expect(txVariantUpdate).toHaveBeenCalledWith({
+        where: { id: 'v-keep' },
+        data: { sku: 'SKU-KEEP', price: 150000 },
+      });
+      expect(txVariantCreate).toHaveBeenCalledWith({ data: { sku: 'SKU-NEW', price: 90000, productId: 'p1' } });
+      expect(txInventoryCreate).toHaveBeenCalledWith({
+        data: { variantId: 'v-new', quantity: 0, reservedQuantity: 0 },
+      });
+      expect(txVariantUpdate).toHaveBeenCalledWith({ where: { id: 'v-retire' }, data: { status: 'DISCONTINUED' } });
+    });
+
+    it('rejects a variants entry whose id does not belong to this product', async () => {
+      prismaMock.product.findUnique.mockResolvedValueOnce({ id: 'p1', name: 'Áo', slug: 'ao', categoryId: 'cat-1' });
+      prismaMock.productVariant.findMany.mockResolvedValue([]);
+
+      await expect(service.update('p1', { variants: [{ id: 'foreign-variant', sku: 'X', price: 1 }] })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws a friendly ConflictException (not a raw Prisma error) when a new variant entry races another request on sku', async () => {
+      prismaMock.product.findUnique.mockResolvedValueOnce({ id: 'p1', name: 'Áo', slug: 'ao', categoryId: 'cat-1' });
+      prismaMock.productVariant.findMany.mockResolvedValue([]);
+
+      const txVariantCreate = vi.fn().mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: ['sku'] },
+        }),
+      );
+      prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
+        callback({ productVariant: { create: txVariantCreate, update: vi.fn() }, inventory: { create: vi.fn() } }),
+      );
+
+      await expect(service.update('p1', { variants: [{ sku: 'SKU-RACE', price: 100000 }] })).rejects.toThrow(
+        ConflictException,
+      );
+    });
   });
 
   describe('remove', () => {
@@ -125,42 +256,17 @@ describe('ProductsService', () => {
     });
   });
 
-  describe('createVariant', () => {
-    it('throws NotFoundException when productId does not exist', async () => {
-      prismaMock.product.findUnique.mockResolvedValue(null);
-
-      await expect(service.createVariant('missing-product-id', { sku: 'SKU-1', price: 100000 })).rejects.toThrow(
-        NotFoundException,
-      );
-      expect(prismaMock.$transaction).not.toHaveBeenCalled();
-    });
-
-    it('throws ConflictException when the sku already exists', async () => {
+  describe('findAllVariants', () => {
+    it('filters by status when provided', async () => {
       prismaMock.product.findUnique.mockResolvedValue({ id: 'p1' });
-      prismaMock.productVariant.findUnique.mockResolvedValue({ id: 'existing-variant', sku: 'SKU-1' });
+      prismaMock.productVariant.findMany.mockResolvedValue([]);
+      prismaMock.productVariant.count.mockResolvedValue(0);
 
-      await expect(service.createVariant('p1', { sku: 'SKU-1', price: 100000 })).rejects.toThrow(ConflictException);
-      expect(prismaMock.$transaction).not.toHaveBeenCalled();
-    });
+      await service.findAllVariants('p1', { page: 1, limit: 10, status: 'ACTIVE' });
 
-    it('creates the variant + inventory (quantity=0) in the same transaction', async () => {
-      prismaMock.product.findUnique.mockResolvedValue({ id: 'p1' });
-      prismaMock.productVariant.findUnique.mockResolvedValue(null);
-
-      const createdVariant = { id: 'v1', productId: 'p1', sku: 'SKU-1', price: 100000 };
-      const txVariantCreate = vi.fn().mockResolvedValue(createdVariant);
-      const txInventoryCreate = vi
-        .fn()
-        .mockResolvedValue({ id: 'inv1', variantId: 'v1', quantity: 0, reservedQuantity: 0 });
-      prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
-        callback({ productVariant: { create: txVariantCreate }, inventory: { create: txInventoryCreate } }),
+      expect(prismaMock.productVariant.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { productId: 'p1', status: 'ACTIVE' } }),
       );
-
-      const result = await service.createVariant('p1', { sku: 'SKU-1', price: 100000 });
-
-      expect(txVariantCreate).toHaveBeenCalledWith({ data: { sku: 'SKU-1', price: 100000, productId: 'p1' } });
-      expect(txInventoryCreate).toHaveBeenCalledWith({ data: { variantId: 'v1', quantity: 0, reservedQuantity: 0 } });
-      expect(result).toEqual(createdVariant);
     });
   });
 
@@ -171,32 +277,6 @@ describe('ProductsService', () => {
       prismaMock.productVariant.findFirst.mockResolvedValue(null);
 
       await expect(service.findOneVariant('p1', 'missing-variant')).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('updateVariant', () => {
-    it('rejects a duplicate sku when changing sku, excluding the record being updated from the duplicate check', async () => {
-      prismaMock.productVariant.findFirst.mockResolvedValueOnce({ id: 'v1', productId: 'p1', sku: 'SKU-OLD' });
-      prismaMock.productVariant.findUnique.mockResolvedValueOnce({ id: 'v1', sku: 'SKU-NEW' });
-      prismaMock.productVariant.update.mockResolvedValue({ id: 'v1', sku: 'SKU-NEW' });
-
-      const result = await service.updateVariant('p1', 'v1', { sku: 'SKU-NEW' });
-
-      expect(prismaMock.productVariant.update).toHaveBeenCalledWith({
-        where: { id: 'v1' },
-        data: { sku: 'SKU-NEW' },
-      });
-      expect(result.sku).toBe('SKU-NEW');
-    });
-  });
-
-  describe('removeVariant', () => {
-    it('deletes the variant after confirming it belongs to the right product', async () => {
-      prismaMock.productVariant.findFirst.mockResolvedValue({ id: 'v1', productId: 'p1' });
-
-      await service.removeVariant('p1', 'v1');
-
-      expect(prismaMock.productVariant.delete).toHaveBeenCalledWith({ where: { id: 'v1' } });
     });
   });
 });

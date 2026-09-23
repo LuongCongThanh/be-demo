@@ -1,35 +1,68 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
 import type { Product, ProductVariant } from '../generated/prisma/client.js';
+import { VariantStatus } from '../generated/prisma/enums.js';
 import { writeUnique } from '../common/prisma-error.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 import { ListProductsQueryDto } from './dto/list-products-query.dto.js';
 import { CreateVariantDto } from './dto/create-variant.dto.js';
-import { UpdateVariantDto } from './dto/update-variant.dto.js';
-import { PaginationDto } from './dto/pagination.dto.js';
+import { UpdateVariantEntryDto } from './dto/update-variant-entry.dto.js';
+import { ListVariantsQueryDto } from './dto/list-variants-query.dto.js';
 
 @Injectable()
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createProductDto: CreateProductDto): Promise<Product> {
-    const category = await this.prisma.category.findUnique({ where: { id: createProductDto.categoryId } });
+  async create(createProductDto: CreateProductDto): Promise<Product & { variants: ProductVariant[] }> {
+    const { variants, ...productFields } = createProductDto;
+
+    const category = await this.prisma.category.findUnique({ where: { id: productFields.categoryId } });
     if (!category) {
-      throw new NotFoundException(`Category #${createProductDto.categoryId} not found`);
+      throw new NotFoundException(`Category #${productFields.categoryId} not found`);
     }
 
-    const slug = this.toSlug(createProductDto.name);
+    const slug = this.toSlug(productFields.name);
     const existing = await this.prisma.product.findUnique({ where: { slug } });
     if (existing) {
-      throw new ConflictException(`Product name "${createProductDto.name}" already exists`);
+      throw new ConflictException(`Product name "${productFields.name}" already exists`);
     }
 
+    for (const variant of variants ?? []) {
+      const existingVariant = await this.prisma.productVariant.findUnique({ where: { sku: variant.sku } });
+      if (existingVariant) {
+        throw new ConflictException(`SKU "${variant.sku}" already exists`);
+      }
+    }
+
+    if (!variants || variants.length === 0) {
+      return writeUnique(
+        () => this.prisma.product.create({ data: { ...productFields, slug }, include: { variants: true } }),
+        'slug',
+        `Product name "${productFields.name}" already exists`,
+      );
+    }
+
+    // Product + variants + inventory (quantity=0) phải cùng thành công hoặc
+    // cùng thất bại như 1 đơn vị — không có trạng thái "product đã tạo nhưng
+    // thiếu vài variant" (docs/superpowers/specs 2026-09-18-products-and-variants-design.md).
     return writeUnique(
-      () => this.prisma.product.create({ data: { ...createProductDto, slug } }),
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          const product = await tx.product.create({ data: { ...productFields, slug } });
+          for (const variant of variants) {
+            const created = await tx.productVariant.create({ data: { ...variant, productId: product.id } });
+            await tx.inventory.create({ data: { variantId: created.id, quantity: 0, reservedQuantity: 0 } });
+          }
+          // Refetch trong cùng transaction để response embed đúng variants
+          // vừa tạo — `product` ở trên chỉ có field của chính nó, chưa có
+          // quan hệ (variants được tạo sau, không thể `include` ngược lại).
+          // Non-null: vừa create() ở trên trong cùng transaction, chắc chắn tồn tại.
+          return (await tx.product.findUnique({ where: { id: product.id }, include: { variants: true } }))!;
+        }),
       'slug',
-      `Product name "${createProductDto.name}" already exists`,
+      `Product name "${productFields.name}" already exists`,
     );
   }
 
@@ -44,14 +77,18 @@ export class ProductsService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        include: { variants: true },
       }),
       this.prisma.product.count({ where }),
     ]);
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  async findOne(id: string): Promise<Product> {
-    const product = await this.prisma.product.findUnique({ where: { id } });
+  async findOne(id: string): Promise<Product & { variants: ProductVariant[] }> {
+    // Luôn embed variants (kể cả DISCONTINUED, không lọc mặc định) — xem
+    // docs/superpowers/specs 2026-09-18-products-and-variants-design.md,
+    // mục "GET .../variants embedded".
+    const product = await this.prisma.product.findUnique({ where: { id }, include: { variants: true } });
     if (!product) {
       throw new NotFoundException(`Product #${id} not found`);
     }
@@ -68,7 +105,8 @@ export class ProductsService {
       }
     }
 
-    const data: UpdateProductDto & { slug?: string } = { ...updateProductDto };
+    const { variants, ...productFields } = updateProductDto;
+    const data: Omit<UpdateProductDto, 'variants'> & { slug?: string } = { ...productFields };
     if (updateProductDto.name) {
       const slug = this.toSlug(updateProductDto.name);
       const existing = await this.prisma.product.findUnique({ where: { slug } });
@@ -78,13 +116,74 @@ export class ProductsService {
       data.slug = slug;
     }
 
-    // Nhánh P2002-trên-'slug' trong writeUnique() chỉ có thể trigger khi data.slug
-    // được set ở trên, tức updateProductDto.name luôn có giá trị ở đây — message
-    // dưới đây không bao giờ in "undefined".
-    return writeUnique(
-      () => this.prisma.product.update({ where: { id }, data }),
-      'slug',
-      `Product name "${updateProductDto.name}" already exists`,
+    let updatedProduct = current;
+    if (Object.keys(data).length > 0) {
+      // Nhánh P2002-trên-'slug' trong writeUnique() chỉ có thể trigger khi data.slug
+      // được set ở trên, tức updateProductDto.name luôn có giá trị ở đây — message
+      // dưới đây không bao giờ in "undefined".
+      updatedProduct = await writeUnique(
+        () => this.prisma.product.update({ where: { id }, data, include: { variants: true } }),
+        'slug',
+        `Product name "${updateProductDto.name}" already exists`,
+      );
+    }
+
+    if (variants) {
+      await this.syncVariants(id, variants);
+      // Re-fetch để response phản ánh đúng variants sau khi reconcile (update
+      // ở trên có thể chưa chạy — data rỗng — hoặc đã chạy nhưng include cũ).
+      return this.findOne(id);
+    }
+
+    return updatedProduct;
+  }
+
+  // `variants` của PATCH /products/:id là full desired state (không phải
+  // patch từng phần tử) — xem docs/superpowers/specs
+  // 2026-09-18-products-and-variants-design.md, mục "PATCH .../variants".
+  // Vắng mặt trong mảng = discontinue (soft-delete), không hard-delete, để
+  // không vi phạm FK RESTRICT từ CartItem/OrderItem.
+  private async syncVariants(productId: string, entries: UpdateVariantEntryDto[]): Promise<void> {
+    const existing = await this.prisma.productVariant.findMany({ where: { productId } });
+    const existingIds = new Set(existing.map((v) => v.id));
+
+    for (const entry of entries) {
+      if (entry.id && !existingIds.has(entry.id)) {
+        throw new BadRequestException(`Variant #${entry.id} not found on product #${productId}`);
+      }
+    }
+
+    const incomingIds = new Set(entries.filter((e) => e.id).map((e) => e.id));
+    const toDiscontinue = existing.filter((v) => !incomingIds.has(v.id));
+
+    // Bọc `writeUnique` quanh cả transaction — race window giữa pre-check
+    // existingIds ở trên và write thật vẫn tồn tại (2 request PATCH gần như
+    // đồng thời cùng thêm 1 sku mới), nên P2002 trên 'sku' phải dịch thành
+    // 409 rõ ràng thay vì rơi xuống message thô của Prisma qua
+    // AllExceptionsFilter (cùng lý do writeUnique đã áp dụng cho create()).
+    await writeUnique(
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          for (const entry of entries) {
+            const { id, ...fields } = entry;
+            if (id) {
+              await tx.productVariant.update({ where: { id }, data: fields });
+            } else {
+              const created = await tx.productVariant.create({
+                data: { ...(fields as CreateVariantDto), productId },
+              });
+              await tx.inventory.create({ data: { variantId: created.id, quantity: 0, reservedQuantity: 0 } });
+            }
+          }
+          for (const variant of toDiscontinue) {
+            await tx.productVariant.update({
+              where: { id: variant.id },
+              data: { status: VariantStatus.DISCONTINUED },
+            });
+          }
+        }),
+      'sku',
+      `SKU already exists`,
     );
   }
 
@@ -93,37 +192,13 @@ export class ProductsService {
     await this.prisma.product.delete({ where: { id } });
   }
 
-  async createVariant(productId: string, createVariantDto: CreateVariantDto): Promise<ProductVariant> {
-    await this.findOne(productId); // 404 nếu product không tồn tại
-
-    const existing = await this.prisma.productVariant.findUnique({ where: { sku: createVariantDto.sku } });
-    if (existing) {
-      throw new ConflictException(`SKU "${createVariantDto.sku}" already exists`);
-    }
-
-    // Transaction: variant và inventory (quantity=0) phải cùng tồn tại hoặc
-    // cùng không tồn tại — không có trạng thái "có variant nhưng thiếu
-    // inventory" (Mục 3 tài liệu kiến trúc). Inventory module (Phase 4) chỉ
-    // đọc/điều chỉnh dòng này, không phải nơi tạo dòng đầu tiên.
-    return writeUnique(
-      () =>
-        this.prisma.$transaction(async (tx) => {
-          const variant = await tx.productVariant.create({ data: { ...createVariantDto, productId } });
-          await tx.inventory.create({ data: { variantId: variant.id, quantity: 0, reservedQuantity: 0 } });
-          return variant;
-        }),
-      'sku',
-      `SKU "${createVariantDto.sku}" already exists`,
-    );
-  }
-
   async findAllVariants(
     productId: string,
-    { page, limit }: PaginationDto,
+    { page, limit, status }: ListVariantsQueryDto,
   ): Promise<{ data: ProductVariant[]; meta: { page: number; limit: number; total: number; totalPages: number } }> {
     await this.findOne(productId); // 404 nếu product không tồn tại
 
-    const where = { productId };
+    const where = { productId, ...(status && { status }) };
     const [data, total] = await Promise.all([
       this.prisma.productVariant.findMany({
         where,
@@ -142,41 +217,6 @@ export class ProductsService {
       throw new NotFoundException(`Variant #${variantId} not found on product #${productId}`);
     }
     return variant;
-  }
-
-  async updateVariant(
-    productId: string,
-    variantId: string,
-    updateVariantDto: UpdateVariantDto,
-  ): Promise<ProductVariant> {
-    await this.findOneVariant(productId, variantId); // 404 nếu không thuộc đúng product
-
-    // Write bên dưới chỉ where theo variantId (không kèm productId) vì
-    // findOneVariant() ở trên đã xác nhận đúng cặp (variantId, productId), và
-    // không có route nào cho phép đổi productId của 1 variant đã tạo. Nếu sau
-    // này productId trở thành field có thể sửa, phải where theo cả 2.
-    if (updateVariantDto.sku) {
-      const existing = await this.prisma.productVariant.findUnique({ where: { sku: updateVariantDto.sku } });
-      if (existing && existing.id !== variantId) {
-        throw new ConflictException(`SKU "${updateVariantDto.sku}" already exists`);
-      }
-    }
-
-    // Nhánh P2002-trên-'sku' trong writeUnique() chỉ có thể trigger khi
-    // updateVariantDto.sku có giá trị (data không chứa sku thì không thể vi
-    // phạm unique constraint của sku) — message dưới đây không bao giờ in
-    // "undefined". Cùng lý do đã áp dụng cho update() ở trên với 'slug'.
-    return writeUnique(
-      () => this.prisma.productVariant.update({ where: { id: variantId }, data: updateVariantDto }),
-      'sku',
-      `SKU "${updateVariantDto.sku}" already exists`,
-    );
-  }
-
-  async removeVariant(productId: string, variantId: string): Promise<void> {
-    await this.findOneVariant(productId, variantId); // xác nhận đúng cặp (variantId, productId)
-    // Where theo variantId là đủ — xem comment ở updateVariant() cho lý do.
-    await this.prisma.productVariant.delete({ where: { id: variantId } });
   }
 
   private toSlug(name: string): string {

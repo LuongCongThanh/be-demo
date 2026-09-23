@@ -1,6 +1,8 @@
 # Object Storage cho Product Images — Design Spec
 
 > Sub-project cuối của Phase 2 (Mục 22), sau Products + Product Variants (`docs/superpowers/specs/2026-09-18-products-and-variants-design.md`). Tài liệu kiến trúc (Mục 8) tự ghi nhận contract này chưa chốt — đã chốt qua brainstorming, xem Mục 4.
+>
+> **SUPERSEDED:** Toàn bộ §3 (Non-goals — "Presigned URL... đã chốt dùng backend proxy upload") và §4.2 (multipart backend-proxy upload flow) của doc này đã bị **đảo ngược** qua 1 phiên grill sau đó — xem GitHub issue [#24](https://github.com/LuongCongThanh/be-demo/issues/24) cho spec đầy đủ (presigned POST batch upload, ảnh gắn được lúc tạo product). §4.1 (storage provider — MinIO/S3) và §4.3 (`ObjectStorageService` interface cho testability) vẫn còn đúng, đọc cùng issue #24 thay vì suy luận lại.
 
 ## 1. Bối cảnh & vấn đề
 

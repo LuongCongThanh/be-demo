@@ -1,6 +1,8 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
+import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator';
+import { CreateVariantDto } from './create-variant.dto.js';
+import { HasUniqueVariantSkus } from '../validators/unique-variant-skus.validator.js';
 
 export class CreateProductDto {
   @ApiProperty({ maxLength: 255, example: 'Wireless Headphones' })
@@ -22,4 +24,16 @@ export class CreateProductDto {
 
   // Không có field `slug` — server tự sinh từ `name` (Task 3). Không có
   // field `status` — mặc định ACTIVE ở DB, chỉ đổi được qua UpdateProductDto.
+
+  @ApiPropertyOptional({
+    type: [CreateVariantDto],
+    description: 'Variants tạo kèm ngay khi tạo product (optional, mặc định rỗng)',
+    example: [{ sku: 'TSHIRT-BLK-M', color: 'Black', size: 'M', price: 199000 }],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateVariantDto)
+  @HasUniqueVariantSkus()
+  variants?: CreateVariantDto[];
 }
