@@ -1,8 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { CreateVariantDto } from './create-variant.dto.js';
-import { AttachImageDto } from './attach-image.dto.js';
+import { CreateProductImageDto, MAX_PRODUCT_IMAGES } from './create-product-image.dto.js';
 import { HasUniqueVariantSkus } from '../validators/unique-variant-skus.validator.js';
 
 export class CreateProductDto {
@@ -39,14 +48,16 @@ export class CreateProductDto {
   variants?: CreateVariantDto[];
 
   @ApiPropertyOptional({
-    type: [AttachImageDto],
+    type: [CreateProductImageDto],
+    maxItems: MAX_PRODUCT_IMAGES,
     description:
-      'Images tạo kèm ngay khi tạo product (key lấy từ POST /products/images/presign) — không ai isPrimary → phần tử đầu tự động primary; ≥2 phần tử cùng isPrimary → 400',
-    example: [{ key: 'products/uploads/abc.jpg', altText: 'Front view' }],
+      'Ảnh tạo kèm product (key lấy từ POST /upload-images/presign) — thứ tự mảng là thứ tự hiển thị, phần tử đầu là Cover Image',
+    example: [{ key: 'tmp/product-image/550e8400-e29b-41d4-a716-446655440000.jpg', altText: 'Front view' }],
   })
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(MAX_PRODUCT_IMAGES)
   @ValidateNested({ each: true })
-  @Type(() => AttachImageDto)
-  images?: AttachImageDto[];
+  @Type(() => CreateProductImageDto)
+  images?: CreateProductImageDto[];
 }

@@ -81,8 +81,9 @@ model ProductImage {
   productId String   @map("product_id") @db.Uuid
   url       String
   altText   String?  @map("alt_text") @db.VarChar(255)
+  // Thứ tự hiển thị nội bộ, server gán theo vị trí trong images[] — ảnh
+  // sort_order nhỏ nhất là Cover Image. Không expose ra API.
   sortOrder Int      @default(0) @map("sort_order")
-  isPrimary Boolean  @default(false) @map("is_primary")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)

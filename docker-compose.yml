@@ -36,6 +36,22 @@ services:
       timeout: 5s
       retries: 5
 
+  # Tạo bucket `media` + cấu hình bắt buộc cho module upload-image: object
+  # dưới `products/` đọc công khai (URL lưu trong DB), Pending Upload dưới
+  # `tmp/` tự xoá sau 1 ngày (docs/adr/0010). Chạy 1 lần rồi thoát, idempotent.
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/media &&
+      mc anonymous set download local/media/products &&
+      (mc ilm rule ls local/media | grep -q tmp/ || mc ilm rule add --prefix tmp/ --expire-days 1 local/media)
+      "
+
   api:
     build: .
     ports:
@@ -46,15 +62,15 @@ services:
       ADMIN_BOOTSTRAP_EMAIL: admin@example.com
       ADMIN_BOOTSTRAP_PASSWORD: ChangeMe123!
       S3_ENDPOINT: http://minio:9000
-      S3_BUCKET: product-images
+      S3_BUCKET: media
       S3_REGION: us-east-1
       S3_ACCESS_KEY_ID: minioadmin
       S3_SECRET_ACCESS_KEY: minioadmin
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
 volumes:
   postgres-data:

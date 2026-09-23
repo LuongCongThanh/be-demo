@@ -54,6 +54,18 @@ _Avoid_: SKU, Product Variant
 A purchasable version of a Product with its own SKU, price, and Inventory.
 _Avoid_: Product when referring to the purchasable SKU
 
+**Product Image**:
+An image displayed for a Product. A Product's images form one ordered list of at most ten; the order is what the Product's editor chose and is the only ranking among them.
+_Avoid_: Photo, gallery item
+
+**Cover Image**:
+The first Product Image in a Product's ordered list; it represents the Product wherever only one image is shown. It is never marked separately — changing the Cover Image means reordering the list.
+_Avoid_: Primary image, thumbnail, featured image
+
+**Pending Upload**:
+An image file already uploaded to storage but not yet attached to anything. A Pending Upload that is not attached within one day is discarded automatically.
+_Avoid_: Orphan, draft image
+
 **Inventory**:
 The quantity held for one Product Variant in the single warehouse supported by the MVP.
 _Avoid_: Stock reservation

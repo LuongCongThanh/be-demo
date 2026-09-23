@@ -9,32 +9,44 @@ function decodePolicy(fields: Record<string, string>): { conditions: unknown[]; 
 describe('S3ObjectStorageService', () => {
   const service = new S3ObjectStorageService({
     endpoint: 'http://localhost:9000',
-    bucket: 'product-images',
+    bucket: 'media',
     region: 'us-east-1',
     accessKeyId: 'test-access-key',
     secretAccessKey: 'test-secret-key',
   });
 
   it('returns one presigned target per requested file, with a unique key each', async () => {
-    const targets = await service.presignBatch([
+    const targets = await service.presignBatch('tmp/product-image/', [
       { filename: 'a.jpg', contentType: 'image/jpeg' },
       { filename: 'b.png', contentType: 'image/png' },
     ]);
 
     expect(targets).toHaveLength(2);
     expect(targets[0].key).not.toBe(targets[1].key);
-    expect(targets[0].uploadUrl).toContain('product-images');
+    expect(targets[0].uploadUrl).toContain('media');
+  });
+
+  it('places every generated key under the requested prefix, keeping the file extension', async () => {
+    const [target] = await service.presignBatch('tmp/product-image/', [
+      { filename: 'a.png', contentType: 'image/png' },
+    ]);
+
+    expect(target.key).toMatch(/^tmp\/product-image\/[0-9a-f-]{36}\.png$/);
   });
 
   it('embeds a content-length-range condition capping the upload at MAX_IMAGE_SIZE_BYTES', async () => {
-    const [target] = await service.presignBatch([{ filename: 'a.jpg', contentType: 'image/jpeg' }]);
+    const [target] = await service.presignBatch('tmp/product-image/', [
+      { filename: 'a.jpg', contentType: 'image/jpeg' },
+    ]);
     const policy = decodePolicy(target.fields);
 
     expect(policy.conditions).toContainEqual(['content-length-range', 0, MAX_IMAGE_SIZE_BYTES]);
   });
 
   it('restricts Content-Type to the requested (allowed) mime type', async () => {
-    const [target] = await service.presignBatch([{ filename: 'a.jpg', contentType: 'image/jpeg' }]);
+    const [target] = await service.presignBatch('tmp/product-image/', [
+      { filename: 'a.jpg', contentType: 'image/jpeg' },
+    ]);
     const policy = decodePolicy(target.fields);
 
     expect(policy.conditions).toContainEqual(['eq', '$Content-Type', 'image/jpeg']);
@@ -42,7 +54,9 @@ describe('S3ObjectStorageService', () => {
 
   it('expires roughly PRESIGNED_URL_EXPIRY_SECONDS from now', async () => {
     const before = Date.now();
-    const [target] = await service.presignBatch([{ filename: 'a.jpg', contentType: 'image/jpeg' }]);
+    const [target] = await service.presignBatch('tmp/product-image/', [
+      { filename: 'a.jpg', contentType: 'image/jpeg' },
+    ]);
     const policy = decodePolicy(target.fields);
     const expiresAt = new Date(policy.expiration).getTime();
 
@@ -51,7 +65,7 @@ describe('S3ObjectStorageService', () => {
   });
 
   it('round-trips key -> publicUrl -> keyFromUrl', () => {
-    const key = 'products/uploads/abc-123.jpg';
+    const key = 'products/p1/abc-123.jpg';
     expect(service.keyFromUrl(service.publicUrl(key))).toBe(key);
   });
 });

@@ -13,6 +13,7 @@ import { validate } from './config/env.validation.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { RequestIdMiddleware } from './common/request-id.middleware.js';
 import { ProductsModule } from './products/products.module.js';
+import { UploadImageModule } from './upload-image/upload-image.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ProductsModule } from './products/products.module.js';
     MetricsModule,
     CategoriesModule,
     ProductsModule,
+    UploadImageModule,
   ],
   controllers: [AppController],
   providers: [

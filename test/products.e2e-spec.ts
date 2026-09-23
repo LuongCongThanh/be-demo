@@ -260,24 +260,52 @@ describe('Products + Variants (e2e)', () => {
       .expect(400);
   });
 
-  it('GET /api/v1/products/:id/variants/:variantId returns 404 when the variant belongs to a different product', async () => {
-    const productARes = await request(app.getHttpServer())
+  it('PATCH /api/v1/products/:id rolls back the whole aggregate when a variant write conflicts', async () => {
+    const takenSku = `SKU-ROLLBACK-TAKEN-${Date.now()}`;
+    await request(app.getHttpServer())
       .post('/api/v1/products')
       .set('Authorization', `Bearer ${masterAdminAccessToken}`)
       .send({
-        name: `${TEST_NAME_PREFIX} Product A ${Date.now()}`,
+        name: `${TEST_NAME_PREFIX} Rollback owner ${Date.now()}`,
         categoryId,
-        variants: [{ sku: `SKU-A-${Date.now()}`, price: 100000 }],
+        variants: [{ sku: takenSku, price: 1 }],
       })
       .expect(201);
-    const productBRes = await request(app.getHttpServer())
+    const originalName = `${TEST_NAME_PREFIX} Rollback target ${Date.now()}`;
+    const target = await request(app.getHttpServer())
       .post('/api/v1/products')
       .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-      .send({ name: `${TEST_NAME_PREFIX} Product B ${Date.now()}`, categoryId })
+      .send({ name: originalName, categoryId })
       .expect(201);
 
+    // Đổi tên (hợp lệ) + thêm variant có sku đã thuộc product khác → P2002
+    // bên trong transaction: tên mới KHÔNG được commit.
     await request(app.getHttpServer())
-      .get(`/api/v1/products/${productBRes.body.id}/variants/${productARes.body.variants[0].id}`)
+      .patch(`/api/v1/products/${target.body.id}`)
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({ name: `${TEST_NAME_PREFIX} Rollback renamed ${Date.now()}`, variants: [{ sku: takenSku, price: 1 }] })
+      .expect(409);
+
+    const after = await prisma.product.findUnique({ where: { id: target.body.id }, include: { variants: true } });
+    expect(after?.name).toBe(originalName);
+    expect(after?.variants).toHaveLength(0);
+  });
+
+  it('variant sub-resource read routes no longer exist — variants are embedded in GET /products/:id', async () => {
+    const productRes = await request(app.getHttpServer())
+      .post('/api/v1/products')
+      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .send({
+        name: `${TEST_NAME_PREFIX} Product no sub-routes ${Date.now()}`,
+        categoryId,
+        variants: [{ sku: `SKU-NOSUB-${Date.now()}`, price: 100000 }],
+      })
+      .expect(201);
+    const productId = productRes.body.id;
+
+    await request(app.getHttpServer()).get(`/api/v1/products/${productId}/variants`).expect(404);
+    await request(app.getHttpServer())
+      .get(`/api/v1/products/${productId}/variants/${productRes.body.variants[0].id}`)
       .expect(404);
   });
 
@@ -306,12 +334,12 @@ describe('Products + Variants (e2e)', () => {
       .expect(404);
   });
 
-  it('GET /api/v1/products/:id/variants supports an optional status filter', async () => {
+  it('GET /api/v1/products/:id embeds discontinued variants with their status', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/products')
       .set('Authorization', `Bearer ${masterAdminAccessToken}`)
       .send({
-        name: `${TEST_NAME_PREFIX} Product status filter ${Date.now()}`,
+        name: `${TEST_NAME_PREFIX} Product status embed ${Date.now()}`,
         categoryId,
         variants: [{ sku: `SKU-FILTER-${Date.now()}`, price: 100000 }],
       })
@@ -323,15 +351,9 @@ describe('Products + Variants (e2e)', () => {
       .send({ variants: [] })
       .expect(200);
 
-    const activeOnly = await request(app.getHttpServer())
-      .get(`/api/v1/products/${createRes.body.id}/variants?status=ACTIVE`)
-      .expect(200);
-    expect(activeOnly.body.data).toHaveLength(0);
-
-    const discontinuedOnly = await request(app.getHttpServer())
-      .get(`/api/v1/products/${createRes.body.id}/variants?status=DISCONTINUED`)
-      .expect(200);
-    expect(discontinuedOnly.body.data).toHaveLength(1);
+    const res = await request(app.getHttpServer()).get(`/api/v1/products/${createRes.body.id}`).expect(200);
+    expect(res.body.variants).toHaveLength(1);
+    expect(res.body.variants[0].status).toBe('DISCONTINUED');
   });
 
   it('POST /api/v1/products as an authenticated CUSTOMER (non-privileged role) returns 403', async () => {

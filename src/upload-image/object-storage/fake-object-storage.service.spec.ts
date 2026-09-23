@@ -11,22 +11,24 @@ import { MAX_IMAGE_SIZE_BYTES } from './allowed-image-content-type.js';
 describe('FakeObjectStorageService', () => {
   const service = new FakeObjectStorageService();
 
-  it('accepts an upload within the size limit and matching content type', async () => {
-    const [target] = await service.presignBatch([{ filename: 'a.jpg', contentType: 'image/jpeg' }]);
+  it('accepts an upload within the size limit and matching content type, after which the object exists', async () => {
+    const [target] = await service.presignBatch('tmp/test/', [{ filename: 'a.jpg', contentType: 'image/jpeg' }]);
 
     expect(() => service.simulateUpload(target, { sizeBytes: 1024, contentType: 'image/jpeg' })).not.toThrow();
+    expect(await service.exists(target.key)).toBe(true);
   });
 
   it('rejects an upload that exceeds MAX_IMAGE_SIZE_BYTES (content-length-range)', async () => {
-    const [target] = await service.presignBatch([{ filename: 'a.jpg', contentType: 'image/jpeg' }]);
+    const [target] = await service.presignBatch('tmp/test/', [{ filename: 'a.jpg', contentType: 'image/jpeg' }]);
 
     expect(() =>
       service.simulateUpload(target, { sizeBytes: MAX_IMAGE_SIZE_BYTES + 1, contentType: 'image/jpeg' }),
     ).toThrow(/content-length-range/);
+    expect(await service.exists(target.key)).toBe(false);
   });
 
   it('rejects an upload whose content type does not match the presigned target (Content-Type condition)', async () => {
-    const [target] = await service.presignBatch([{ filename: 'a.jpg', contentType: 'image/jpeg' }]);
+    const [target] = await service.presignBatch('tmp/test/', [{ filename: 'a.jpg', contentType: 'image/jpeg' }]);
 
     expect(() => service.simulateUpload(target, { sizeBytes: 1024, contentType: 'image/gif' })).toThrow(
       /content-type/i,

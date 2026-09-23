@@ -16,7 +16,9 @@ Mã `0001–0009` là mã lịch sử ổn định. ADR được nhóm theo th�
 
 ## 03 — Products
 
-Chưa có ADR riêng. Product aggregate contract hiện thuộc module spec.
+| ADR                                                          | Quyết định                                | Decision | Implementation |
+| ------------------------------------------------------------ | ----------------------------------------- | -------- | -------------- |
+| [0010](0010-pending-uploads-expire-via-storage-lifecycle.md) | Pending Upload ở `tmp/`, lifecycle tự xoá | Accepted | Implemented    |
 
 ## 04 — Users
 

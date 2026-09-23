@@ -1,120 +1,128 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { Prisma, ProductImage } from '../generated/prisma/client.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { OBJECT_STORAGE_SERVICE } from './object-storage/object-storage.service.js';
-import type { ObjectStorageService, PresignedUploadTarget } from './object-storage/object-storage.service.js';
-import { PresignImagesDto } from './dto/presign-images.dto.js';
-import { AttachImageDto } from './dto/attach-image.dto.js';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import type { Prisma } from '../generated/prisma/client.js';
+import { UploadImageService } from '../upload-image/upload-image.service.js';
 
-interface BatchImageEntry {
-  key: string;
+export interface ProductImageEntry {
+  id?: string;
+  key?: string;
   altText?: string;
-  isPrimary?: boolean;
 }
 
+// Kết quả của plan(): mọi thứ cần đọc/gọi mạng đã xong (HEAD, copy), chỉ còn
+// ghi DB — apply() chạy bên trong transaction của ProductsService.
+export interface ProductImageSyncPlan {
+  // Đúng thứ tự mong muốn — index chính là sort_order.
+  rows: ({ id: string; altText?: string } | { url: string; altText?: string })[];
+  removedIds: string[];
+  removedUrls: string[];
+  promotedUrls: string[];
+  pendingKeys: string[];
+}
+
+// Logic ảnh của Product aggregate, tách khỏi ProductsService cho dễ đọc —
+// không có controller riêng: ảnh chỉ ghi qua `images[]` của POST/PATCH
+// /products (docs/specs/03-products.md, mục "Product Images contract").
 @Injectable()
 export class ProductImagesService {
-  private readonly logger = new Logger(ProductImagesService.name);
+  constructor(private readonly uploadImageService: UploadImageService) {}
 
-  constructor(
-    private readonly prisma: PrismaService,
-    @Inject(OBJECT_STORAGE_SERVICE) private readonly storage: ObjectStorageService,
-  ) {}
+  async plan(
+    productId: string,
+    existing: { id: string; url: string }[],
+    entries: ProductImageEntry[],
+  ): Promise<ProductImageSyncPlan> {
+    this.assertEntriesShape(entries);
 
-  async presign(dto: PresignImagesDto): Promise<PresignedUploadTarget[]> {
-    return this.storage.presignBatch(dto.files);
-  }
-
-  // Dùng bởi ProductsService.create() khi tạo product kèm `images[]` — không
-  // ai đánh dấu primary → phần tử đầu tự động primary; ≥2 phần tử cùng đánh
-  // dấu primary → 400 (xem docs/superpowers/specs
-  // 2026-09-18-product-images-object-storage-design.md).
-  resolveBatchPrimary(entries: BatchImageEntry[]): (BatchImageEntry & { isPrimary: boolean })[] {
-    const primaryCount = entries.filter((e) => e.isPrimary).length;
-    if (primaryCount > 1) {
-      throw new BadRequestException('Only one image can be marked as primary');
-    }
-    const hasExplicitPrimary = primaryCount === 1;
-    return entries.map((entry, index) => ({
-      ...entry,
-      isPrimary: hasExplicitPrimary ? Boolean(entry.isPrimary) : index === 0,
-    }));
-  }
-
-  async attachImage(productId: string, dto: AttachImageDto): Promise<ProductImage> {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
-    if (!product) {
-      throw new NotFoundException(`Product #${productId} not found`);
+    const existingIds = new Set(existing.map((image) => image.id));
+    const foreignIds = entries.filter((e) => e.id && !existingIds.has(e.id)).map((e) => e.id);
+    if (foreignIds.length > 0) {
+      throw new BadRequestException(`Image not found on product #${productId}: ${foreignIds.join(', ')}`);
     }
 
-    const url = this.storage.publicUrl(dto.key);
-    // Ảnh đầu tiên của product tự động primary; ảnh sau đó mặc định false trừ
-    // khi client tự đánh dấu — giữ nguyên hành vi đã chốt cho endpoint attach
-    // đơn lẻ (khác batch resolveBatchPrimary() ở trên).
-    const isFirstImage = (await this.prisma.productImage.count({ where: { productId } })) === 0;
-    const isPrimary = dto.isPrimary ?? isFirstImage;
+    const pendingKeys = entries.filter((e) => e.key).map((e) => e.key as string);
+    await this.uploadImageService.assertPendingUploads('PRODUCT_IMAGE', pendingKeys);
+    const promotedUrls = await this.promoteAll(productId, pendingKeys);
 
-    if (!isPrimary) {
-      return this.prisma.productImage.create({
-        data: { productId, url, altText: dto.altText, isPrimary: false },
-      });
-    }
+    const urlByKey = new Map(pendingKeys.map((key, index) => [key, promotedUrls[index]]));
+    const rows = entries.map((e) =>
+      e.id ? { id: e.id, altText: e.altText } : { url: urlByKey.get(e.key as string) as string, altText: e.altText },
+    );
 
-    // Set primary bắt buộc atomic: unset ảnh primary cũ + tạo ảnh mới với
-    // isPrimary=true, tránh khoảnh khắc 2 ảnh cùng primary (partial unique
-    // index `product_images_product_id_primary_unique`).
-    return this.prisma.$transaction(async (tx) => {
-      await this.unsetExistingPrimary(tx, productId);
-      return tx.productImage.create({ data: { productId, url, altText: dto.altText, isPrimary: true } });
-    });
+    const keptIds = new Set(entries.filter((e) => e.id).map((e) => e.id));
+    const removed = existing.filter((image) => !keptIds.has(image.id));
+
+    return {
+      rows,
+      removedIds: removed.map((image) => image.id),
+      removedUrls: removed.map((image) => image.url),
+      promotedUrls,
+      pendingKeys,
+    };
   }
 
-  async listImages(productId: string): Promise<ProductImage[]> {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
-    if (!product) {
-      throw new NotFoundException(`Product #${productId} not found`);
+  async apply(tx: Prisma.TransactionClient, productId: string, plan: ProductImageSyncPlan): Promise<void> {
+    if (plan.removedIds.length > 0) {
+      await tx.productImage.deleteMany({ where: { productId, id: { in: plan.removedIds } } });
     }
-
-    return this.prisma.productImage.findMany({ where: { productId } });
+    for (const [sortOrder, row] of plan.rows.entries()) {
+      if ('id' in row) {
+        // altText vắng mặt = giữ nguyên (không xoá mô tả cũ chỉ vì client
+        // gửi lại `{ id }` để giữ ảnh).
+        await tx.productImage.update({
+          where: { id: row.id },
+          data: { sortOrder, ...(row.altText !== undefined && { altText: row.altText }) },
+        });
+      } else {
+        await tx.productImage.create({ data: { productId, url: row.url, altText: row.altText, sortOrder } });
+      }
+    }
   }
 
-  async setPrimary(productId: string, imageId: string): Promise<ProductImage> {
-    const image = await this.prisma.productImage.findFirst({ where: { id: imageId, productId } });
-    if (!image) {
-      throw new NotFoundException(`Image #${imageId} not found on product #${productId}`);
+  // Bọc transaction của caller để dọn storage đúng theo kết quả: lỗi → xoá
+  // các bản copy vừa tạo (Pending Upload vẫn còn, client gửi lại được);
+  // thành công → xoá object của ảnh bị gỡ + bản tạm đã copy xong. Cả hai đều
+  // best-effort, không làm đổi kết quả request.
+  async commit<T>(plan: ProductImageSyncPlan | undefined, write: () => Promise<T>): Promise<T> {
+    if (!plan) {
+      return write();
     }
-
-    return this.prisma.$transaction(async (tx) => {
-      await this.unsetExistingPrimary(tx, productId);
-      return tx.productImage.update({ where: { id: imageId }, data: { isPrimary: true } });
-    });
-  }
-
-  // Dùng chung bởi attachImage()/setPrimary() — cả 2 đều cần "unset ảnh
-  // primary cũ trước khi set/tạo ảnh mới" trong cùng transaction, tránh
-  // khoảnh khắc 2 ảnh cùng primary (partial unique index
-  // `product_images_product_id_primary_unique`).
-  private async unsetExistingPrimary(tx: Prisma.TransactionClient, productId: string): Promise<void> {
-    await tx.productImage.updateMany({ where: { productId, isPrimary: true }, data: { isPrimary: false } });
-  }
-
-  async removeImage(productId: string, imageId: string): Promise<void> {
-    const image = await this.prisma.productImage.findFirst({ where: { id: imageId, productId } });
-    if (!image) {
-      throw new NotFoundException(`Image #${imageId} not found on product #${productId}`);
-    }
-
-    // Xoá DB trước, storage sau (best-effort) — ảnh biến mất khỏi product là
-    // điều user quan tâm ngay lập tức; object rác trên storage không ảnh
-    // hưởng nghiệp vụ, dọn sau bằng job riêng (ngoài phạm vi ticket này).
-    await this.prisma.productImage.delete({ where: { id: imageId } });
+    let result: T;
     try {
-      await this.storage.delete(this.storage.keyFromUrl(image.url));
+      result = await write();
     } catch (err) {
-      this.logger.error(
-        `Failed to delete storage object for image #${imageId}`,
-        err instanceof Error ? err.stack : err,
-      );
+      await this.uploadImageService.discardUrls(plan.promotedUrls);
+      throw err;
     }
+    await this.uploadImageService.discardUrls(plan.removedUrls);
+    await this.uploadImageService.discardKeys(plan.pendingKeys);
+    return result;
+  }
+
+  async discardUrls(urls: string[]): Promise<void> {
+    await this.uploadImageService.discardUrls(urls);
+  }
+
+  private assertEntriesShape(entries: ProductImageEntry[]): void {
+    if (entries.some((e) => Boolean(e.id) === Boolean(e.key))) {
+      throw new BadRequestException('Each image entry must have exactly one of "id" or "key"');
+    }
+    const ids = entries.filter((e) => e.id).map((e) => e.id);
+    const keys = entries.filter((e) => e.key).map((e) => e.key);
+    if (new Set(ids).size !== ids.length || new Set(keys).size !== keys.length) {
+      throw new BadRequestException('Duplicate image entries are not allowed');
+    }
+  }
+
+  private async promoteAll(productId: string, pendingKeys: string[]): Promise<string[]> {
+    const results = await Promise.allSettled(
+      pendingKeys.map((key) => this.uploadImageService.promote(key, `products/${productId}/`)),
+    );
+    const promoted = results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+    const failure = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failure) {
+      await this.uploadImageService.discardUrls(promoted);
+      throw failure.reason;
+    }
+    return promoted;
   }
 }

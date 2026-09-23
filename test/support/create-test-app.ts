@@ -4,8 +4,8 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppModule } from '@src/app.module.js';
 import { EmailThrottlerGuard } from '@src/auth/guards/email-throttler.guard.js';
 import { configureApp } from '@src/bootstrap/configure-app.js';
-import { OBJECT_STORAGE_SERVICE } from '@src/products/object-storage/object-storage.service.js';
-import { FakeObjectStorageService } from '@src/products/object-storage/fake-object-storage.service.js';
+import { OBJECT_STORAGE_SERVICE } from '@src/upload-image/object-storage/object-storage.service.js';
+import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-object-storage.service.js';
 
 const ALWAYS_ALLOW = { canActivate: () => true };
 
@@ -39,10 +39,9 @@ export async function createTestApp(): Promise<{
     .overrideGuard(EmailThrottlerGuard)
     .useValue(ALWAYS_ALLOW)
     // Fake in-memory object storage — avoids depending on a real MinIO
-    // instance in CI just to exercise business logic (validate/attach/
-    // primary-swap). Real storage is covered by S3ObjectStorageService's own
-    // unit tests (policy shape) — see docs/superpowers/specs
-    // 2026-09-18-product-images-object-storage-design.md §4.3.
+    // instance in CI just to exercise business logic (presign/HEAD/copy/
+    // cleanup). Real storage is covered by S3ObjectStorageService's own unit
+    // tests (policy shape) — see docs/adr/0010.
     .overrideProvider(OBJECT_STORAGE_SERVICE)
     .useValue(objectStorage)
     .compile();

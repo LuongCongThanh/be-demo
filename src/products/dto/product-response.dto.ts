@@ -31,6 +31,6 @@ export class ProductResponseDto {
   @ApiProperty({ type: [VariantResponseDto] })
   variants: VariantResponseDto[];
 
-  @ApiProperty({ type: [ImageResponseDto] })
+  @ApiProperty({ type: [ImageResponseDto], description: 'Theo thứ tự hiển thị — phần tử đầu là Cover Image' })
   images: ImageResponseDto[];
 }
