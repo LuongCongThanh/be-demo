@@ -3,7 +3,7 @@ import { VariantStatus } from '../../generated/prisma/enums.js';
 
 // Tóm tắt Option Value nhúng trong variant — `code` là phần đã nằm trong SKU.
 export class OptionValueSummaryDto {
-  @ApiProperty()
+  @ApiProperty({ example: '3f2504e0-4f89-41d3-9a0c-0305e82c3301' })
   id: string;
 
   @ApiProperty({ example: 'Đen' })
@@ -14,10 +14,10 @@ export class OptionValueSummaryDto {
 }
 
 export class VariantResponseDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' })
   id: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: '0f8e7d6c-5b4a-4392-8170-6f5e4d3c2b1a' })
   productId: string;
 
   @ApiProperty({ description: 'Ghép từ Product Code + mã màu/size', example: 'TSB001-BLK-M' })
@@ -34,12 +34,12 @@ export class VariantResponseDto {
   @ApiProperty({ example: '199000.00' })
   price: string;
 
-  @ApiProperty({ enum: VariantStatus })
+  @ApiProperty({ enum: VariantStatus, example: VariantStatus.ACTIVE })
   status: VariantStatus;
 
-  @ApiProperty()
+  @ApiProperty({ example: '2026-09-24T08:46:12.345Z' })
   createdAt: Date;
 
-  @ApiProperty()
+  @ApiProperty({ example: '2026-09-24T08:46:12.345Z' })
   updatedAt: Date;
 }

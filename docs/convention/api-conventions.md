@@ -200,9 +200,9 @@ export class UpdateResourceDto extends PartialType(CreateResourceDto) {}
 
 > ⚠️ Import `PartialType` từ **`@nestjs/swagger`**, không phải `@nestjs/mapped-types`. Cả hai đều làm mọi field optional, nhưng bản của `@nestjs/swagger` mới giữ đúng metadata OpenAPI (`@ApiProperty`) khi generate document — dùng `@nestjs/mapped-types` cho DTO có Swagger decorator sẽ làm lệch contract OpenAPI sinh ra.
 
-**Bắt buộc `example:` cho field client gửi lên** (`CreateResourceDto`, và field mới thêm ở `UpdateResourceDto` nếu không kế thừa từ `Create`) — không chỉ `description`/`maxLength`. Lý do: Swagger UI "Try it out" tự điền request body mẫu từ `example`; thiếu nó, người gọi API (kể cả frontend dev, người ngoài team) phải tự đoán format hợp lệ (chuỗi số? enum giá trị nào? định dạng ngày?), đặc biệt sai lệch với field có ràng buộc business (email, slug, mã theo pattern...). Tham khảo `src/auth/dto/register.dto.ts` — mọi field đều có `example`.
+**Bắt buộc `example:` cho mọi field trong Swagger** — request DTO (`CreateResourceDto`, field mới ở `UpdateResourceDto`), response DTO, và query DTO (kể cả `PaginationDto`) — không chỉ `description`/`maxLength`. Field chỉ trỏ tới DTO khác (object lồng, mảng object) không cần, ví dụ nằm ở DTO được trỏ tới. Lý do: Swagger UI "Try it out" tự điền request body mẫu từ `example`; thiếu nó, người gọi API (kể cả frontend dev, người ngoài team) phải tự đoán format hợp lệ (chuỗi số? enum giá trị nào? định dạng ngày?), đặc biệt sai lệch với field có ràng buộc business (email, slug, mã theo pattern...). Tham khảo `src/auth/dto/register.dto.ts` — mọi field đều có `example`.
 
-**Không bắt buộc** `example:` cho: Response DTO (server tự sinh giá trị, không cần mock), `PaginationDto` (đã có `default`, tự giải thích), field mà tên đã đủ rõ nghĩa và kiểu `boolean`/`enum` hẹp (Swagger tự liệt kê giá trị hợp lệ cho enum).
+Response cũng cần ví dụ: Swagger là tài liệu FE đọc để dựng màn hình, thiếu ví dụ response thì FE phải gọi thử API mới biết shape và format (UUID, ngày ISO, Decimal dạng string...). Dùng một bộ id mẫu thống nhất giữa các DTO (vd. `ImageResponseDto.productId` trùng `ProductResponseDto.id`) để response mẫu ăn khớp nhau. `test/openapi-examples.e2e-spec.ts` đọc chính OpenAPI document và đỏ nếu field hoặc query param nào thiếu `example`.
 
 > Nếu 1 field do **server tự sinh** (vd. slug sinh từ tên, mã đơn tự tăng...), field đó **không** xuất hiện trong `CreateResourceDto` — client gửi field đó lên sẽ bị `ValidationPipe` global (`forbidNonWhitelisted`) từ chối 400, không bị âm thầm bỏ qua. Xem ví dụ business rule thật ở tài liệu riêng của resource đó.
 
@@ -859,7 +859,7 @@ Một API được coi là **xong**, không phải "code chạy được", khi t
 - Lỗi được map đúng HTTP status (không rơi vào `500` cho case đã biết trước)
 - Response contract rõ ràng — không rò field nhạy cảm không cố ý
 - Test pass: service unit test (nếu có business logic) + e2e (nếu là endpoint public/quan trọng)
-- Swagger phản ánh đúng request/response thật (có `type:`, không chỉ `description`), mỗi route có `@ApiOperation({ summary })`, mỗi field DTO client gửi lên có `example:`, module có tag title + description khớp nhau giữa `@ApiTags()` và `main.ts` `addTag()` (xem [§B12](#b12-swagger--openapi))
+- Swagger phản ánh đúng request/response thật (có `type:`, không chỉ `description`), mỗi route có `@ApiOperation({ summary })`, mọi field DTO (request, response, query) có `example:` (`test/openapi-examples.e2e-spec.ts` kiểm tự động), module có tag title + description khớp nhau giữa `@ApiTags()` và `main.ts` `addTag()` (xem [§B12](#b12-swagger--openapi))
 - `npm run lint` + `npm run format` + `npm run build` sạch
 - PR đã mở, review xong (`ship-pr` skill)
 
@@ -872,7 +872,7 @@ Checklist chi tiết bên dưới là cách để đạt Definition of Done này
 - [ ] Model (hoặc enum) đã có trong `../../prisma/schema/schema.prisma` (hoặc `prisma/schema/enums.prisma`) + đã `migrate dev` + `generate` (2 lệnh riêng — Prisma v7 không tự generate)
 - [ ] Sinh khung bằng `nest g resource RESOURCE_NAME` (chọn REST API, Yes cho CRUD entry points)
 - [ ] Xoá `entities/` sinh sẵn, xoá/viết lại `*.spec.ts` mẫu
-- [ ] DTO có đủ `class-validator` + `@ApiProperty`/`@ApiPropertyOptional`, có `example:` cho field client gửi lên; `UpdateDto` dùng `PartialType` từ **`@nestjs/swagger`**
+- [ ] DTO có đủ `class-validator` + `@ApiProperty`/`@ApiPropertyOptional`, có `example:` cho mọi field (request, response, query); `UpdateDto` dùng `PartialType` từ **`@nestjs/swagger`**
 - [ ] Param id dùng đúng pipe (`ParseUUIDPipe`/`ParseIntPipe` theo đúng kiểu trong schema)
 - [ ] Business error đã biết trước (vd. trùng field unique) ném exception có message nghiệp vụ ở service, không phó mặc cho Prisma filter
 - [ ] Service unit test — bắt buộc nếu service có business logic (not-found, conflict, tính toán...); service chỉ gọi thẳng Prisma không rẽ nhánh thì có thể bỏ qua
