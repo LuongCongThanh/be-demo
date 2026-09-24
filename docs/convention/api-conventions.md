@@ -573,7 +573,7 @@ Endpoint có cần authorization (role/ownership) không?
    Role/Policy Guard
 ```
 
-> ✅ **Auth module đã xong** (`JwtAuthGuard`, `RolesGuard`, `OwnershipGuard`, `@Roles()`, `@CurrentUser()` — xem [`../specs/01-auth.md`](../specs/01-auth.md)). Mọi resource mới tái sử dụng authentication/RBAC foundation này; authorization rule cụ thể vẫn thuộc module domain. Với resource có khái niệm chủ sở hữu, dùng ownership policy đã được spec của module định nghĩa.
+> ✅ **Auth module đã xong** (`JwtAuthGuard`, `RolesGuard`, `OwnershipGuard`, `@Roles()`, `@CurrentUser()` — xem [`../specs/01-auth.md`](../specs/01-auth.md)). Mọi resource mới tái sử dụng authentication/RBAC foundation này; authorization rule cụ thể vẫn thuộc module domain. Route public có query flag chỉ staff được bật (vd. `?includeAllVariants=true`) dùng `StaffQueryFlagGuard('<flag>')` + `@QueryFlag('<flag>')` (`src/auth/guards/staff-query-flag.guard.ts`, `src/common/query-flag.ts`) — không tự viết guard kiểm role riêng. Với resource có khái niệm chủ sở hữu, dùng ownership policy đã được spec của module định nghĩa.
 >
 > Áp dụng checklist này cho **từng resource mới khi thực sự implement**. Trạng thái canonical nằm ở [`../README.md`](../README.md), không suy ra từ checkbox của plan.
 

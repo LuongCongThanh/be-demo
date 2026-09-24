@@ -55,7 +55,7 @@ A purchasable version of a Product with its own SKU, price, and Inventory, disti
 _Avoid_: Product when referring to the purchasable SKU
 
 **Option Value**:
-A named, coded choice for either a color (e.g. "Black", code `BLK`) or a size (e.g. "M"), maintained centrally by catalog staff and selected — never typed — when creating Product Variants. Its code is unique across colors and sizes alike; its name may change, its code never does. An Option Value in use is hidden from selection rather than removed.
+A named, coded choice for either a color (e.g. "Black", code `BLK`) or a size (e.g. "M"), maintained centrally by catalog staff and selected — never typed — when creating Product Variants. Its code is unique across colors and sizes and never changes, and one in use is hidden from selection rather than removed.
 _Avoid_: Attribute, SKU (when referring to the pre-created list)
 
 **Product Code**:
@@ -67,11 +67,11 @@ The human-readable code of one Product Variant, composed by the system from the 
 _Avoid_: Product code, variant id
 
 **Discontinued Variant**:
-A Product Variant permanently taken off sale — whatever happens to a variant removed from its Product, whether or not it was ever sold. It is kept as history, is hidden from Customers, and never returns to sale.
+A Product Variant permanently taken off sale, which is what happens to any variant removed from its Product, sold or not. It is kept as history, hidden from Customers, and never returns to sale.
 _Avoid_: Deleted variant, inactive variant
 
 **Product Image**:
-An image displayed for a Product. Every Product has one ordered list of one to five images; the order is what the Product's editor chose and is the only ranking among them. Replacing an image means removing it and adding a new Product Image in its place — an image's file never changes.
+An image displayed for a Product, which has one ordered list of one to five of them; the editor's order is the only ranking among them. Replacing an image means removing it and adding a new Product Image in its place, since an image's file never changes.
 _Avoid_: Photo, gallery item
 
 **Cover Image**:

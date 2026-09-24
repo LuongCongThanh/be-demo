@@ -23,7 +23,7 @@ verification:
 
 ## Aggregate contract
 
-Product là aggregate write boundary. `POST /products` nhận nested `variants[]` và `images[]`; `PATCH /products/:id` full-sync cả hai mảng. Không có endpoint con nào cho Variant hay Product Image — kể cả đọc: `GET /products/:id` (và list) embed sẵn `variants` và `images`. Variant không còn bán chuyển sang `DISCONTINUED`; không hard-delete khi đã có commercial reference.
+Product là aggregate write boundary. `POST /products` nhận nested `variants[]` và `images[]`; `PATCH /products/:id` full-sync cả hai mảng. Không có endpoint con nào cho Variant hay Product Image — kể cả đọc: `GET /products/:id` (và list) embed sẵn `variants` và `images`. Variant bị bỏ khỏi `variants[]` luôn chuyển sang `DISCONTINUED` (kể cả chưa từng bán), không bao giờ hard-delete qua PATCH. `DELETE /products/:id` xoá cả product (variant cascade, object ảnh dọn best-effort sau commit); product có variant đã vào Cart/Order thì FK RESTRICT chặn → 409.
 
 Endpoint của module: `POST/GET /products`, `GET/PATCH/DELETE /products/:id`. Write yêu cầu `STORE_MANAGER` hoặc `MASTER_ADMIN`; catalog reads là public. Option Value thuộc module `option-values`, presign ảnh thuộc module `upload-image` (xem dưới).
 
@@ -34,7 +34,7 @@ Endpoint của module: `POST/GET /products`, `GET/PATCH/DELETE /products/:id`. W
 - Mỗi Product phải thỏa validation của nested variant payload.
 - Tạo Variant đồng thời bootstrap Inventory quantity/reserved quantity bằng `0`.
 - Product/category reference phải tồn tại.
-- Variant đang được Cart Item/Order Item tham chiếu không hard-delete.
+- Variant đang được Cart Item/Order Item tham chiếu không hard-delete (FK RESTRICT).
 - Create/update Product và toàn bộ Variant mutation phải atomic trong một database transaction.
 
 - `PATCH /products/:id` cập nhật Product fields, full-sync Variants và full-sync Images trong **một** transaction duy nhất.
@@ -62,6 +62,10 @@ Pending Upload không được gắn tự bị xoá bởi lifecycle rule `tmp/` 
 Key do server sinh: `<prefix><uuid>.<ext>`, `ext` suy từ `contentType` — `filename` client gửi chỉ mang tính thông tin, không bao giờ vào key. Khi gắn ảnh, key phải đúng prefix của purpose và đúng format này, sai → 400. URL presign và URL ảnh lưu DB dùng `S3_PUBLIC_ENDPOINT` (fallback `S3_ENDPOINT`) — cần khi backend gọi storage qua hostname nội bộ.
 
 Module `upload-image` chỉ biết `purpose` → (prefix, role được phép, số file tối đa). Hiện có một purpose `PRODUCT_IMAGE` cho `STORE_MANAGER`/`MASTER_ADMIN`, tối đa 5 file; thêm loại ảnh mới = thêm giá trị enum, không đổi API.
+
+## Dữ liệu hiện có
+
+Chưa có dữ liệu production. Migration của ADR 0011 backfill dữ liệu dev: product cũ nhận `code` từ `id`, variant cũ giữ `sku` nhưng mất `color`/`size` text; `npm run db:seed` sửa lại các variant seed cũ thay vì tạo bản trùng.
 
 ## Concurrency
 
@@ -108,31 +112,31 @@ Mọi lỗi backend có shape `{ statusCode, message, requestId }`. Mọi case d
 
 **`PATCH /products/:id`**
 
-| #   | Case                                                                  | Status    | Trạng thái |
-| --- | --------------------------------------------------------------------- | --------- | ---------- |
-| P1  | Thiếu/sai token; role không phải `STORE_MANAGER`/`MASTER_ADMIN`       | 401 / 403 | ✅         |
-| P2  | Product không tồn tại                                                 | 404       | ✅         |
-| P3  | Field sai định dạng                                                   | 400       | ✅         |
-| P4  | `categoryId` không tồn tại                                            | 404       | ✅         |
-| P5  | Tên trùng product khác (slug)                                         | 409       | ✅         |
-| P6  | Tên không sinh được slug                                              | 400       | ✅         |
-| P7  | Cố đổi Product Code                                                   | 400       | ✅         |
-| P8  | Danh sách ảnh cuối rỗng hoặc > 5                                      | 400       | ✅         |
-| P9  | Entry ảnh có cả/không có `id` và `key`                                | 400       | ✅         |
-| P10 | Trùng `id` hoặc `key` trong `images[]`                                | 400       | ✅         |
-| P11 | `id` ảnh không thuộc product                                          | 400       | ✅         |
-| P12 | `key` sai prefix/format                                               | 400       | ✅         |
-| P13 | `key` không có trên storage (chưa upload, quá 1 ngày, bản tạm đã dọn) | 400       | ✅         |
-| P14 | Storage không phản hồi khi HEAD/copy                                  | 503       | ✅         |
-| P15 | Ảnh đang giữ vừa bị request khác xoá giữa lúc đọc và ghi              | 409       | ✅         |
-| P16 | `id` variant không thuộc product                                      | 400       | ✅         |
-| P17 | Variant mới thiếu giá hoặc thiếu/sai Option Value                     | 400       | ✅         |
-| P18 | Option Value không tồn tại / đang ẩn / sai loại                       | 400       | ✅         |
-| P19 | Hai variant cùng tổ hợp màu + size (trùng SKU)                        | 409       | ✅         |
-| P20 | Cố đổi Option Value của variant đã có                                 | 400       | ✅         |
-| P21 | Không còn variant `ACTIVE` nào                                        | 400       | ✅         |
-| P22 | Quá 50 variant `ACTIVE` + `INACTIVE`                                  | 400       | ✅         |
-| P23 | Đưa variant `DISCONTINUED` về `ACTIVE`/`INACTIVE`                     | 400       | ✅         |
+| #   | Case                                                                          | Status    | Trạng thái |
+| --- | ----------------------------------------------------------------------------- | --------- | ---------- |
+| P1  | Thiếu/sai token; role không phải `STORE_MANAGER`/`MASTER_ADMIN`               | 401 / 403 | ✅         |
+| P2  | Product không tồn tại                                                         | 404       | ✅         |
+| P3  | Field sai định dạng                                                           | 400       | ✅         |
+| P4  | `categoryId` không tồn tại                                                    | 404       | ✅         |
+| P5  | Tên trùng product khác (slug)                                                 | 409       | ✅         |
+| P6  | Tên không sinh được slug                                                      | 400       | ✅         |
+| P7  | Cố đổi Product Code                                                           | 400       | ✅         |
+| P8  | Danh sách ảnh cuối rỗng hoặc > 5                                              | 400       | ✅         |
+| P9  | Entry ảnh có cả/không có `id` và `key`                                        | 400       | ✅         |
+| P10 | Trùng `id` hoặc `key` trong `images[]`                                        | 400       | ✅         |
+| P11 | `id` ảnh không thuộc product                                                  | 400       | ✅         |
+| P12 | `key` sai prefix/format                                                       | 400       | ✅         |
+| P13 | `key` không có trên storage (chưa upload, quá 1 ngày, bản tạm đã dọn)         | 400       | ✅         |
+| P14 | Storage không phản hồi khi HEAD/copy                                          | 503       | ✅         |
+| P15 | Ảnh đang giữ vừa bị request khác xoá giữa lúc đọc và ghi                      | 409       | ✅         |
+| P16 | `id` variant không thuộc product                                              | 400       | ✅         |
+| P17 | Variant mới thiếu giá, hoặc chọn Option Value sai (không tồn tại/ẩn/sai loại) | 400       | ✅         |
+| P18 | Option Value không tồn tại / đang ẩn / sai loại                               | 400       | ✅         |
+| P19 | Hai variant cùng tổ hợp màu + size (trùng SKU)                                | 409       | ✅         |
+| P20 | Cố đổi Option Value của variant đã có                                         | 400       | ✅         |
+| P21 | Không còn variant `ACTIVE` nào                                                | 400       | ✅         |
+| P22 | Quá 50 variant `ACTIVE` + `INACTIVE`                                          | 400       | ✅         |
+| P23 | Đưa variant `DISCONTINUED` về `ACTIVE`/`INACTIVE`                             | 400       | ✅         |
 
 **`POST /products`**: như `PATCH` (trừ P2, P7, P11, P15, P16, P20, P23), thêm:
 
@@ -142,26 +146,25 @@ Mọi lỗi backend có shape `{ statusCode, message, requestId }`. Mọi case d
 | C2  | Thiếu `variants` (< 1) | 400    | ✅         |
 | C3  | Product Code trùng     | 409    | ✅         |
 
-Không phải lỗi nhưng mất dữ liệu (chấp nhận, ADR 0012): hai staff cùng edit → người lưu sau thay thế toàn bộ `images[]`/`variants[]`.
+**Option Values** (`/option-values`)
 
-## Deployment (AWS S3 / provider thật)
+| #   | Case                                                                                             | Status    |
+| --- | ------------------------------------------------------------------------------------------------ | --------- |
+| O1  | Thiếu/sai token; role không phải `STORE_MANAGER`/`MASTER_ADMIN` (ghi, hoặc `includeHidden=true`) | 401 / 403 |
+| O2  | `code` sai format (không phải `^[A-Z0-9]{1,10}$`, kể cả chữ thường) hoặc `type` sai              | 400       |
+| O3  | `code` đã được Option Value khác dùng (màu hoặc size)                                            | 409       |
+| O4  | PATCH gửi `code` hoặc `type`                                                                     | 400       |
+| O5  | DELETE giá trị đang được variant dùng                                                            | 409       |
+| O6  | PATCH/DELETE id không tồn tại                                                                    | 404       |
 
-Local dev: `minio-init` trong `docker-compose.yml` tự tạo bucket, lifecycle rule và quyền đọc. Trên provider thật phải cấu hình tay (IaC hoặc console):
+Hành vi khi hai staff cùng edit (mất dữ liệu âm thầm, chấp nhận): xem mục Concurrency / ADR 0012.
 
-- Lifecycle rule `tmp/` → expire 1 ngày (bắt buộc, ADR 0010).
-- CORS bucket cho `POST` từ origin của FE — thiếu thì browser chặn bước upload dù presign đúng.
-- Public read cho `products/*` — URL lưu DB là URL trực tiếp, không ký. S3 mặc định bật Block Public Access.
-- Env: `S3_ENDPOINT=https://s3.<region>.amazonaws.com`, `S3_BUCKET`, `S3_REGION`, credential của IAM user có quyền trên bucket; `S3_PUBLIC_ENDPOINT` để trống nếu client và backend cùng endpoint.
+## Tài liệu liên quan
 
-Hạn chế hiện tại của adapter (việc cần làm trước khi production):
-
-- `S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY` bắt buộc → chưa dùng được IAM role (ECS/EC2); cần cho phép bỏ trống để SDK dùng default credential chain.
-- `forcePathStyle: true` hardcode → URL dạng `s3.<region>.amazonaws.com/<bucket>/<key>`; nên cấu hình được để dùng virtual-hosted style.
-- Chưa hỗ trợ CDN: `publicUrl()` luôn là `<endpoint>/<bucket>/<key>` và `keyFromUrl()` cần `/<bucket>/` trong path — domain CloudFront (`cdn.example.com/<key>`) sẽ làm URL lưu DB sai và dọn object thất bại (chỉ log). Cần biến base URL công khai riêng nếu dùng CDN.
-
-Hướng dẫn tích hợp phía FE: [Tạo/sửa Product — FE integration](../guides/product-form-fe-integration.md).
+- Tích hợp phía FE: [Tạo/sửa Product — FE integration](../guides/product-form-fe-integration.md).
+- Triển khai object storage (lifecycle, CORS, public read, hạn chế adapter): [Object storage deployment](../guides/object-storage-deployment.md).
 
 ## Acceptance criteria còn lại
 
 - Tự động hoá kiểm tra presign/attach lifecycle với MinIO thật (đã smoke-test tay 2026-09-24: upload hợp lệ 204, >5MB 400 `EntityTooLarge`, sai Content-Type 403, HEAD/copy/public GET/delete đúng — chưa có test chạy trong CI).
-- OpenAPI snapshot khớp nested aggregate và image endpoints.
+- OpenAPI snapshot khớp nested aggregate (`variants[]`/`images[]`) và module `option-values`.

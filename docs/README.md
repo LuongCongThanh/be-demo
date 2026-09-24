@@ -7,7 +7,7 @@ Hai tài liệu nền được giữ lại để tham khảo chuyên sâu:
 - [Kiến trúc và system design đầy đủ](ecommerce-backend-architecture-system-design.md)
 - [Tổng quan PostgreSQL schema](ecommerce-postgresql-database-summary.md)
 
-`CONTEXT.md` là glossary nghiệp vụ canonical. [ADR index](adr/ADR-INDEX.md) lưu quyết định khó đảo ngược và trạng thái implementation; `docs/convention` và `docs/skill-guide` được giữ theo yêu cầu.
+`CONTEXT.md` là glossary nghiệp vụ canonical. [ADR index](adr/ADR-INDEX.md) lưu quyết định khó đảo ngược và trạng thái implementation. `docs/guides` chứa hướng dẫn theo người đọc (FE tích hợp, triển khai hạ tầng) — trỏ về spec, không lặp lại contract; `docs/convention` và `docs/skill-guide` được giữ theo yêu cầu.
 
 ## Kiến trúc
 
@@ -23,21 +23,21 @@ Hệ thống là NestJS modular monolith. PostgreSQL là nguồn xác thực gia
 
 ## Trạng thái module
 
-| Module            | Trạng thái thực tế         | Gap/việc kế tiếp                                                     |
-| ----------------- | -------------------------- | -------------------------------------------------------------------- |
-| Infrastructure    | Gần hoàn tất               | Xác minh Docker/remote CI; sửa wildcard warning; OpenAPI drift gate  |
-| Auth              | Hoàn tất MVP               | SMTP external gate; review cookie/CSRF trước cross-origin production |
-| Categories        | Hoàn tất                   | Không có blocker đã biết                                             |
-| Products/Variants | Đã implement               | Option Value + SKU tự ghép đã xong (ADR 0011); OpenAPI snapshot      |
-| Product Images    | Đã implement               | MinIO lifecycle test trong CI; S3 production checklist (spec 03)     |
-| Users             | Chưa build                 | Module tiếp theo cần triển khai                                      |
-| Inventory         | Chỉ có model/bootstrap row | Thiếu adjustment, Reservation và concurrency control                 |
-| Cart              | Có model, chưa có module   | Làm sau Inventory foundation                                         |
-| Orders            | Có model, chưa có module   | Thiếu checkout snapshot, idempotency và outbox                       |
-| Payments          | Chưa model/build           | MoMo adapter, IPN, reconciliation, refund                            |
-| Promotions        | Chưa model/build           | Cần Order subtotal/discount snapshot trước                           |
-| Fulfillment       | Chưa build                 | Cần state machine và shipping boundary                               |
-| Notifications     | Một phần qua Auth mail     | Chưa có queue, history hoặc domain-event consumers                   |
+| Module            | Trạng thái thực tế         | Gap/việc kế tiếp                                                                             |
+| ----------------- | -------------------------- | -------------------------------------------------------------------------------------------- |
+| Infrastructure    | Gần hoàn tất               | Xác minh Docker/remote CI; sửa wildcard warning; OpenAPI drift gate                          |
+| Auth              | Hoàn tất MVP               | SMTP external gate; review cookie/CSRF trước cross-origin production                         |
+| Categories        | Hoàn tất                   | Không có blocker đã biết                                                                     |
+| Products/Variants | Đã implement               | Option Value + SKU tự ghép đã xong (ADR 0011); OpenAPI snapshot                              |
+| Product Images    | Đã implement               | Chưa có MinIO lifecycle test trong CI; hạn chế adapter S3 (guides/object-storage-deployment) |
+| Users             | Chưa build                 | Module tiếp theo cần triển khai                                                              |
+| Inventory         | Chỉ có model/bootstrap row | Thiếu adjustment, Reservation và concurrency control                                         |
+| Cart              | Có model, chưa có module   | Làm sau Inventory foundation                                                                 |
+| Orders            | Có model, chưa có module   | Thiếu checkout snapshot, idempotency và outbox                                               |
+| Payments          | Chưa model/build           | MoMo adapter, IPN, reconciliation, refund                                                    |
+| Promotions        | Chưa model/build           | Cần Order subtotal/discount snapshot trước                                                   |
+| Fulfillment       | Chưa build                 | Cần state machine và shipping boundary                                                       |
+| Notifications     | Một phần qua Auth mail     | Chưa có queue, history hoặc domain-event consumers                                           |
 
 ## Data ownership và invariant liên module
 
@@ -63,7 +63,7 @@ Ngoại lệ có chủ đích: Products tạo Inventory quantity `0` cùng trans
 
 ## Thứ tự triển khai
 
-1. P0: Product atomicity, wildcard compatibility, Docker/CI/S3 verification và OpenAPI drift.
+1. P0: wildcard compatibility, Docker/CI/S3 verification và OpenAPI drift (Product atomicity đã xong — PATCH ghi product/variants/images trong một transaction).
 2. Users: profile, role/status, audit và last-MASTER_ADMIN invariant.
 3. Inventory: adjustment, Reservation, locking, expiry và outbox foundation.
 4. Cart: customer cart; không reserve hàng.

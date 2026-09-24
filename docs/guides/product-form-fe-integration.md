@@ -227,4 +227,4 @@ Lỗi backend có shape `{ statusCode, message, requestId }`.
 ## Môi trường
 
 - Local (`docker-compose`): `uploadUrl` và `url` trỏ `http://localhost:9000`, truy cập được từ máy dev.
-- Production (S3): bucket phải bật CORS cho origin của FE, nếu không browser chặn bước ②. Xem mục Deployment trong spec 03.
+- Production (S3): bucket phải bật CORS cho origin của FE, nếu không browser chặn bước ②. Xem [Object storage deployment](object-storage-deployment.md).

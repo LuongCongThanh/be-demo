@@ -85,6 +85,12 @@ Theo pattern đã thấy trong code hiện tại: package ngoài (`@nestjs/*`, t
 
 Không có ngưỡng dòng cứng, nhưng nếu 1 service/controller vượt quá **~300 dòng** (vd. `auth.service.ts` hiện ~480 dòng, đã là file lớn nhất project), cân nhắc tách theo use-case (vd. tách riêng use-case đăng ký/đăng nhập/reset-password thành các service nhỏ hơn nếu chúng đủ độc lập) thay vì để 1 class ôm hết. Đây là gợi ý, không phải rule chặn PR — không tách chỉ vì "đủ số dòng" nếu logic thực sự gắn chặt với nhau.
 
+## 8. Ngôn ngữ
+
+- Identifier, message lỗi trả về client và log: **tiếng Anh**.
+- Comment giải thích trong code: **tiếng Việt**.
+- `description` trong `@ApiProperty`/`@ApiOperation` (Swagger): **được viết tiếng Việt** — đây là tài liệu cho dev đọc, không phải chuỗi runtime trả về client; `summary` của route giữ tiếng Anh như hiện có. Không trộn hai ngôn ngữ trong cùng một field.
+
 ## Checklist khi thêm file mới
 
 - [ ] Tên file kebab-case, đúng hậu tố theo vai trò ([§1](#1-đặt-tên-file))
