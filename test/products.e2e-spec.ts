@@ -428,4 +428,66 @@ describe('Products + Variants (e2e)', () => {
       await patchProduct(product.id, { variants: [...ids.slice(1).map((id) => ({ id })), variantFor(50)] }).expect(200);
     });
   });
+
+  describe('Reads: Customers only see ACTIVE variants', () => {
+    async function productWithEveryStatus() {
+      const product = (
+        await postProduct(
+          productPayload({
+            variants: [
+              { colorId: options.black.id, sizeId: options.sizeM.id, price: 1 },
+              { colorId: options.black.id, sizeId: options.sizeL.id, price: 1 },
+              { colorId: options.white.id, sizeId: options.sizeM.id, price: 1 },
+            ],
+          }),
+        ).expect(201)
+      ).body;
+      const [active, inactive] = product.variants;
+      // Vắng mặt → DISCONTINUED; response của PATCH (staff) vẫn thấy đủ 3.
+      const patched = await patchProduct(product.id, {
+        variants: [{ id: active.id }, { id: inactive.id, status: 'INACTIVE' }],
+      }).expect(200);
+      expect(patched.body.variants).toHaveLength(3);
+      return product;
+    }
+
+    it('GET /products/:id and GET /products hide INACTIVE and DISCONTINUED variants from the public', async () => {
+      const product = await productWithEveryStatus();
+
+      const one = await request(app.getHttpServer()).get(`/api/v1/products/${product.id}`).expect(200);
+      expect(one.body.variants.map((v: VariantBody) => v.status)).toEqual(['ACTIVE']);
+
+      const list = await request(app.getHttpServer())
+        .get(`/api/v1/products?categoryId=${categoryId}&limit=100`)
+        .expect(200);
+      const listed = list.body.data.find((p: { id: string }) => p.id === product.id);
+      expect(listed.variants.map((v: VariantBody) => v.status)).toEqual(['ACTIVE']);
+    });
+
+    it('includeAllVariants=true returns every variant to catalog staff, 401 without a token, 403 for a CUSTOMER', async () => {
+      const product = await productWithEveryStatus();
+      const url = `/api/v1/products/${product.id}?includeAllVariants=true`;
+
+      await request(app.getHttpServer()).get(url).expect(401);
+      await request(app.getHttpServer())
+        .get(url)
+        .set('Authorization', `Bearer ${await createCustomerAndLogin()}`)
+        .expect(403);
+      const staff = await request(app.getHttpServer())
+        .get(url)
+        .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+        .expect(200);
+      expect(staff.body.variants.map((v: VariantBody) => v.status).sort()).toEqual([
+        'ACTIVE',
+        'DISCONTINUED',
+        'INACTIVE',
+      ]);
+
+      const list = await request(app.getHttpServer())
+        .get(`/api/v1/products?categoryId=${categoryId}&limit=100&includeAllVariants=true`)
+        .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+        .expect(200);
+      expect(list.body.data.find((p: { id: string }) => p.id === product.id).variants).toHaveLength(3);
+    });
+  });
 });

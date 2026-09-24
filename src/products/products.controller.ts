@@ -23,6 +23,8 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
+import { StaffQueryFlagGuard } from '../auth/guards/staff-query-flag.guard.js';
+import { VariantVisibilityQueryDto } from './dto/variant-visibility-query.dto.js';
 import { ProductsService } from './products.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
@@ -48,17 +50,25 @@ export class ProductsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List products (paginated, filterable by category/status, public)' })
+  @UseGuards(StaffQueryFlagGuard('includeAllVariants'))
+  @ApiOperation({
+    summary:
+      'List products (paginated, filterable by category/status, public — only ACTIVE variants unless includeAllVariants=true for STORE_MANAGER/MASTER_ADMIN)',
+  })
   @ApiOkResponse({ type: PaginatedProductResponseDto })
   findAll(@Query() query: ListProductsQueryDto) {
     return this.productsService.findAll(query);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a product by id (public)' })
+  @UseGuards(StaffQueryFlagGuard('includeAllVariants'))
+  @ApiOperation({
+    summary:
+      'Get a product by id (public — only ACTIVE variants unless includeAllVariants=true for STORE_MANAGER/MASTER_ADMIN)',
+  })
   @ApiOkResponse({ type: ProductResponseDto })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.productsService.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @Query() { includeAllVariants }: VariantVisibilityQueryDto) {
+    return this.productsService.findOne(id, includeAllVariants);
   }
 
   @Patch(':id')

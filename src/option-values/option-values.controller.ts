@@ -1,5 +1,25 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
@@ -43,5 +63,16 @@ export class OptionValuesController {
   @ApiOkResponse({ type: OptionValueResponseDto })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateOptionValueDto) {
     return this.optionValuesService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete an unused Option Value (409 while any variant uses it — hide it instead)' })
+  @ApiNoContentResponse({ description: 'Deleted' })
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.optionValuesService.remove(id);
   }
 }

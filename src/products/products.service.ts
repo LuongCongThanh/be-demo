@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
 import type { Prisma, Product, ProductImage, ProductVariant } from '../generated/prisma/client.js';
+import { VariantStatus } from '../generated/prisma/enums.js';
 import { writeUnique } from '../common/prisma-error.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
@@ -14,13 +15,22 @@ import { ProductVariantsService } from './product-variants.service.js';
 // sort_order khỏi response — thứ tự mảng đã là thông tin duy nhất client cần.
 // Variant nhúng Option Value dạng { id, name, code } thay cho colorId/sizeId trần.
 const OPTION_VALUE_SUMMARY = { select: { id: true, name: true, code: true } } as const;
+const VARIANT_SHAPE = {
+  include: { color: OPTION_VALUE_SUMMARY, size: OPTION_VALUE_SUMMARY },
+  omit: { colorId: true, sizeId: true },
+} as const;
 const PRODUCT_INCLUDE = {
-  variants: {
-    include: { color: OPTION_VALUE_SUMMARY, size: OPTION_VALUE_SUMMARY },
-    omit: { colorId: true, sizeId: true },
-  },
+  variants: VARIANT_SHAPE,
   images: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], omit: { sortOrder: true } },
 } satisfies Prisma.ProductInclude;
+
+// Read public chỉ thấy variant ACTIVE; staff (includeAllVariants) và mọi
+// response của thao tác ghi thấy đủ.
+function productInclude(includeAllVariants: boolean) {
+  return includeAllVariants
+    ? PRODUCT_INCLUDE
+    : { ...PRODUCT_INCLUDE, variants: { ...VARIANT_SHAPE, where: { status: VariantStatus.ACTIVE } } };
+}
 
 type OptionValueSummary = { id: string; name: string; code: string };
 type ProductWithRelations = Product & {
@@ -92,7 +102,7 @@ export class ProductsService {
     );
   }
 
-  async findAll({ page, limit, categoryId, status }: ListProductsQueryDto): Promise<{
+  async findAll({ page, limit, categoryId, status, includeAllVariants = false }: ListProductsQueryDto): Promise<{
     data: Product[];
     meta: { page: number; limit: number; total: number; totalPages: number };
   }> {
@@ -103,17 +113,20 @@ export class ProductsService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        include: PRODUCT_INCLUDE,
+        include: productInclude(includeAllVariants),
       }),
       this.prisma.product.count({ where }),
     ]);
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  async findOne(id: string): Promise<ProductWithRelations> {
+  async findOne(id: string, includeAllVariants = false): Promise<ProductWithRelations> {
     // Luôn embed variants (kể cả DISCONTINUED, không lọc mặc định) — xem
     // docs/specs/03-products.md — không có endpoint con cho variants/images.
-    const product = await this.prisma.product.findUnique({ where: { id }, include: PRODUCT_INCLUDE });
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: productInclude(includeAllVariants),
+    });
     if (!product) {
       throw new NotFoundException(`Product #${id} not found`);
     }
@@ -121,7 +134,7 @@ export class ProductsService {
   }
 
   async update(id: string, updateProductDto: UpdateProductDto): Promise<ProductWithRelations> {
-    const current = await this.findOne(id);
+    const current = await this.findOne(id, true);
 
     if (updateProductDto.categoryId && updateProductDto.categoryId !== current.categoryId) {
       const category = await this.prisma.category.findUnique({ where: { id: updateProductDto.categoryId } });
@@ -181,7 +194,7 @@ export class ProductsService {
       ),
     );
 
-    return this.findOne(id);
+    return this.findOne(id, true);
   }
 
   // Row variant thật (có colorId/sizeId) — response của findOne() đã thay

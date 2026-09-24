@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { OptionValue } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateOptionValueDto } from './dto/create-option-value.dto.js';
@@ -31,6 +31,20 @@ export class OptionValuesService {
 
   update(id: string, dto: UpdateOptionValueDto): Promise<OptionValue> {
     return this.prisma.optionValue.update({ where: { id }, data: dto });
+  }
+
+  // Pre-check để trả message rõ ràng; FK RESTRICT từ product_variants vẫn là
+  // chốt chặn thật khi có race (filter map P2003 → 409).
+  async remove(id: string): Promise<void> {
+    const value = await this.prisma.optionValue.findUnique({ where: { id } });
+    if (!value) {
+      throw new NotFoundException(`Option Value #${id} not found`);
+    }
+    const usedBy = await this.prisma.productVariant.count({ where: { OR: [{ colorId: id }, { sizeId: id }] } });
+    if (usedBy > 0) {
+      throw new ConflictException(`Option Value "${value.code}" is used by variants — hide it instead`);
+    }
+    await this.prisma.optionValue.delete({ where: { id } });
   }
 
   private async nextPosition({ type }: CreateOptionValueDto): Promise<number> {

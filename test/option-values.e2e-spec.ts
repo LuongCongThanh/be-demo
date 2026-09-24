@@ -142,4 +142,44 @@ describe('Option Values (e2e)', () => {
     ).body;
     expect(staffList.find((v: { id: string }) => v.id === value.id)).toMatchObject({ hidden: true });
   });
+
+  describe('DELETE /api/v1/option-values/:id', () => {
+    function remove(id: string, token = staffToken) {
+      return request(app.getHttpServer()).delete(`/api/v1/option-values/${id}`).set('Authorization', `Bearer ${token}`);
+    }
+
+    it('deletes an unused value with 204, and is staff-only', async () => {
+      const value = (await createOptionValue({ type: 'SIZE', name: 'Unused', code: uniqueCode() }).expect(201)).body;
+
+      await remove(value.id, customerToken).expect(403);
+      await remove(value.id).expect(204);
+      expect(await prisma.optionValue.findUnique({ where: { id: value.id } })).toBeNull();
+    });
+
+    it('rejects deleting a value that a variant uses with 409 — hide it instead', async () => {
+      const value = (await createOptionValue({ type: 'COLOR', name: 'Used', code: uniqueCode() }).expect(201)).body;
+      const category = await prisma.category.create({
+        data: { name: `${CODE_PREFIX} category ${Date.now()}`, slug: `ove-category-${Date.now()}` },
+      });
+      const product = await prisma.product.create({
+        data: {
+          name: `${CODE_PREFIX} product ${Date.now()}`,
+          slug: `ove-product-${Date.now()}`,
+          code: uniqueCode(),
+          categoryId: category.id,
+        },
+      });
+      await prisma.productVariant.create({
+        data: { productId: product.id, sku: `${product.code}-${value.code}`, colorId: value.id, price: 1 },
+      });
+
+      try {
+        const res = await remove(value.id).expect(409);
+        expect(res.body.message).toBe(`Option Value "${value.code}" is used by variants — hide it instead`);
+      } finally {
+        await prisma.product.delete({ where: { id: product.id } });
+        await prisma.category.delete({ where: { id: category.id } });
+      }
+    });
+  });
 });
