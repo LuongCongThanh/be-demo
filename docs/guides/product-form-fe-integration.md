@@ -121,6 +121,7 @@ Authorization: Bearer <accessToken>
   "name": "Áo thun basic",
   "categoryId": "550e8400-e29b-41d4-a716-446655440000",
   "code": "TSB001",
+  "description": "Áo thun cotton 100%, form regular.",
   "variants": [
     { "colorId": "<id Đen>", "sizeId": "<id M>", "price": 199000 },
     { "colorId": "<id Trắng>", "sizeId": "<id M>", "price": 199000 }

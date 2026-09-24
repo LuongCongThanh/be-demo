@@ -1,10 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUUID,
   Matches,
@@ -14,6 +15,8 @@ import {
 import { CreateVariantDto } from './create-variant.dto.js';
 import { CreateProductImageDto, MAX_PRODUCT_IMAGES, MIN_PRODUCT_IMAGES } from './create-product-image.dto.js';
 
+// Chặn payload bất thường; Category không giới hạn nhưng mô tả product dài hơn nhiều.
+export const MAX_PRODUCT_DESCRIPTION_LENGTH = 5000;
 export const PRODUCT_CODE_PATTERN = /^[A-Z0-9]{2,20}$/;
 
 export class CreateProductDto {
@@ -25,6 +28,17 @@ export class CreateProductDto {
   @IsString()
   @MaxLength(255)
   name: string;
+
+  // PATCH gửi `null` để xoá mô tả — @IsOptional() cho qua null, cột nullable.
+  @ApiPropertyOptional({
+    maxLength: MAX_PRODUCT_DESCRIPTION_LENGTH,
+    nullable: true,
+    example: 'Áo thun cotton 100%, form regular, thấm hút mồ hôi tốt.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_PRODUCT_DESCRIPTION_LENGTH)
+  description?: string | null;
 
   // Mở đầu mọi SKU của product, không đổi sau khi tạo (docs/adr/0011). Không
   // tự viết hoa — FE phải thấy đúng giá trị sẽ nằm trong SKU.

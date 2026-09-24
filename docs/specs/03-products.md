@@ -87,6 +87,7 @@ Variant trong `variants[]`:
 - Tạo mới: `{ colorId?, sizeId?, price }` — thiếu `price` → 400 — Option Value phải tồn tại, không ẩn, đúng loại (400). Không có `sku`/`color`/`size` tự do (400).
 - Giữ lại: `{ id, price?, status? }`. Gửi `colorId`/`sizeId` kèm `id` → 400 — chọn nhầm thì bỏ variant đó và tạo variant mới.
 - SKU = `<Product Code>-<mã màu>-<mã size>`, bỏ đoạn không có; product không có biến thể có SKU = Product Code. Trùng SKU trong product (kể cả với variant đã `DISCONTINUED` — tổ hợp đã discontinue không tạo lại được, dùng `INACTIVE` nếu định bán lại) → 409, kiểm trước mọi ghi.
+- `description` (không bắt buộc, tối đa 5000 ký tự) nhận ở `POST` và `PATCH`; `PATCH` gửi `null` để xoá.
 - `POST /products` bắt buộc `code` (`^[A-Z0-9]{2,20}$`, trùng → 409) và ≥ 1 variant. `PATCH` gửi `code` → 400.
 - Sau mỗi ghi phải còn ≥ 1 variant `ACTIVE` (400) — ngừng bán cả Product dùng `status` của Product. Tối đa 50 variant `ACTIVE` + `INACTIVE` (400).
 - Variant vắng mặt trong `variants[]` luôn thành `DISCONTINUED`, kể cả chưa từng bán; `DISCONTINUED` không quay lại `ACTIVE`/`INACTIVE` (400).

@@ -286,6 +286,23 @@ describe('Products + Variants (e2e)', () => {
     await patchProduct(product.id, { name: null }).expect(400);
   });
 
+  describe('Description', () => {
+    it('stores a description on create, updates it on PATCH, and clears it with null', async () => {
+      const created = await postProduct(productPayload({ description: 'Áo cotton 100%, form regular.' })).expect(201);
+      expect(created.body.description).toBe('Áo cotton 100%, form regular.');
+
+      const updated = await patchProduct(created.body.id, { description: 'Cotton 100%, form slim.' }).expect(200);
+      expect(updated.body.description).toBe('Cotton 100%, form slim.');
+
+      const cleared = await patchProduct(created.body.id, { description: null }).expect(200);
+      expect(cleared.body.description).toBeNull();
+    });
+
+    it('rejects a description longer than 5000 characters with 400', async () => {
+      await postProduct(productPayload({ description: 'x'.repeat(5001) })).expect(400);
+    });
+  });
+
   describe('Product Code and SKU (ADR 0011)', () => {
     it('composes each variant SKU from the Product Code and its Option Value codes, embedding color and size', async () => {
       const code = uniqueProductCode(PRODUCT_CODE_PREFIX);
