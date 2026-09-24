@@ -20,6 +20,41 @@ services:
     ports:
       - '6379:6379'
 
+  minio:
+    image: quay.io/minio/minio:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - '9000:9000'
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Tạo bucket `media` + cấu hình bắt buộc cho module upload-image: object
+  # dưới `products/` đọc công khai (URL lưu trong DB), Pending Upload dưới
+  # `tmp/` tự xoá sau 1 ngày (docs/adr/0010). Chạy 1 lần rồi thoát, idempotent:
+  # `mc ilm import` ghi đè toàn bộ lifecycle config thay vì thêm rule mới mỗi
+  # lần chạy (image mc không có grep để tự kiểm tra rule đã tồn tại).
+  # Image lấy từ quay.io — MinIO đã ngừng phát hành image lên Docker Hub.
+  minio-init:
+    image: quay.io/minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/media &&
+      mc anonymous set download local/media/products &&
+      echo '{\"Rules\":[{\"ID\":\"expire-pending-uploads\",\"Status\":\"Enabled\",\"Filter\":{\"Prefix\":\"tmp/\"},\"Expiration\":{\"Days\":1}}]}' | mc ilm import local/media
+      "
+
   api:
     build: .
     ports:
@@ -29,9 +64,19 @@ services:
       JWT_ACCESS_SECRET: local-dev-secret-change-me-32-chars-min
       ADMIN_BOOTSTRAP_EMAIL: admin@example.com
       ADMIN_BOOTSTRAP_PASSWORD: ChangeMe123!
+      S3_ENDPOINT: http://minio:9000
+      # Trình duyệt không resolve được `minio` — URL presign/ảnh phải trỏ cổng publish ra host.
+      S3_PUBLIC_ENDPOINT: http://localhost:9000
+      S3_BUCKET: media
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: minioadmin
     depends_on:
       postgres:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
 volumes:
   postgres-data:
+  minio-data:

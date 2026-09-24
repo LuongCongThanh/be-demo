@@ -20,7 +20,11 @@ async function bootstrap() {
     .addTag('Categories', 'Product category CRUD — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public')
     .addTag(
       'Products',
-      'Product + variant CRUD (variants nested under products, inventory created atomically) — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public',
+      'Product aggregate CRUD — variants and images are nested in create/update payloads and embedded in reads; writes gated to STORE_MANAGER/MASTER_ADMIN, reads public',
+    )
+    .addTag(
+      'Upload Images',
+      'Presigned direct-to-storage image uploads, reused by any module that needs images — allowed roles depend on the upload purpose',
     )
     .addBearerAuth()
     .build();

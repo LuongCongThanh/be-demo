@@ -3,7 +3,15 @@
     "mattpocock-skills@mattpocock": true
   },
   "permissions": {
-    "allow": ["Bash(pnpm typecheck)", "Bash(pnpm lint)", "Bash(pnpm test)", "mcp__claude_ai_Figma__get_screenshot"]
+    "allow": [
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run test)",
+      "Bash(npm run test:*)",
+      "Bash(npm run build)",
+      "Bash(npm run verify)",
+      "mcp__claude_ai_Figma__get_screenshot"
+    ]
   },
   "hooks": {
     "PreToolUse": [

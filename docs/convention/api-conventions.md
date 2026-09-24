@@ -38,7 +38,7 @@ CRUD chỉ là **một trường hợp riêng** của flow API tổng quát — 
 - [Checklist khi tạo API mới](#checklist-khi-tạo-api-mới)
 - [Phụ lục — Tổng hợp lệnh CLI cần dùng](#phụ-lục--tổng-hợp-lệnh-cli-cần-dùng)
 
-> Tài liệu này là **convention chung, generic** — mô tả _cách_ tạo 1 API/module, không phải bản ghi chi tiết business rule của 1 resource cụ thể. Khi 1 resource thật (vd. `categories`) được lên kế hoạch/implement, business rule cụ thể + code thật của nó sống ở tài liệu/PR riêng của resource đó (vd. `../categories-module-plan.md`), tài liệu đó tham chiếu ngược lại các mục dưới đây cho phần convention dùng chung.
+> Tài liệu này là **convention chung, generic** — mô tả _cách_ tạo 1 API/module, không phải bản ghi chi tiết business rule của 1 resource cụ thể. Business rule, acceptance criteria và implementation sequence sống trong [Module Specifications Index](../specs/MODULE-SPECS.md).
 >
 > ⚠️ `../../CONTEXT.md` ở root hiện vẫn mô tả domain "Todo List" cũ, chưa khớp schema ecommerce thật (`docs/agents/domain.md` yêu cầu đọc `CONTEXT.md` trước khi code) — gap đã biết, cần task riêng để cập nhật, không xử lý trong convention này.
 
@@ -86,7 +86,7 @@ Cả hai chủ đề này khá sâu (outbox pattern, saga, optimistic locking...
 
 Bên dưới là flow A áp dụng đầy đủ cho 1 CRUD resource, viết theo khung **generic** — dùng placeholder **`Resource`/`resource`**, thay bằng tên thực thể thật khi bắt đầu 1 resource mới (`Category`/`categories`, `Product`/`products`...).
 
-> **Không nằm trong phạm vi mục này**: business rule cụ thể của từng resource thật (sinh slug, ownership, tính tồn kho, ADR xoá cascade/restrict...). Khi 1 resource cụ thể được lên kế hoạch, business rule + code thật của nó nên sống ở tài liệu riêng của resource đó (vd. `../categories-module-plan.md`), tài liệu đó trỏ ngược lại các mục §B0–§B14 dưới đây cho phần khung sườn dùng chung.
+> **Không nằm trong phạm vi mục này**: business rule cụ thể của từng resource thật (sinh slug, ownership, tính tồn kho, ADR xoá cascade/restrict...). Những nội dung đó sống trong module spec và trỏ ngược lại các mục §B0–§B14 dưới đây cho phần khung sườn dùng chung.
 
 ### B0. Requirement / Business Rules / API Contract (rút gọn cho CRUD)
 
@@ -527,7 +527,7 @@ describe('Resources (e2e)', () => {
 });
 ```
 
-> **`adminAccessToken` trong ví dụ e2e trên**: lấy bằng cách login qua `POST /auth/login` với tài khoản ADMIN đã có sẵn từ seed script (`../auth-playbook/01-setup.md` Bước 1), thực hiện 1 lần trong `beforeAll` và lưu vào biến dùng chung cho cả file test — không tạo lại user/login lại ở từng test case.
+> **`adminAccessToken` trong ví dụ e2e trên**: lấy bằng cách login qua `POST /api/v1/auth/login` với tài khoản `MASTER_ADMIN` do test fixture/seed tạo, thực hiện 1 lần trong `beforeAll` và lưu vào biến dùng chung cho cả file test — không tạo lại user/login ở từng test case.
 
 > **Không duplicate bootstrap config giữa `main.ts` và e2e setup.** Nếu `main.ts` khai báo `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` nhưng e2e chỉ set `{ whitelist: true, transform: true }`, test có thể pass trong khi app thật xử lý khác (vd. field lạ: e2e không set `forbidNonWhitelisted` nên không phát hiện được nếu app thật lẽ ra phải trả 400). Tách phần config chung ra 1 hàm dùng lại ở cả 2 chỗ:
 >
@@ -573,9 +573,9 @@ Endpoint có cần authorization (role/ownership) không?
    Role/Policy Guard
 ```
 
-> ✅ **Auth module đã xong** (`JwtAuthGuard`, `RolesGuard`, `OwnershipGuard`, `@Roles()`, `@CurrentUser()` — xem `../auth-playbook/00-overview.md`). Mọi resource mới tái sử dụng nguyên bộ guard này, không tự viết cơ chế phân quyền riêng. Với resource có khái niệm "chủ sở hữu" (`Cart`, `Order` — chỉ user đó được thao tác trên resource của chính mình), dùng thêm `OwnershipGuard` + `@OwnedResource()` thay vì chỉ `RolesGuard`.
+> ✅ **Auth module đã xong** (`JwtAuthGuard`, `RolesGuard`, `OwnershipGuard`, `@Roles()`, `@CurrentUser()` — xem [`../specs/01-auth.md`](../specs/01-auth.md)). Mọi resource mới tái sử dụng authentication/RBAC foundation này; authorization rule cụ thể vẫn thuộc module domain. Với resource có khái niệm chủ sở hữu, dùng ownership policy đã được spec của module định nghĩa.
 >
-> Áp dụng checklist này cho **từng resource mới khi thực sự implement** — xem tài liệu kế hoạch/implementation riêng của resource đó (vd. `../categories-module-plan.md`) để biết resource nào đã đi qua checkpoint này, resource nào còn đang ở dạng kế hoạch.
+> Áp dụng checklist này cho **từng resource mới khi thực sự implement**. Trạng thái canonical nằm ở [`../README.md`](../README.md), không suy ra từ checkbox của plan.
 
 ### B11. Response DTO / Serialization
 
@@ -903,7 +903,7 @@ Checklist chi tiết bên dưới là cách để đạt Definition of Done này
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `../../CONTEXT.md` mô tả domain "Todo" cũ, chưa khớp schema ecommerce | Non-blocking cho việc code, nhưng gây nhầm domain nếu không đọc kỹ trước |
 
-> Gap đã fix (`../../src/bootstrap/configure-app.ts` dùng chung giữa `main.ts`/e2e, `AuthModule` + guard) đã được xoá khỏi bảng này — không giữ lại lịch sử "đã từng là gap" ở đây để tránh đọc nhầm thành "chưa xong". Nếu cần biết trạng thái implement thật của 1 resource cụ thể (vd. `categories` đã đi qua bao nhiêu bước), xem tài liệu kế hoạch riêng của resource đó (vd. `../categories-module-plan.md`), không suy luận từ convention doc này.
+> Gap đã fix (`../../src/bootstrap/configure-app.ts` dùng chung giữa `main.ts`/e2e, `AuthModule` + guard) đã được xoá khỏi bảng này để tránh đọc nhầm thành chưa xong. Trạng thái implementation thực tế nằm ở [`../README.md`](../README.md); không suy luận từ convention doc hoặc checkbox plan.
 
 ---
 

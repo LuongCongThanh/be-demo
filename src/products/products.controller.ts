@@ -27,11 +27,8 @@ import { ProductsService } from './products.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 import { ListProductsQueryDto } from './dto/list-products-query.dto.js';
-import { ListVariantsQueryDto } from './dto/list-variants-query.dto.js';
 import { ProductResponseDto } from './dto/product-response.dto.js';
 import { PaginatedProductResponseDto } from './dto/paginated-product-response.dto.js';
-import { VariantResponseDto } from './dto/variant-response.dto.js';
-import { PaginatedVariantResponseDto } from './dto/paginated-variant-response.dto.js';
 
 @ApiTags('Products')
 @Controller('products')
@@ -42,7 +39,9 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new product (STORE_MANAGER/MASTER_ADMIN only)' })
+  @ApiOperation({
+    summary: 'Create a product with its variants and images in one call (STORE_MANAGER/MASTER_ADMIN only)',
+  })
   @ApiCreatedResponse({ type: ProductResponseDto })
   create(@Body() createProductDto: CreateProductDto) {
     return this.productsService.create(createProductDto);
@@ -67,7 +66,8 @@ export class ProductsController {
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Update a product, regenerating its slug if the name changes (STORE_MANAGER/MASTER_ADMIN only)',
+    summary:
+      'Update a product; variants[]/images[] are full desired state, all changes apply in one transaction (STORE_MANAGER/MASTER_ADMIN only)',
   })
   @ApiOkResponse({ type: ProductResponseDto })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateProductDto: UpdateProductDto) {
@@ -85,19 +85,5 @@ export class ProductsController {
   @ApiNoContentResponse({ description: 'Product deleted' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.remove(id);
-  }
-
-  @Get(':id/variants')
-  @ApiOperation({ summary: 'List variants of a product (paginated, optional status filter, public)' })
-  @ApiOkResponse({ type: PaginatedVariantResponseDto })
-  findAllVariants(@Param('id', ParseUUIDPipe) productId: string, @Query() query: ListVariantsQueryDto) {
-    return this.productsService.findAllVariants(productId, query);
-  }
-
-  @Get(':id/variants/:variantId')
-  @ApiOperation({ summary: 'Get a variant by id, scoped to its parent product (public)' })
-  @ApiOkResponse({ type: VariantResponseDto })
-  findOneVariant(@Param('id', ParseUUIDPipe) productId: string, @Param('variantId', ParseUUIDPipe) variantId: string) {
-    return this.productsService.findOneVariant(productId, variantId);
   }
 }

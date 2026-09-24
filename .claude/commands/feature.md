@@ -42,7 +42,7 @@ Nếu task **không có business rule/behavior mới cần làm rõ** (migrate l
 Diff nhỏ không đồng nghĩa quick task — đổi 1 dòng `JWT_EXPIRES_IN`, CORS, rate limit, DB pool, feature flag vẫn có thể là Medium vì đổi behavior/security dù ít LOC.
 
 - **Quick** — tất cả đúng: requirement hoàn toàn rõ, thay đổi cục bộ, không đổi public behavior/API contract/DB-schema-data/auth-security-permission, không ảnh hưởng nhiều module, rollback trivial.
-  → Bỏ qua toàn bộ pipeline: viết test tối thiểu (nếu cần) → sửa code → `pnpm lint`/test phạm vi ảnh hưởng → báo user, gợi ý `/ship`.
+  → Bỏ qua toàn bộ pipeline: viết test tối thiểu (nếu cần) → sửa code → `npm run lint`/test phạm vi ảnh hưởng → báo user, gợi ý `/ship`.
 - **Medium** (1 feature/fix, gói gọn 1 session): `grill-with-docs → to-spec → worktree → implement/tdd → verify`.
 - **Large** (nhiều behavior, nhiều session): thêm `to-tickets` sau `to-spec`, tạo **một worktree cho cả feature** (không tạo worktree riêng từng ticket), rồi mỗi ticket lặp lại `implement/tdd → focused/full verify liên quan → lightweight review → commit` tuần tự trong cùng worktree đó, kết thúc bằng full verify cho toàn feature trước khi sang `/ship`.
 
@@ -91,7 +91,7 @@ Tách work khỏi working tree hiện tại trước khi implement — **một w
 ### 6. Verify (gate toàn diện — cho cả feature, không phải từng ticket)
 
 - Unit (business logic/service) → luôn có; Integration/API → khi động tới DB/HTTP layer; E2E → chỉ khi slice là luồng nghiệp vụ xuyên nhiều bước.
-- Chạy đầy đủ `pnpm lint && pnpm typecheck && pnpm test` (+ `pnpm build` nếu convention yêu cầu).
+- Chạy đầy đủ `npm run verify` (lint + typecheck + unit test + build); thêm `npm run test:e2e` khi thay đổi chạm DB/HTTP hoặc luồng nghiệp vụ xuyên nhiều bước.
 - Trước khi báo "xong" → `verification-before-completion`: không tự nhận "done" theo cảm tính, phải có bằng chứng lint/typecheck/test thực sự pass.
 
 Khi Verify xong cho toàn bộ feature (Medium: 1 slice; Large: tất cả ticket trong cùng worktree), báo user và gợi ý chạy `/ship` (review đầy đủ + rebase + PR nằm ở đó, không lặp lại ở `/feature`).

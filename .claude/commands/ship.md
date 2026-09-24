@@ -5,7 +5,7 @@ description: Chạy trọn vòng lặp trước khi mở PR — verify, rebase, 
 Chạy tuần tự các bước sau, dừng lại và báo cáo ngay nếu bước nào fail — không tự ý bỏ qua hoặc "sửa cho qua" bằng cách nới lỏng convention:
 
 1. **Verify branch**: `git status` + `git rev-parse --abbrev-ref HEAD`. Nếu đang ở `main`/`dev` → dừng, báo lỗi (không tạo branch giùm nếu user chưa xác nhận tên branch).
-2. **Definition of Done — chạy trước khi rebase**: `pnpm lint`, `pnpm typecheck`, `pnpm test`, và `pnpm test:e2e` (nếu branch có thay đổi liên quan e2e). Fail bước nào → dừng, báo lỗi, không tiếp tục.
+2. **Definition of Done — chạy trước khi rebase**: `npm run verify`, và `npm run test:e2e` (nếu branch có thay đổi liên quan e2e). Fail bước nào → dừng, báo lỗi, không tiếp tục.
 3. **Code review**: invoke skill `code-review` trên diff so với `dev` ở effort level mặc định (hoặc level user chỉ định trong `$ARGUMENTS`). Có finding mức nghiêm trọng → dừng, báo cáo, để user quyết định sửa hay bỏ qua trước khi đi tiếp.
 4. **Rebase lên `dev`**: `git fetch origin dev && git rebase origin/dev`. Có conflict → dừng, để user tự giải quyết (không tự `--theirs`/`--ours`).
 5. **Push**: nếu branch đã từng push lên remote → `git push --force-with-lease` (không dùng `--force`); nếu chưa từng push → `git push -u origin <branch>`.

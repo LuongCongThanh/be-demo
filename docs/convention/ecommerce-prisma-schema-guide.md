@@ -213,16 +213,15 @@ model ProductImage {
   url       String
   altText   String?  @map("alt_text") @db.VarChar(255)
   sortOrder Int      @default(0) @map("sort_order")
-  isPrimary Boolean  @default(false) @map("is_primary")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_images")
-  // ⚠️ "chỉ 1 is_primary=true / product" là PARTIAL UNIQUE INDEX,
-  //    Prisma schema KHÔNG viết được — xem Bước 18 "Việc Prisma không tự làm được".
 }
 ```
+
+Không có cột `is_primary`: Cover Image là ảnh có `sort_order` nhỏ nhất (xem `CONTEXT.md`). Bản schema đầu tiên từng có `is_primary` + partial unique index "chỉ 1 ảnh primary / product"; cả hai đã bị bỏ ở migration `20260923120000_drop_product_image_is_primary` vì thứ tự mảng đã đủ để xác định ảnh đại diện.
 
 `onDelete: Cascade` — thêm vào bên trong `@relation(...)`, nghĩa là: xoá 1 `Product` thì Postgres tự xoá luôn các `ProductImage` con của nó, không cần code tự xoá tay từng ảnh.
 
@@ -460,7 +459,7 @@ model User {
 
 ## Bước 19 — Việc Prisma không tự viết được: 2 partial unique index
 
-Prisma schema DSL hiện tại **không có cú pháp cho unique index kèm `WHERE`**. Có đúng 2 chỗ cần (đã đánh dấu `⚠️` ở Bước 7 và Bước 10):
+Prisma schema DSL hiện tại **không có cú pháp cho unique index kèm `WHERE`**. Migration `init_ecommerce` ban đầu có 2 chỗ cần (dưới đây); index `product_images_product_id_primary_unique` sau đó đã bị drop cùng cột `is_primary` (xem Bước 7), hiện chỉ còn index của `carts` (đánh dấu `⚠️` ở Bước 10):
 
 ```bash
 # Tạo file migration nhưng CHƯA áp dụng vào DB

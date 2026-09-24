@@ -12,35 +12,37 @@ File này là **kiến trúc mục tiêu và roadmap theo từng phase**, không
 
 - **Current (Hiện có)** — đã xác nhận trong code, schema, migration, hoặc test.
 - **Committed (Đã chốt)** — một quyết định đã được review và ghi trong ADR, nhưng chưa chắc đã implement.
-- **Future (Tương lai)** — một điểm mở rộng cần một quyết định và implementation plan riêng khi có bằng chứng cần thiết.
+- **Future (Tương lai)** — một điểm mở rộng cần quyết định/spec riêng khi có bằng chứng cần thiết.
 
-Công việc cụ thể của từng module nằm trong các implementation plan riêng của module đó. Thuật ngữ nghiệp vụ chuẩn (canonical) nằm ở `CONTEXT.md`; các quyết định khó đảo ngược nằm ở `docs/adr/`. Bảng trạng thái bên dưới là nguồn xác thực cho những gì hiện đang tồn tại.
+Công việc cụ thể của từng module nằm trong [Module Specifications Index](specs/MODULE-SPECS.md). Thuật ngữ nghiệp vụ chuẩn nằm ở `CONTEXT.md`; quyết định khó đảo ngược và trạng thái thực thi nằm trong [ADR index](adr/ADR-INDEX.md). Bảng bên dưới là snapshot hiện trạng.
 
 ---
 
-# 0. Trạng thái hiện tại & Khoảng trống (tính đến 2026-09-17)
+# 0. Trạng thái hiện tại & Khoảng trống (xác minh 2026-09-23)
 
 Mục 1-22 bên dưới mô tả kiến trúc **mục tiêu**. Mục này nói rõ dự án hiện đang ở đâu trong thực tế, để phần còn lại của tài liệu không bị nhầm là trạng thái hiện tại.
 
-| Component                                | Status                 | Ghi chú                                                                                                                                                                                                                                                         |
-| ---------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth                                     | 🟢 Xong                | register/login/refresh/logout/verify-email/forgot-reset-password, RBAC qua `Role`/`UserRole` (do DB điều khiển, không phải enum hardcode), có rate limiting                                                                                                     |
-| Categories                               | 🟡 Đã lên kế hoạch     | Plan sẵn ở `docs/categories-module-plan.md`, 0/8 bước đã xong. Module tiếp theo cần build.                                                                                                                                                                      |
-| Users, Products, Cart, Inventory, Orders | 🔴 Chưa build          | Đã model trong `prisma/schema/schema.prisma`, chưa có code module                                                                                                                                                                                               |
-| Payments                                 | 🟡 Đã chốt, chưa build | Chưa có model/module thanh toán; MoMo là provider MVP đã được duyệt, đứng sau một ranh giới trung lập với provider (ADR 0004)                                                                                                                                   |
-| Promotions                               | 🔴 Chưa bắt đầu        | Chưa model, chưa thiết kế                                                                                                                                                                                                                                       |
-| Notifications                            | 🟡 Một phần            | Module `mail` (nodemailer) phủ email giao dịch của Auth; chưa có hệ thống notification/queue tổng quát                                                                                                                                                          |
-| Redis                                    | 🔴 Chưa có             | Rate limiting hiện chạy trên in-memory store của `@nestjs/throttler`                                                                                                                                                                                            |
-| BullMQ / Queue                           | 🔴 Chưa có             |                                                                                                                                                                                                                                                                 |
-| Object Storage                           | 🔴 Chưa có             |                                                                                                                                                                                                                                                                 |
-| Observability                            | 🟡 Một phần            | `AppLogger` + request-id tracing (AsyncLocalStorage) đã xong; chưa có metrics/tracing/Prometheus/Grafana                                                                                                                                                        |
-| Docker / CI-CD                           | 🔴 Chưa có             | Chưa có `Dockerfile`, `docker-compose.yml`, hay `.github/workflows`                                                                                                                                                                                             |
-| Inventory reservation model              | 🟡 Đã chốt, chưa build | Schema hiện tại chỉ có `inventory.reserved_quantity`; mục tiêu thêm bảng `inventory_reservations` có thể kiểm chứng (auditable), hết hạn sau 15 phút, cộng một transactional outbox (ADR 0003)                                                                  |
-| Orders discount/subtotal columns         | ⚠️ Cần cho Promotions  | `orders` hiện chỉ có một cột `total_amount` cuối cùng. `POST /promotions/validate` của Promotions (Mục 8) cần `orders.subtotal` + `orders.discount_amount` tồn tại trước khi checkout có thể áp mã — cần lên kế hoạch migration này trước khi build Promotions. |
-| API versioning                           | 🟡 Đã chốt             | Runtime hiện vẫn là `/auth/*`; sẽ migrate sang Nest URI versioning dưới `/api/v1/*` và chuyển Swagger sang `/docs` trước khi thêm route thương mại (ADR 0002)                                                                                                   |
-| Authorization roles                      | 🟡 Đã chốt             | Runtime/seed vẫn dùng `ADMIN` cũ; sẽ migrate sang `CUSTOMER`, `ORDER_STAFF`, `STORE_MANAGER`, `MASTER_ADMIN` trước khi lên production (ADR 0005)                                                                                                                |
-| Production topology                      | 🟡 Đã chốt             | Mục tiêu là nhiều API replica stateless, một worker riêng, managed PostgreSQL/Redis/object storage, và một load balancer; các artifact deployment chưa tồn tại                                                                                                  |
-| Payment provider                         | 🟡 Đã chốt             | MoMo là provider MVP cho VND/Việt Nam; PayPal được lùi lại cho thanh toán quốc tế; Stripe nằm ngoài phạm vi với một pháp nhân Việt Nam (ADR 0004)                                                                                                               |
+| Component                        | Status                     | Ghi chú                                                                                                                                                                                                                                                         |
+| -------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth                             | 🟢 Current                 | Toàn bộ Auth MVP, JWT/RBAC, rate limiting và E2E đã có                                                                                                                                                                                                          |
+| Categories                       | 🟢 Current                 | CRUD, RBAC, FK restrict và tests đã có ([ADR 0001](adr/0001-category-delete-restrict.md))                                                                                                                                                                       |
+| Products / Variants              | 🟡 Current có gap          | Aggregate API và tests đã có; `PATCH` Product + Variant full-sync còn thiếu transaction atomic chung                                                                                                                                                            |
+| Product Images / Object Storage  | 🟡 Current có gate         | Presign/attach/list/primary/delete và S3 adapter đã có; còn external MinIO/S3 verification                                                                                                                                                                      |
+| Users                            | 🔴 Chưa build              | Schema/Auth foundation có; chưa có administration module và last-MASTER_ADMIN guard                                                                                                                                                                             |
+| Cart, Inventory, Orders          | 🔴 Chưa build              | Có model nền; chưa có module, Reservation, Checkout hoặc Outbox                                                                                                                                                                                                 |
+| Payments                         | 🟡 Committed               | Chưa có model/module; MoMo-first theo [ADR 0004](adr/0004-momo-first-payment-provider.md)                                                                                                                                                                       |
+| Promotions                       | 🔴 Future                  | Chưa model/build; cần Order financial snapshot trước                                                                                                                                                                                                            |
+| Notifications                    | 🟡 Một phần                | Auth mail đã có; chưa có queue/history/event consumers                                                                                                                                                                                                          |
+| Redis                            | 🟡 Hạ tầng local           | Có Compose service nhưng application chưa dùng; throttling vẫn in-memory                                                                                                                                                                                        |
+| BullMQ / Queue                   | 🔴 Chưa có                 | Chưa có dependency, worker hoặc job contract                                                                                                                                                                                                                    |
+| Observability                    | 🟡 Một phần                | Request-id, structured logger và Prometheus metrics endpoint đã có; chưa có tracing/dashboard stack                                                                                                                                                             |
+| Docker / CI-CD                   | 🟡 Implemented, cần verify | Dockerfile, Compose và CI workflow đã có; cần ghi remote execution evidence                                                                                                                                                                                     |
+| Inventory Reservation / Outbox   | 🟡 Committed               | Chưa có schema/module; quyết định tại [ADR 0003](adr/0003-inventory-reservations-and-transactional-outbox.md)                                                                                                                                                   |
+| Orders discount/subtotal columns | ⚠️ Cần cho Promotions      | `orders` hiện chỉ có một cột `total_amount` cuối cùng. `POST /promotions/validate` của Promotions (Mục 8) cần `orders.subtotal` + `orders.discount_amount` tồn tại trước khi checkout có thể áp mã — cần lên kế hoạch migration này trước khi build Promotions. |
+| API versioning                   | 🟢 Current                 | Runtime dùng `/api/v1/*`, Swagger `/docs`; route `/auth/*` cũ bị từ chối ([ADR 0002](adr/0002-uri-versioned-api-contract.md))                                                                                                                                   |
+| Authorization roles              | 🟡 Partial                 | Bốn Role canonical và explicit route checks đã có; Users administration/invariant admin cuối chưa có ([ADR 0005](adr/0005-canonical-four-role-authorization-model.md))                                                                                          |
+| Production topology              | 🟡 Đã chốt                 | Mục tiêu là nhiều API replica stateless, một worker riêng, managed PostgreSQL/Redis/object storage, và một load balancer; các artifact deployment chưa tồn tại                                                                                                  |
+| Payment provider                 | 🟡 Đã chốt                 | MoMo là provider MVP cho VND/Việt Nam; PayPal được lùi lại cho thanh toán quốc tế; Stripe nằm ngoài phạm vi với một pháp nhân Việt Nam (ADR 0004)                                                                                                               |
 
 ```mermaid
 flowchart TB
@@ -69,13 +71,13 @@ flowchart TB
     classDef partial fill:#f9a825,color:#000,stroke:#c17900;
     classDef missing fill:#eceff1,color:#455a64,stroke:#90a4ae,stroke-dasharray: 4 3;
 
-    class Auth done;
-    class Categories,Notifications,Observability partial;
-    class Users,Products,Cart,Inventory,Orders,Payments,Promotions missing;
-    class Redis,Queue,Storage,DockerCI missing;
+    class Auth,Categories done;
+    class Products,Notifications,Observability,Redis,Storage,DockerCI partial;
+    class Users,Cart,Inventory,Orders,Payments,Promotions missing;
+    class Queue missing;
 ```
 
-**Vị trí trong roadmap (xem Mục 22 — Thứ tự Implementation):** Auth đã được implement, nhưng các prerequisite của Phase 1 trong roadmap bên dưới (API versioning, migrate role, thu hồi authorization-version, Docker/CI, health check, structured logs/metrics) chưa xong. Categories là module đầu tiên của **Phase 2**, tiếp theo là Products/Product Variants. Phase 3 trở đi (Users, Cart, Orders/Checkout, Payment, Redis/BullMQ, Notifications, Observability) chưa bắt đầu.
+**Vị trí trong roadmap (xem Mục 22 — Thứ tự Implementation):** Phase 1 và Phase 2 đã được implement phần lớn. Trước Phase 3 cần đóng các P0 gate: Product aggregate update atomicity, wildcard compatibility, Docker/remote-CI/Object-Storage verification và OpenAPI drift. Module tiếp theo là Users; sau đó Inventory Reservation → Cart → Orders/Checkout → Payments.
 
 Cập nhật bảng/sơ đồ này khi từng module hoàn thành — nó được thiết kế để luôn là một bản snapshot của thực tế, không phải một kế hoạch (kế hoạch nằm ở Mục 22).
 
@@ -183,7 +185,7 @@ Ghi chú:
 
 - **Thứ tự middleware đã được sửa lại trong bản này**: middleware global-bound (`app.use()` trong `configure-app.ts`) chạy trước middleware module-bound (`consumer.apply().forRoutes()` trong `app.module.ts`), theo đúng request lifecycle mà NestJS đã tài liệu hóa — bất kể dòng nào xuất hiện trước trong source. Đã xác nhận đối chiếu với binding thật của repo này (`app.module.ts:42`, `configure-app.ts:24`); vẫn nên có một integration test kiểm tra thứ tự request trước khi dựa hẳn vào nó, vì đây là hành vi ở mức framework, không phải điều codebase này tự kiểm soát trực tiếp.
 - Các mục **Global** chạy trên mọi route bất kể code controller. Các mục **Per-route** chỉ chạy ở nơi controller gắn tường minh chúng. Route register/login/verification/reset của Auth là public; logout/logout-all/me dùng `JwtAuthGuard`. `RolesGuard` và `OwnershipGuard` tồn tại cho các module nghiệp vụ nhưng chưa route Auth controller nào hiện tại dùng `RolesGuard`.
-- Mọi exception, dù được throw ở tầng nào, đều được bắt bởi một `AllExceptionsFilter` duy nhất — không có exception filter riêng cho từng module. Xem `../docs/convention`.
+- Mọi exception, dù được throw ở tầng nào, đều được bắt bởi một `AllExceptionsFilter` duy nhất — không có exception filter riêng cho từng module. Xem [`convention/`](convention/README.md).
 - `RequestIdMiddleware` mở context `AsyncLocalStorage` của nó trước khi request tới các guard và mọi thứ phía sau (nó vẫn chạy sau `cookie-parser`, theo đúng thứ tự đã sửa ở trên), và context đó vẫn hoạt động trong suốt phần còn lại của request — nên mọi lời gọi `Logger` ở bất kỳ đâu phía sau (guard, service, filter) đều tự động được gắn cùng một request id, không cần sửa code ở nơi gọi.
 
 ---
@@ -248,7 +250,7 @@ Việc Orders gọi vào Inventory/Payments/Promotions trong lúc checkout vẫn
 
 Đây là **toàn bộ repo**, không chỉ `src/` — file thật ở nơi chúng đã tồn tại, cộng với mọi module mà roadmap (Mục 0/22) đã chốt. Ký hiệu trạng thái dùng lại chú giải ở Mục 0: 🟢 xong · 🟡 một phần/đã lên kế hoạch · 🔴 chưa bắt đầu. Bất cứ thứ gì không có ký hiệu là infra đã tồn tại sẵn và không phải "module nghiệp vụ" (config, bootstrap, code generated, tooling).
 
-Quy tắc folder áp dụng cho mọi module nghiệp vụ bên dưới (xem `../docs/convention` §2): một subfolder (`dto/`, `guards/`, `services/`, ...) chỉ xuất hiện khi **≥ 2 file cùng vai trò** — một module chỉ có 1 file controller/service/module và không có DTO thì giữ phẳng (flat), không tạo folder rỗng. `inventory/dto/` bên dưới là ngoại lệ duy nhất đã được ghi nhận: nó tồn tại với đúng 1 file (`adjust-inventory.dto.ts`) vì file DTO vẫn phải nằm ở đâu đó bất kể số lượng, và Inventory thực sự chỉ cần đúng 1 file — quy tắc này nói về việc không tạo folder rỗng một cách suy đoán trước, không phải bắt buộc một module phải đạt 2 file mới được có folder `dto/`.
+Quy tắc folder áp dụng cho mọi module nghiệp vụ bên dưới (xem [`convention/`](convention/README.md) §2): một subfolder (`dto/`, `guards/`, `services/`, ...) chỉ xuất hiện khi **≥ 2 file cùng vai trò** — một module chỉ có 1 file controller/service/module và không có DTO thì giữ phẳng (flat), không tạo folder rỗng. `inventory/dto/` bên dưới là ngoại lệ duy nhất đã được ghi nhận: nó tồn tại với đúng 1 file (`adjust-inventory.dto.ts`) vì file DTO vẫn phải nằm ở đâu đó bất kể số lượng, và Inventory thực sự chỉ cần đúng 1 file — quy tắc này nói về việc không tạo folder rỗng một cách suy đoán trước, không phải bắt buộc một module phải đạt 2 file mới được có folder `dto/`.
 
 ```text
 nestjs-demo/
@@ -357,7 +359,7 @@ nestjs-demo/
     │   │   └── owned-resource.decorator.ts
     │   └── dto/                    # mỗi file cho một hình dạng request/response — register, login, refresh, forgot/reset-password, verify-email, resend-verification, message-response, auth-user-response
     │
-    ├── categories/                 # 🟡 đã lên kế hoạch tiếp theo — docs/categories-module-plan.md, 0/8 bước
+    ├── categories/                 # 🟢 Current — CRUD/RBAC/tests đã implement
     │   ├── categories.module.ts
     │   ├── categories.controller.ts # GET public; ghi → STORE_MANAGER hoặc MASTER_ADMIN
     │   ├── categories.service.ts    # gọi thẳng PrismaService — không có lớp repository (api-conventions.md §B5b)
@@ -367,7 +369,7 @@ nestjs-demo/
     │       ├── update-category.dto.ts  # PartialType(CreateCategoryDto) từ @nestjs/swagger, không phải @nestjs/mapped-types
     │       └── pagination.dto.ts        # hình dạng `{ page, limit }` — hiện copy-paste ở từng module (xem ghi chú dưới cây thư mục), chưa import từ một file dùng chung
     │
-    ├── products/                   # 🔴 chưa bắt đầu — CRUD chuẩn, cùng hình dạng với categories (Mục 8)
+    ├── products/                   # 🟡 Current có P0 gap — Product/Variant/Image/Object Storage đã implement; aggregate update cần atomic transaction
     │   ├── products.module.ts
     │   ├── products.controller.ts
     │   ├── products.service.ts
@@ -377,7 +379,7 @@ nestjs-demo/
     │       ├── update-product.dto.ts
     │       └── pagination.dto.ts
     │
-    ├── users/                      # 🔴 chưa bắt đầu — API cũng chưa có ở Mục 8, sẽ thêm cùng lúc với cây thư mục này. Việc gán role nằm ở đây (POST /users/:id/roles), không phải một module roles/ riêng
+    ├── users/                      # 🔴 chưa bắt đầu — module kế tiếp; quản lý profile/status/role, không tạo module roles riêng
     │   ├── users.module.ts
     │   ├── users.controller.ts     # PATCH /users/me; quản trị user/status/role → MASTER_ADMIN
     │   ├── users.service.ts
@@ -398,7 +400,7 @@ nestjs-demo/
     │       ├── add-cart-item.dto.ts     # POST /cart/items
     │       └── update-cart-item.dto.ts  # PATCH /cart/items/:id — không có pagination.dto.ts (mỗi user 1 cart, không có gì để phân trang)
     │
-    ├── inventory/                  # 🔴 chưa bắt đầu — cần chốt quyết định reserved_quantity vs inventory_reservations (Mục 0/7) trước khi viết module này
+    ├── inventory/                  # 🔴 chưa bắt đầu — explicit Inventory Reservation + Outbox đã chốt ở ADR 0003, chưa migrate/implement
     │   ├── inventory.module.ts
     │   ├── inventory.controller.ts # GET /inventory/:variantId; PATCH /inventory/:variantId/adjust — không có create/delete/list, dòng inventory sinh ra cùng ProductVariant của nó
     │   ├── inventory.service.ts
@@ -455,7 +457,7 @@ PrismaService
 Database
 ```
 
-Controller không được truy cập PostgreSQL trực tiếp — phải đi qua service. Service gọi `PrismaService` trực tiếp; một lớp `Resource Repository` riêng **không phải** mặc định ở đây (xem `../docs/convention` §B5b) — chỉ thêm khi có lý do cụ thể (một query phức tạp được tái sử dụng ở nhiều nơi, nhiều aggregate trong một thao tác nghiệp vụ, một transaction lớn, hoặc nhu cầu thật sự cần tách ORM khỏi business logic).
+Controller không được truy cập PostgreSQL trực tiếp — phải đi qua service. Service gọi `PrismaService` trực tiếp; một lớp `Resource Repository` riêng **không phải** mặc định ở đây (xem [`api-conventions.md`](convention/api-conventions.md) §B5b) — chỉ thêm khi có lý do cụ thể (một query phức tạp được tái sử dụng ở nhiều nơi, nhiều aggregate trong một thao tác nghiệp vụ, một transaction lớn, hoặc nhu cầu thật sự cần tách ORM khỏi business logic).
 
 ---
 
@@ -623,7 +625,7 @@ Lượt giữ hàng hết hạn sau **15 phút**. Trong một transaction Postgr
 
 **Ngăn hai Order từ cùng một Cart qua hai Idempotency-Key khác nhau:** header Idempotency-Key (Mục 12) chỉ loại trùng các retry _giống hệt nhau_: nó không ngăn được hai request thực sự khác nhau (khác key) cùng cố checkout một Cart. Cơ chế bảo vệ thay vào đó đến từ chính cột `status` của Cart (Mục 7): checkout chỉ hợp lệ với một Cart đang `ACTIVE`, và cùng transaction tạo Order cũng chuyển Cart đó sang `CHECKED_OUT` — vd `UPDATE carts SET status = 'CHECKED_OUT' WHERE id = :cartId AND status = 'ACTIVE'`. Một lượt checkout thứ hai chạy đồng thời trên cùng Cart sẽ thua ở conditional update đó (0 dòng bị ảnh hưởng) và bị từ chối, bất kể dùng Idempotency-Key nào.
 
-**Khoảng trống chưa được xử lý: một CartItem mutation chạy đua với checkout trên cùng một Cart** (vd `PATCH /cart/items/:id` đổi quantity trong lúc checkout đang đọc item của Cart đó để dựng Order). Quy tắc: **CartItem mutation và Checkout phải điều kiện theo cùng một kiểm tra `status` của Cart** — một CartItem mutation chỉ nên thành công khi `carts.status = 'ACTIVE'`, cùng điều kiện mà update `ACTIVE → CHECKED_OUT` của Checkout dùng. Một khi checkout đã chuyển Cart sang `CHECKED_OUT`, một CartItem mutation chạy đồng thời sẽ thua conditional update của chính nó, giống hệt một checkout thứ hai. **Đã quyết định (ADR 0009): dùng row lock (`SELECT ... FOR UPDATE` trên Cart lúc bắt đầu checkout), không dùng cột version kiểu optimistic.** Một Cart chỉ có đúng một chủ sở hữu (`carts.user_id` là unique cho mỗi Cart đang active) và không có kịch bản nhiều agent cùng sửa hợp lệ — tranh chấp ở đây hiếm và ngắn hạn, nên một row lock thông thường đơn giản hơn việc thêm cột `carts.version` cộng logic check-and-increment trên mỗi CartItem mutation. (Schema hiện tại không có cột `version` trên `carts` — row locking không cần migration mới cho việc này.)
+**Đã quyết định ([ADR 0009](adr/0009-cart-row-lock-over-optimistic-version.md)): Checkout và mọi CartItem mutation phải dùng cùng Cart row-lock protocol.** Mỗi path bắt đầu transaction, `SELECT ... FOR UPDATE` cùng Cart row, xác nhận `status = 'ACTIVE'`, rồi mới đọc/thay đổi Cart Items hoặc chuyển Cart sang `CHECKED_OUT`. Chỉ khóa ở Checkout là không đủ để serialize mutation trên child rows. Không dùng `carts.version`: một Cart có một chủ sở hữu, tranh chấp hiếm/ngắn hạn và row lock không cần migration schema.
 
 ---
 
@@ -791,7 +793,7 @@ Mọi API đều được versioned:
 /api/v1/...
 ```
 
-Đây là **mục tiêu đã chốt, chưa phải runtime hiện tại**. App hiện vẫn expose `/auth/*` cho tới khi ADR 0002 được implement. Việc migrate dùng Nest URI versioning với global prefix `api`, version `1`, không có alias không-version vĩnh viễn, đường dẫn refresh-cookie `/api/v1/auth`, và Swagger ở `/docs`.
+Đây là **runtime hiện tại, đã xác minh theo [ADR 0002](adr/0002-uri-versioned-api-contract.md)**. App dùng Nest URI versioning với global prefix `api`, version `1`, không giữ alias không-version; refresh-cookie path là `/api/v1/auth`, Swagger ở `/docs`.
 
 ## Auth
 
@@ -973,15 +975,15 @@ Order, Payment, và Fulfillment là ba trục trạng thái riêng biệt. Các 
 
 **Payment** (một dòng cho mỗi Order, tổng hợp các attempt của nó):
 
-| Từ                 | Sang                          | Sự kiện                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| _(không có)_       | `PENDING`                     | Order được tạo, chưa có attempt nào                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `PENDING`          | `PROCESSING`                  | Attempt đầu tiên chuyển sang `PROCESSING`                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `PROCESSING`       | `SUCCEEDED`                   | **Bất kỳ** attempt nào đạt `SUCCEEDED` — Payment thành công ngay từ attempt thành công đầu tiên, bất kể các attempt `FAILED`/`EXPIRED` trước đó trên cùng Payment                                                                                                                                                                                                                                                                                   |
-| `PROCESSING`       | `FAILED`                      | **Đã quyết định (ADR 0006):** retry được phép không giới hạn số lần miễn Order vẫn còn `PENDING_PAYMENT` và reservation của nó vẫn `ACTIVE` và chưa hết hạn — cửa sổ reservation 15 phút chính là giới hạn retry, không có mức trần số lần attempt riêng cho MVP. `FAILED` chỉ xảy ra khi không còn retry được nữa (xem dòng `EXPIRED` bên dưới; một attempt bị từ chối nhưng reservation vẫn còn mở thì vẫn retry được, nó không làm Payment fail) |
-| `PROCESSING`       | `EXPIRED`                     | Reservation hết hạn (Mục 6) trong khi attempt gần nhất vẫn còn `PROCESSING`/`EXPIRED` và chưa có attempt nào đạt `SUCCEEDED` — nghĩa vụ Payment kết thúc vì Order mà nó thuộc về không thể được confirm nữa, không phải vì bản thân dòng Payment bị timeout                                                                                                                                                                                         |
-| `SUCCEEDED`        | `REFUND_PENDING` → `REFUNDED` | Nhận diện nhu cầu hoàn tiền → gọi refund tới provider → provider xác nhận refund. **Đã quyết định (ADR 0006): chỉ hoàn tiền toàn phần cho MVP** — không hoàn tiền một phần theo OrderItem/số lượng; điều đó được lùi lại tới khi có nhu cầu thật về đổi/trả một phần.                                                                                                                                                                               |
-| `FAILED`/`EXPIRED` | `REFUND_PENDING` → `REFUNDED` | Phát hiện late success trong lúc reconciliation sau khi Payment đã được đánh dấu `FAILED`/`EXPIRED` (Case B ở trên, hoặc một webhook đến trễ) — cùng trạng thái trung gian `REFUND_PENDING` áp dụng                                                                                                                                                                                                                                                 |
+| Từ                     | Sang                          | Sự kiện                                                                                                                                                                                                                                                               |
+| ---------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _(không có)_           | `PENDING`                     | Order được tạo, chưa có attempt nào                                                                                                                                                                                                                                   |
+| `PENDING`              | `PROCESSING`                  | Attempt đầu tiên chuyển sang `PROCESSING`                                                                                                                                                                                                                             |
+| `PROCESSING`           | `SUCCEEDED`                   | **Bất kỳ** attempt nào đạt `SUCCEEDED` — Payment thành công ngay từ attempt thành công đầu tiên, bất kể các attempt `FAILED`/`EXPIRED` trước đó trên cùng Payment                                                                                                     |
+| `PROCESSING`           | `FAILED`                      | Chỉ dùng khi Payment kết thúc bởi một business/provider failure đã được xác định; một Payment Attempt bị từ chối không tự làm Payment tổng thể fail nếu reservation còn mở và vẫn được phép retry                                                                     |
+| `PENDING`/`PROCESSING` | `EXPIRED`                     | **Đã quyết định ([ADR 0006](adr/0006-payment-refund-mvp-scope.md)):** reservation hết hạn khi chưa có attempt nào `SUCCEEDED`; đây là terminal state canonical cho expiry, không dùng `FAILED`                                                                        |
+| `SUCCEEDED`            | `REFUND_PENDING` → `REFUNDED` | Nhận diện nhu cầu hoàn tiền → gọi refund tới provider → provider xác nhận refund. **Đã quyết định (ADR 0006): chỉ hoàn tiền toàn phần cho MVP** — không hoàn tiền một phần theo OrderItem/số lượng; điều đó được lùi lại tới khi có nhu cầu thật về đổi/trả một phần. |
+| `FAILED`/`EXPIRED`     | `REFUND_PENDING` → `REFUNDED` | Phát hiện late success trong lúc reconciliation sau khi Payment đã được đánh dấu `FAILED`/`EXPIRED` (Case B ở trên, hoặc một webhook đến trễ) — cùng trạng thái trung gian `REFUND_PENDING` áp dụng                                                                   |
 
 **Hai tình huống khác nhau đều trông giống "hai attempt cùng SUCCEEDED" nhưng cần xử lý khác nhau:**
 
@@ -1088,9 +1090,9 @@ Việc giao (delivery) là **at least once**, không phải exactly once. Transa
 
 **Gap được đóng lại ở đây: một dòng outbox đã đánh dấu "dispatched" nhưng job BullMQ của nó sau đó bị mất** (Redis làm mất job trước khi worker kịp nhận). "Consumer idempotent" chỉ bảo vệ khỏi việc job chạy hai lần — nó không làm gì nếu job không bao giờ chạy.
 
-**Đã quyết định (ADR 0007): một dòng outbox chỉ "xong" khi tác dụng phụ downstream xác nhận hoàn tất — không bao giờ tại thời điểm enqueue.** Việc đánh dấu "xong" ngay lúc enqueue chính là nguồn gốc của gap này: một dòng chỉ mới được enqueue phải ở trạng thái pending/dispatched cho tới khi consumer của nó xác nhận thành công (hoặc dùng hết chính sách retry riêng và được escalate). Điều này có nghĩa:
+**Đã quyết định ([ADR 0007](adr/0007-outbox-done-means-downstream-ack.md)): một dòng outbox chỉ hoàn tất thành công (`ACKNOWLEDGED`) khi downstream xác nhận — không bao giờ tại thời điểm enqueue.** Một dòng dùng hết retry mà chưa được xác nhận chuyển thành `DEAD_LETTER`, không được gọi là "done" và vẫn phải quan sát/replay được. Điều này có nghĩa:
 
-- Bảng outbox cần một status phân biệt "chưa enqueue" vs. "đã enqueue, đang chờ ack" vs. "đã xác nhận xong" — không phải một boolean.
+- Bảng outbox cần status phân biệt "chưa enqueue", "đã enqueue/đang chờ ack", `ACKNOWLEDGED` và `DEAD_LETTER` — không phải một boolean.
 - Một lượt quét reconciliation (so sánh các dòng "đã enqueue, đang chờ ack" với thời gian chúng đã chờ) là cách phát hiện một job bị mất — một dòng outbox kẹt ở "đang chờ ack" quá một ngưỡng chính là tín hiệu, không phải điều gì đó suy ra từ trạng thái nội bộ của BullMQ.
 - Vẫn còn mở (**TBD**, không còn bị chặn bởi quyết định trên nhưng chưa được chốt ở đây): thời gian retention chính xác cho các dòng đã xác nhận xong, và dedup key riêng cho từng hệ thống ngoài ứng với mỗi loại job trong danh sách Mục 11 (email/invoice/analytics/shipment) — đó vẫn là các quyết định thuộc implementation-plan.
 
@@ -1505,7 +1507,7 @@ Tài liệu này đã tích lũy một số dấu **TBD** rải rác qua các m�
 | Nhóm quyết định      | Cần chốt gì                                                                                                         | Mốc chặn                                                  | Owner                    | Trạng thái                                                                                                                                                                                                                                                                                    |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Payment/Refund**   | Chính sách retry-limit, xử lý giao dịch thành công trùng, giải quyết late-success, hoàn tiền toàn phần vs. một phần | Trước khi implement Payment thật (Phase 6)                | Product/business         | **Đã quyết định** (2026-09-17, ADR 0006) — retry không giới hạn trong cửa sổ reservation; refund cho khoản thu dư qua `STORE_MANAGER` review, không tự động; MVP chỉ full-refund; late-success giữ Order ở `CANCELLED`; cho phép hủy sau `CONFIRMED` khi còn `UNFULFILLED`                    |
-| **Outbox/Worker**    | Khi nào một outbox event tính là "xong," cửa sổ retention/replay, phát hiện job bị mất                              | Trước khi worker mang các job commerce-critical           | Backend/infra            | **Đã quyết định một phần** (2026-09-17, ADR 0007) — "xong" = downstream ack, không phải enqueue (mở khóa phần còn lại); cửa sổ retention và dedup key riêng từng hệ thống vẫn **Open**, ở mức implementation-plan                                                                             |
+| **Outbox/Worker**    | Successful acknowledgement, dead-letter, retention/replay và phát hiện job bị mất                                   | Trước khi worker mang các job commerce-critical           | Backend/infra            | **Đã quyết định một phần** ([ADR 0007](adr/0007-outbox-done-means-downstream-ack.md)) — success = `ACKNOWLEDGED`; retry exhausted = `DEAD_LETTER`; retention và dedup key từng consumer vẫn **Open**                                                                                          |
 | **Cart/Reservation** | Cơ chế khóa cho CartItem-mutation-vs-checkout, ngữ nghĩa reservation-expiry đã chọn ở trên (cần implement)          | Trước khi bắt đầu implement Checkout (Phase 5)            | Backend                  | **Đã quyết định** (2026-09-17, ADR 0009) — row lock (`SELECT ... FOR UPDATE`) trên Cart lúc bắt đầu checkout, không có cột `version`                                                                                                                                                          |
 | **Operations**       | Mục tiêu load/latency/availability/RPO/RTO, phân loại health-check theo dependency, người phụ trách on-call         | Chỉ quay lại nếu dự án phục vụ người dùng/thanh toán thật | Product/business + infra | **Đã quyết định** (2026-09-17) — đây hiện là dự án học tập/portfolio solo: load/latency/availability/RPO/RTO/on-call được đánh dấu không-áp-dụng-lúc-này thay vì để mở; phân loại health-check đã quyết định (ADR 0008); ngân sách kết nối DB là câu hỏi sizing duy nhất thực sự vẫn **Open** |
 

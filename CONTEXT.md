@@ -42,9 +42,29 @@ _Avoid_: Device
 
 ## Catalog & Inventory
 
+**Category**:
+A catalog classification assigned to Products. A Category that is referenced by a Product must be reassigned before deletion.
+_Avoid_: Tag, collection
+
+**Product**:
+A catalog aggregate that describes a sellable concept and contains one or more Product Variants. A Product itself is not the purchasable SKU.
+_Avoid_: SKU, Product Variant
+
 **Product Variant**:
 A purchasable version of a Product with its own SKU, price, and Inventory.
 _Avoid_: Product when referring to the purchasable SKU
+
+**Product Image**:
+An image displayed for a Product. A Product's images form one ordered list of at most ten; the order is what the Product's editor chose and is the only ranking among them.
+_Avoid_: Photo, gallery item
+
+**Cover Image**:
+The first Product Image in a Product's ordered list; it represents the Product wherever only one image is shown. It is never marked separately — changing the Cover Image means reordering the list.
+_Avoid_: Primary image, thumbnail, featured image
+
+**Pending Upload**:
+An image file already uploaded to storage but not yet attached to anything. A Pending Upload that is not attached within one day is discarded automatically.
+_Avoid_: Orphan, draft image
 
 **Inventory**:
 The quantity held for one Product Variant in the single warehouse supported by the MVP.
@@ -56,9 +76,21 @@ _Avoid_: Cart hold, permanent stock deduction
 
 ## Ordering & Payment
 
+**Cart**:
+A Customer's current purchase intent. A Cart does not hold Inventory; availability and price are revalidated during checkout.
+_Avoid_: Order, Inventory Reservation
+
+**Cart Item**:
+A requested quantity of one Product Variant in a Cart.
+_Avoid_: Order Item, reserved stock
+
 **Order**:
 An immutable commercial snapshot created from a Customer's Cart, including item prices, discounts, shipping charge, tax, currency, and delivery address.
 _Avoid_: Cart, Payment, transaction
+
+**Checkout**:
+The process that validates a Cart, claims Inventory, and creates an Order snapshot. Checkout is an operation, not a persistent commercial entity.
+_Avoid_: Order, Payment
 
 **Payment**:
 The overall obligation to collect money for an Order. A Payment can have multiple Payment Attempts but at most one successful outcome for the amount due.
