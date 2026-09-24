@@ -62,6 +62,13 @@ jobs:
       JWT_ACCESS_SECRET: ci-test-secret-at-least-32-characters-long
       ADMIN_BOOTSTRAP_EMAIL: admin@example.com
       ADMIN_BOOTSTRAP_PASSWORD: ChangeMe123!
+      # Bắt buộc ở env validation; e2e thay ObjectStorageService bằng fake
+      # (test/support/create-test-app.ts) nên không cần storage thật.
+      S3_ENDPOINT: http://localhost:9000
+      S3_BUCKET: media
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: ci-test-access-key
+      S3_SECRET_ACCESS_KEY: ci-test-secret-key
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
