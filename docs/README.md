@@ -23,21 +23,21 @@ Hệ thống là NestJS modular monolith. PostgreSQL là nguồn xác thực gia
 
 ## Trạng thái module
 
-| Module            | Trạng thái thực tế         | Gap/việc kế tiếp                                                     |
-| ----------------- | -------------------------- | -------------------------------------------------------------------- |
-| Infrastructure    | Gần hoàn tất               | Xác minh Docker/remote CI; sửa wildcard warning; OpenAPI drift gate  |
-| Auth              | Hoàn tất MVP               | SMTP external gate; review cookie/CSRF trước cross-origin production |
-| Categories        | Hoàn tất                   | Không có blocker đã biết                                             |
-| Products/Variants | Đã implement               | P0: `PATCH` Product + Variants phải atomic                           |
-| Product Images    | Đã implement               | Xác minh MinIO/S3 integration lifecycle                              |
-| Users             | Chưa build                 | Module tiếp theo cần triển khai                                      |
-| Inventory         | Chỉ có model/bootstrap row | Thiếu adjustment, Reservation và concurrency control                 |
-| Cart              | Có model, chưa có module   | Làm sau Inventory foundation                                         |
-| Orders            | Có model, chưa có module   | Thiếu checkout snapshot, idempotency và outbox                       |
-| Payments          | Chưa model/build           | MoMo adapter, IPN, reconciliation, refund                            |
-| Promotions        | Chưa model/build           | Cần Order subtotal/discount snapshot trước                           |
-| Fulfillment       | Chưa build                 | Cần state machine và shipping boundary                               |
-| Notifications     | Một phần qua Auth mail     | Chưa có queue, history hoặc domain-event consumers                   |
+| Module            | Trạng thái thực tế         | Gap/việc kế tiếp                                                         |
+| ----------------- | -------------------------- | ------------------------------------------------------------------------ |
+| Infrastructure    | Gần hoàn tất               | Xác minh Docker/remote CI; sửa wildcard warning; OpenAPI drift gate      |
+| Auth              | Hoàn tất MVP               | SMTP external gate; review cookie/CSRF trước cross-origin production     |
+| Categories        | Hoàn tất                   | Không có blocker đã biết                                                 |
+| Products/Variants | Đã implement               | Option Value + SKU tự ghép, giới hạn variant (ADR 0011, spec 03)         |
+| Product Images    | Đã implement               | Giới hạn 1–5 ảnh; MinIO lifecycle test trong CI; S3 production checklist |
+| Users             | Chưa build                 | Module tiếp theo cần triển khai                                          |
+| Inventory         | Chỉ có model/bootstrap row | Thiếu adjustment, Reservation và concurrency control                     |
+| Cart              | Có model, chưa có module   | Làm sau Inventory foundation                                             |
+| Orders            | Có model, chưa có module   | Thiếu checkout snapshot, idempotency và outbox                           |
+| Payments          | Chưa model/build           | MoMo adapter, IPN, reconciliation, refund                                |
+| Promotions        | Chưa model/build           | Cần Order subtotal/discount snapshot trước                               |
+| Fulfillment       | Chưa build                 | Cần state machine và shipping boundary                                   |
+| Notifications     | Một phần qua Auth mail     | Chưa có queue, history hoặc domain-event consumers                       |
 
 ## Data ownership và invariant liên module
 
