@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { ObjectStorageService, PresignedUploadTarget } from './object-storage.service.js';
-import { MAX_IMAGE_SIZE_BYTES } from './allowed-image-content-type.js';
+import { ObjectStorageService, PresignFileRequest, PresignedUploadTarget } from './object-storage.service.js';
+import { IMAGE_EXTENSION_BY_CONTENT_TYPE, MAX_IMAGE_SIZE_BYTES } from './allowed-image-content-type.js';
 
 const FAKE_BASE_URL = 'https://fake-storage.local/';
 
@@ -15,13 +15,12 @@ export class FakeObjectStorageService implements ObjectStorageService {
   // thật khi mạng lỗi, test dùng để chứng minh API trả 503 thay vì 400.
   unavailable = false;
 
-  async presignBatch(
-    keyPrefix: string,
-    files: { filename: string; contentType: string }[],
-  ): Promise<PresignedUploadTarget[]> {
-    return files.map(({ filename, contentType }) => {
-      const key = `${keyPrefix}${randomUUID()}-${filename}`;
-      return { key, uploadUrl: `${FAKE_BASE_URL}${key}`, fields: { key, contentType } };
+  // Cùng format key (`<prefix><uuid>.<ext>`) và tên field (`Content-Type`)
+  // với S3ObjectStorageService, để e2e bắt được lỗi phụ thuộc format key.
+  async presignBatch(keyPrefix: string, files: PresignFileRequest[]): Promise<PresignedUploadTarget[]> {
+    return files.map(({ contentType }) => {
+      const key = `${keyPrefix}${randomUUID()}.${IMAGE_EXTENSION_BY_CONTENT_TYPE[contentType]}`;
+      return { key, uploadUrl: FAKE_BASE_URL, fields: { key, 'Content-Type': contentType } };
     });
   }
 
@@ -34,9 +33,10 @@ export class FakeObjectStorageService implements ObjectStorageService {
     if (file.sizeBytes > MAX_IMAGE_SIZE_BYTES) {
       throw new Error(`Upload rejected by content-length-range policy: exceeds ${MAX_IMAGE_SIZE_BYTES} bytes`);
     }
-    if (file.contentType !== target.fields.contentType) {
+    const expectedContentType = target.fields['Content-Type'];
+    if (file.contentType !== expectedContentType) {
       throw new Error(
-        `Upload rejected by content-type policy: expected "${target.fields.contentType}", got "${file.contentType}"`,
+        `Upload rejected by content-type policy: expected "${expectedContentType}", got "${file.contentType}"`,
       );
     }
     this.objects.add(target.key);
@@ -65,7 +65,10 @@ export class FakeObjectStorageService implements ObjectStorageService {
   }
 
   keyFromUrl(url: string): string {
-    return url.replace(FAKE_BASE_URL, '');
+    if (!url.startsWith(FAKE_BASE_URL)) {
+      throw new Error(`URL "${url}" is not a fake storage object URL`);
+    }
+    return url.slice(FAKE_BASE_URL.length);
   }
 
   private assertAvailable(): void {

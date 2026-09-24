@@ -10,8 +10,17 @@ import type { JwtPayload } from '../auth/strategies/jwt.strategy.js';
 import { OBJECT_STORAGE_SERVICE } from './object-storage/object-storage.service.js';
 import type { ObjectStorageService, PresignedUploadTarget } from './object-storage/object-storage.service.js';
 import { PresignUploadImagesDto } from './dto/presign-upload-images.dto.js';
+import { IMAGE_EXTENSION_BY_CONTENT_TYPE } from './object-storage/allowed-image-content-type.js';
 import { UPLOAD_PURPOSE_POLICIES } from './upload-purpose.js';
 import type { UploadPurpose } from './upload-purpose.js';
+
+// Phần tên sau prefix của Pending Upload: 1 segment, không `/` hay `..`, đuôi
+// là 1 trong các ext do presign sinh ra. Presign đã tự sinh đúng format này —
+// check lại ở đây vì key là input từ client, promote() dựa vào nó để đặt tên
+// object đích.
+const PENDING_OBJECT_NAME = new RegExp(
+  `^[A-Za-z0-9-]+\\.(${Object.values(IMAGE_EXTENSION_BY_CONTENT_TYPE).join('|')})$`,
+);
 
 // Dùng chung cho mọi module cần ảnh: presign Pending Upload, rồi khi module
 // khác gắn ảnh thì xác minh key (prefix + HEAD) và chuyển object từ `tmp/`
@@ -37,7 +46,9 @@ export class UploadImageService {
   // chờ mạng. Key sai prefix/không tồn tại → 400; storage không phản hồi → 503.
   async assertPendingUploads(purpose: UploadPurpose, keys: string[]): Promise<void> {
     const { pendingPrefix } = UPLOAD_PURPOSE_POLICIES[purpose];
-    const foreignKeys = keys.filter((key) => !key.startsWith(pendingPrefix));
+    const foreignKeys = keys.filter(
+      (key) => !key.startsWith(pendingPrefix) || !PENDING_OBJECT_NAME.test(key.slice(pendingPrefix.length)),
+    );
     if (foreignKeys.length > 0) {
       throw new BadRequestException(`Image keys must come from a ${purpose} presign: ${foreignKeys.join(', ')}`);
     }
@@ -60,18 +71,23 @@ export class UploadImageService {
   }
 
   async discardUrls(urls: string[]): Promise<void> {
-    await this.discardKeys(urls.map((url) => this.storage.keyFromUrl(url)));
+    await this.discardEach(urls, (url) => this.storage.keyFromUrl(url));
+  }
+
+  async discardKeys(keys: string[]): Promise<void> {
+    await this.discardEach(keys, (key) => key);
   }
 
   // Best-effort: object rác trên storage không ảnh hưởng nghiệp vụ, không
   // được làm fail request đã commit — nhưng phải log để không nuốt im lặng.
-  async discardKeys(keys: string[]): Promise<void> {
+  // Suy key nằm trong try: 1 URL lạ không được chặn việc xoá các URL còn lại.
+  private async discardEach(items: string[], toKey: (item: string) => string): Promise<void> {
     await Promise.all(
-      keys.map(async (key) => {
+      items.map(async (item) => {
         try {
-          await this.storage.delete(key);
+          await this.storage.delete(toKey(item));
         } catch (err) {
-          this.logger.error(`Failed to delete storage object "${key}"`, err instanceof Error ? err.stack : err);
+          this.logger.error(`Failed to delete storage object "${item}"`, err instanceof Error ? err.stack : err);
         }
       }),
     );

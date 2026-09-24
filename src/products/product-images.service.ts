@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client.js';
 import { UploadImageService } from '../upload-image/upload-image.service.js';
 
@@ -68,10 +68,16 @@ export class ProductImagesService {
       if ('id' in row) {
         // altText vắng mặt = giữ nguyên (không xoá mô tả cũ chỉ vì client
         // gửi lại `{ id }` để giữ ảnh).
-        await tx.productImage.update({
-          where: { id: row.id },
+        // plan() đọc ảnh hiện có ngoài transaction — request khác có thể đã
+        // gỡ ảnh này trong lúc đó. updateMany + đếm để trả 409 rõ nghĩa thay
+        // vì P2025 (404 "Record không tồn tại") khó hiểu.
+        const { count } = await tx.productImage.updateMany({
+          where: { id: row.id, productId },
           data: { sortOrder, ...(row.altText !== undefined && { altText: row.altText }) },
         });
+        if (count === 0) {
+          throw new ConflictException(`Image #${row.id} was removed by a concurrent update, please retry`);
+        }
       } else {
         await tx.productImage.create({ data: { productId, url: row.url, altText: row.altText, sortOrder } });
       }

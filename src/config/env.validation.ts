@@ -75,6 +75,12 @@ export class EnvironmentVariables {
   @MinLength(1)
   S3_ENDPOINT: string;
 
+  // Optional: endpoint client truy cập được, khi khác S3_ENDPOINT (backend gọi
+  // storage qua mạng nội bộ). Bỏ trống = dùng S3_ENDPOINT.
+  @IsOptional()
+  @IsString()
+  S3_PUBLIC_ENDPOINT?: string;
+
   @IsString()
   @MinLength(1)
   S3_BUCKET: string;

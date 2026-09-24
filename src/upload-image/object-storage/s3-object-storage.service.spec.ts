@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { S3ObjectStorageService } from './s3-object-storage.service.js';
-import { MAX_IMAGE_SIZE_BYTES, PRESIGNED_URL_EXPIRY_SECONDS } from './allowed-image-content-type.js';
+import { S3ObjectStorageService } from '@src/upload-image/object-storage/s3-object-storage.service.js';
+import {
+  MAX_IMAGE_SIZE_BYTES,
+  PRESIGNED_URL_EXPIRY_SECONDS,
+} from '@src/upload-image/object-storage/allowed-image-content-type.js';
 
 function decodePolicy(fields: Record<string, string>): { conditions: unknown[]; expiration: string } {
   return JSON.parse(Buffer.from(fields.Policy, 'base64').toString('utf-8'));
@@ -64,8 +67,47 @@ describe('S3ObjectStorageService', () => {
     expect(expiresAt).toBeLessThan(before + (PRESIGNED_URL_EXPIRY_SECONDS + 30) * 1000);
   });
 
+  it('derives the key extension from contentType, ignoring a hostile filename', async () => {
+    const [target] = await service.presignBatch('tmp/product-image/', [
+      { filename: 'x./a/cover', contentType: 'image/png' },
+    ]);
+
+    expect(target.key).toMatch(/^tmp\/product-image\/[0-9a-f-]{36}\.png$/);
+  });
+
   it('round-trips key -> publicUrl -> keyFromUrl', () => {
     const key = 'products/p1/abc-123.jpg';
     expect(service.keyFromUrl(service.publicUrl(key))).toBe(key);
+  });
+
+  it('resolves the key from the URL path, so URLs stored under an older endpoint still map to their key', () => {
+    expect(service.keyFromUrl('https://old-host.example.com/media/products/p1/abc.jpg')).toBe('products/p1/abc.jpg');
+  });
+
+  it('throws on a URL that is not an object URL of the bucket', () => {
+    expect(() => service.keyFromUrl('https://cdn.example.com/other/abc.jpg')).toThrow(/not an object URL/);
+  });
+
+  describe('with a publicEndpoint distinct from the internal endpoint', () => {
+    const dockerService = new S3ObjectStorageService({
+      endpoint: 'http://minio:9000',
+      publicEndpoint: 'http://localhost:9000/',
+      bucket: 'media',
+      region: 'us-east-1',
+      accessKeyId: 'test-access-key',
+      secretAccessKey: 'test-secret-key',
+    });
+
+    it('points presigned upload URLs at the public endpoint', async () => {
+      const [target] = await dockerService.presignBatch('tmp/product-image/', [
+        { filename: 'a.jpg', contentType: 'image/jpeg' },
+      ]);
+
+      expect(target.uploadUrl.startsWith('http://localhost:9000/media')).toBe(true);
+    });
+
+    it('builds public object URLs from the public endpoint', () => {
+      expect(dockerService.publicUrl('products/p1/a.jpg')).toBe('http://localhost:9000/media/products/p1/a.jpg');
+    });
   });
 });

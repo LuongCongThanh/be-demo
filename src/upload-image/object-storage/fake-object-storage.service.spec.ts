@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { FakeObjectStorageService } from './fake-object-storage.service.js';
-import { MAX_IMAGE_SIZE_BYTES } from './allowed-image-content-type.js';
+import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-object-storage.service.js';
+import { MAX_IMAGE_SIZE_BYTES } from '@src/upload-image/object-storage/allowed-image-content-type.js';
 
 // Đây là gap được flag ở code review PR #28: unit test trước đó chỉ kiểm tra
 // nội dung policy document (S3ObjectStorageService.spec.ts) chứ chưa từng

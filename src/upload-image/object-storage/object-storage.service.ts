@@ -1,3 +1,11 @@
+import type { AllowedImageContentType } from './allowed-image-content-type.js';
+
+// `filename` chỉ mang tính thông tin — adapter không dùng nó để tạo key.
+export interface PresignFileRequest {
+  filename: string;
+  contentType: AllowedImageContentType;
+}
+
 export interface PresignedUploadTarget {
   key: string;
   uploadUrl: string;
@@ -10,9 +18,10 @@ export const OBJECT_STORAGE_SERVICE = Symbol('OBJECT_STORAGE_SERVICE');
 // bằng fake in-memory (xem test/support/create-test-app.ts) — cùng pattern
 // override provider đã dùng cho ThrottlerGuard/EmailThrottlerGuard.
 export interface ObjectStorageService {
-  // Sinh key mới dưới `keyPrefix` cho từng file — caller (UploadImageService)
-  // quyết định prefix theo purpose, adapter không biết gì về nghiệp vụ.
-  presignBatch(keyPrefix: string, files: { filename: string; contentType: string }[]): Promise<PresignedUploadTarget[]>;
+  // Sinh key mới `<keyPrefix><uuid>.<ext>` cho từng file (ext suy từ
+  // contentType) — caller (UploadImageService) quyết định prefix theo purpose,
+  // adapter không biết gì về nghiệp vụ.
+  presignBatch(keyPrefix: string, files: PresignFileRequest[]): Promise<PresignedUploadTarget[]>;
   // HEAD object: `false` khi object không tồn tại; lỗi khác (mạng, quyền,
   // storage sập) phải throw để caller phân biệt 400 với 503.
   exists(key: string): Promise<boolean>;
@@ -24,5 +33,6 @@ export interface ObjectStorageService {
   publicUrl(key: string): string;
   // Ngược lại publicUrl() — DB (`ProductImage.url`) chỉ lưu URL công khai,
   // không lưu key riêng, nên xoá ảnh (delete(key)) cần suy ngược key từ url.
+  // Throw nếu url không phải URL object của bucket này (không đoán bừa key).
   keyFromUrl(url: string): string;
 }

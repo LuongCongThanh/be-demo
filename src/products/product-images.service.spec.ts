@@ -1,9 +1,9 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProductImagesService } from './product-images.service.js';
-import { UploadImageService } from '../upload-image/upload-image.service.js';
-import { FakeObjectStorageService } from '../upload-image/object-storage/fake-object-storage.service.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import { ProductImagesService } from '@src/products/product-images.service.js';
+import { UploadImageService } from '@src/upload-image/upload-image.service.js';
+import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-object-storage.service.js';
+import type { Prisma } from '@src/generated/prisma/client.js';
 
 const EXISTING = [
   { id: 'img-a', url: 'https://fake-storage.local/products/p1/a.jpg' },
@@ -73,7 +73,7 @@ describe('ProductImagesService', () => {
   describe('apply', () => {
     it('deletes removed rows, then writes sortOrder = array index for kept and new rows', async () => {
       const tx = {
-        productImage: { deleteMany: vi.fn(), update: vi.fn(), create: vi.fn() },
+        productImage: { deleteMany: vi.fn(), updateMany: vi.fn().mockResolvedValue({ count: 1 }), create: vi.fn() },
       } as unknown as Prisma.TransactionClient;
 
       await service.apply(tx, 'p1', {
@@ -93,10 +93,26 @@ describe('ProductImagesService', () => {
           sortOrder: 0,
         },
       });
-      expect(tx.productImage.update).toHaveBeenCalledWith({
-        where: { id: 'img-b' },
+      expect(tx.productImage.updateMany).toHaveBeenCalledWith({
+        where: { id: 'img-b', productId: 'p1' },
         data: { sortOrder: 1, altText: 'Back' },
       });
+    });
+
+    it('rejects with 409 when a kept image was removed concurrently after plan()', async () => {
+      const tx = {
+        productImage: { deleteMany: vi.fn(), updateMany: vi.fn().mockResolvedValue({ count: 0 }), create: vi.fn() },
+      } as unknown as Prisma.TransactionClient;
+
+      await expect(
+        service.apply(tx, 'p1', {
+          rows: [{ id: 'img-b' }],
+          removedIds: [],
+          removedUrls: [],
+          promotedUrls: [],
+          pendingKeys: [],
+        }),
+      ).rejects.toThrow(ConflictException);
     });
   });
 

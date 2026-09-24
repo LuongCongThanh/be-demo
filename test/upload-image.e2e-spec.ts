@@ -129,6 +129,16 @@ describe('Upload images + Product images (e2e)', () => {
       }
     });
 
+    it('names the key <uuid>.<ext from contentType> regardless of the client filename', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/upload-images/presign')
+        .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+        .send({ purpose: 'PRODUCT_IMAGE', files: [{ filename: 'x./a/cover', contentType: 'image/webp' }] })
+        .expect(201);
+
+      expect(res.body[0].key).toMatch(/^tmp\/product-image\/[0-9a-f-]{36}\.webp$/);
+    });
+
     it('a presigned target rejects an oversized upload and a wrong-content-type upload (policy enforcement)', async () => {
       const [target] = (await presign(1).expect(201)).body;
 

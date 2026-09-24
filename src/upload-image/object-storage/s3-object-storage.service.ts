@@ -1,11 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand, NotFound, S3Client } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
-import { ObjectStorageService, PresignedUploadTarget } from './object-storage.service.js';
-import { MAX_IMAGE_SIZE_BYTES, PRESIGNED_URL_EXPIRY_SECONDS } from './allowed-image-content-type.js';
+import { ObjectStorageService, PresignFileRequest, PresignedUploadTarget } from './object-storage.service.js';
+import {
+  IMAGE_EXTENSION_BY_CONTENT_TYPE,
+  MAX_IMAGE_SIZE_BYTES,
+  PRESIGNED_URL_EXPIRY_SECONDS,
+} from './allowed-image-content-type.js';
 
 export interface S3ObjectStorageConfig {
   endpoint: string;
+  // Endpoint mà client (trình duyệt) truy cập được — dùng cho uploadUrl của
+  // presign và URL công khai lưu DB. Khác `endpoint` khi backend gọi storage
+  // qua mạng nội bộ (vd. `http://minio:9000` trong docker-compose) còn client
+  // đi qua `http://localhost:9000`. Bỏ trống = dùng `endpoint`.
+  publicEndpoint?: string;
   bucket: string;
   region: string;
   accessKeyId: string;
@@ -17,26 +26,25 @@ export interface S3ObjectStorageConfig {
 // code riêng cho từng provider.
 export class S3ObjectStorageService implements ObjectStorageService {
   private readonly client: S3Client;
+  // Client riêng chỉ để ký presigned POST: chữ ký policy không phụ thuộc
+  // host, nên URL trả cho client có thể trỏ public endpoint dù backend gọi
+  // storage qua endpoint nội bộ.
+  private readonly presignClient: S3Client;
+  private readonly publicBaseUrl: string;
 
   constructor(private readonly config: S3ObjectStorageConfig) {
-    this.client = new S3Client({
-      endpoint: config.endpoint,
-      region: config.region,
-      credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
-      forcePathStyle: true,
-    });
+    const publicEndpoint = (config.publicEndpoint || config.endpoint).replace(/\/+$/, '');
+    this.client = this.createClient(config.endpoint);
+    this.presignClient = this.createClient(publicEndpoint);
+    this.publicBaseUrl = `${publicEndpoint}/${config.bucket}/`;
   }
 
-  async presignBatch(
-    keyPrefix: string,
-    files: { filename: string; contentType: string }[],
-  ): Promise<PresignedUploadTarget[]> {
+  async presignBatch(keyPrefix: string, files: PresignFileRequest[]): Promise<PresignedUploadTarget[]> {
     return Promise.all(
-      files.map(async ({ filename, contentType }) => {
-        const extension = filename.includes('.') ? filename.slice(filename.lastIndexOf('.')) : '';
-        const key = `${keyPrefix}${randomUUID()}${extension}`;
+      files.map(async ({ contentType }) => {
+        const key = `${keyPrefix}${randomUUID()}.${IMAGE_EXTENSION_BY_CONTENT_TYPE[contentType]}`;
 
-        const { url, fields } = await createPresignedPost(this.client, {
+        const { url, fields } = await createPresignedPost(this.presignClient, {
           Bucket: this.config.bucket,
           Key: key,
           Conditions: [
@@ -81,10 +89,27 @@ export class S3ObjectStorageService implements ObjectStorageService {
   }
 
   publicUrl(key: string): string {
-    return `${this.config.endpoint}/${this.config.bucket}/${key}`;
+    return `${this.publicBaseUrl}${key}`;
   }
 
+  // Suy key từ path `/<bucket>/<key>` thay vì replace chuỗi theo endpoint
+  // hiện tại — URL cũ trong DB vẫn ra đúng key khi đổi host/endpoint.
   keyFromUrl(url: string): string {
-    return url.replace(`${this.config.endpoint}/${this.config.bucket}/`, '');
+    const bucketPath = `/${this.config.bucket}/`;
+    const { pathname } = new URL(url);
+    const bucketIndex = pathname.indexOf(bucketPath);
+    if (bucketIndex === -1) {
+      throw new Error(`URL "${url}" is not an object URL of bucket "${this.config.bucket}"`);
+    }
+    return decodeURIComponent(pathname.slice(bucketIndex + bucketPath.length));
+  }
+
+  private createClient(endpoint: string): S3Client {
+    return new S3Client({
+      endpoint,
+      region: this.config.region,
+      credentials: { accessKeyId: this.config.accessKeyId, secretAccessKey: this.config.secretAccessKey },
+      forcePathStyle: true,
+    });
   }
 }

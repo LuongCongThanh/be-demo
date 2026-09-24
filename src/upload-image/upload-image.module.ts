@@ -17,6 +17,7 @@ import { S3ObjectStorageService } from './object-storage/s3-object-storage.servi
       useFactory: (config: ConfigService) =>
         new S3ObjectStorageService({
           endpoint: config.getOrThrow('S3_ENDPOINT'),
+          publicEndpoint: config.get('S3_PUBLIC_ENDPOINT'),
           bucket: config.getOrThrow('S3_BUCKET'),
           region: config.getOrThrow('S3_REGION'),
           accessKeyId: config.getOrThrow('S3_ACCESS_KEY_ID'),

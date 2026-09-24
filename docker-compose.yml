@@ -65,6 +65,8 @@ services:
       ADMIN_BOOTSTRAP_EMAIL: admin@example.com
       ADMIN_BOOTSTRAP_PASSWORD: ChangeMe123!
       S3_ENDPOINT: http://minio:9000
+      # Trình duyệt không resolve được `minio` — URL presign/ảnh phải trỏ cổng publish ra host.
+      S3_PUBLIC_ENDPOINT: http://localhost:9000
       S3_BUCKET: media
       S3_REGION: us-east-1
       S3_ACCESS_KEY_ID: minioadmin

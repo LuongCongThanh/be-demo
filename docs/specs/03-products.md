@@ -48,9 +48,11 @@ Cover Image = `images[0]`. Không có `isPrimary`, không có `sortOrder` trong 
 
 Pending Upload không được gắn tự bị xoá bởi lifecycle rule `tmp/` → 1 ngày trên bucket (bắt buộc cấu hình ở mọi môi trường). Local/unit test dùng fake adapter; external gate dùng MinIO/S3-compatible service.
 
+Key do server sinh: `<prefix><uuid>.<ext>`, `ext` suy từ `contentType` — `filename` client gửi chỉ mang tính thông tin, không bao giờ vào key. Khi gắn ảnh, key phải đúng prefix của purpose và đúng format này, sai → 400. URL presign và URL ảnh lưu DB dùng `S3_PUBLIC_ENDPOINT` (fallback `S3_ENDPOINT`) — cần khi backend gọi storage qua hostname nội bộ.
+
 Module `upload-image` chỉ biết `purpose` → (prefix, role được phép). Hiện có một purpose `PRODUCT_IMAGE` cho `STORE_MANAGER`/`MASTER_ADMIN`; thêm loại ảnh mới = thêm giá trị enum, không đổi API.
 
 ## Acceptance criteria còn lại
 
-- Xác minh presign/attach lifecycle với MinIO hoặc provider thật.
+- Tự động hoá kiểm tra presign/attach lifecycle với MinIO thật (đã smoke-test tay 2026-09-24: upload hợp lệ 204, >5MB 400 `EntityTooLarge`, sai Content-Type 403, HEAD/copy/public GET/delete đúng — chưa có test chạy trong CI).
 - OpenAPI snapshot khớp nested aggregate và image endpoints.

@@ -1,8 +1,8 @@
 import { BadRequestException, ForbiddenException, ServiceUnavailableException } from '@nestjs/common';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { UploadImageService } from './upload-image.service.js';
-import { FakeObjectStorageService } from './object-storage/fake-object-storage.service.js';
-import type { JwtPayload } from '../auth/strategies/jwt.strategy.js';
+import { UploadImageService } from '@src/upload-image/upload-image.service.js';
+import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-object-storage.service.js';
+import type { JwtPayload } from '@src/auth/strategies/jwt.strategy.js';
 
 function userWith(roles: string[]): JwtPayload {
   return { sub: 'u1', email: 'u1@example.com', roles, authorizationVersion: 1 };
@@ -52,6 +52,16 @@ describe('UploadImageService', () => {
       );
     });
 
+    it.each(['tmp/product-image/abc./a/cover', 'tmp/product-image/../products/p2/a.jpg', 'tmp/product-image/a.gif'])(
+      'rejects a key whose name after the prefix is not a presign-generated object name (%s) with 400',
+      async (key) => {
+        storage.objects.add(key);
+        storage.unavailable = true; // chứng minh không gọi storage: nếu gọi sẽ ra 503
+
+        await expect(service.assertPendingUploads('PRODUCT_IMAGE', [key])).rejects.toThrow(BadRequestException);
+      },
+    );
+
     it('rejects with 400 listing every key whose object was never uploaded', async () => {
       storage.objects.add('tmp/product-image/ok.jpg');
 
@@ -92,6 +102,16 @@ describe('UploadImageService', () => {
       };
 
       await expect(service.discardKeys(['tmp/product-image/a.jpg'])).resolves.toBeUndefined();
+    });
+  });
+
+  describe('discardUrls', () => {
+    it('still deletes the other objects when one URL cannot be mapped to a key', async () => {
+      await expect(
+        service.discardUrls(['https://unknown-host/x.jpg', 'https://fake-storage.local/products/p1/a.jpg']),
+      ).resolves.toBeUndefined();
+
+      expect(storage.deletedKeys).toEqual(['products/p1/a.jpg']);
     });
   });
 });

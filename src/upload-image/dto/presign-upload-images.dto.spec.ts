@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { PresignUploadImagesDto } from './presign-upload-images.dto.js';
+import { PresignUploadImagesDto } from '@src/upload-image/dto/presign-upload-images.dto.js';
 
 function filesOf(count: number) {
   return Array.from({ length: count }, (_, i) => ({ filename: `photo-${i}.jpg`, contentType: 'image/jpeg' }));
