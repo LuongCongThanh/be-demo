@@ -21,28 +21,31 @@ describe('ProductImagesService', () => {
 
   describe('plan', () => {
     it('keeps array order, promotes new keys under products/<id>/ and marks absent images as removed', async () => {
-      storage.objects.add('tmp/product-image/new.jpg');
+      storage.objects.add('tmp/product-image/00000000-0000-4000-8000-000000000001.jpg');
 
       const plan = await service.plan('p1', EXISTING, [
-        { key: 'tmp/product-image/new.jpg', altText: 'New cover' },
+        { key: 'tmp/product-image/00000000-0000-4000-8000-000000000001.jpg', altText: 'New cover' },
         { id: 'img-b' },
       ]);
 
       expect(plan.rows).toEqual([
-        { url: 'https://fake-storage.local/products/p1/new.jpg', altText: 'New cover' },
+        {
+          url: 'https://fake-storage.local/products/p1/00000000-0000-4000-8000-000000000001.jpg',
+          altText: 'New cover',
+        },
         { id: 'img-b', altText: undefined },
       ]);
       expect(plan.removedIds).toEqual(['img-a']);
       expect(plan.removedUrls).toEqual(['https://fake-storage.local/products/p1/a.jpg']);
-      expect(plan.pendingKeys).toEqual(['tmp/product-image/new.jpg']);
+      expect(plan.pendingKeys).toEqual(['tmp/product-image/00000000-0000-4000-8000-000000000001.jpg']);
     });
 
-    it.each([[{ altText: 'neither' }], [{ id: 'img-a', key: 'tmp/product-image/x.jpg' }]])(
-      'rejects an entry without exactly one of id/key: %o',
-      async (entry) => {
-        await expect(service.plan('p1', EXISTING, [entry])).rejects.toThrow(BadRequestException);
-      },
-    );
+    it.each([
+      [{ altText: 'neither' }],
+      [{ id: 'img-a', key: 'tmp/product-image/00000000-0000-4000-8000-000000000002.jpg' }],
+    ])('rejects an entry without exactly one of id/key: %o', async (entry) => {
+      await expect(service.plan('p1', EXISTING, [entry])).rejects.toThrow(BadRequestException);
+    });
 
     it('rejects duplicate ids or keys', async () => {
       await expect(service.plan('p1', EXISTING, [{ id: 'img-a' }, { id: 'img-a' }])).rejects.toThrow(
@@ -55,18 +58,25 @@ describe('ProductImagesService', () => {
     });
 
     it('undoes already-promoted copies when one copy fails', async () => {
-      storage.objects.add('tmp/product-image/ok.jpg');
-      storage.objects.add('tmp/product-image/bad.jpg');
+      storage.objects.add('tmp/product-image/00000000-0000-4000-8000-000000000003.jpg');
+      storage.objects.add('tmp/product-image/00000000-0000-4000-8000-000000000004.jpg');
       const realCopy = storage.copy.bind(storage);
       storage.copy = async (source, destination) => {
-        if (source.endsWith('bad.jpg')) throw new Error('copy failed');
+        if (source.endsWith('000000000004.jpg')) throw new Error('copy failed');
         return realCopy(source, destination);
       };
 
       await expect(
-        service.plan('p1', [], [{ key: 'tmp/product-image/ok.jpg' }, { key: 'tmp/product-image/bad.jpg' }]),
+        service.plan(
+          'p1',
+          [],
+          [
+            { key: 'tmp/product-image/00000000-0000-4000-8000-000000000003.jpg' },
+            { key: 'tmp/product-image/00000000-0000-4000-8000-000000000004.jpg' },
+          ],
+        ),
       ).rejects.toThrow();
-      expect(storage.objects.has('products/p1/ok.jpg')).toBe(false);
+      expect(storage.objects.has('products/p1/00000000-0000-4000-8000-000000000003.jpg')).toBe(false);
     });
   });
 
@@ -77,7 +87,10 @@ describe('ProductImagesService', () => {
       } as unknown as Prisma.TransactionClient;
 
       await service.apply(tx, 'p1', {
-        rows: [{ url: 'https://fake-storage.local/products/p1/new.jpg' }, { id: 'img-b', altText: 'Back' }],
+        rows: [
+          { url: 'https://fake-storage.local/products/p1/00000000-0000-4000-8000-000000000001.jpg' },
+          { id: 'img-b', altText: 'Back' },
+        ],
         removedIds: ['img-a'],
         removedUrls: [],
         promotedUrls: [],
@@ -88,7 +101,7 @@ describe('ProductImagesService', () => {
       expect(tx.productImage.create).toHaveBeenCalledWith({
         data: {
           productId: 'p1',
-          url: 'https://fake-storage.local/products/p1/new.jpg',
+          url: 'https://fake-storage.local/products/p1/00000000-0000-4000-8000-000000000001.jpg',
           altText: undefined,
           sortOrder: 0,
         },
@@ -121,14 +134,17 @@ describe('ProductImagesService', () => {
       rows: [],
       removedIds: ['img-a'],
       removedUrls: ['https://fake-storage.local/products/p1/a.jpg'],
-      promotedUrls: ['https://fake-storage.local/products/p1/new.jpg'],
-      pendingKeys: ['tmp/product-image/new.jpg'],
+      promotedUrls: ['https://fake-storage.local/products/p1/00000000-0000-4000-8000-000000000001.jpg'],
+      pendingKeys: ['tmp/product-image/00000000-0000-4000-8000-000000000001.jpg'],
     };
 
     it('after a successful write, deletes removed objects and the temp uploads, keeping promoted copies', async () => {
       await service.commit(plan, async () => 'ok');
 
-      expect(storage.deletedKeys).toEqual(['products/p1/a.jpg', 'tmp/product-image/new.jpg']);
+      expect(storage.deletedKeys).toEqual([
+        'products/p1/a.jpg',
+        'tmp/product-image/00000000-0000-4000-8000-000000000001.jpg',
+      ]);
     });
 
     it('after a failed write, deletes only the promoted copies and rethrows', async () => {
@@ -138,7 +154,7 @@ describe('ProductImagesService', () => {
         }),
       ).rejects.toThrow('tx failed');
 
-      expect(storage.deletedKeys).toEqual(['products/p1/new.jpg']);
+      expect(storage.deletedKeys).toEqual(['products/p1/00000000-0000-4000-8000-000000000001.jpg']);
     });
   });
 });

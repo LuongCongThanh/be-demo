@@ -66,7 +66,10 @@ export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['v
     maxItems: MAX_PRODUCT_IMAGES,
     description:
       'Full desired state của toàn bộ ảnh — bỏ trống field này = không đổi gì; gửi mảng = { id } giữ ảnh cũ, { key } gắn ảnh mới, ảnh vắng mặt bị xoá. Thứ tự mảng là thứ tự hiển thị, phần tử đầu là Cover Image',
-    example: [{ id: '550e8400-e29b-41d4-a716-446655440000' }, { key: 'tmp/product-image/new.jpg' }],
+    example: [
+      { id: '550e8400-e29b-41d4-a716-446655440000' },
+      { key: 'tmp/product-image/6ba7b810-9dad-11d1-80b4-00c04fd430c8.jpg' },
+    ],
   })
   @IsOptional()
   @IsArray()

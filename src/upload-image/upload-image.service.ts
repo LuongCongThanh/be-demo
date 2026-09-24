@@ -14,12 +14,11 @@ import { IMAGE_EXTENSION_BY_CONTENT_TYPE } from './object-storage/allowed-image-
 import { UPLOAD_PURPOSE_POLICIES } from './upload-purpose.js';
 import type { UploadPurpose } from './upload-purpose.js';
 
-// Phần tên sau prefix của Pending Upload: 1 segment, không `/` hay `..`, đuôi
-// là 1 trong các ext do presign sinh ra. Presign đã tự sinh đúng format này —
-// check lại ở đây vì key là input từ client, promote() dựa vào nó để đặt tên
-// object đích.
+// Phần tên sau prefix của Pending Upload: đúng `<uuid>.<ext>` mà presign sinh
+// ra (docs/specs/03-products.md). Check lại ở đây vì key là input từ client,
+// promote() dựa vào nó để đặt tên object đích.
 const PENDING_OBJECT_NAME = new RegExp(
-  `^[A-Za-z0-9-]+\\.(${Object.values(IMAGE_EXTENSION_BY_CONTENT_TYPE).join('|')})$`,
+  `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(${Object.values(IMAGE_EXTENSION_BY_CONTENT_TYPE).join('|')})$`,
 );
 
 // Dùng chung cho mọi module cần ảnh: presign Pending Upload, rồi khi module
@@ -66,7 +65,16 @@ export class UploadImageService {
   // client vẫn gửi lại được đúng key cũ.
   async promote(pendingKey: string, destinationPrefix: string): Promise<string> {
     const destinationKey = `${destinationPrefix}${pendingKey.slice(pendingKey.lastIndexOf('/') + 1)}`;
-    await this.withStorage(() => this.storage.copy(pendingKey, destinationKey));
+    try {
+      await this.storage.copy(pendingKey, destinationKey);
+    } catch (err) {
+      // Object tạm có thể vừa hết hạn/bị dọn sau lần HEAD ở assertPendingUploads
+      // — đó là 400 (client gửi lại ảnh); chỉ khi còn tồn tại mà copy vẫn lỗi mới là 503.
+      if (!(await this.withStorage(() => this.storage.exists(pendingKey)))) {
+        throw new BadRequestException(`Uploaded image not found: ${pendingKey}`);
+      }
+      throw new ServiceUnavailableException('Image storage is unavailable, please retry', { cause: err });
+    }
     return this.storage.publicUrl(destinationKey);
   }
 

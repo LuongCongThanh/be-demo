@@ -34,4 +34,12 @@ describe('FakeObjectStorageService', () => {
       /content-type/i,
     );
   });
+
+  it('rejects an empty (0-byte) upload (content-length-range starts at 1)', async () => {
+    const [target] = await service.presignBatch('tmp/test/', [{ filename: 'a.jpg', contentType: 'image/jpeg' }]);
+
+    expect(() => service.simulateUpload(target, { sizeBytes: 0, contentType: 'image/jpeg' })).toThrow(
+      /content-length-range/,
+    );
+  });
 });

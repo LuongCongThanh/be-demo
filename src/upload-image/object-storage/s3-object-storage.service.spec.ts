@@ -37,13 +37,13 @@ describe('S3ObjectStorageService', () => {
     expect(target.key).toMatch(/^tmp\/product-image\/[0-9a-f-]{36}\.png$/);
   });
 
-  it('embeds a content-length-range condition capping the upload at MAX_IMAGE_SIZE_BYTES', async () => {
+  it('embeds a content-length-range condition from 1 byte up to MAX_IMAGE_SIZE_BYTES', async () => {
     const [target] = await service.presignBatch('tmp/product-image/', [
       { filename: 'a.jpg', contentType: 'image/jpeg' },
     ]);
     const policy = decodePolicy(target.fields);
 
-    expect(policy.conditions).toContainEqual(['content-length-range', 0, MAX_IMAGE_SIZE_BYTES]);
+    expect(policy.conditions).toContainEqual(['content-length-range', 1, MAX_IMAGE_SIZE_BYTES]);
   });
 
   it('restricts Content-Type to the requested (allowed) mime type', async () => {

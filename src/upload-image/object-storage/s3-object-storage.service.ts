@@ -48,7 +48,8 @@ export class S3ObjectStorageService implements ObjectStorageService {
           Bucket: this.config.bucket,
           Key: key,
           Conditions: [
-            ['content-length-range', 0, MAX_IMAGE_SIZE_BYTES],
+            // Tối thiểu 1 byte: chặn "ảnh" rỗng.
+            ['content-length-range', 1, MAX_IMAGE_SIZE_BYTES],
             ['eq', '$Content-Type', contentType],
           ],
           Fields: { 'Content-Type': contentType },

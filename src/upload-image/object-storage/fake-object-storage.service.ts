@@ -30,8 +30,8 @@ export class FakeObjectStorageService implements ObjectStorageService {
   // Mô phỏng đúng 2 điều kiện đã nhúng trong S3ObjectStorageService.presignBatch().
   // Upload hợp lệ thì object "tồn tại" từ đó — exists() trả true.
   simulateUpload(target: PresignedUploadTarget, file: { sizeBytes: number; contentType: string }): void {
-    if (file.sizeBytes > MAX_IMAGE_SIZE_BYTES) {
-      throw new Error(`Upload rejected by content-length-range policy: exceeds ${MAX_IMAGE_SIZE_BYTES} bytes`);
+    if (file.sizeBytes < 1 || file.sizeBytes > MAX_IMAGE_SIZE_BYTES) {
+      throw new Error(`Upload rejected by content-length-range policy: must be 1-${MAX_IMAGE_SIZE_BYTES} bytes`);
     }
     const expectedContentType = target.fields['Content-Type'];
     if (file.contentType !== expectedContentType) {
