@@ -1,6 +1,6 @@
 ---
 decision_status: accepted
-implementation_status: planned
+implementation_status: implemented
 decided_at: 2026-09-24
 last_verified: 2026-09-24
 related_spec: ../specs/03-products.md
