@@ -10,6 +10,18 @@ export class PresignedUploadTargetDto {
   @ApiProperty({ example: 'http://localhost:9000/media' })
   uploadUrl: string;
 
-  @ApiProperty({ type: 'object', additionalProperties: { type: 'string' } })
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: { type: 'string' },
+    example: {
+      key: 'tmp/product-image/c73fb45a-77a1-4875-a30e-28607156e2fc.jpg',
+      'Content-Type': 'image/jpeg',
+      Policy: 'eyJleHBpcmF0aW9uIjoi…',
+      'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+      'X-Amz-Credential': 'minioadmin/20260924/us-east-1/s3/aws4_request',
+      'X-Amz-Date': '20260924T084500Z',
+      'X-Amz-Signature': '5d4f1c…',
+    },
+  })
   fields: Record<string, string>;
 }

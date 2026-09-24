@@ -1,15 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PaginationMetaDto {
-  @ApiProperty()
+  @ApiProperty({ example: 1 })
   page: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 20 })
   limit: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 42 })
   total: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 3 })
   totalPages: number;
 }

@@ -2,27 +2,27 @@ import { ApiProperty } from '@nestjs/swagger';
 import { OptionType } from '../../generated/prisma/enums.js';
 
 export class OptionValueResponseDto {
-  @ApiProperty()
+  @ApiProperty({ example: '3f2504e0-4f89-41d3-9a0c-0305e82c3301' })
   id: string;
 
-  @ApiProperty({ enum: OptionType })
+  @ApiProperty({ enum: OptionType, example: OptionType.COLOR })
   type: OptionType;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Đen' })
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'BLK' })
   code: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 0 })
   position: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: false })
   hidden: boolean;
 
-  @ApiProperty()
+  @ApiProperty({ example: '2026-09-24T08:46:12.345Z' })
   createdAt: Date;
 
-  @ApiProperty()
+  @ApiProperty({ example: '2026-09-24T08:46:12.345Z' })
   updatedAt: Date;
 }

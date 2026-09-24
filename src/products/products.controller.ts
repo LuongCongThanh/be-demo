@@ -18,6 +18,7 @@ import {
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -61,6 +62,7 @@ export class ProductsController {
   }
 
   @Get(':id')
+  @ApiParam({ name: 'id', description: 'Product id (UUID)', example: '0f8e7d6c-5b4a-4392-8170-6f5e4d3c2b1a' })
   @UseGuards(StaffQueryFlagGuard('includeAllVariants'))
   @ApiOperation({
     summary:
@@ -72,6 +74,7 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @ApiParam({ name: 'id', description: 'Product id (UUID)', example: '0f8e7d6c-5b4a-4392-8170-6f5e4d3c2b1a' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...CATALOG_STAFF_ROLES)
   @ApiBearerAuth()
@@ -85,6 +88,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
+  @ApiParam({ name: 'id', description: 'Product id (UUID)', example: '0f8e7d6c-5b4a-4392-8170-6f5e4d3c2b1a' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...CATALOG_STAFF_ROLES)
   @ApiBearerAuth()

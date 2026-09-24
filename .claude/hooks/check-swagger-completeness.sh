@@ -29,12 +29,13 @@ if [[ "$BASENAME" == *.controller.ts ]]; then
   exit 0
 fi
 
-if [[ "$BASENAME" == create-*.dto.ts || "$BASENAME" == update-*.dto.ts ]]; then
+# Mọi DTO (request, response, query) — docs/convention/api-conventions.md §B4.
+if [[ "$BASENAME" == *.dto.ts && "$BASENAME" != *.spec.ts ]]; then
   props=$(grep -cE '^[[:space:]]*@ApiProperty(Optional)?\(' "$FILE_PATH")
   examples=$(grep -cE 'example[[:space:]]*:' "$FILE_PATH")
   if [[ "$props" -gt 0 && "$examples" -lt "$props" ]]; then
     missing=$((props - examples))
-    emit_reminder "Reminder (docs/convention/api-conventions.md §B4): $FILE_PATH has $props @ApiProperty field(s) but only $examples with example data — $missing field(s) may be missing 'example:' for Swagger. Add a realistic example for fields the client sends."
+    emit_reminder "Reminder (docs/convention/api-conventions.md §B4): $FILE_PATH has $props @ApiProperty field(s) but only $examples with example data — $missing field(s) may be missing 'example:' for Swagger. Add a realistic example for every request, response and query field (test/openapi-examples.e2e-spec.ts enforces it)."
   fi
   exit 0
 fi

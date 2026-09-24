@@ -4,6 +4,6 @@ import { ApiProperty } from '@nestjs/swagger';
 // trả về { message: "..." }, nên viết 1 class này để dùng lại thay vì
 // mỗi endpoint tự tạo 1 class giống hệt nhau.
 export class MessageResponseDto {
-  @ApiProperty() // để Swagger UI hiển thị field này trong doc API
+  @ApiProperty({ example: 'If the email exists, a verification code has been sent' }) // để Swagger UI hiển thị field này trong doc API
   message: string;
 }
