@@ -19,6 +19,10 @@ async function bootstrap() {
     )
     .addTag('Categories', 'Product category CRUD — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public')
     .addTag(
+      'Option Values',
+      'Color/size values picked when creating product variants; their codes compose the SKU — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public',
+    )
+    .addTag(
       'Products',
       'Product aggregate CRUD — variants and images are nested in create/update payloads and embedded in reads; writes gated to STORE_MANAGER/MASTER_ADMIN, reads public',
     )

@@ -13,6 +13,9 @@ export class ProductResponseDto {
   @ApiProperty()
   name: string;
 
+  @ApiProperty({ example: 'TSB001' })
+  code: string;
+
   @ApiProperty()
   slug: string;
 

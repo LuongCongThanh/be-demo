@@ -1,28 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
 
+// Không có `sku`/`color`/`size` tự do — staff chọn Option Value, hệ thống
+// ghép SKU từ Product Code + mã màu/size (docs/adr/0011). Không có `productId`
+// — lấy từ product đang tạo/sửa.
 export class CreateVariantDto {
-  @ApiProperty({
-    maxLength: 100,
-    description: 'Client tự đặt theo quy ước riêng của store — không tự sinh',
-    example: 'TSHIRT-BLK-M',
-  })
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(100)
-  sku: string;
-
-  @ApiPropertyOptional({ maxLength: 50, example: 'Black' })
+  @ApiPropertyOptional({ description: 'Option Value loại COLOR', example: '550e8400-e29b-41d4-a716-446655440000' })
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  color?: string;
+  @IsUUID()
+  colorId?: string;
 
-  @ApiPropertyOptional({ maxLength: 50, example: 'M' })
+  @ApiPropertyOptional({ description: 'Option Value loại SIZE', example: '6ba7b810-9dad-11d1-80b4-00c04fd430c8' })
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  size?: string;
+  @IsUUID()
+  sizeId?: string;
 
   @ApiProperty({ example: 199000 })
   @IsNotEmpty()
@@ -31,6 +22,4 @@ export class CreateVariantDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   price: number;
-
-  // Không có field `productId` — lấy từ path param `:id` (Task 9), không từ body.
 }

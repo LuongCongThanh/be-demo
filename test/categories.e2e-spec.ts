@@ -190,6 +190,7 @@ describe('Categories (e2e)', () => {
         categoryId,
         name: `${TEST_NAME_PREFIX} Product ${Date.now()}`,
         slug: `${TEST_NAME_PREFIX.toLowerCase()}-product-${Date.now()}`,
+        code: `CE${Date.now().toString(36).toUpperCase()}`,
       },
     });
 
@@ -216,6 +217,7 @@ describe('Categories (e2e)', () => {
         categoryId,
         name: `${TEST_NAME_PREFIX} Product ${Date.now()}`,
         slug: `${TEST_NAME_PREFIX.toLowerCase()}-product-db-fk-${Date.now()}`,
+        code: `CF${Date.now().toString(36).toUpperCase()}`,
       },
     });
 

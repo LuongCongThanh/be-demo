@@ -2,38 +2,41 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
 import type { Prisma, Product, ProductImage, ProductVariant } from '../generated/prisma/client.js';
-import { VariantStatus } from '../generated/prisma/enums.js';
 import { writeUnique } from '../common/prisma-error.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 import { ListProductsQueryDto } from './dto/list-products-query.dto.js';
-import { CreateVariantDto } from './dto/create-variant.dto.js';
-import { UpdateVariantEntryDto } from './dto/update-variant-entry.dto.js';
 import { ProductImagesService } from './product-images.service.js';
+import { ProductVariantsService } from './product-variants.service.js';
 
 // `images` luôn sắp theo sort_order (images[0] là Cover Image) và giấu
 // sort_order khỏi response — thứ tự mảng đã là thông tin duy nhất client cần.
+// Variant nhúng Option Value dạng { id, name, code } thay cho colorId/sizeId trần.
+const OPTION_VALUE_SUMMARY = { select: { id: true, name: true, code: true } } as const;
 const PRODUCT_INCLUDE = {
-  variants: true,
+  variants: {
+    include: { color: OPTION_VALUE_SUMMARY, size: OPTION_VALUE_SUMMARY },
+    omit: { colorId: true, sizeId: true },
+  },
   images: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], omit: { sortOrder: true } },
 } satisfies Prisma.ProductInclude;
 
+type OptionValueSummary = { id: string; name: string; code: string };
 type ProductWithRelations = Product & {
-  variants: ProductVariant[];
+  variants: (Omit<ProductVariant, 'colorId' | 'sizeId'> & {
+    color: OptionValueSummary | null;
+    size: OptionValueSummary | null;
+  })[];
   images: Omit<ProductImage, 'sortOrder'>[];
 };
-
-interface VariantSyncPlan {
-  entries: UpdateVariantEntryDto[];
-  toDiscontinue: ProductVariant[];
-}
 
 @Injectable()
 export class ProductsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly productImagesService: ProductImagesService,
+    private readonly productVariantsService: ProductVariantsService,
   ) {}
 
   async create(createProductDto: CreateProductDto): Promise<ProductWithRelations> {
@@ -50,25 +53,20 @@ export class ProductsService {
       throw new ConflictException(`Product name "${productFields.name}" already exists`);
     }
 
-    for (const variant of variants ?? []) {
-      const existingVariant = await this.prisma.productVariant.findUnique({ where: { sku: variant.sku } });
-      if (existingVariant) {
-        throw new ConflictException(`SKU "${variant.sku}" already exists`);
-      }
-    }
-
-    if ((!variants || variants.length === 0) && (!images || images.length === 0)) {
-      return writeUnique(
-        () => this.prisma.product.create({ data: { ...productFields, slug }, include: PRODUCT_INCLUDE }),
-        'slug',
-        `Product name "${productFields.name}" already exists`,
-      );
+    const existingCode = await this.prisma.product.findUnique({ where: { code: productFields.code } });
+    if (existingCode) {
+      throw new ConflictException(`Product code "${productFields.code}" already exists`);
     }
 
     // Sinh id trước transaction — ảnh được copy sang `products/<productId>/`
     // trong plan() (gọi mạng, phải chạy ngoài transaction), lúc đó product
     // chưa tồn tại. Chạy sau các pre-check rẻ ở trên để 404/409 không tốn copy.
     const productId = randomUUID();
+    const variantPlan = await this.productVariantsService.plan(
+      { id: productId, code: productFields.code },
+      [],
+      variants ?? [],
+    );
     const imagePlan = images?.length ? await this.productImagesService.plan(productId, [], images) : undefined;
 
     // Product + variants + inventory (quantity=0) + images phải cùng thành
@@ -79,10 +77,7 @@ export class ProductsService {
         () =>
           this.prisma.$transaction(async (tx) => {
             await tx.product.create({ data: { ...productFields, id: productId, slug } });
-            for (const variant of variants ?? []) {
-              const created = await tx.productVariant.create({ data: { ...variant, productId } });
-              await tx.inventory.create({ data: { variantId: created.id, quantity: 0, reservedQuantity: 0 } });
-            }
+            await this.productVariantsService.apply(tx, productId, variantPlan);
             if (imagePlan) {
               await this.productImagesService.apply(tx, productId, imagePlan);
             }
@@ -151,7 +146,9 @@ export class ProductsService {
       return current;
     }
 
-    const variantPlan = variants ? this.planVariantSync(id, current.variants, variants) : undefined;
+    const variantPlan = variants
+      ? await this.productVariantsService.plan(current, await this.variantRows(id), variants)
+      : undefined;
     // Gọi mạng (HEAD + copy) nên chạy cuối cùng trong phần pre-check, và
     // trước transaction — không giữ transaction trong lúc chờ storage.
     const imagePlan = images ? await this.productImagesService.plan(id, current.images, images) : undefined;
@@ -170,7 +167,7 @@ export class ProductsService {
                   await tx.product.update({ where: { id }, data });
                 }
                 if (variantPlan) {
-                  await this.applyVariantSync(tx, id, variantPlan);
+                  await this.productVariantsService.apply(tx, id, variantPlan);
                 }
                 if (imagePlan) {
                   await this.productImagesService.apply(tx, id, imagePlan);
@@ -187,38 +184,10 @@ export class ProductsService {
     return this.findOne(id);
   }
 
-  // `variants` của PATCH /products/:id là full desired state (không phải
-  // patch từng phần tử). Vắng mặt trong mảng = discontinue (soft-delete),
-  // không hard-delete, để không vi phạm FK RESTRICT từ CartItem/OrderItem.
-  private planVariantSync(
-    productId: string,
-    existing: ProductVariant[],
-    entries: UpdateVariantEntryDto[],
-  ): VariantSyncPlan {
-    const existingIds = new Set(existing.map((v) => v.id));
-    for (const entry of entries) {
-      if (entry.id && !existingIds.has(entry.id)) {
-        throw new BadRequestException(`Variant #${entry.id} not found on product #${productId}`);
-      }
-    }
-
-    const incomingIds = new Set(entries.filter((e) => e.id).map((e) => e.id));
-    return { entries, toDiscontinue: existing.filter((v) => !incomingIds.has(v.id)) };
-  }
-
-  private async applyVariantSync(tx: Prisma.TransactionClient, productId: string, plan: VariantSyncPlan) {
-    for (const entry of plan.entries) {
-      const { id, ...fields } = entry;
-      if (id) {
-        await tx.productVariant.update({ where: { id }, data: fields });
-      } else {
-        const created = await tx.productVariant.create({ data: { ...(fields as CreateVariantDto), productId } });
-        await tx.inventory.create({ data: { variantId: created.id, quantity: 0, reservedQuantity: 0 } });
-      }
-    }
-    for (const variant of plan.toDiscontinue) {
-      await tx.productVariant.update({ where: { id: variant.id }, data: { status: VariantStatus.DISCONTINUED } });
-    }
+  // Row variant thật (có colorId/sizeId) — response của findOne() đã thay
+  // chúng bằng Option Value nhúng.
+  private variantRows(productId: string): Promise<ProductVariant[]> {
+    return this.prisma.productVariant.findMany({ where: { productId } });
   }
 
   async remove(id: string): Promise<void> {

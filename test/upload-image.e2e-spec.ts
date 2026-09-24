@@ -7,10 +7,12 @@ import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-
 import type { PresignedUploadTarget } from '@src/upload-image/object-storage/object-storage.service.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
+import { deleteOptionValueFixtures, uniqueProductCode } from './support/catalog-fixtures.js';
 
 const TEST_NAME_PREFIX = 'UploadImageE2E';
 const TEST_EMAIL_DOMAIN = '@upload-image.e2e-test.local';
 const VALID_PASSWORD = 'Abc@1234';
+const OPTION_CODE_PREFIX = 'UIE';
 
 describe('Upload images + Product images (e2e)', () => {
   let app: INestApplication;
@@ -43,8 +45,10 @@ describe('Upload images + Product images (e2e)', () => {
   });
 
   afterAll(async () => {
+    await prisma.inventory.deleteMany({ where: { variant: { product: { name: { startsWith: TEST_NAME_PREFIX } } } } });
     await prisma.product.deleteMany({ where: { name: { startsWith: TEST_NAME_PREFIX } } });
     await prisma.category.deleteMany({ where: { name: { startsWith: TEST_NAME_PREFIX } } });
+    await deleteOptionValueFixtures(prisma, OPTION_CODE_PREFIX);
     await prisma.user.deleteMany({ where: { email: { endsWith: TEST_EMAIL_DOMAIN } } });
     await app.close();
   });
@@ -67,11 +71,16 @@ describe('Upload images + Product images (e2e)', () => {
     });
   }
 
+  // Phần payload product ngoài ảnh — các test ở đây chỉ quan tâm `images`.
+  function productFields(name = `${TEST_NAME_PREFIX} Product ${Date.now()}-${Math.random()}`) {
+    return { name, code: uniqueProductCode('UE'), categoryId, variants: [{ price: 100000 }] };
+  }
+
   async function createProduct(images: { key: string; altText?: string }[] = []) {
     const res = await request(app.getHttpServer())
       .post('/api/v1/products')
       .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-      .send({ name: `${TEST_NAME_PREFIX} Product ${Date.now()}-${Math.random()}`, categoryId, images })
+      .send({ ...productFields(), images })
       .expect(201);
     return res.body;
   }
@@ -186,7 +195,7 @@ describe('Upload images + Product images (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-        .send({ name, categoryId, images: [{ key: target.key }] })
+        .send({ ...productFields(name), images: [{ key: target.key }] })
         .expect(400);
 
       expect(res.body.message).toContain(target.key);
@@ -197,11 +206,7 @@ describe('Upload images + Product images (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-        .send({
-          name: `${TEST_NAME_PREFIX} Foreign key ${Date.now()}`,
-          categoryId,
-          images: [{ key: 'products/x/a.jpg' }],
-        })
+        .send({ ...productFields(), images: [{ key: 'products/x/a.jpg' }] })
         .expect(400);
     });
 
@@ -210,7 +215,7 @@ describe('Upload images + Product images (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-        .send({ name: `${TEST_NAME_PREFIX} Too many ${Date.now()}`, categoryId, images })
+        .send({ ...productFields(), images })
         .expect(400);
     });
 
@@ -222,7 +227,7 @@ describe('Upload images + Product images (e2e)', () => {
         await request(app.getHttpServer())
           .post('/api/v1/products')
           .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-          .send({ name, categoryId, images: [{ key }] })
+          .send({ ...productFields(name), images: [{ key }] })
           .expect(503);
       } finally {
         objectStorage.unavailable = false;
@@ -284,22 +289,26 @@ describe('Upload images + Product images (e2e)', () => {
       const product = await createProduct();
       const [key] = await uploadImages(1);
 
-      // Sku đã thuộc product khác → P2002 xảy ra BÊN TRONG transaction, tức
-      // là sau khi ảnh đã được copy (tên trùng thì bị pre-check chặn trước copy).
-      const skuOwner = await request(app.getHttpServer())
-        .post('/api/v1/products')
-        .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-        .send({
-          name: `${TEST_NAME_PREFIX} Sku owner ${Date.now()}`,
-          categoryId,
-          variants: [{ sku: `SKU-UI-${Date.now()}`, price: 1 }],
-        })
-        .expect(201);
+      // SKU mà variant mới sẽ nhận đã bị một variant của product khác chiếm
+      // (chỉ dựng được bằng DB — qua API, SKU luôn mở đầu bằng Product Code
+      // duy nhất). Mọi pre-check đều qua, P2002 xảy ra BÊN TRONG transaction,
+      // tức là sau khi ảnh đã được copy.
+      const color = await prisma.optionValue.create({
+        data: {
+          type: 'COLOR',
+          name: 'Rollback',
+          code: `${OPTION_CODE_PREFIX}${Date.now().toString(36).slice(-5).toUpperCase()}`,
+        },
+      });
+      const other = await createProduct();
+      await prisma.productVariant.create({
+        data: { productId: other.id, sku: `${product.code}-${color.code}`, price: 1 },
+      });
 
       await request(app.getHttpServer())
         .patch(`/api/v1/products/${product.id}`)
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-        .send({ images: [{ key }], variants: [{ sku: skuOwner.body.variants[0].sku, price: 1 }] })
+        .send({ images: [{ key }], variants: [{ id: product.variants[0].id }, { colorId: color.id, price: 1 }] })
         .expect(409);
 
       expect(await prisma.productImage.count({ where: { productId: product.id } })).toBe(0);

@@ -3,6 +3,7 @@ import { PrismaClient } from '../src/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 import slugify from 'slugify';
+import { composeSku } from '../src/products/sku.util.js';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -65,20 +66,46 @@ async function main() {
 // bằng upsert theo slug/sku, giống cách seed admin ở trên — chạy lại
 // script không tạo trùng.
 async function seedCatalog(): Promise<void> {
+  // Option Value dùng chung cho mọi product — variant chọn theo mã, SKU ghép
+  // từ Product Code + mã màu/size (docs/adr/0011).
+  const optionValues = [
+    { type: 'COLOR', code: 'BLK', name: 'Black' },
+    { type: 'COLOR', code: 'WHT', name: 'White' },
+    { type: 'COLOR', code: 'BLU', name: 'Blue' },
+    { type: 'COLOR', code: 'KHK', name: 'Khaki' },
+    { type: 'COLOR', code: 'BRN', name: 'Brown' },
+    { type: 'SIZE', code: 'M', name: 'M' },
+    { type: 'SIZE', code: 'L', name: 'L' },
+    { type: 'SIZE', code: '32', name: '32' },
+    { type: 'SIZE', code: '41', name: '41' },
+    { type: 'SIZE', code: '42', name: '42' },
+  ] as const;
+  const optionIdByKey = new Map<string, string>();
+  for (const [position, value] of optionValues.entries()) {
+    const row = await prisma.optionValue.upsert({
+      where: { type_code: { type: value.type, code: value.code } },
+      update: {},
+      create: { ...value, position },
+    });
+    optionIdByKey.set(`${value.type}:${value.code}`, row.id);
+  }
+
   const catalog = [
     {
       name: 'Shirts',
       products: [
         {
           name: 'Classic Cotton T-Shirt',
+          code: 'TSHIRT',
           variants: [
-            { sku: 'SHIRT-TSHIRT-BLK-M', color: 'Black', size: 'M', price: 199000, quantity: 50 },
-            { sku: 'SHIRT-TSHIRT-WHT-L', color: 'White', size: 'L', price: 199000, quantity: 30 },
+            { color: 'BLK', size: 'M', price: 199000, quantity: 50 },
+            { color: 'WHT', size: 'L', price: 199000, quantity: 30 },
           ],
         },
         {
           name: 'Slim Fit Dress Shirt',
-          variants: [{ sku: 'SHIRT-DRESS-BLU-M', color: 'Blue', size: 'M', price: 450000, quantity: 20 }],
+          code: 'DRESS',
+          variants: [{ color: 'BLU', size: 'M', price: 450000, quantity: 20 }],
         },
       ],
     },
@@ -87,11 +114,13 @@ async function seedCatalog(): Promise<void> {
       products: [
         {
           name: 'Straight Leg Jeans',
-          variants: [{ sku: 'PANTS-JEANS-BLU-32', color: 'Blue', size: '32', price: 550000, quantity: 40 }],
+          code: 'JEANS',
+          variants: [{ color: 'BLU', size: '32', price: 550000, quantity: 40 }],
         },
         {
           name: 'Chino Trousers',
-          variants: [{ sku: 'PANTS-CHINO-KHK-32', color: 'Khaki', size: '32', price: 480000, quantity: 25 }],
+          code: 'CHINO',
+          variants: [{ color: 'KHK', size: '32', price: 480000, quantity: 25 }],
         },
       ],
     },
@@ -100,11 +129,13 @@ async function seedCatalog(): Promise<void> {
       products: [
         {
           name: 'Running Sneakers',
-          variants: [{ sku: 'SHOES-SNEAKER-BLK-42', color: 'Black', size: '42', price: 890000, quantity: 15 }],
+          code: 'SNEAKER',
+          variants: [{ color: 'BLK', size: '42', price: 890000, quantity: 15 }],
         },
         {
           name: 'Leather Loafers',
-          variants: [{ sku: 'SHOES-LOAFER-BRN-41', color: 'Brown', size: '41', price: 1200000, quantity: 10 }],
+          code: 'LOAFER',
+          variants: [{ color: 'BRN', size: '41', price: 1200000, quantity: 10 }],
         },
       ],
     },
@@ -123,18 +154,19 @@ async function seedCatalog(): Promise<void> {
       const product = await prisma.product.upsert({
         where: { slug: productSlug },
         update: {},
-        create: { name: productSeed.name, slug: productSlug, categoryId: category.id },
+        create: { name: productSeed.name, code: productSeed.code, slug: productSlug, categoryId: category.id },
       });
 
       for (const variantSeed of productSeed.variants) {
+        const sku = composeSku(product.code, variantSeed.color, variantSeed.size);
         const variant = await prisma.productVariant.upsert({
-          where: { sku: variantSeed.sku },
+          where: { sku },
           update: {},
           create: {
             productId: product.id,
-            sku: variantSeed.sku,
-            color: variantSeed.color,
-            size: variantSeed.size,
+            sku,
+            colorId: optionIdByKey.get(`COLOR:${variantSeed.color}`),
+            sizeId: optionIdByKey.get(`SIZE:${variantSeed.size}`),
             price: variantSeed.price,
           },
         });

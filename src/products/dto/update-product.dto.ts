@@ -16,13 +16,14 @@ import { CreateProductDto } from './create-product.dto.js';
 import { UpdateVariantEntryDto } from './update-variant-entry.dto.js';
 import { UpdateProductImageEntryDto } from './update-product-image-entry.dto.js';
 import { MAX_PRODUCT_IMAGES } from './create-product-image.dto.js';
-import { HasUniqueVariantSkus } from '../validators/unique-variant-skus.validator.js';
 
+// `code` bị omit: Product Code không đổi sau khi tạo (docs/adr/0011) —
+// forbidNonWhitelisted trả 400 nếu client gửi lên.
 // `variants`/`images` bị omit khỏi base rồi khai lại riêng bên dưới — kiểu
 // phần tử của PATCH (có `id` optional) không phải subtype của kiểu phần tử
 // lúc tạo, nên không thể `declare` override trực tiếp field kế thừa từ
 // PartialType(CreateProductDto) (TS2416).
-export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['variants', 'images'] as const)) {
+export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['variants', 'images', 'code'] as const)) {
   // Override `name` thay vì để nguyên field @IsOptional() PartialType tự sinh —
   // cùng lý do đã áp dụng ở UpdateCategoryDto: @IsOptional() coi `null` như
   // "absent" nên { "name": null } lọt qua validation rồi Prisma từ chối `null`
@@ -55,7 +56,6 @@ export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['v
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateVariantEntryDto)
-  @HasUniqueVariantSkus()
   variants?: UpdateVariantEntryDto[];
 
   // Cùng quy tắc full-sync với `variants` — xem docs/specs/03-products.md,

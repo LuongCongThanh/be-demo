@@ -13,6 +13,7 @@ import { validate } from './config/env.validation.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { RequestIdMiddleware } from './common/request-id.middleware.js';
 import { ProductsModule } from './products/products.module.js';
+import { OptionValuesModule } from './option-values/option-values.module.js';
 import { UploadImageModule } from './upload-image/upload-image.module.js';
 
 @Module({
@@ -27,6 +28,7 @@ import { UploadImageModule } from './upload-image/upload-image.module.js';
     MetricsModule,
     CategoriesModule,
     ProductsModule,
+    OptionValuesModule,
     UploadImageModule,
   ],
   controllers: [AppController],

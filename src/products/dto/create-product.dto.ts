@@ -7,12 +7,14 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
 import { CreateVariantDto } from './create-variant.dto.js';
 import { CreateProductImageDto, MAX_PRODUCT_IMAGES } from './create-product-image.dto.js';
-import { HasUniqueVariantSkus } from '../validators/unique-variant-skus.validator.js';
+
+export const PRODUCT_CODE_PATTERN = /^[A-Z0-9]{2,20}$/;
 
 export class CreateProductDto {
   @ApiProperty({ maxLength: 255, example: 'Wireless Headphones' })
@@ -23,6 +25,13 @@ export class CreateProductDto {
   @IsString()
   @MaxLength(255)
   name: string;
+
+  // Mở đầu mọi SKU của product, không đổi sau khi tạo (docs/adr/0011). Không
+  // tự viết hoa — FE phải thấy đúng giá trị sẽ nằm trong SKU.
+  @ApiProperty({ pattern: PRODUCT_CODE_PATTERN.source, example: 'TSB001' })
+  @IsString()
+  @Matches(PRODUCT_CODE_PATTERN, { message: 'code must be 2-20 uppercase letters or digits' })
+  code: string;
 
   @ApiProperty({
     description: 'UUID của Category đã tồn tại',
@@ -38,13 +47,18 @@ export class CreateProductDto {
   @ApiPropertyOptional({
     type: [CreateVariantDto],
     description: 'Variants tạo kèm ngay khi tạo product (optional, mặc định rỗng)',
-    example: [{ sku: 'TSHIRT-BLK-M', color: 'Black', size: 'M', price: 199000 }],
+    example: [
+      {
+        colorId: '550e8400-e29b-41d4-a716-446655440000',
+        sizeId: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+        price: 199000,
+      },
+    ],
   })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateVariantDto)
-  @HasUniqueVariantSkus()
   variants?: CreateVariantDto[];
 
   @ApiPropertyOptional({
