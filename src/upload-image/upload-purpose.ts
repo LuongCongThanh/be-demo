@@ -8,8 +8,15 @@ export type UploadPurpose = (typeof UPLOAD_PURPOSES)[number];
 interface UploadPurposePolicy {
   pendingPrefix: string;
   allowedRoles: readonly string[];
+  // Số file tối đa mỗi request presign — PRODUCT_IMAGE = số ảnh tối đa của 1 Product.
+  maxFiles: number;
 }
 
 export const UPLOAD_PURPOSE_POLICIES: Record<UploadPurpose, UploadPurposePolicy> = {
-  PRODUCT_IMAGE: { pendingPrefix: 'tmp/product-image/', allowedRoles: ['STORE_MANAGER', 'MASTER_ADMIN'] },
+  PRODUCT_IMAGE: { pendingPrefix: 'tmp/product-image/', allowedRoles: ['STORE_MANAGER', 'MASTER_ADMIN'], maxFiles: 5 },
 };
+
+// DTO chỉ biết giới hạn lớn nhất; hiện chỉ có 1 purpose nên đây chính là giới
+// hạn của PRODUCT_IMAGE. Thêm purpose có maxFiles khác → phải kiểm thêm theo
+// purpose ở UploadImageService.presign().
+export const MAX_PRESIGN_BATCH_SIZE = Math.max(...Object.values(UPLOAD_PURPOSE_POLICIES).map((p) => p.maxFiles));

@@ -1,7 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
-export const MAX_PRODUCT_IMAGES = 10;
+// Mỗi Product có 1–5 ảnh (CONTEXT.md, Product Image).
+export const MIN_PRODUCT_IMAGES = 1;
+export const MAX_PRODUCT_IMAGES = 5;
 
 // 1 phần tử trong `images[]` của POST /products — thứ tự mảng là thứ tự hiển
 // thị, phần tử đầu là Cover Image (không có isPrimary/sortOrder).

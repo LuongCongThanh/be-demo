@@ -14,14 +14,14 @@ describe('PresignUploadImagesDto', () => {
     expect(errors.some((e) => e.property === 'files')).toBe(true);
   });
 
-  it('passes validation with 10 files (the max allowed)', async () => {
-    const dto = plainToInstance(PresignUploadImagesDto, { purpose: 'PRODUCT_IMAGE', files: filesOf(10) });
+  it('passes validation with 5 files (the PRODUCT_IMAGE max)', async () => {
+    const dto = plainToInstance(PresignUploadImagesDto, { purpose: 'PRODUCT_IMAGE', files: filesOf(5) });
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
   });
 
-  it('fails validation with 11 files (over the max)', async () => {
-    const dto = plainToInstance(PresignUploadImagesDto, { purpose: 'PRODUCT_IMAGE', files: filesOf(11) });
+  it('fails validation with 6 files (over the max)', async () => {
+    const dto = plainToInstance(PresignUploadImagesDto, { purpose: 'PRODUCT_IMAGE', files: filesOf(6) });
     const errors = await validate(dto);
     expect(errors.some((e) => e.property === 'files')).toBe(true);
   });

@@ -2,6 +2,7 @@ import { ApiPropertyOptional, OmitType, PartialType } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsEnum,
   IsNotEmpty,
@@ -15,7 +16,7 @@ import { ProductStatus } from '../../generated/prisma/enums.js';
 import { CreateProductDto } from './create-product.dto.js';
 import { UpdateVariantEntryDto } from './update-variant-entry.dto.js';
 import { UpdateProductImageEntryDto } from './update-product-image-entry.dto.js';
-import { MAX_PRODUCT_IMAGES } from './create-product-image.dto.js';
+import { MAX_PRODUCT_IMAGES, MIN_PRODUCT_IMAGES } from './create-product-image.dto.js';
 
 // `code` bị omit: Product Code không đổi sau khi tạo (docs/adr/0011) —
 // forbidNonWhitelisted trả 400 nếu client gửi lên.
@@ -73,6 +74,7 @@ export class UpdateProductDto extends PartialType(OmitType(CreateProductDto, ['v
   })
   @IsOptional()
   @IsArray()
+  @ArrayMinSize(MIN_PRODUCT_IMAGES)
   @ArrayMaxSize(MAX_PRODUCT_IMAGES)
   @ValidateNested({ each: true })
   @Type(() => UpdateProductImageEntryDto)

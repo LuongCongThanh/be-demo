@@ -340,4 +340,92 @@ describe('Products + Variants (e2e)', () => {
       await postProduct(productPayload({ variants: [{ color: 'Black', price: 1 }] })).expect(400);
     });
   });
+
+  describe('Variant rules', () => {
+    const blackM = () => ({ colorId: options.black.id, sizeId: options.sizeM.id, price: 1 });
+
+    it('rejects an Option Value that does not exist, is hidden, or is of the wrong type with 400', async () => {
+      const cases = [
+        { colorId: '00000000-0000-0000-0000-000000000000', price: 1 },
+        { colorId: options.hiddenColor.id, price: 1 },
+        { colorId: options.sizeM.id, price: 1 },
+        { sizeId: options.black.id, price: 1 },
+      ];
+      for (const variant of cases) {
+        await postProduct(productPayload({ variants: [variant] })).expect(400);
+      }
+    });
+
+    it('rejects two variants with the same color + size (same SKU) with 409', async () => {
+      const code = uniqueProductCode(PRODUCT_CODE_PREFIX);
+      const res = await postProduct(productPayload({ code, variants: [blackM(), blackM()] })).expect(409);
+      expect(res.body.message).toBe(
+        `SKU "${code}-${options.black.code}-${options.sizeM.code}" already exists on this product`,
+      );
+
+      const product = (await postProduct(productPayload({ variants: [blackM()] })).expect(201)).body;
+      await patchProduct(product.id, { variants: [{ id: product.variants[0].id }, blackM()] }).expect(409);
+    });
+
+    it('rejects changing the color or size of an existing variant with 400', async () => {
+      const product = (await postProduct(productPayload()).expect(201)).body;
+
+      await patchProduct(product.id, { variants: [{ id: product.variants[0].id, colorId: options.white.id }] }).expect(
+        400,
+      );
+    });
+
+    it('rejects a product created without variants with 400', async () => {
+      await postProduct(productPayload({ variants: [] })).expect(400);
+      const { variants: _omitted, ...withoutVariants } = productPayload();
+      await postProduct(withoutVariants).expect(400);
+    });
+
+    it('rejects a PATCH that leaves no ACTIVE variant with 400 — the Product status takes a product off sale', async () => {
+      const product = (await postProduct(productPayload()).expect(201)).body;
+      const variantId = product.variants[0].id;
+
+      await patchProduct(product.id, { variants: [] }).expect(400);
+      await patchProduct(product.id, { variants: [{ id: variantId, status: 'INACTIVE' }] }).expect(400);
+      await patchProduct(product.id, { status: 'INACTIVE' }).expect(200);
+    });
+
+    it('never brings a DISCONTINUED variant back with 400', async () => {
+      const product = (
+        await postProduct(
+          productPayload({ variants: [blackM(), { colorId: options.white.id, sizeId: options.sizeM.id, price: 1 }] }),
+        ).expect(201)
+      ).body;
+      const [kept, retired] = product.variants;
+      await patchProduct(product.id, { variants: [{ id: kept.id }] }).expect(200);
+
+      for (const status of ['ACTIVE', 'INACTIVE']) {
+        await patchProduct(product.id, { variants: [{ id: kept.id }, { id: retired.id, status }] }).expect(400);
+      }
+    });
+
+    it('caps a product at 50 variants that are not DISCONTINUED, discontinued ones do not count', async () => {
+      const sizes = await Promise.all(
+        Array.from({ length: 51 }, (_, i) =>
+          prisma.optionValue.create({
+            data: {
+              type: 'SIZE',
+              name: `cap ${i}`,
+              code: `${OPTION_CODE_PREFIX}C${Date.now().toString(36).slice(-4).toUpperCase()}${i}`,
+            },
+          }),
+        ),
+      );
+      const variantFor = (i: number) => ({ sizeId: sizes[i].id, price: 1 });
+
+      await postProduct(productPayload({ variants: sizes.map((_, i) => variantFor(i)) })).expect(400);
+
+      const product = (
+        await postProduct(productPayload({ variants: sizes.slice(0, 50).map((_, i) => variantFor(i)) })).expect(201)
+      ).body;
+      const ids: string[] = product.variants.map((v: { id: string }) => v.id);
+      // Discontinue 1 variant (vắng mặt trong mảng) → còn 49, thêm 1 mới = 50 → hợp lệ.
+      await patchProduct(product.id, { variants: [...ids.slice(1).map((id) => ({ id })), variantFor(50)] }).expect(200);
+    });
+  });
 });

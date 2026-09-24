@@ -16,4 +16,3 @@ export const IMAGE_EXTENSION_BY_CONTENT_TYPE: Record<AllowedImageContentType, st
 
 export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 export const PRESIGNED_URL_EXPIRY_SECONDS = 15 * 60;
-export const MAX_PRESIGN_BATCH_SIZE = 10;

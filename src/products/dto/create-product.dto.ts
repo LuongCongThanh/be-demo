@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsNotEmpty,
   IsOptional,
@@ -12,7 +13,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { CreateVariantDto } from './create-variant.dto.js';
-import { CreateProductImageDto, MAX_PRODUCT_IMAGES } from './create-product-image.dto.js';
+import { CreateProductImageDto, MAX_PRODUCT_IMAGES, MIN_PRODUCT_IMAGES } from './create-product-image.dto.js';
 
 export const PRODUCT_CODE_PATTERN = /^[A-Z0-9]{2,20}$/;
 
@@ -44,9 +45,10 @@ export class CreateProductDto {
   // Không có field `slug` — server tự sinh từ `name` (Task 3). Không có
   // field `status` — mặc định ACTIVE ở DB, chỉ đổi được qua UpdateProductDto.
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: [CreateVariantDto],
-    description: 'Variants tạo kèm ngay khi tạo product (optional, mặc định rỗng)',
+    minItems: 1,
+    description: 'Ít nhất 1 variant — SKU được ghép từ Product Code + mã màu/size đã chọn',
     example: [
       {
         colorId: '550e8400-e29b-41d4-a716-446655440000',
@@ -55,23 +57,24 @@ export class CreateProductDto {
       },
     ],
   })
-  @IsOptional()
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreateVariantDto)
-  variants?: CreateVariantDto[];
+  variants: CreateVariantDto[];
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: [CreateProductImageDto],
+    minItems: MIN_PRODUCT_IMAGES,
     maxItems: MAX_PRODUCT_IMAGES,
     description:
       'Ảnh tạo kèm product (key lấy từ POST /upload-images/presign) — thứ tự mảng là thứ tự hiển thị, phần tử đầu là Cover Image',
     example: [{ key: 'tmp/product-image/550e8400-e29b-41d4-a716-446655440000.jpg', altText: 'Front view' }],
   })
-  @IsOptional()
   @IsArray()
+  @ArrayMinSize(MIN_PRODUCT_IMAGES)
   @ArrayMaxSize(MAX_PRODUCT_IMAGES)
   @ValidateNested({ each: true })
   @Type(() => CreateProductImageDto)
-  images?: CreateProductImageDto[];
+  images: CreateProductImageDto[];
 }

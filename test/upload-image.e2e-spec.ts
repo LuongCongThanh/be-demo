@@ -76,7 +76,9 @@ describe('Upload images + Product images (e2e)', () => {
     return { name, code: uniqueProductCode('UE'), categoryId, variants: [{ price: 100000 }] };
   }
 
-  async function createProduct(images: { key: string; altText?: string }[] = []) {
+  // Không truyền ảnh → tự upload 1 ảnh (mỗi Product phải có 1–5 ảnh).
+  async function createProduct(images?: { key: string; altText?: string }[]) {
+    images ??= (await uploadImages(1)).map((key) => ({ key }));
     const res = await request(app.getHttpServer())
       .post('/api/v1/products')
       .set('Authorization', `Bearer ${masterAdminAccessToken}`)
@@ -119,8 +121,9 @@ describe('Upload images + Product images (e2e)', () => {
       await presign(1, await createCustomerAccessToken()).expect(403);
     });
 
-    it('rejects a batch of 11 files and an unknown purpose with 400', async () => {
-      await presign(11).expect(400);
+    it('rejects a PRODUCT_IMAGE batch of 6 files and an unknown purpose with 400', async () => {
+      await presign(5).expect(201);
+      await presign(6).expect(400);
       await request(app.getHttpServer())
         .post('/api/v1/upload-images/presign')
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
@@ -210,8 +213,18 @@ describe('Upload images + Product images (e2e)', () => {
         .expect(400);
     });
 
-    it('rejects more than 10 images with 400', async () => {
-      const images = Array.from({ length: 11 }, (_, i) => ({ key: `tmp/product-image/${i}.jpg` }));
+    it('rejects a product without images, or with more than 5, with 400', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+        .send({ ...productFields(), images: [] })
+        .expect(400);
+      await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+        .send(productFields())
+        .expect(400);
+      const images = Array.from({ length: 6 }, (_, i) => ({ key: `tmp/product-image/${i}.jpg` }));
       await request(app.getHttpServer())
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
@@ -256,7 +269,7 @@ describe('Upload images + Product images (e2e)', () => {
       expect(objectStorage.deletedKeys).toContain(objectStorage.keyFromUrl(b.url));
     });
 
-    it('leaves images untouched when the images field is omitted, and removes all with []', async () => {
+    it('leaves images untouched when the images field is omitted, and rejects removing them all with 400', async () => {
       const product = await createProduct((await uploadImages(2)).map((key) => ({ key })));
 
       const renamed = await request(app.getHttpServer())
@@ -266,8 +279,7 @@ describe('Upload images + Product images (e2e)', () => {
         .expect(200);
       expect(renamed.body.images).toHaveLength(2);
 
-      const cleared = await patchImages(product.id, []).expect(200);
-      expect(cleared.body.images).toHaveLength(0);
+      await patchImages(product.id, []).expect(400);
     });
 
     it('rejects an image id from another product with 400', async () => {
@@ -311,7 +323,10 @@ describe('Upload images + Product images (e2e)', () => {
         .send({ images: [{ key }], variants: [{ id: product.variants[0].id }, { colorId: color.id, price: 1 }] })
         .expect(409);
 
-      expect(await prisma.productImage.count({ where: { productId: product.id } })).toBe(0);
+      // Ảnh cũ còn nguyên, ảnh mới không được gắn.
+      expect(
+        (await prisma.productImage.findMany({ where: { productId: product.id } })).map((image) => image.id),
+      ).toEqual([product.images[0].id]);
       const fileName = key.slice(key.lastIndexOf('/') + 1);
       expect(objectStorage.deletedKeys).toContain(`products/${product.id}/${fileName}`);
       // Pending Upload vẫn còn — client gửi lại được đúng key cũ.
