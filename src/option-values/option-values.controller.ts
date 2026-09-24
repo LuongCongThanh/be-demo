@@ -18,6 +18,7 @@ import {
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -56,6 +57,7 @@ export class OptionValuesController {
   }
 
   @Patch(':id')
+  @ApiParam({ name: 'id', description: 'Option Value id (UUID)', example: '3f2504e0-4f89-41d3-9a0c-0305e82c3301' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...CATALOG_STAFF_ROLES)
   @ApiBearerAuth()
@@ -66,6 +68,7 @@ export class OptionValuesController {
   }
 
   @Delete(':id')
+  @ApiParam({ name: 'id', description: 'Option Value id (UUID)', example: '3f2504e0-4f89-41d3-9a0c-0305e82c3301' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...CATALOG_STAFF_ROLES)
   @ApiBearerAuth()

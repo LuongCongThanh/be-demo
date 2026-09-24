@@ -18,6 +18,7 @@ import {
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -53,6 +54,7 @@ export class CategoriesController {
   }
 
   @Get(':id')
+  @ApiParam({ name: 'id', description: 'Category id (UUID)', example: '550e8400-e29b-41d4-a716-446655440000' })
   @ApiOperation({ summary: 'Get a category by id (public)' })
   @ApiOkResponse({ type: CategoryResponseDto })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
@@ -60,6 +62,7 @@ export class CategoriesController {
   }
 
   @Patch(':id')
+  @ApiParam({ name: 'id', description: 'Category id (UUID)', example: '550e8400-e29b-41d4-a716-446655440000' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()
@@ -72,6 +75,7 @@ export class CategoriesController {
   }
 
   @Delete(':id')
+  @ApiParam({ name: 'id', description: 'Category id (UUID)', example: '550e8400-e29b-41d4-a716-446655440000' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('STORE_MANAGER', 'MASTER_ADMIN')
   @ApiBearerAuth()

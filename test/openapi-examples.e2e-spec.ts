@@ -43,15 +43,15 @@ describe('OpenAPI examples (e2e)', () => {
     expect(missing).toEqual([]);
   });
 
-  it('every query parameter has an example', () => {
+  it('every query and path parameter has an example', () => {
     const missing = Object.entries(document.paths).flatMap(([path, item]) =>
       Object.entries(item).flatMap(([method, operation]) =>
         (
           (operation as { parameters?: { in: string; name: string; example?: unknown; schema?: SchemaObject }[] })
             .parameters ?? []
         )
-          .filter((p) => p.in === 'query' && p.example === undefined && p.schema?.example === undefined)
-          .map((p) => `${method.toUpperCase()} ${path} ?${p.name}`),
+          .filter((p) => ['query', 'path'].includes(p.in) && p.example === undefined && p.schema?.example === undefined)
+          .map((p) => `${method.toUpperCase()} ${path} ${p.in}:${p.name}`),
       ),
     );
 
