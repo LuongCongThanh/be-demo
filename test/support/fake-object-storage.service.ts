@@ -1,10 +1,14 @@
-import { randomUUID } from 'node:crypto';
-import { ObjectStorageService, PresignFileRequest, PresignedUploadTarget } from './object-storage.service.js';
-import { IMAGE_EXTENSION_BY_CONTENT_TYPE, MAX_IMAGE_SIZE_BYTES } from './allowed-image-content-type.js';
+import {
+  ObjectStorageService,
+  PresignFileRequest,
+  PresignedUploadTarget,
+} from '@src/upload-image/object-storage/object-storage.service.js';
+import { MAX_IMAGE_SIZE_BYTES } from '@src/upload-image/upload-image.constants.js';
+import { pendingObjectKey } from '@src/upload-image/object-storage/pending-object-key.js';
 
 const FAKE_BASE_URL = 'https://fake-storage.local/';
 
-// Fake in-memory — override provider trong test/support/create-test-app.ts để
+// Fake in-memory (chỉ dùng cho test, không build vào dist) — override provider trong create-test-app.ts để
 // e2e không cần MinIO thật chạy. Không thực sự upload/xoá gì, chỉ ghi nhớ key
 // nào đang "tồn tại" (sau simulateUpload()/copy()) và key nào đã bị "delete"
 // để test có thể assert.
@@ -19,7 +23,7 @@ export class FakeObjectStorageService implements ObjectStorageService {
   // với S3ObjectStorageService, để e2e bắt được lỗi phụ thuộc format key.
   async presignBatch(keyPrefix: string, files: PresignFileRequest[]): Promise<PresignedUploadTarget[]> {
     return files.map(({ contentType }) => {
-      const key = `${keyPrefix}${randomUUID()}.${IMAGE_EXTENSION_BY_CONTENT_TYPE[contentType]}`;
+      const key = pendingObjectKey(keyPrefix, contentType);
       return { key, uploadUrl: FAKE_BASE_URL, fields: { key, 'Content-Type': contentType } };
     });
   }

@@ -32,7 +32,7 @@ function productInclude(includeAllVariants: boolean) {
     : { ...PRODUCT_INCLUDE, variants: { ...VARIANT_SHAPE, where: { status: VariantStatus.ACTIVE } } };
 }
 
-type OptionValueSummary = { id: string; name: string; code: string };
+type OptionValueSummary = Prisma.OptionValueGetPayload<typeof OPTION_VALUE_SUMMARY>;
 type ProductWithRelations = Product & {
   variants: (Omit<ProductVariant, 'colorId' | 'sizeId'> & {
     color: OptionValueSummary | null;

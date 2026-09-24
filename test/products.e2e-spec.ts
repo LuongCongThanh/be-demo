@@ -3,7 +3,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PrismaService } from '@src/prisma/prisma.service.js';
 import { PasswordService } from '@src/auth/services/password.service.js';
-import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-object-storage.service.js';
+import { FakeObjectStorageService } from './support/fake-object-storage.service.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
 import {
@@ -365,6 +365,23 @@ describe('Products + Variants (e2e)', () => {
 
       const product = (await postProduct(productPayload({ variants: [blackM()] })).expect(201)).body;
       await patchProduct(product.id, { variants: [{ id: product.variants[0].id }, blackM()] }).expect(409);
+    });
+
+    // SKU của Discontinued Variant vẫn giữ unique (docs/adr/0011) — muốn bán
+    // lại đúng tổ hợp đó thì dùng INACTIVE thay vì bỏ khỏi mảng.
+    it('rejects re-creating a color + size combination that was discontinued with 409', async () => {
+      const product = (
+        await postProduct(
+          productPayload({ variants: [blackM(), { colorId: options.white.id, sizeId: options.sizeM.id, price: 1 }] }),
+        ).expect(201)
+      ).body;
+      const [discontinued, kept] = product.variants;
+      await patchProduct(product.id, { variants: [{ id: kept.id }] }).expect(200);
+
+      const res = await patchProduct(product.id, {
+        variants: [{ id: kept.id }, { colorId: discontinued.color.id, sizeId: discontinued.size.id, price: 1 }],
+      }).expect(409);
+      expect(res.body.message).toBe(`SKU "${discontinued.sku}" already exists on this product`);
     });
 
     it('rejects changing the color or size of an existing variant with 400', async () => {

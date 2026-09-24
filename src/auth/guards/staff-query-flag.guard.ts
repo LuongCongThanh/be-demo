@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Type, mi
 import type { JwtPayload } from '../strategies/jwt.strategy.js';
 import { CATALOG_STAFF_ROLES } from '../decorators/roles.decorator.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
+import { isQueryFlagSet } from '../../common/query-flag.js';
 
 // Route public (không token vẫn đọc được) nhưng có 1 query flag mở rộng dữ
 // liệu chỉ staff được xem (vd. `includeHidden=true`). Có flag → bắt buộc token
@@ -13,7 +14,7 @@ export function StaffQueryFlagGuard(flag: string): Type<CanActivate> {
   class StaffQueryFlagGuardMixin extends JwtAuthGuard {
     async canActivate(context: ExecutionContext): Promise<boolean> {
       const request = context.switchToHttp().getRequest<{ query: Record<string, unknown>; user?: JwtPayload }>();
-      if (request.query[flag] !== 'true') {
+      if (!isQueryFlagSet(request.query, flag)) {
         return true;
       }
       await super.canActivate(context);

@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductImagesService } from '@src/products/product-images.service.js';
 import { UploadImageService } from '@src/upload-image/upload-image.service.js';
-import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-object-storage.service.js';
+import { FakeObjectStorageService } from '../../test/support/fake-object-storage.service.js';
 import type { Prisma } from '@src/generated/prisma/client.js';
 
 const EXISTING = [

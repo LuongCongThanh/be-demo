@@ -157,6 +157,7 @@ describe('Option Values (e2e)', () => {
       await remove(value.id, customerToken).expect(403);
       await remove(value.id).expect(204);
       expect(await prisma.optionValue.findUnique({ where: { id: value.id } })).toBeNull();
+      await remove(value.id).expect(404);
     });
 
     it('rejects deleting a value that a variant uses with 409 — hide it instead', async () => {
@@ -178,7 +179,7 @@ describe('Option Values (e2e)', () => {
 
       try {
         const res = await remove(value.id).expect(409);
-        expect(res.body.message).toBe(`Option Value "${value.code}" is used by variants — hide it instead`);
+        expect(res.body.message).toBe(`Option Value #${value.id} is used by variants — hide it instead`);
       } finally {
         await prisma.product.delete({ where: { id: product.id } });
         await prisma.category.delete({ where: { id: category.id } });

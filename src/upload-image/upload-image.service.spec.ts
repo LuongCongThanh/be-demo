@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, ServiceUnavailableException } from '@nestjs/common';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { UploadImageService } from '@src/upload-image/upload-image.service.js';
-import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-object-storage.service.js';
+import { FakeObjectStorageService } from '../../test/support/fake-object-storage.service.js';
 import type { JwtPayload } from '@src/auth/strategies/jwt.strategy.js';
 
 function userWith(roles: string[]): JwtPayload {

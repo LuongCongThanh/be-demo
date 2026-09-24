@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '@src/prisma/prisma.service.js';
-import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-object-storage.service.js';
+import { FakeObjectStorageService } from './fake-object-storage.service.js';
 
 let productCodeSeq = 0;
 

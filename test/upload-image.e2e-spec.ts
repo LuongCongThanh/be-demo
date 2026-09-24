@@ -3,7 +3,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PrismaService } from '@src/prisma/prisma.service.js';
 import { PasswordService } from '@src/auth/services/password.service.js';
-import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-object-storage.service.js';
+import { FakeObjectStorageService } from './support/fake-object-storage.service.js';
 import type { PresignedUploadTarget } from '@src/upload-image/object-storage/object-storage.service.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';

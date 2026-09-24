@@ -10,16 +10,9 @@ import type { JwtPayload } from '../auth/strategies/jwt.strategy.js';
 import { OBJECT_STORAGE_SERVICE } from './object-storage/object-storage.service.js';
 import type { ObjectStorageService, PresignedUploadTarget } from './object-storage/object-storage.service.js';
 import { PresignUploadImagesDto } from './dto/presign-upload-images.dto.js';
-import { IMAGE_EXTENSION_BY_CONTENT_TYPE } from './object-storage/allowed-image-content-type.js';
+import { isPendingObjectName } from './object-storage/pending-object-key.js';
 import { UPLOAD_PURPOSE_POLICIES } from './upload-purpose.js';
 import type { UploadPurpose } from './upload-purpose.js';
-
-// Phần tên sau prefix của Pending Upload: đúng `<uuid>.<ext>` mà presign sinh
-// ra (docs/specs/03-products.md). Check lại ở đây vì key là input từ client,
-// promote() dựa vào nó để đặt tên object đích.
-const PENDING_OBJECT_NAME = new RegExp(
-  `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(${Object.values(IMAGE_EXTENSION_BY_CONTENT_TYPE).join('|')})$`,
-);
 
 // Dùng chung cho mọi module cần ảnh: presign Pending Upload, rồi khi module
 // khác gắn ảnh thì xác minh key (prefix + HEAD) và chuyển object từ `tmp/`
@@ -46,7 +39,7 @@ export class UploadImageService {
   async assertPendingUploads(purpose: UploadPurpose, keys: string[]): Promise<void> {
     const { pendingPrefix } = UPLOAD_PURPOSE_POLICIES[purpose];
     const foreignKeys = keys.filter(
-      (key) => !key.startsWith(pendingPrefix) || !PENDING_OBJECT_NAME.test(key.slice(pendingPrefix.length)),
+      (key) => !key.startsWith(pendingPrefix) || !isPendingObjectName(key.slice(pendingPrefix.length)),
     );
     if (foreignKeys.length > 0) {
       throw new BadRequestException(`Image keys must come from a ${purpose} presign: ${foreignKeys.join(', ')}`);

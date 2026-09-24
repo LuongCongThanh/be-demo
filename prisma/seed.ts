@@ -98,14 +98,14 @@ async function seedCatalog(): Promise<void> {
           name: 'Classic Cotton T-Shirt',
           code: 'TSHIRT',
           variants: [
-            { color: 'BLK', size: 'M', price: 199000, quantity: 50 },
-            { color: 'WHT', size: 'L', price: 199000, quantity: 30 },
+            { legacySku: 'SHIRT-TSHIRT-BLK-M', color: 'BLK', size: 'M', price: 199000, quantity: 50 },
+            { legacySku: 'SHIRT-TSHIRT-WHT-L', color: 'WHT', size: 'L', price: 199000, quantity: 30 },
           ],
         },
         {
           name: 'Slim Fit Dress Shirt',
           code: 'DRESS',
-          variants: [{ color: 'BLU', size: 'M', price: 450000, quantity: 20 }],
+          variants: [{ legacySku: 'SHIRT-DRESS-BLU-M', color: 'BLU', size: 'M', price: 450000, quantity: 20 }],
         },
       ],
     },
@@ -115,12 +115,12 @@ async function seedCatalog(): Promise<void> {
         {
           name: 'Straight Leg Jeans',
           code: 'JEANS',
-          variants: [{ color: 'BLU', size: '32', price: 550000, quantity: 40 }],
+          variants: [{ legacySku: 'PANTS-JEANS-BLU-32', color: 'BLU', size: '32', price: 550000, quantity: 40 }],
         },
         {
           name: 'Chino Trousers',
           code: 'CHINO',
-          variants: [{ color: 'KHK', size: '32', price: 480000, quantity: 25 }],
+          variants: [{ legacySku: 'PANTS-CHINO-KHK-32', color: 'KHK', size: '32', price: 480000, quantity: 25 }],
         },
       ],
     },
@@ -130,12 +130,12 @@ async function seedCatalog(): Promise<void> {
         {
           name: 'Running Sneakers',
           code: 'SNEAKER',
-          variants: [{ color: 'BLK', size: '42', price: 890000, quantity: 15 }],
+          variants: [{ legacySku: 'SHOES-SNEAKER-BLK-42', color: 'BLK', size: '42', price: 890000, quantity: 15 }],
         },
         {
           name: 'Leather Loafers',
           code: 'LOAFER',
-          variants: [{ color: 'BRN', size: '41', price: 1200000, quantity: 10 }],
+          variants: [{ legacySku: 'SHOES-LOAFER-BRN-41', color: 'BRN', size: '41', price: 1200000, quantity: 10 }],
         },
       ],
     },
@@ -159,17 +159,21 @@ async function seedCatalog(): Promise<void> {
 
       for (const variantSeed of productSeed.variants) {
         const sku = composeSku(product.code, variantSeed.color, variantSeed.size);
-        const variant = await prisma.productVariant.upsert({
-          where: { sku },
-          update: {},
-          create: {
-            productId: product.id,
-            sku,
-            colorId: optionIdByKey.get(`COLOR:${variantSeed.color}`),
-            sizeId: optionIdByKey.get(`SIZE:${variantSeed.size}`),
-            price: variantSeed.price,
-          },
+        const fields = {
+          sku,
+          colorId: optionIdByKey.get(`COLOR:${variantSeed.color}`),
+          sizeId: optionIdByKey.get(`SIZE:${variantSeed.size}`),
+        };
+        // DB dev seed trước ADR 0011 có variant SKU cũ (text tự do, không
+        // color/size) — sửa lại chính variant đó thay vì tạo thêm một bản trùng.
+        const existing = await prisma.productVariant.findFirst({
+          where: { sku: { in: [sku, variantSeed.legacySku] } },
         });
+        const variant = existing
+          ? await prisma.productVariant.update({ where: { id: existing.id }, data: fields })
+          : await prisma.productVariant.create({
+              data: { ...fields, productId: product.id, price: variantSeed.price },
+            });
         // quantity > 0 (khác 0 khi tạo qua API thật) để test tay đọc
         // inventory có sẵn số lượng ngay, không cần gọi thêm adjust.
         await prisma.inventory.upsert({

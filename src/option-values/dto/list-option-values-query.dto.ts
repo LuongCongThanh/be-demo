@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
+import { QueryFlag } from '../../common/query-flag.js';
 import { OptionType } from '../../generated/prisma/enums.js';
 
 export class ListOptionValuesQueryDto {
@@ -10,8 +10,6 @@ export class ListOptionValuesQueryDto {
   type?: OptionType;
 
   @ApiPropertyOptional({ description: 'Kèm cả giá trị đang ẩn — chỉ STORE_MANAGER/MASTER_ADMIN', example: true })
-  @IsOptional()
-  @Transform(({ obj }: { obj: Record<string, unknown> }) => obj.includeHidden === 'true')
-  @IsBoolean()
+  @QueryFlag('includeHidden')
   includeHidden?: boolean;
 }
