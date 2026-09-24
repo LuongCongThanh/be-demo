@@ -1,7 +1,7 @@
 ---
 status: Implementing
 owner: Backend
-last_verified: 2026-09-23
+last_verified: 2026-09-24
 dependencies: [02-categories.md]
 supersedes:
   [
@@ -51,6 +51,36 @@ Pending Upload không được gắn tự bị xoá bởi lifecycle rule `tmp/` 
 Key do server sinh: `<prefix><uuid>.<ext>`, `ext` suy từ `contentType` — `filename` client gửi chỉ mang tính thông tin, không bao giờ vào key. Khi gắn ảnh, key phải đúng prefix của purpose và đúng format này, sai → 400. URL presign và URL ảnh lưu DB dùng `S3_PUBLIC_ENDPOINT` (fallback `S3_ENDPOINT`) — cần khi backend gọi storage qua hostname nội bộ.
 
 Module `upload-image` chỉ biết `purpose` → (prefix, role được phép). Hiện có một purpose `PRODUCT_IMAGE` cho `STORE_MANAGER`/`MASTER_ADMIN`; thêm loại ảnh mới = thêm giá trị enum, không đổi API.
+
+## Concurrency
+
+`PATCH /products/:id` là last-write-wins, không có optimistic version (ADR 0012): hai staff cùng edit một Product thì danh sách của người lưu sau thay thế toàn bộ — ảnh/variant người trước vừa thêm bị gỡ mà không báo lỗi. Riêng race giữa lúc đọc và lúc ghi trong cùng một request (ảnh đang giữ vừa bị request khác xoá) → 409.
+
+## Đã chốt, chưa implement (2026-09-24)
+
+Các mục dưới đây thay thế phần tương ứng ở trên khi được implement; đến lúc đó phần trên vẫn mô tả đúng code hiện tại.
+
+### Images
+
+- Mỗi Product có **1–5** Product Image (thay cho 0–10). `POST /products` bắt buộc `images` ≥ 1; PATCH với danh sách cuối rỗng hoặc > 5 → 400. Không gửi `images` → không đổi.
+- Presign `PRODUCT_IMAGE` tối đa **5** file mỗi request — giới hạn theo purpose, không còn một cap chung.
+- Thay ảnh = bỏ `{ id }` cũ và đặt `{ key }` mới vào đúng vị trí; ảnh mới có `id` mới. Không có entry `{ id, key }`.
+- Một Pending Upload gửi vào nhiều Product không bị chặn — mỗi Product nhận một bản copy riêng.
+- Ảnh vẫn chỉ thuộc Product, không gắn theo màu.
+
+### Variants, Option Value, SKU (ADR 0011)
+
+- `STORE_MANAGER`/`MASTER_ADMIN` quản lý danh sách Option Value cho đúng hai loại: màu và size. Mỗi giá trị có tên hiển thị (sửa được) và mã (không đổi). Option Value đang được variant dùng không xoá được (409), chỉ ẩn khỏi danh sách chọn.
+- Product có **Product Code** do staff nhập khi tạo: duy nhất (trùng → 409), không đổi sau khi tạo.
+- Variant mới chọn Option Value (không gõ `color`/`size`/`sku`); SKU = `<Product Code>-<mã màu>-<mã size>`, bỏ đoạn không có. Option Value không tồn tại / đang ẩn / sai loại → 400; trùng tổ hợp trong cùng Product → 409.
+- Option Value của variant đã tạo không đổi được (400); chọn nhầm = bỏ variant đó rồi tạo variant mới.
+- `POST /products` bắt buộc ≥ 1 variant. Sau PATCH phải còn ≥ 1 variant `ACTIVE` (400) — ngừng bán cả Product dùng `status` của Product.
+- Tối đa **50** variant `ACTIVE` + `INACTIVE` mỗi Product (400); `DISCONTINUED` không tính.
+- Variant vắng mặt trong `variants[]` luôn thành `DISCONTINUED`, kể cả chưa từng bán; `DISCONTINUED` không quay lại `ACTIVE`/`INACTIVE` (400).
+
+### Reads
+
+- `GET /products` / `GET /products/:id` public chỉ trả variant `ACTIVE`. Staff gửi query riêng (dự kiến `?includeAllVariants=true`) để thấy đủ — form edit bắt buộc dùng chế độ này, vì PATCH full-sync với danh sách thiếu sẽ discontinue các variant bị bỏ sót.
 
 ## Acceptance criteria còn lại
 

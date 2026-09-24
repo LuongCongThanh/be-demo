@@ -47,15 +47,31 @@ A catalog classification assigned to Products. A Category that is referenced by 
 _Avoid_: Tag, collection
 
 **Product**:
-A catalog aggregate that describes a sellable concept and contains one or more Product Variants. A Product itself is not the purchasable SKU.
+A catalog aggregate that describes a sellable concept and contains one or more Product Variants, at least one of which is still `ACTIVE`. A Product itself is not the purchasable SKU; taking a whole Product off sale is done through the Product's own status, not by discontinuing all its variants.
 _Avoid_: SKU, Product Variant
 
 **Product Variant**:
-A purchasable version of a Product with its own SKU, price, and Inventory.
+A purchasable version of a Product with its own SKU, price, and Inventory, distinguished from its siblings by the Option Values it was created with; those never change afterwards. A Product has at most fifty variants that are not discontinued.
 _Avoid_: Product when referring to the purchasable SKU
 
+**Option Value**:
+A named, coded choice for either a color (e.g. "Black", code `BLK`) or a size (e.g. "M"), maintained centrally by catalog staff and selected — never typed — when creating Product Variants. Its name may change; its code never does. An Option Value in use is hidden from selection rather than removed.
+_Avoid_: Attribute, SKU (when referring to the pre-created list)
+
+**Product Code**:
+The short, unique, staff-chosen code of a Product (e.g. `TSB001`) that begins every SKU of that Product. It never changes once the Product exists.
+_Avoid_: Slug, SKU
+
+**SKU**:
+The human-readable code of one Product Variant, composed by the system from the Product's code and the variant's Option Value codes. It is never chosen or typed by staff.
+_Avoid_: Product code, variant id
+
+**Discontinued Variant**:
+A Product Variant permanently taken off sale — whatever happens to a variant removed from its Product, whether or not it was ever sold. It is kept as history, is hidden from Customers, and never returns to sale.
+_Avoid_: Deleted variant, inactive variant
+
 **Product Image**:
-An image displayed for a Product. A Product's images form one ordered list of at most ten; the order is what the Product's editor chose and is the only ranking among them.
+An image displayed for a Product. Every Product has one ordered list of one to five images; the order is what the Product's editor chose and is the only ranking among them. Replacing an image means removing it and adding a new Product Image in its place — an image's file never changes.
 _Avoid_: Photo, gallery item
 
 **Cover Image**:
