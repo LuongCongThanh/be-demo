@@ -16,9 +16,11 @@ Mã `0001–0009` là mã lịch sử ổn định. ADR được nhóm theo th�
 
 ## 03 — Products
 
-| ADR                                                          | Quyết định                                | Decision | Implementation |
-| ------------------------------------------------------------ | ----------------------------------------- | -------- | -------------- |
-| [0010](0010-pending-uploads-expire-via-storage-lifecycle.md) | Pending Upload ở `tmp/`, lifecycle tự xoá | Accepted | Implemented    |
+| ADR                                                          | Quyết định                                   | Decision | Implementation |
+| ------------------------------------------------------------ | -------------------------------------------- | -------- | -------------- |
+| [0010](0010-pending-uploads-expire-via-storage-lifecycle.md) | Pending Upload ở `tmp/`, lifecycle tự xoá    | Accepted | Implemented    |
+| [0011](0011-sku-composed-from-option-values.md)              | SKU ghép từ Product Code + Option Value      | Accepted | Planned        |
+| [0012](0012-product-patch-last-write-wins.md)                | PATCH Product last-write-wins, không version | Accepted | Implemented    |
 
 ## 04 — Users
 
