@@ -10,13 +10,11 @@ export class OptionValuesService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Pre-check chỉ để trả message rõ ràng; race giữa check và create vẫn bị
-  // unique (type, code) chặn và filter map thành 409.
+  // unique (code) chặn và filter map thành 409.
   async create(dto: CreateOptionValueDto): Promise<OptionValue> {
-    const existing = await this.prisma.optionValue.findUnique({
-      where: { type_code: { type: dto.type, code: dto.code } },
-    });
+    const existing = await this.prisma.optionValue.findUnique({ where: { code: dto.code } });
     if (existing) {
-      throw new ConflictException(`${dto.type} code "${dto.code}" already exists`);
+      throw new ConflictException(`Option Value code "${dto.code}" already exists`);
     }
     const position = dto.position ?? (await this.nextPosition(dto));
     return this.prisma.optionValue.create({ data: { ...dto, position } });

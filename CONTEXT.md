@@ -55,7 +55,7 @@ A purchasable version of a Product with its own SKU, price, and Inventory, disti
 _Avoid_: Product when referring to the purchasable SKU
 
 **Option Value**:
-A named, coded choice for either a color (e.g. "Black", code `BLK`) or a size (e.g. "M"), maintained centrally by catalog staff and selected — never typed — when creating Product Variants. Its name may change; its code never does. An Option Value in use is hidden from selection rather than removed.
+A named, coded choice for either a color (e.g. "Black", code `BLK`) or a size (e.g. "M"), maintained centrally by catalog staff and selected — never typed — when creating Product Variants. Its code is unique across colors and sizes alike; its name may change, its code never does. An Option Value in use is hidden from selection rather than removed.
 _Avoid_: Attribute, SKU (when referring to the pre-created list)
 
 **Product Code**:

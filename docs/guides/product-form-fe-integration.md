@@ -175,7 +175,7 @@ Màu và size **chọn từ danh sách**, không gõ tay. SKU do backend ghép: 
 Quy tắc:
 
 - Tạo Product cần ≥ 1 variant. Cùng tổ hợp màu + size hai lần → 409.
-- Màu/size của variant **không đổi được**. Chọn nhầm → bỏ variant đó khỏi mảng (thành `DISCONTINUED`) rồi thêm variant mới. Tổ hợp đã từng dùng (kể cả đã `DISCONTINUED`) không tạo lại được — 409.
+- Màu/size của variant **không đổi được**. Chọn nhầm → bỏ variant đó khỏi mảng (thành `DISCONTINUED`) rồi thêm variant mới. Tổ hợp đã từng dùng (kể cả đã `DISCONTINUED`) không tạo lại được — 409. Định tạm ngừng rồi bán lại → dùng `status: INACTIVE`, đừng bỏ variant khỏi mảng.
 - Tối đa 50 variant `ACTIVE` + `INACTIVE`; luôn phải còn ≥ 1 variant `ACTIVE`. Muốn ngừng bán cả product → đổi `status` của product sang `INACTIVE`.
 - Staff quản lý danh sách màu/size ở màn riêng: `POST/PATCH/DELETE /api/v1/option-values` (đổi tên, sắp thứ tự, `hidden: true` để ẩn; đang được dùng thì không xoá được — 409).
 

@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { CreateVariantDto } from './create-variant.dto.js';
+import { CreateVariantDto } from '@src/products/dto/create-variant.dto.js';
 
 describe('CreateVariantDto', () => {
   it('fails validation when colorId or sizeId is not a UUID', async () => {

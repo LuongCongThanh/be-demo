@@ -280,6 +280,8 @@ describe('Upload images + Product images (e2e)', () => {
       expect(renamed.body.images).toHaveLength(2);
 
       await patchImages(product.id, []).expect(400);
+      const six = await uploadImages(5);
+      await patchImages(product.id, [{ id: product.images[0].id }, ...six.map((key) => ({ key }))]).expect(400);
     });
 
     it('rejects an image id from another product with 400', async () => {

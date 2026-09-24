@@ -99,7 +99,8 @@ model OptionValue {
   id        String     @id @default(uuid()) @db.Uuid
   type      OptionType
   name      String     @db.VarChar(50)
-  code      String     @db.VarChar(10)
+  // Duy nhất trên cả màu lẫn size: "màu X" và "size X" sẽ ghép ra cùng SKU.
+  code      String     @unique @db.VarChar(10)
   // Thứ tự hiển thị trong dropdown/storefront (S, M, L, XL) — bảng chữ cái sai.
   position  Int        @default(0)
   hidden    Boolean    @default(false)
@@ -109,7 +110,6 @@ model OptionValue {
   colorVariants ProductVariant[] @relation("VariantColor")
   sizeVariants  ProductVariant[] @relation("VariantSize")
 
-  @@unique([type, code])
   @@index([type, position])
   @@map("option_values")
 }

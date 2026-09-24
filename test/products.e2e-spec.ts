@@ -370,9 +370,19 @@ describe('Products + Variants (e2e)', () => {
     it('rejects changing the color or size of an existing variant with 400', async () => {
       const product = (await postProduct(productPayload()).expect(201)).body;
 
-      await patchProduct(product.id, { variants: [{ id: product.variants[0].id, colorId: options.white.id }] }).expect(
-        400,
-      );
+      const id = product.variants[0].id;
+
+      await patchProduct(product.id, { variants: [{ id, colorId: options.white.id }] }).expect(400);
+      await patchProduct(product.id, { variants: [{ id, sizeId: options.sizeL.id }] }).expect(400);
+    });
+
+    it('rejects a new variant without a price in PATCH with 400, not 500', async () => {
+      const product = (await postProduct(productPayload()).expect(201)).body;
+
+      const res = await patchProduct(product.id, {
+        variants: [{ id: product.variants[0].id }, { colorId: options.white.id, sizeId: options.sizeM.id }],
+      }).expect(400);
+      expect(res.body.message).toBe('A new variant requires a price');
     });
 
     it('rejects a product created without variants with 400', async () => {

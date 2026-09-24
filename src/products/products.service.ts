@@ -121,8 +121,9 @@ export class ProductsService {
   }
 
   async findOne(id: string, includeAllVariants = false): Promise<ProductWithRelations> {
-    // Luôn embed variants (kể cả DISCONTINUED, không lọc mặc định) — xem
-    // docs/specs/03-products.md — không có endpoint con cho variants/images.
+    // Embed sẵn variants + images (không có endpoint con). Mặc định chỉ variant
+    // ACTIVE; staff/đường ghi truyền includeAllVariants để thấy đủ — xem
+    // docs/specs/03-products.md, mục Reads.
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: productInclude(includeAllVariants),

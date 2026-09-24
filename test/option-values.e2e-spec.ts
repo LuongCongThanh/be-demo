@@ -72,13 +72,16 @@ describe('Option Values (e2e)', () => {
     expect(list.body.map((v: { code: string }) => v.code)).toContain(code);
   });
 
-  it('rejects a duplicate code within the same type with 409, but allows it for the other type', async () => {
+  // Mã duy nhất trên cả màu lẫn size: nếu không, "màu X" và "size X" ghép ra
+  // cùng một SKU `<Product Code>-X` (docs/adr/0011).
+  it('rejects a code already used by any Option Value, of either type, with 409', async () => {
     const code = uniqueCode();
     await createOptionValue({ type: 'SIZE', name: 'S', code }).expect(201);
 
-    const conflict = await createOptionValue({ type: 'SIZE', name: 'Small', code }).expect(409);
-    expect(conflict.body.message).toBe(`SIZE code "${code}" already exists`);
-    await createOptionValue({ type: 'COLOR', name: 'Silver', code }).expect(201);
+    for (const type of ['SIZE', 'COLOR']) {
+      const conflict = await createOptionValue({ type, name: 'Other', code }).expect(409);
+      expect(conflict.body.message).toBe(`Option Value code "${code}" already exists`);
+    }
   });
 
   it('returns 401 without a token', async () => {

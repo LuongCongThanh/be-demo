@@ -22,7 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
-import { Roles } from '../auth/decorators/roles.decorator.js';
+import { CATALOG_STAFF_ROLES, Roles } from '../auth/decorators/roles.decorator.js';
 import { StaffQueryFlagGuard } from '../auth/guards/staff-query-flag.guard.js';
 import { OptionValuesService } from './option-values.service.js';
 import { CreateOptionValueDto } from './dto/create-option-value.dto.js';
@@ -37,7 +37,7 @@ export class OptionValuesController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles(...CATALOG_STAFF_ROLES)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a color/size Option Value (STORE_MANAGER/MASTER_ADMIN only)' })
   @ApiCreatedResponse({ type: OptionValueResponseDto })
@@ -57,7 +57,7 @@ export class OptionValuesController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles(...CATALOG_STAFF_ROLES)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Rename, reorder or hide an Option Value — its code and type never change' })
   @ApiOkResponse({ type: OptionValueResponseDto })
@@ -67,7 +67,7 @@ export class OptionValuesController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles(...CATALOG_STAFF_ROLES)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an unused Option Value (409 while any variant uses it — hide it instead)' })

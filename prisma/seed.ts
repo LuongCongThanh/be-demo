@@ -83,7 +83,7 @@ async function seedCatalog(): Promise<void> {
   const optionIdByKey = new Map<string, string>();
   for (const [position, value] of optionValues.entries()) {
     const row = await prisma.optionValue.upsert({
-      where: { type_code: { type: value.type, code: value.code } },
+      where: { code: value.code },
       update: {},
       create: { ...value, position },
     });

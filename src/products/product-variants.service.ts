@@ -48,6 +48,11 @@ export class ProductVariantsService {
     }
 
     const newEntries = entries.filter((e) => !e.id);
+    // `price` optional ở DTO vì entry có `id` không cần gửi lại giá — với
+    // variant mới thì bắt buộc, thiếu sẽ rơi xuống Prisma thành 500.
+    if (newEntries.some((e) => e.price === undefined)) {
+      throw new BadRequestException('A new variant requires a price');
+    }
     const optionById = await this.selectableOptionValues(newEntries);
     const creates = newEntries.map((e) => ({
       sku: composeSku(
@@ -57,7 +62,7 @@ export class ProductVariantsService {
       ),
       colorId: e.colorId,
       sizeId: e.sizeId,
-      price: e.price as number,
+      price: e.price!,
     }));
     // SKU cũ (kể cả DISCONTINUED) vẫn giữ unique ở DB — tổ hợp màu + size đã
     // từng dùng không tạo lại được.
@@ -148,6 +153,9 @@ export class ProductVariantsService {
       ...(e.colorId ? [{ id: e.colorId, type: OptionType.COLOR }] : []),
       ...(e.sizeId ? [{ id: e.sizeId, type: OptionType.SIZE }] : []),
     ]);
+    if (wanted.length === 0) {
+      return new Map();
+    }
     const found = await this.prisma.optionValue.findMany({
       where: { id: { in: [...new Set(wanted.map((w) => w.id))] }, hidden: false },
       select: { id: true, code: true, type: true },
