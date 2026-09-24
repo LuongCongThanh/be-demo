@@ -3,14 +3,16 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PrismaService } from '@src/prisma/prisma.service.js';
 import { PasswordService } from '@src/auth/services/password.service.js';
-import { FakeObjectStorageService } from '@src/upload-image/object-storage/fake-object-storage.service.js';
+import { FakeObjectStorageService } from './support/fake-object-storage.service.js';
 import type { PresignedUploadTarget } from '@src/upload-image/object-storage/object-storage.service.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
+import { deleteOptionValueFixtures, uniqueProductCode } from './support/catalog-fixtures.js';
 
 const TEST_NAME_PREFIX = 'UploadImageE2E';
 const TEST_EMAIL_DOMAIN = '@upload-image.e2e-test.local';
 const VALID_PASSWORD = 'Abc@1234';
+const OPTION_CODE_PREFIX = 'UIE';
 
 describe('Upload images + Product images (e2e)', () => {
   let app: INestApplication;
@@ -43,8 +45,10 @@ describe('Upload images + Product images (e2e)', () => {
   });
 
   afterAll(async () => {
+    await prisma.inventory.deleteMany({ where: { variant: { product: { name: { startsWith: TEST_NAME_PREFIX } } } } });
     await prisma.product.deleteMany({ where: { name: { startsWith: TEST_NAME_PREFIX } } });
     await prisma.category.deleteMany({ where: { name: { startsWith: TEST_NAME_PREFIX } } });
+    await deleteOptionValueFixtures(prisma, OPTION_CODE_PREFIX);
     await prisma.user.deleteMany({ where: { email: { endsWith: TEST_EMAIL_DOMAIN } } });
     await app.close();
   });
@@ -67,11 +71,18 @@ describe('Upload images + Product images (e2e)', () => {
     });
   }
 
-  async function createProduct(images: { key: string; altText?: string }[] = []) {
+  // Phần payload product ngoài ảnh — các test ở đây chỉ quan tâm `images`.
+  function productFields(name = `${TEST_NAME_PREFIX} Product ${Date.now()}-${Math.random()}`) {
+    return { name, code: uniqueProductCode('UE'), categoryId, variants: [{ price: 100000 }] };
+  }
+
+  // Không truyền ảnh → tự upload 1 ảnh (mỗi Product phải có 1–5 ảnh).
+  async function createProduct(images?: { key: string; altText?: string }[]) {
+    images ??= (await uploadImages(1)).map((key) => ({ key }));
     const res = await request(app.getHttpServer())
       .post('/api/v1/products')
       .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-      .send({ name: `${TEST_NAME_PREFIX} Product ${Date.now()}-${Math.random()}`, categoryId, images })
+      .send({ ...productFields(), images })
       .expect(201);
     return res.body;
   }
@@ -110,8 +121,9 @@ describe('Upload images + Product images (e2e)', () => {
       await presign(1, await createCustomerAccessToken()).expect(403);
     });
 
-    it('rejects a batch of 11 files and an unknown purpose with 400', async () => {
-      await presign(11).expect(400);
+    it('rejects a PRODUCT_IMAGE batch of 6 files and an unknown purpose with 400', async () => {
+      await presign(5).expect(201);
+      await presign(6).expect(400);
       await request(app.getHttpServer())
         .post('/api/v1/upload-images/presign')
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
@@ -186,7 +198,7 @@ describe('Upload images + Product images (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-        .send({ name, categoryId, images: [{ key: target.key }] })
+        .send({ ...productFields(name), images: [{ key: target.key }] })
         .expect(400);
 
       expect(res.body.message).toContain(target.key);
@@ -197,20 +209,26 @@ describe('Upload images + Product images (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-        .send({
-          name: `${TEST_NAME_PREFIX} Foreign key ${Date.now()}`,
-          categoryId,
-          images: [{ key: 'products/x/a.jpg' }],
-        })
+        .send({ ...productFields(), images: [{ key: 'products/x/a.jpg' }] })
         .expect(400);
     });
 
-    it('rejects more than 10 images with 400', async () => {
-      const images = Array.from({ length: 11 }, (_, i) => ({ key: `tmp/product-image/${i}.jpg` }));
+    it('rejects a product without images, or with more than 5, with 400', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-        .send({ name: `${TEST_NAME_PREFIX} Too many ${Date.now()}`, categoryId, images })
+        .send({ ...productFields(), images: [] })
+        .expect(400);
+      await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+        .send(productFields())
+        .expect(400);
+      const images = Array.from({ length: 6 }, (_, i) => ({ key: `tmp/product-image/${i}.jpg` }));
+      await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+        .send({ ...productFields(), images })
         .expect(400);
     });
 
@@ -222,7 +240,7 @@ describe('Upload images + Product images (e2e)', () => {
         await request(app.getHttpServer())
           .post('/api/v1/products')
           .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-          .send({ name, categoryId, images: [{ key }] })
+          .send({ ...productFields(name), images: [{ key }] })
           .expect(503);
       } finally {
         objectStorage.unavailable = false;
@@ -251,7 +269,7 @@ describe('Upload images + Product images (e2e)', () => {
       expect(objectStorage.deletedKeys).toContain(objectStorage.keyFromUrl(b.url));
     });
 
-    it('leaves images untouched when the images field is omitted, and removes all with []', async () => {
+    it('leaves images untouched when the images field is omitted, and rejects removing them all with 400', async () => {
       const product = await createProduct((await uploadImages(2)).map((key) => ({ key })));
 
       const renamed = await request(app.getHttpServer())
@@ -261,8 +279,9 @@ describe('Upload images + Product images (e2e)', () => {
         .expect(200);
       expect(renamed.body.images).toHaveLength(2);
 
-      const cleared = await patchImages(product.id, []).expect(200);
-      expect(cleared.body.images).toHaveLength(0);
+      await patchImages(product.id, []).expect(400);
+      const six = await uploadImages(5);
+      await patchImages(product.id, [{ id: product.images[0].id }, ...six.map((key) => ({ key }))]).expect(400);
     });
 
     it('rejects an image id from another product with 400', async () => {
@@ -284,25 +303,32 @@ describe('Upload images + Product images (e2e)', () => {
       const product = await createProduct();
       const [key] = await uploadImages(1);
 
-      // Sku đã thuộc product khác → P2002 xảy ra BÊN TRONG transaction, tức
-      // là sau khi ảnh đã được copy (tên trùng thì bị pre-check chặn trước copy).
-      const skuOwner = await request(app.getHttpServer())
-        .post('/api/v1/products')
-        .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-        .send({
-          name: `${TEST_NAME_PREFIX} Sku owner ${Date.now()}`,
-          categoryId,
-          variants: [{ sku: `SKU-UI-${Date.now()}`, price: 1 }],
-        })
-        .expect(201);
+      // SKU mà variant mới sẽ nhận đã bị một variant của product khác chiếm
+      // (chỉ dựng được bằng DB — qua API, SKU luôn mở đầu bằng Product Code
+      // duy nhất). Mọi pre-check đều qua, P2002 xảy ra BÊN TRONG transaction,
+      // tức là sau khi ảnh đã được copy.
+      const color = await prisma.optionValue.create({
+        data: {
+          type: 'COLOR',
+          name: 'Rollback',
+          code: `${OPTION_CODE_PREFIX}${Date.now().toString(36).slice(-5).toUpperCase()}`,
+        },
+      });
+      const other = await createProduct();
+      await prisma.productVariant.create({
+        data: { productId: other.id, sku: `${product.code}-${color.code}`, price: 1 },
+      });
 
       await request(app.getHttpServer())
         .patch(`/api/v1/products/${product.id}`)
         .set('Authorization', `Bearer ${masterAdminAccessToken}`)
-        .send({ images: [{ key }], variants: [{ sku: skuOwner.body.variants[0].sku, price: 1 }] })
+        .send({ images: [{ key }], variants: [{ id: product.variants[0].id }, { colorId: color.id, price: 1 }] })
         .expect(409);
 
-      expect(await prisma.productImage.count({ where: { productId: product.id } })).toBe(0);
+      // Ảnh cũ còn nguyên, ảnh mới không được gắn.
+      expect(
+        (await prisma.productImage.findMany({ where: { productId: product.id } })).map((image) => image.id),
+      ).toEqual([product.images[0].id]);
       const fileName = key.slice(key.lastIndexOf('/') + 1);
       expect(objectStorage.deletedKeys).toContain(`products/${product.id}/${fileName}`);
       // Pending Upload vẫn còn — client gửi lại được đúng key cũ.

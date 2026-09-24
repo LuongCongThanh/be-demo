@@ -1,4 +1,4 @@
-# Product images — hướng dẫn tích hợp phía FE
+# Tạo/sửa Product — hướng dẫn tích hợp phía FE
 
 Dành cho FE làm màn hình tạo/sửa Product. Contract nghiệp vụ và danh sách lỗi đầy đủ: [spec 03 — Products](../specs/03-products.md).
 
@@ -120,7 +120,12 @@ Authorization: Bearer <accessToken>
 {
   "name": "Áo thun basic",
   "categoryId": "550e8400-e29b-41d4-a716-446655440000",
-  "variants": [ … ],
+  "code": "TSB001",
+  "description": "Áo thun cotton 100%, form regular.",
+  "variants": [
+    { "colorId": "<id Đen>", "sizeId": "<id M>", "price": 199000 },
+    { "colorId": "<id Trắng>", "sizeId": "<id M>", "price": 199000 }
+  ],
   "images": [
     { "key": "tmp/product-image/c73fb45a-….jpg", "altText": "Mặt trước" },
     { "key": "tmp/product-image/9a1e0b77-….png" }
@@ -134,9 +139,19 @@ Authorization: Bearer <accessToken>
 {
   "id": "0f8e7d6c-…",
   "name": "Áo thun basic",
+  "code": "TSB001",
   "slug": "ao-thun-basic",
   "status": "ACTIVE",
-  "variants": [ … ],
+  "variants": [
+    {
+      "id": "a1b2…",
+      "sku": "TSB001-BLK-M",
+      "price": "199000.00",
+      "status": "ACTIVE",
+      "color": { "id": "…", "name": "Đen", "code": "BLK" },
+      "size": { "id": "…", "name": "M", "code": "M" }
+    }
+  ],
   "images": [
     {
       "id": "e5f6a7b8-…",
@@ -149,7 +164,27 @@ Authorization: Bearer <accessToken>
 }
 ```
 
+## Variants, Option Value và SKU
+
+Màu và size **chọn từ danh sách**, không gõ tay. SKU do backend ghép: `<code>-<mã màu>-<mã size>` (ví dụ `TSB001-BLK-M`), FE không gửi `sku`.
+
+1. Lấy dropdown: `GET /api/v1/option-values?type=COLOR` và `?type=SIZE` (public, đã sắp theo `position`, không chứa giá trị đang ẩn).
+2. Người dùng nhập **Product Code** (`code`): 2–20 ký tự `A-Z`/`0-9`, **chữ in hoa** — backend không tự viết hoa, gửi chữ thường → 400. Không đổi được sau khi tạo.
+3. Mỗi dòng variant: chọn màu và/hoặc size (đều không bắt buộc) + nhập giá. Product không có biến thể gửi 1 variant chỉ có `price`, SKU = `code`.
+4. Có thể hiện trước SKU cho người dùng bằng cùng công thức, nhưng SKU trong response mới là giá trị thật.
+
+Quy tắc:
+
+- Tạo Product cần ≥ 1 variant. Cùng tổ hợp màu + size hai lần → 409.
+- Màu/size của variant **không đổi được**. Chọn nhầm → bỏ variant đó khỏi mảng (thành `DISCONTINUED`) rồi thêm variant mới. Tổ hợp đã từng dùng (kể cả đã `DISCONTINUED`) không tạo lại được — 409. Định tạm ngừng rồi bán lại → dùng `status: INACTIVE`, đừng bỏ variant khỏi mảng.
+- Tối đa 50 variant `ACTIVE` + `INACTIVE`; luôn phải còn ≥ 1 variant `ACTIVE`. Muốn ngừng bán cả product → đổi `status` của product sang `INACTIVE`.
+- Staff quản lý danh sách màu/size ở màn riêng: `POST/PATCH/DELETE /api/v1/option-values` (đổi tên, sắp thứ tự, `hidden: true` để ẩn; đang được dùng thì không xoá được — 409).
+
 ## Màn hình sửa Product
+
+**Tải product bằng `GET /api/v1/products/:id?includeAllVariants=true`** (cần token staff). Không có cờ này, API chỉ trả variant `ACTIVE` — gửi lại danh sách thiếu đó trong `PATCH` sẽ **discontinue** các variant bị bỏ sót.
+
+`variants[]` của `PATCH` cũng là toàn bộ danh sách mong muốn: variant cũ gửi `{ id, price?, status? }` (không gửi `colorId`/`sizeId`), variant mới gửi `{ colorId?, sizeId?, price }`, variant vắng mặt thành `DISCONTINUED`. Không đụng tới variant → không gửi field `variants`.
 
 `images[]` của `PATCH` là **toàn bộ danh sách mong muốn**, theo thứ tự hiển thị:
 
@@ -179,16 +214,18 @@ PATCH /api/v1/products/:id
 
 Lỗi backend có shape `{ statusCode, message, requestId }`.
 
-| Response                              | FE nên làm                                                                       |
-| ------------------------------------- | -------------------------------------------------------------------------------- |
-| 400 `Uploaded image not found: <key>` | Đánh dấu đúng ảnh đó lỗi, yêu cầu upload lại (thường do để quá 1 ngày)           |
-| 400 key sai prefix/format             | Bug FE — gửi nhầm giá trị không phải `key` từ presign                            |
-| 400 số ảnh ngoài 1–5                  | Báo người dùng thêm/bớt ảnh                                                      |
-| 409 trùng tên / Product Code / SKU    | Báo lỗi field tương ứng; **giữ nguyên ảnh** — key trong `tmp/` vẫn dùng lại được |
-| 409 ảnh vừa bị xoá bởi request khác   | Tải lại product, cho người dùng thao tác lại                                     |
-| 503 storage không phản hồi            | Nút "Thử lại" với cùng payload, không cần upload lại                             |
+| Response                                | FE nên làm                                                                       |
+| --------------------------------------- | -------------------------------------------------------------------------------- |
+| 400 `Uploaded image not found: <key>`   | Đánh dấu đúng ảnh đó lỗi, yêu cầu upload lại (thường do để quá 1 ngày)           |
+| 400 key sai prefix/format               | Bug FE — gửi nhầm giá trị không phải `key` từ presign                            |
+| 400 số ảnh ngoài 1–5                    | Báo người dùng thêm/bớt ảnh                                                      |
+| 409 trùng tên / Product Code / SKU      | Báo lỗi field tương ứng; **giữ nguyên ảnh** — key trong `tmp/` vẫn dùng lại được |
+| 400 Option Value không chọn được        | Màu/size vừa bị ẩn hoặc xoá — tải lại dropdown                                   |
+| 400 không còn variant `ACTIVE` / quá 50 | Báo người dùng; ngừng bán cả product bằng `status`                               |
+| 409 ảnh vừa bị xoá bởi request khác     | Tải lại product, cho người dùng thao tác lại                                     |
+| 503 storage không phản hồi              | Nút "Thử lại" với cùng payload, không cần upload lại                             |
 
 ## Môi trường
 
 - Local (`docker-compose`): `uploadUrl` và `url` trỏ `http://localhost:9000`, truy cập được từ máy dev.
-- Production (S3): bucket phải bật CORS cho origin của FE, nếu không browser chặn bước ②. Xem mục Deployment trong spec 03.
+- Production (S3): bucket phải bật CORS cho origin của FE, nếu không browser chặn bước ②. Xem [Object storage deployment](object-storage-deployment.md).

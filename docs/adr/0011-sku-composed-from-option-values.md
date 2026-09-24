@@ -1,6 +1,6 @@
 ---
 decision_status: accepted
-implementation_status: planned
+implementation_status: implemented
 decided_at: 2026-09-24
 last_verified: 2026-09-24
 related_spec: ../specs/03-products.md
@@ -8,7 +8,7 @@ related_spec: ../specs/03-products.md
 
 # SKU do hệ thống ghép từ Product Code + Option Value, staff không gõ tay
 
-Hiện `sku`, `color`, `size` của Product Variant là text tự do do staff nhập. Hệ quả: cùng một màu tồn tại dưới nhiều cách viết ("Đen", "đen", "Black"), SKU trùng hoặc không theo quy ước, và storefront không lọc được theo thuộc tính chuẩn. Chọn: `STORE_MANAGER`/`MASTER_ADMIN` quản lý tập trung danh sách **Option Value** cho đúng hai loại thuộc tính — màu và size — mỗi giá trị có tên hiển thị và mã ngắn; khi tạo variant staff chỉ **chọn** Option Value, còn SKU do hệ thống ghép `<Product Code>-<mã màu>-<mã size>` (bỏ đoạn thuộc tính không có; product không có biến thể có SKU = Product Code). Product Code do staff đặt khi tạo Product, duy nhất.
+Hiện `sku`, `color`, `size` của Product Variant là text tự do do staff nhập. Hệ quả: cùng một màu tồn tại dưới nhiều cách viết ("Đen", "đen", "Black"), SKU trùng hoặc không theo quy ước, và storefront không lọc được theo thuộc tính chuẩn. Chọn: `STORE_MANAGER`/`MASTER_ADMIN` quản lý tập trung danh sách **Option Value** cho đúng hai loại thuộc tính — màu và size — mỗi giá trị có tên hiển thị và mã ngắn, **duy nhất trên cả hai loại** (nếu "màu `X`" và "size `X`" cùng tồn tại, variant chỉ có màu và variant chỉ có size ghép ra cùng SKU `<Product Code>-X`); khi tạo variant staff chỉ **chọn** Option Value, còn SKU do hệ thống ghép `<Product Code>-<mã màu>-<mã size>` (bỏ đoạn thuộc tính không có; product không có biến thể có SKU = Product Code). Product Code do staff đặt khi tạo Product, duy nhất.
 
 ## Considered Options
 
@@ -21,6 +21,7 @@ Hiện `sku`, `color`, `size` của Product Variant là text tự do do staff nh
 
 - SKU chỉ ổn định khi mọi thành phần của nó bất biến, nên: Product Code không đổi sau khi tạo; **mã** của Option Value không đổi (tên hiển thị vẫn sửa được); Option Value của một variant không đổi sau khi tạo — chọn nhầm thì bỏ variant đó (thành Discontinued Variant) và tạo variant mới. Option Value đang được dùng chỉ ẩn khỏi danh sách chọn, không xoá được (cùng tinh thần ADR 0001).
 - Hai variant cùng tổ hợp màu + size trong một Product là trùng SKU → 409.
+- SKU của Discontinued Variant vẫn giữ unique, nên **tổ hợp màu + size đã discontinue không tạo lại được** trong cùng Product (409). Chấp nhận có chủ đích: tái dùng SKU cũ cho hàng mới sẽ làm lẫn lịch sử đơn/kho. Muốn bán lại đúng tổ hợp đó thì dùng `INACTIVE` thay vì bỏ variant khỏi danh sách.
 - Order Item đã chụp `sku` tại thời điểm đặt hàng, nên dữ liệu đơn cũ không phụ thuộc vào Option Value về sau.
 - Chuyển sang loại thuộc tính tự định nghĩa sau này đòi hỏi đổi format SKU và migrate variant đang có — đây là lý do quyết định được ghi lại.
 - Migration từ cột `color`/`size` text tự do: chưa có dữ liệu production, không cần chuyển đổi dữ liệu cũ.

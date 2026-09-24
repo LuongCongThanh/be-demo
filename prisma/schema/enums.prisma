@@ -24,3 +24,8 @@ enum OrderStatus {
   PAID
   CANCELLED
 }
+
+enum OptionType {
+  COLOR
+  SIZE
+}

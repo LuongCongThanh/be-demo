@@ -2,11 +2,19 @@ import { BadRequestException, ConflictException, Injectable } from '@nestjs/comm
 import type { Prisma } from '../generated/prisma/client.js';
 import { UploadImageService } from '../upload-image/upload-image.service.js';
 
-export interface ProductImageEntry {
+// Hình dạng thô từ DTO (class-validator không diễn đạt gọn được "xor");
+// plan() kiểm rồi thu hẹp về ProductImageEntry.
+export interface ProductImageEntryInput {
   id?: string;
   key?: string;
   altText?: string;
 }
+
+type KeptImage = { id: string; altText?: string };
+type NewImage = { key: string; altText?: string };
+type ProductImageEntry = KeptImage | NewImage;
+
+const isKept = (entry: ProductImageEntry): entry is KeptImage => 'id' in entry;
 
 // Kết quả của plan(): mọi thứ cần đọc/gọi mạng đã xong (HEAD, copy), chỉ còn
 // ghi DB — apply() chạy bên trong transaction của ProductsService.
@@ -29,26 +37,27 @@ export class ProductImagesService {
   async plan(
     productId: string,
     existing: { id: string; url: string }[],
-    entries: ProductImageEntry[],
+    input: ProductImageEntryInput[],
   ): Promise<ProductImageSyncPlan> {
-    this.assertEntriesShape(entries);
+    const entries = this.toEntries(input);
+    const kept = entries.filter(isKept);
 
     const existingIds = new Set(existing.map((image) => image.id));
-    const foreignIds = entries.filter((e) => e.id && !existingIds.has(e.id)).map((e) => e.id);
+    const foreignIds = kept.filter((e) => !existingIds.has(e.id)).map((e) => e.id);
     if (foreignIds.length > 0) {
       throw new BadRequestException(`Image not found on product #${productId}: ${foreignIds.join(', ')}`);
     }
 
-    const pendingKeys = entries.filter((e) => e.key).map((e) => e.key as string);
+    const pendingKeys = entries.filter((e): e is NewImage => !isKept(e)).map((e) => e.key);
     await this.uploadImageService.assertPendingUploads('PRODUCT_IMAGE', pendingKeys);
     const promotedUrls = await this.promoteAll(productId, pendingKeys);
 
     const urlByKey = new Map(pendingKeys.map((key, index) => [key, promotedUrls[index]]));
     const rows = entries.map((e) =>
-      e.id ? { id: e.id, altText: e.altText } : { url: urlByKey.get(e.key as string) as string, altText: e.altText },
+      isKept(e) ? { id: e.id, altText: e.altText } : { url: urlByKey.get(e.key)!, altText: e.altText },
     );
 
-    const keptIds = new Set(entries.filter((e) => e.id).map((e) => e.id));
+    const keptIds = new Set(kept.map((e) => e.id));
     const removed = existing.filter((image) => !keptIds.has(image.id));
 
     return {
@@ -108,15 +117,18 @@ export class ProductImagesService {
     await this.uploadImageService.discardUrls(urls);
   }
 
-  private assertEntriesShape(entries: ProductImageEntry[]): void {
-    if (entries.some((e) => Boolean(e.id) === Boolean(e.key))) {
-      throw new BadRequestException('Each image entry must have exactly one of "id" or "key"');
-    }
-    const ids = entries.filter((e) => e.id).map((e) => e.id);
-    const keys = entries.filter((e) => e.key).map((e) => e.key);
-    if (new Set(ids).size !== ids.length || new Set(keys).size !== keys.length) {
+  private toEntries(input: ProductImageEntryInput[]): ProductImageEntry[] {
+    const entries = input.map(({ id, key, altText }): ProductImageEntry => {
+      if (Boolean(id) === Boolean(key)) {
+        throw new BadRequestException('Each image entry must have exactly one of "id" or "key"');
+      }
+      return id ? { id, altText } : { key: key!, altText };
+    });
+    const refs = entries.map((e) => (isKept(e) ? `id:${e.id}` : `key:${e.key}`));
+    if (new Set(refs).size !== refs.length) {
       throw new BadRequestException('Duplicate image entries are not allowed');
     }
+    return entries;
   }
 
   private async promoteAll(productId: string, pendingKeys: string[]): Promise<string[]> {

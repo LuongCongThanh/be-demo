@@ -1,8 +1,8 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { ProductStatus } from '../../generated/prisma/enums.js';
-import { UpdateProductDto } from './update-product.dto.js';
+import { ProductStatus } from '@src/generated/prisma/enums.js';
+import { UpdateProductDto } from '@src/products/dto/update-product.dto.js';
 
 describe('UpdateProductDto', () => {
   it('passes validation when name is omitted (all fields optional via PartialType)', async () => {
@@ -48,30 +48,5 @@ describe('UpdateProductDto', () => {
     const dto = plainToInstance(UpdateProductDto, { status: 'NOT_A_STATUS' });
     const errors = await validate(dto);
     expect(errors.some((e) => e.property === 'status')).toBe(true);
-  });
-
-  // Cùng lý do đã áp dụng cho CreateProductDto.variants — 2 entry mới (không
-  // id) trùng sku trong cùng 1 PATCH request phải bị chặn 400 ở DTO, không để
-  // lọt xuống unique constraint của DB.
-  it('fails validation when two new (no-id) variants entries share the same sku', async () => {
-    const dto = plainToInstance(UpdateProductDto, {
-      variants: [
-        { sku: 'SKU-1', price: 100000 },
-        { sku: 'SKU-1', price: 120000 },
-      ],
-    });
-    const errors = await validate(dto);
-    expect(errors.some((e) => e.property === 'variants')).toBe(true);
-  });
-
-  it('passes validation when variants entries have distinct skus', async () => {
-    const dto = plainToInstance(UpdateProductDto, {
-      variants: [
-        { sku: 'SKU-1', price: 100000 },
-        { sku: 'SKU-2', price: 120000 },
-      ],
-    });
-    const errors = await validate(dto);
-    expect(errors).toHaveLength(0);
   });
 });

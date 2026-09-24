@@ -1,6 +1,18 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { VariantStatus } from '../../generated/prisma/enums.js';
 
+// Tóm tắt Option Value nhúng trong variant — `code` là phần đã nằm trong SKU.
+export class OptionValueSummaryDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty({ example: 'Đen' })
+  name: string;
+
+  @ApiProperty({ example: 'BLK' })
+  code: string;
+}
+
 export class VariantResponseDto {
   @ApiProperty()
   id: string;
@@ -8,14 +20,14 @@ export class VariantResponseDto {
   @ApiProperty()
   productId: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Ghép từ Product Code + mã màu/size', example: 'TSB001-BLK-M' })
   sku: string;
 
-  @ApiPropertyOptional({ nullable: true })
-  color: string | null;
+  @ApiPropertyOptional({ type: OptionValueSummaryDto, nullable: true })
+  color: OptionValueSummaryDto | null;
 
-  @ApiPropertyOptional({ nullable: true })
-  size: string | null;
+  @ApiPropertyOptional({ type: OptionValueSummaryDto, nullable: true })
+  size: OptionValueSummaryDto | null;
 
   // Serialize thành string (Prisma Decimal.toJSON()) chứ không phải number —
   // giữ đúng độ chính xác thập phân, không qua vòng float trung gian.

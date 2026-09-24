@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { S3ObjectStorageService } from '@src/upload-image/object-storage/s3-object-storage.service.js';
-import {
-  MAX_IMAGE_SIZE_BYTES,
-  PRESIGNED_URL_EXPIRY_SECONDS,
-} from '@src/upload-image/object-storage/allowed-image-content-type.js';
+import { MAX_IMAGE_SIZE_BYTES, PRESIGNED_URL_EXPIRY_SECONDS } from '@src/upload-image/upload-image.constants.js';
 
 function decodePolicy(fields: Record<string, string>): { conditions: unknown[]; expiration: string } {
   return JSON.parse(Buffer.from(fields.Policy, 'base64').toString('utf-8'));

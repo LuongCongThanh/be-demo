@@ -1,11 +1,11 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { VariantStatus } from '../../generated/prisma/enums.js';
-import { UpdateVariantDto } from './update-variant.dto.js';
+import { VariantStatus } from '@src/generated/prisma/enums.js';
+import { UpdateVariantDto } from '@src/products/dto/update-variant.dto.js';
 
 describe('UpdateVariantDto', () => {
-  it('passes validation when sku/price are omitted (all fields optional via PartialType)', async () => {
+  it('passes validation when price is omitted (all fields optional)', async () => {
     const dto = plainToInstance(UpdateVariantDto, { status: VariantStatus.INACTIVE });
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
@@ -29,26 +29,19 @@ describe('UpdateVariantDto', () => {
     expect(errors.some((e) => e.property === 'status')).toBe(true);
   });
 
-  // `sku`/`price` là field override thủ công trong UpdateVariantDto (không
-  // chỉ dựa vào PartialType) — cùng lý do với UpdateProductDto.name:
+  // `price` dùng @ValidateIf thay vì @IsOptional() — cùng lý do với UpdateProductDto.name:
   // @IsOptional() do PartialType tự sinh coi `null` như "absent" và bỏ qua
-  // mọi validator phía sau, cho { "sku": null } / { "price": null } lọt qua
+  // mọi validator phía sau, cho { "price": null } lọt qua
   // validation rồi Prisma từ chối bằng PrismaClientValidationError (không map
   // được ở AllExceptionsFilter, rơi xuống 500 thay vì 400).
-  it('rejects an explicit null sku instead of silently skipping validation', async () => {
-    const dto = plainToInstance(UpdateVariantDto, { sku: null });
-    const errors = await validate(dto);
-    expect(errors.some((e) => e.property === 'sku')).toBe(true);
-  });
-
   it('rejects an explicit null price instead of silently skipping validation', async () => {
     const dto = plainToInstance(UpdateVariantDto, { price: null });
     const errors = await validate(dto);
     expect(errors.some((e) => e.property === 'price')).toBe(true);
   });
 
-  it('passes validation with a valid sku and price', async () => {
-    const dto = plainToInstance(UpdateVariantDto, { sku: 'SKU-1', price: 100.5 });
+  it('passes validation with a valid price', async () => {
+    const dto = plainToInstance(UpdateVariantDto, { price: 100.5 });
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
   });

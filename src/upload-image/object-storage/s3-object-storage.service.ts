@@ -1,12 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import { CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand, NotFound, S3Client } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { ObjectStorageService, PresignFileRequest, PresignedUploadTarget } from './object-storage.service.js';
-import {
-  IMAGE_EXTENSION_BY_CONTENT_TYPE,
-  MAX_IMAGE_SIZE_BYTES,
-  PRESIGNED_URL_EXPIRY_SECONDS,
-} from './allowed-image-content-type.js';
+import { pendingObjectKey } from './pending-object-key.js';
+import { MAX_IMAGE_SIZE_BYTES, PRESIGNED_URL_EXPIRY_SECONDS } from '../upload-image.constants.js';
 
 export interface S3ObjectStorageConfig {
   endpoint: string;
@@ -42,7 +38,7 @@ export class S3ObjectStorageService implements ObjectStorageService {
   async presignBatch(keyPrefix: string, files: PresignFileRequest[]): Promise<PresignedUploadTarget[]> {
     return Promise.all(
       files.map(async ({ contentType }) => {
-        const key = `${keyPrefix}${randomUUID()}.${IMAGE_EXTENSION_BY_CONTENT_TYPE[contentType]}`;
+        const key = pendingObjectKey(keyPrefix, contentType);
 
         const { url, fields } = await createPresignedPost(this.presignClient, {
           Bucket: this.config.bucket,

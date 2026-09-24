@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsNotEmpty, IsString, MaxLength } from 'class-validator';
-import { ALLOWED_IMAGE_CONTENT_TYPES } from '../object-storage/allowed-image-content-type.js';
-import type { AllowedImageContentType } from '../object-storage/allowed-image-content-type.js';
+import { ALLOWED_IMAGE_CONTENT_TYPES } from '../upload-image.constants.js';
+import type { AllowedImageContentType } from '../upload-image.constants.js';
 
 export class PresignImageFileDto {
   @ApiProperty({ maxLength: 255, example: 'front.jpg' })

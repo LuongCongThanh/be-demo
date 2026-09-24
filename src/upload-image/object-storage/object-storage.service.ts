@@ -1,4 +1,4 @@
-import type { AllowedImageContentType } from './allowed-image-content-type.js';
+import type { AllowedImageContentType } from '../upload-image.constants.js';
 
 // `filename` chỉ mang tính thông tin — adapter không dùng nó để tạo key.
 export interface PresignFileRequest {
