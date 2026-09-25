@@ -122,6 +122,41 @@ describe('Auth — POST /auth/refresh (e2e)', () => {
       .expect(401);
   });
 
+  it('rejects a BLOCKED user with a still-valid refresh token', async () => {
+    const user = await createUser('blocked');
+    const rawToken = await createRefreshTokenFor(user.id);
+    await prisma.user.update({ where: { id: user.id }, data: { status: 'BLOCKED' } });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', [`refresh_token=${rawToken}`])
+      .expect(401);
+
+    expect(res.body.message).toBe('Account is locked');
+    expect(res.headers['set-cookie'] ?? []).not.toContainEqual(expect.stringMatching(/^refresh_token=[^;]+/));
+  });
+
+  it('a refresh rejected for BLOCKED ends every session, so unblocking does not revive them', async () => {
+    const user = await createUser('blocked-unblocked');
+    const rejectedToken = await createRefreshTokenFor(user.id);
+    const otherSessionToken = await createRefreshTokenFor(user.id);
+    await prisma.user.update({ where: { id: user.id }, data: { status: 'BLOCKED' } });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', [`refresh_token=${rejectedToken}`])
+      .expect(401);
+
+    await prisma.user.update({ where: { id: user.id }, data: { status: 'ACTIVE' } });
+
+    for (const token of [rejectedToken, otherSessionToken]) {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', [`refresh_token=${token}`])
+        .expect(401);
+    }
+  });
+
   it('only one of two concurrent requests with the same refresh token succeeds', async () => {
     const user = await createUser('race');
     const rawToken = await createRefreshTokenFor(user.id);

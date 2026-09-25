@@ -302,6 +302,17 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token has expired');
     }
 
+    // Login chặn BLOCKED, refresh cũng phải chặn — nếu không, refresh token
+    // còn hạn cứ cấp access token mới mang authorizationVersion hiện tại, nên
+    // việc block chỉ có hiệu lực khi refresh token hết hạn. Check TRƯỚC bước
+    // claim bên dưới để request bị từ chối không xoay vòng ra token mới.
+    // Revoke luôn mọi Session: block phải kết thúc toàn bộ Session (CONTEXT.md
+    // — Account Status), nên unblock không được làm session cũ sống lại.
+    if (record.user.status === 'BLOCKED') {
+      await this.logoutAll(record.userId);
+      throw new UnauthorizedException('Account is locked');
+    }
+
     // Rotation: "claim" quyền xoay vòng bằng conditional update, đóng race
     // window giữa findUnique() ở trên và update này. Chỉ request nào update
     // trúng đúng 1 dòng (revokedAt vẫn còn null tại thời điểm ghi) mới thắng
