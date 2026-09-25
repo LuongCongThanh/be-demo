@@ -4,7 +4,7 @@ owner: Backend
 last_verified: 2026-09-23
 dependencies: [CONTEXT.md, adr/0001-category-delete-restrict.md]
 supersedes: docs/superpowers/categories-module-plan.md
-verification: [src/categories, test/categories.e2e-spec.ts]
+verification: [src/modules/categories, test/categories.e2e-spec.ts]
 ---
 
 # 02 — Categories module specification

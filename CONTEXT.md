@@ -9,7 +9,7 @@ An account that can authenticate and act in the system. A User has one Account S
 _Avoid_: Account when referring to the person, Customer when the User is acting as staff
 
 **Account Status**:
-The MASTER_ADMIN-managed availability of a User: `ACTIVE` or `BLOCKED`. It is independent of Email Verification.
+The MASTER_ADMIN-managed availability of a User: `ACTIVE` or `BLOCKED`. It is independent of Email Verification. Blocking a User ends all of their Sessions, so unblocking requires a fresh login.
 _Avoid_: Email status, login status
 
 **Email Verification**:
@@ -33,12 +33,16 @@ A staff User who manages the catalog, Inventory, Promotions, Order operations, a
 _Avoid_: Admin
 
 **MASTER_ADMIN**:
-A privileged User who manages Users, Account Status, Roles, and all store operations. The system must always retain at least one active, verified MASTER_ADMIN.
+A privileged User who manages Users, Account Status, Roles, and all store operations. The system must always retain at least one active, verified MASTER_ADMIN. A MASTER_ADMIN never changes their own Roles or Account Status; another MASTER_ADMIN must do it.
 _Avoid_: `ADMIN`, superuser
 
 **Session**:
-A logical login session for a User, represented by one refresh credential. It is not equivalent to a physical device.
+A logical login session for a User, represented by one refresh credential. It is not equivalent to a physical device. A Role change keeps existing Sessions; the new Roles apply from the next credential they issue.
 _Avoid_: Device
+
+**Audit Record**:
+A permanent, append-only statement of one privileged change: who acted, on what, which action, the values before and after, and when. It exists if and only if the change itself happened.
+_Avoid_: Log, history, activity feed
 
 ## Catalog & Inventory
 

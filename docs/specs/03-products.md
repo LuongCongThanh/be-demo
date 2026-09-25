@@ -10,9 +10,9 @@ supersedes:
   ]
 verification:
   [
-    src/products,
-    src/option-values,
-    src/upload-image,
+    src/modules/products,
+    src/modules/option-values,
+    src/modules/upload-image,
     test/products.e2e-spec.ts,
     test/option-values.e2e-spec.ts,
     test/upload-image.e2e-spec.ts,
@@ -73,7 +73,7 @@ Chưa có dữ liệu production. Migration của ADR 0011 backfill dữ liệu 
 
 ## Option Values, variants và SKU (ADR 0011)
 
-Option Value (`src/option-values`) — danh sách màu/size chọn sẵn:
+Option Value (`src/modules/option-values`) — danh sách màu/size chọn sẵn:
 
 | Endpoint                    | Quyền  | Ghi chú                                                                                                                                                                                                                 |
 | --------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

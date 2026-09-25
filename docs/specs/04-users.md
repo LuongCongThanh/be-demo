@@ -21,7 +21,9 @@ Cung cấp self-profile cho User và administration surface cho MASTER_ADMIN mà
 - Audit mọi thay đổi đặc quyền.
 - Tăng authorization version khi role/status thay đổi.
 
-Không bao gồm MFA, social login, SSO, fine-grained permission engine hoặc xóa vật lý User.
+Không bao gồm MFA, social login, SSO, fine-grained permission engine, xóa vật lý User, đổi email và đổi mật khẩu (hai luồng bảo mật thuộc Auth, cần spec riêng). `PATCH /users/me` chỉ cho sửa `fullName` và `phone`.
+
+MASTER_ADMIN không tự thay đổi Role/Account Status của chính mình. BLOCKED revoke toàn bộ Session của target; đổi Role giữ Session. Audit Record theo [ADR 0013](../adr/0013-single-audit-record-table.md).
 
 ## Proposed HTTP surface
 
