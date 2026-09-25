@@ -4,7 +4,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppModule } from '@src/app.module.js';
 import { EmailThrottlerGuard } from '@src/auth/guards/email-throttler.guard.js';
 import { configureApp } from '@src/bootstrap/configure-app.js';
-import { OBJECT_STORAGE_SERVICE } from '@src/upload-image/object-storage/object-storage.service.js';
+import { OBJECT_STORAGE_SERVICE } from '@src/modules/upload-image/object-storage/object-storage.service.js';
 import { FakeObjectStorageService } from './fake-object-storage.service.js';
 
 const ALWAYS_ALLOW = { canActivate: () => true };

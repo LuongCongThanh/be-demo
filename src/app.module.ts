@@ -6,15 +6,15 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
-import { HealthModule } from './health/health.module.js';
-import { MetricsModule } from './metrics/metrics.module.js';
-import { CategoriesModule } from './categories/categories.module.js';
+import { HealthModule } from './modules/health/health.module.js';
+import { MetricsModule } from './modules/metrics/metrics.module.js';
 import { validate } from './config/env.validation.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { RequestIdMiddleware } from './common/request-id.middleware.js';
-import { ProductsModule } from './products/products.module.js';
-import { OptionValuesModule } from './option-values/option-values.module.js';
-import { UploadImageModule } from './upload-image/upload-image.module.js';
+import { CategoriesModule } from './modules/categories/categories.module.js';
+import { ProductsModule } from './modules/products/products.module.js';
+import { OptionValuesModule } from './modules/option-values/option-values.module.js';
+import { UploadImageModule } from './modules/upload-image/upload-image.module.js';
 
 @Module({
   imports: [

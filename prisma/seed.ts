@@ -3,7 +3,7 @@ import { PrismaClient } from '../src/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 import slugify from 'slugify';
-import { composeSku } from '../src/products/sku.util.js';
+import { composeSku } from '../src/modules/products/sku.util.js';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),

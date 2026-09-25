@@ -24,7 +24,7 @@ Class bên trong file dùng PascalCase khớp tên file (`token.service.ts` → 
 
 ## 2. Cấu trúc thư mục theo module
 
-Mỗi module nghiệp vụ (`auth/`, `mail/`...) tổ chức con theo vai trò khi có ≥ 2 file cùng vai trò: `dto/`, `guards/`, `decorators/`, `services/`, `strategies/`. Module nhỏ (1 service, 1 module file, không DTO) không cần tạo thư mục con rỗng — xem `../../prisma`, `bootstrap/`, `config/` làm ví dụ module hạ tầng phẳng, không cần subfolder.
+Module tính năng nằm dưới `src/modules/` (`src/modules/products/`, `src/modules/mail/`...); `auth/` và các module hạ tầng (`prisma/`, `config/`, `common/`, `bootstrap/`) nằm thẳng dưới `src/`. Mỗi module nghiệp vụ tổ chức con theo vai trò khi có ≥ 2 file cùng vai trò: `dto/`, `guards/`, `decorators/`, `services/`, `strategies/`. Module nhỏ (1 service, 1 module file, không DTO) không cần tạo thư mục con rỗng — xem `../../prisma`, `bootstrap/`, `config/` làm ví dụ module hạ tầng phẳng, không cần subfolder.
 
 ## 3. Barrel file (`index.ts`) — **cấm**
 

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '@src/app.module.js';
-import { MailService } from '@src/mail/mail.service.js';
+import { MailService } from '@src/modules/mail/mail.service.js';
 
 // Real SMTP send against Mailtrap sandbox — hits the network and depends on
 // SMTP_* being set in .env (see .env.example), so it's opt-in only and never

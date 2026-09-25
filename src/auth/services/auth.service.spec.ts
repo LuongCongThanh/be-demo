@@ -4,7 +4,7 @@ import { Prisma } from '@src/generated/prisma/client.js';
 import { AuthService, GENERIC_RESEND_MESSAGE, MAX_VERIFY_ATTEMPTS } from './auth.service.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
-import { MailService } from '@src/mail/mail.service.js';
+import { MailService } from '@src/modules/mail/mail.service.js';
 
 function createHarness() {
   const customerRole = { id: 'role-customer', name: 'CUSTOMER' };

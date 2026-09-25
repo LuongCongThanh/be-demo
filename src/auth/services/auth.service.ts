@@ -19,7 +19,7 @@ import { AuthUserResponseDto } from '../dto/auth-user-response.dto.js';
 import { MessageResponseDto } from '../dto/message-response.dto.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
-import { MailService } from '../../mail/mail.service.js';
+import { MailService } from '../../modules/mail/mail.service.js';
 import { RegisterDto } from '../dto/register.dto.js';
 import { RegisterResponseDto } from '../dto/register-response.dto.js';
 
