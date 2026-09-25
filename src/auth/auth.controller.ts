@@ -104,7 +104,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rotate the refresh token cookie and issue a new access token' })
   @ApiOkResponse({ type: RefreshResponseDto })
-  @ApiUnauthorizedResponse({ description: 'Missing, invalid, expired, or reused refresh token' })
+  @ApiUnauthorizedResponse({
+    description:
+      'Missing, invalid, expired, or reused refresh token, or the account is BLOCKED (every session of a BLOCKED account is revoked)',
+  })
   async refresh(@Req() request: Request, @Res({ passthrough: true }) response: Response): Promise<RefreshResponseDto> {
     const rawRefreshToken = request.cookies?.[this.getRefreshTokenCookieName()] as string | undefined;
 

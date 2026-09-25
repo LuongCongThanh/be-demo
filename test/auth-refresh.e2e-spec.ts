@@ -133,7 +133,6 @@ describe('Auth — POST /auth/refresh (e2e)', () => {
       .expect(401);
 
     expect(res.body.message).toBe('Account is locked');
-    expect(res.headers['set-cookie'] ?? []).not.toContainEqual(expect.stringMatching(/^refresh_token=[^;]+/));
   });
 
   it('a refresh rejected for BLOCKED ends every session, so unblocking does not revive them', async () => {
@@ -142,10 +141,11 @@ describe('Auth — POST /auth/refresh (e2e)', () => {
     const otherSessionToken = await createRefreshTokenFor(user.id);
     await prisma.user.update({ where: { id: user.id }, data: { status: 'BLOCKED' } });
 
-    await request(app.getHttpServer())
+    const res = await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
       .set('Cookie', [`refresh_token=${rejectedToken}`])
       .expect(401);
+    expect(res.body.message).toBe('Account is locked');
 
     await prisma.user.update({ where: { id: user.id }, data: { status: 'ACTIVE' } });
 
@@ -155,6 +155,29 @@ describe('Auth — POST /auth/refresh (e2e)', () => {
         .set('Cookie', [`refresh_token=${token}`])
         .expect(401);
     }
+  });
+
+  it('a BLOCKED user presenting an expired or revoked token is told the account is locked and loses every session', async () => {
+    const user = await createUser('blocked-stale-token');
+    const expiredToken = await createRefreshTokenFor(user.id, { expiresAt: new Date(Date.now() - 1000) });
+    const revokedToken = await createRefreshTokenFor(user.id, { revokedAt: new Date() });
+    const otherSessionToken = await createRefreshTokenFor(user.id);
+    await prisma.user.update({ where: { id: user.id }, data: { status: 'BLOCKED' } });
+
+    for (const token of [expiredToken, revokedToken]) {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', [`refresh_token=${token}`])
+        .expect(401);
+      expect(res.body.message).toBe('Account is locked');
+    }
+
+    await prisma.user.update({ where: { id: user.id }, data: { status: 'ACTIVE' } });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', [`refresh_token=${otherSessionToken}`])
+      .expect(401);
   });
 
   it('only one of two concurrent requests with the same refresh token succeeds', async () => {

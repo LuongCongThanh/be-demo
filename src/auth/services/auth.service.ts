@@ -39,6 +39,9 @@ export const GENERIC_RESEND_MESSAGE =
 // định #10).
 export const GENERIC_FORGOT_PASSWORD_MESSAGE = 'If the email exists, a password reset link has been sent.';
 
+// Login và refresh cùng từ chối user BLOCKED bằng đúng 1 message.
+export const ACCOUNT_LOCKED_MESSAGE = 'Account is locked';
+
 export interface LoginResult {
   accessToken: string;
   rawRefreshToken: string;
@@ -250,7 +253,7 @@ export class AuthService {
     // Kiểm tra CẢ HAI trục trạng thái (quyết định #15) — SAU khi đã xác nhận
     // password đúng, để không lộ thêm thông tin cho kẻ đoán sai password.
     if (user.status === 'BLOCKED') {
-      throw new UnauthorizedException('Account is locked');
+      throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
     }
     if (!user.emailVerifiedAt) {
       throw new UnauthorizedException('Email is not verified');
@@ -290,6 +293,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
+    // Login chặn BLOCKED, refresh cũng phải chặn — nếu không, refresh token
+    // còn hạn cứ cấp access token mới mang authorizationVersion hiện tại, nên
+    // việc block chỉ có hiệu lực khi refresh token hết hạn. Check TRƯỚC mọi
+    // check trạng thái token (reuse, hết hạn) để user bị block luôn nhận cùng
+    // 1 message, và TRƯỚC bước claim để không xoay vòng ra token mới.
+    // Revoke mọi Session ở đây chỉ là dọn dẹp lazy khi user bị block thử
+    // refresh — bảo đảm "block kết thúc mọi Session" thật sự nằm ở chính thao
+    // tác block (Module Users, #45), vì user không refresh thì không đi qua đây.
+    if (record.user.status === 'BLOCKED') {
+      await this.revokeAllSessions(record.userId);
+      throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
+    }
+
     // Reuse detection (quyết định #3): revokedAt != null nghĩa là token này
     // đã bị rotation trước đó — ai đó đang dùng lại 1 bản sao cũ, dấu hiệu
     // rõ ràng token đã lộ. Revoke TOÀN BỘ session của user, không chỉ token
@@ -300,17 +316,6 @@ export class AuthService {
 
     if (record.expiresAt < new Date()) {
       throw new UnauthorizedException('Refresh token has expired');
-    }
-
-    // Login chặn BLOCKED, refresh cũng phải chặn — nếu không, refresh token
-    // còn hạn cứ cấp access token mới mang authorizationVersion hiện tại, nên
-    // việc block chỉ có hiệu lực khi refresh token hết hạn. Check TRƯỚC bước
-    // claim bên dưới để request bị từ chối không xoay vòng ra token mới.
-    // Revoke luôn mọi Session: block phải kết thúc toàn bộ Session (CONTEXT.md
-    // — Account Status), nên unblock không được làm session cũ sống lại.
-    if (record.user.status === 'BLOCKED') {
-      await this.logoutAll(record.userId);
-      throw new UnauthorizedException('Account is locked');
     }
 
     // Rotation: "claim" quyền xoay vòng bằng conditional update, đóng race
@@ -338,10 +343,7 @@ export class AuthService {
   // dùng chung cho cả 2 tình huống được coi là reuse: token có revokedAt
   // != null thật sự, và thua race khi claim quyền rotation (quyết định #3).
   private async revokeAllSessionsAsReuseDetected(userId: string): Promise<never> {
-    await this.prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await this.revokeAllSessions(userId);
     throw new UnauthorizedException(
       'Refresh token has been revoked — all login sessions have been logged out for security reasons',
     );
@@ -436,6 +438,12 @@ export class AuthService {
   }
 
   async logoutAll(userId: string): Promise<void> {
+    await this.revokeAllSessions(userId);
+  }
+
+  // Revoke mọi Session còn sống của user — 1 chỗ duy nhất cho logout-all,
+  // reuse detection và refresh của user bị block.
+  private async revokeAllSessions(userId: string): Promise<void> {
     await this.prisma.refreshToken.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
