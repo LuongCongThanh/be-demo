@@ -563,6 +563,33 @@ describe('AuthService.refreshToken', () => {
     });
   });
 
+  it.each([
+    ['a valid', {}],
+    ['an expired', { expiresAt: new Date(Date.now() - 1000) }],
+    ['an already-revoked', { revokedAt: new Date() }],
+  ])(
+    'rejects a BLOCKED user presenting %s token as locked, revokes every session and issues nothing',
+    async (_label, tokenOverrides) => {
+      const { service, prisma, tokenService } = createHarness();
+      prisma.refreshToken.findUnique.mockResolvedValue(
+        validRefreshTokenRecord({
+          ...tokenOverrides,
+          user: { id: 'user-1', email: 'user@example.com', status: 'BLOCKED', authorizationVersion: 0, userRoles: [] },
+        }),
+      );
+
+      await expect(service.refreshToken('blocked-user-token')).rejects.toThrow(
+        new UnauthorizedException('Account is locked'),
+      );
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledTimes(1);
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(tokenService.createRefreshToken).not.toHaveBeenCalled();
+    },
+  );
+
   it('throws UnauthorizedException when the token has expired', async () => {
     const { service, prisma } = createHarness();
     prisma.refreshToken.findUnique.mockResolvedValue(
