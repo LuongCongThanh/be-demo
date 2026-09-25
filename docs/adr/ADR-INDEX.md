@@ -24,9 +24,10 @@ Mã `0001–0009` là mã lịch sử ổn định. ADR được nhóm theo th�
 
 ## 04 — Users
 
-| ADR                                                     | Quyết định         | Decision | Implementation |
-| ------------------------------------------------------- | ------------------ | -------- | -------------- |
-| [0005](0005-canonical-four-role-authorization-model.md) | Bốn Role canonical | Accepted | Partial        |
+| ADR                                                     | Quyết định                  | Decision | Implementation |
+| ------------------------------------------------------- | --------------------------- | -------- | -------------- |
+| [0005](0005-canonical-four-role-authorization-model.md) | Bốn Role canonical          | Accepted | Partial        |
+| [0013](0013-single-audit-record-table.md)               | Một bảng Audit Record chung | Accepted | Planned        |
 
 ## 05 — Inventory và Outbox foundation
 
