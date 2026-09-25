@@ -69,6 +69,8 @@ jobs:
       S3_REGION: us-east-1
       S3_ACCESS_KEY_ID: ci-test-access-key
       S3_SECRET_ACCESS_KEY: ci-test-secret-key
+      # Không có MinIO ở CI — bỏ bước seed ảnh product (prisma/seed-product-images.ts).
+      SEED_PRODUCT_IMAGES: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

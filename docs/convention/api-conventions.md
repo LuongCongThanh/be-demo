@@ -959,6 +959,8 @@ Mỗi lệnh dưới đây có 2 cột: **Tác dụng** (lệnh này làm gì) v
 | `npm run db:seed`      | Chạy `../../prisma/seed.ts` (tương đương `prisma db seed`, nhưng qua `tsx` không cần `--config`) | Sau khi migrate DB mới/rỗng, hoặc cần tài khoản ADMIN bootstrap để login trong e2e test                                   |
 | `npm run postman:sync` | Đồng bộ Postman collection từ Swagger spec (`/api-json`) — app phải đang chạy                    | [§B12 Swagger](#b12-swagger--openapi) — sau khi thêm/sửa decorator Swagger cho endpoint mới                               |
 
+> `npm run db:seed` cần cả MinIO đang chạy (`docker compose up -d minio minio-init`) — seed upload ảnh mẫu cho product lên bucket thay vì lưu URL placeholder bên ngoài. Không có MinIO (vd. CI) thì đặt `SEED_PRODUCT_IMAGES=false` để bỏ bước này.
+
 ### d. Git & PR workflow
 
 > Chi tiết đầy đủ về branching xem [`git-workflow.md`](git-workflow.md). Tóm tắt: `main` (trunk ổn định) ← `dev` (integration) ← `feature/*`/`fix/*`/`chore/*`/`docs/*` (checked out từ `dev`, merge lại qua PR). Không commit thẳng vào `main`; hạn chế commit trực tiếp lớn vào `dev`.
