@@ -4,6 +4,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 import slugify from 'slugify';
 import { composeSku } from '../src/modules/products/sku.util.js';
+import { seedProductImages } from './seed-product-images.js';
+import type { ProductImageSeed } from './seed-product-images.js';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -141,6 +143,7 @@ async function seedCatalog(): Promise<void> {
     },
   ];
 
+  const imageSeeds: ProductImageSeed[] = [];
   for (const categorySeed of catalog) {
     const categorySlug = slugify(categorySeed.name, { lower: true, strict: true });
     const category = await prisma.category.upsert({
@@ -156,6 +159,7 @@ async function seedCatalog(): Promise<void> {
         update: {},
         create: { name: productSeed.name, code: productSeed.code, slug: productSlug, categoryId: category.id },
       });
+      imageSeeds.push({ productId: product.id, productName: product.name, colorCode: productSeed.variants[0].color });
 
       for (const variantSeed of productSeed.variants) {
         const sku = composeSku(product.code, variantSeed.color, variantSeed.size);
@@ -186,6 +190,8 @@ async function seedCatalog(): Promise<void> {
   }
 
   console.log(`Seeded catalog: ${catalog.length} categories.`);
+
+  await seedProductImages(prisma, imageSeeds);
 }
 
 main()
