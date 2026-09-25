@@ -2,6 +2,7 @@ import { crc32, deflateSync } from 'node:zlib';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { PrismaClient } from '../src/generated/prisma/client.js';
 import { S3ObjectStorageService } from '../src/modules/upload-image/object-storage/s3-object-storage.service.js';
+import type { S3ObjectStorageConfig } from '../src/modules/upload-image/object-storage/s3-object-storage.service.js';
 
 export interface ProductImageSeed {
   productId: string;
@@ -28,27 +29,31 @@ const IMAGE_SIZE_PX = 600;
 // upload thật) để chạy lại seed ghi đè đúng object cũ, không sinh rác.
 export async function seedProductImages(prisma: PrismaClient, seeds: ProductImageSeed[]): Promise<void> {
   // Cùng ngoại lệ với ADMIN_BOOTSTRAP_* ở seed.ts: script chạy ngoài Nest DI,
-  // đọc process.env trực tiếp.
-  const { S3_ENDPOINT, S3_PUBLIC_ENDPOINT, S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY } = process.env;
-  if (!S3_ENDPOINT || !S3_BUCKET || !S3_REGION || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY) {
-    throw new Error('Missing S3_ENDPOINT / S3_BUCKET / S3_REGION / S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY in .env');
+  // đọc process.env trực tiếp. Tắt tường minh (CI e2e không có MinIO, dùng
+  // storage fake) thay vì tự bỏ qua khi không kết nối được — máy dev quên bật
+  // MinIO phải thấy lỗi, không âm thầm thiếu ảnh.
+  if (process.env.SEED_PRODUCT_IMAGES === 'false') {
+    console.log('Skipped product images (SEED_PRODUCT_IMAGES=false).');
+    return;
   }
+  const config = s3ConfigFromEnv();
   const client = new S3Client({
-    endpoint: S3_ENDPOINT,
-    region: S3_REGION,
-    credentials: { accessKeyId: S3_ACCESS_KEY_ID, secretAccessKey: S3_SECRET_ACCESS_KEY },
+    endpoint: config.endpoint,
+    region: config.region,
+    credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
     forcePathStyle: true,
   });
-  // Chỉ dùng publicUrl() — URL lưu DB phải khớp đúng định dạng app tự sinh
-  // để keyFromUrl() suy ngược được khi xoá ảnh.
-  const storage = new S3ObjectStorageService({
-    endpoint: S3_ENDPOINT,
-    publicEndpoint: S3_PUBLIC_ENDPOINT,
-    bucket: S3_BUCKET,
-    region: S3_REGION,
-    accessKeyId: S3_ACCESS_KEY_ID,
-    secretAccessKey: S3_SECRET_ACCESS_KEY,
-  });
+  // Dùng publicUrl()/keyFromUrl() của app: URL lưu DB phải đúng định dạng app
+  // tự sinh, và so ảnh theo key để đổi S3_PUBLIC_ENDPOINT giữa các lần chạy
+  // không làm ảnh seed cũ bị coi là ảnh người dùng.
+  const storage = new S3ObjectStorageService(config);
+  const keyOf = (url: string): string | undefined => {
+    try {
+      return storage.keyFromUrl(url);
+    } catch {
+      return undefined;
+    }
+  };
 
   let created = 0;
   for (const seed of seeds) {
@@ -56,23 +61,24 @@ export async function seedProductImages(prisma: PrismaClient, seeds: ProductImag
     const images = [
       { key: `products/${seed.productId}/seed-1.png`, altText: `${seed.productName} - front`, striped: false },
       { key: `products/${seed.productId}/seed-2.png`, altText: `${seed.productName} - detail`, striped: true },
-    ].map((image) => ({ ...image, url: storage.publicUrl(image.key) }));
-    const seedUrls = new Set(images.map((image) => image.url));
+    ];
+    const seedKeys = new Set(images.map((image) => image.key));
 
     const existing = await prisma.productImage.findMany({ where: { productId: seed.productId } });
+    const existingKeys = existing.map((image) => keyOf(image.url));
     // Product đã có ảnh do người dùng gắn qua API → không đụng vào.
-    if (existing.some((image) => !seedUrls.has(image.url))) {
+    if (existingKeys.some((key) => key === undefined || !seedKeys.has(key))) {
       continue;
     }
     // Ghi lại cả object của row seed đã có: volume MinIO bị xoá thì DB vẫn
-    // còn URL nhưng ảnh 404 — chạy lại seed là sửa được.
-    const existingUrls = new Set(existing.map((image) => image.url));
-    const toUpload = existing.length === 0 ? images : images.filter((image) => existingUrls.has(image.url));
+    // còn URL nhưng ảnh 404 — chạy lại seed là sửa được. Ảnh seed người dùng
+    // đã gỡ qua API thì không tạo lại.
+    const toUpload = existing.length === 0 ? images : images.filter((image) => existingKeys.includes(image.key));
     try {
       for (const image of toUpload) {
         await client.send(
           new PutObjectCommand({
-            Bucket: S3_BUCKET,
+            Bucket: config.bucket,
             Key: image.key,
             Body: renderPng(rgb, image.striped),
             ContentType: 'image/png',
@@ -80,15 +86,15 @@ export async function seedProductImages(prisma: PrismaClient, seeds: ProductImag
         );
       }
     } catch (err) {
-      const hint = 'is MinIO running (docker compose up -d minio minio-init)?';
-      throw new Error(`Failed to upload seed images to ${S3_ENDPOINT} — ${hint}`, { cause: err });
+      const hint = 'is MinIO running (docker compose up -d minio minio-init)? Set SEED_PRODUCT_IMAGES=false to skip';
+      throw new Error(`Failed to upload seed images to ${config.endpoint} — ${hint}`, { cause: err });
     }
 
     if (existing.length === 0) {
       await prisma.productImage.createMany({
         data: images.map((image, sortOrder) => ({
           productId: seed.productId,
-          url: image.url,
+          url: storage.publicUrl(image.key),
           altText: image.altText,
           sortOrder,
         })),
@@ -98,6 +104,21 @@ export async function seedProductImages(prisma: PrismaClient, seeds: ProductImag
   }
 
   console.log(`Seeded product images: ${created} created.`);
+}
+
+function s3ConfigFromEnv(): S3ObjectStorageConfig {
+  const { S3_ENDPOINT, S3_PUBLIC_ENDPOINT, S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY } = process.env;
+  if (!S3_ENDPOINT || !S3_BUCKET || !S3_REGION || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY) {
+    throw new Error('Missing S3_ENDPOINT / S3_BUCKET / S3_REGION / S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY in .env');
+  }
+  return {
+    endpoint: S3_ENDPOINT,
+    publicEndpoint: S3_PUBLIC_ENDPOINT,
+    bucket: S3_BUCKET,
+    region: S3_REGION,
+    accessKeyId: S3_ACCESS_KEY_ID,
+    secretAccessKey: S3_SECRET_ACCESS_KEY,
+  };
 }
 
 // PNG RGB 8-bit tối giản bằng zlib có sẵn của Node — tránh thêm dependency
@@ -117,7 +138,7 @@ function renderPng([r, g, b]: Rgb, striped: boolean): Buffer {
   const header = Buffer.alloc(13);
   header.writeUInt32BE(IMAGE_SIZE_PX, 0);
   header.writeUInt32BE(IMAGE_SIZE_PX, 4);
-  header.set([8, 2, 0, 0, 0], 8); // bit depth 8, color type RGB, compression/filter/interlace mặc định
+  header.set([8, 2, 0, 0, 0], 8); // độ sâu 8 bit, kiểu màu RGB, nén/lọc/interlace mặc định
 
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
