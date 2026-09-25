@@ -2,9 +2,9 @@ import {
   ObjectStorageService,
   PresignFileRequest,
   PresignedUploadTarget,
-} from '@src/upload-image/object-storage/object-storage.service.js';
-import { MAX_IMAGE_SIZE_BYTES } from '@src/upload-image/upload-image.constants.js';
-import { pendingObjectKey } from '@src/upload-image/object-storage/pending-object-key.js';
+} from '@src/modules/upload-image/object-storage/object-storage.service.js';
+import { MAX_IMAGE_SIZE_BYTES } from '@src/modules/upload-image/upload-image.constants.js';
+import { pendingObjectKey } from '@src/modules/upload-image/object-storage/pending-object-key.js';
 
 const FAKE_BASE_URL = 'https://fake-storage.local/';
 

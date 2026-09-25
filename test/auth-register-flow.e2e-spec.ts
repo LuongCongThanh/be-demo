@@ -4,7 +4,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
 import { AppModule } from '@src/app.module.js';
 import { PrismaService } from '@src/prisma/prisma.service.js';
-import { MailService } from '@src/mail/mail.service.js';
+import { MailService } from '@src/modules/mail/mail.service.js';
 import { EmailThrottlerGuard } from '@src/auth/guards/email-throttler.guard.js';
 import { configureApp } from '@src/bootstrap/configure-app.js';
 

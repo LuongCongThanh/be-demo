@@ -3,7 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import type ms from 'ms';
-import { MailModule } from '../mail/mail.module.js';
+import { MailModule } from '../modules/mail/mail.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './services/auth.service.js';
 import { PasswordService } from './services/password.service.js';
