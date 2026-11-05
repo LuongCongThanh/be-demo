@@ -1,5 +1,5 @@
 #!/bin/bash
-# check-swagger-completeness.sh — reminder-only check for docs/convention/api-conventions.md
+# check-swagger-completeness.sh — reminder-only check for docs/convention/api-rules.md
 # §B4 (DTO example data) and §B12 (per-route @ApiOperation summary).
 #
 # Non-blocking: heuristic grep counts can false-positive (e.g. a field that
@@ -24,7 +24,7 @@ if [[ "$BASENAME" == *.controller.ts ]]; then
   ops=$(grep -cE '^[[:space:]]*@ApiOperation\(' "$FILE_PATH")
   if [[ "$routes" -gt 0 && "$ops" -lt "$routes" ]]; then
     missing=$((routes - ops))
-    emit_reminder "Reminder (docs/convention/api-conventions.md §B12): $FILE_PATH has $routes route(s) but only $ops @ApiOperation({ summary: '...' }) — $missing route(s) may be missing a Swagger summary. Add one per endpoint so Swagger UI explains what it does without reading the code."
+    emit_reminder "Reminder (docs/convention/api-rules.md §R8): $FILE_PATH has $routes route(s) but only $ops @ApiOperation({ summary: '...' }) — $missing route(s) may be missing a Swagger summary. Add one per endpoint so Swagger UI explains what it does without reading the code."
   fi
   exit 0
 fi
@@ -34,7 +34,7 @@ if [[ "$BASENAME" == create-*.dto.ts || "$BASENAME" == update-*.dto.ts ]]; then
   examples=$(grep -cE 'example[[:space:]]*:' "$FILE_PATH")
   if [[ "$props" -gt 0 && "$examples" -lt "$props" ]]; then
     missing=$((props - examples))
-    emit_reminder "Reminder (docs/convention/api-conventions.md §B4): $FILE_PATH has $props @ApiProperty field(s) but only $examples with example data — $missing field(s) may be missing 'example:' for Swagger. Add a realistic example for fields the client sends."
+    emit_reminder "Reminder (docs/convention/api-rules.md §R1): $FILE_PATH has $props @ApiProperty field(s) but only $examples with example data — $missing field(s) may be missing 'example:' for Swagger. Add a realistic example for fields the client sends."
   fi
   exit 0
 fi

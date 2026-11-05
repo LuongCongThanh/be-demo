@@ -7,9 +7,9 @@ paths:
   - 'src/main.ts'
 ---
 
-# API conventions — agent-condensed (đầy đủ walkthrough từng bước + code mẫu: docs/convention/api-conventions.md)
+# API conventions — agent-condensed (quy tắc đầy đủ: docs/convention/api-rules.md; code mẫu từng bước: docs/convention/api-crud-walkthrough.md)
 
-Đây là bản rút gọn cho agent viết code — chỉ liệt kê điểm hành động/dễ sai. Đọc doc gốc khi cần code mẫu đầy đủ hoặc business rule của 1 resource cụ thể (sống ở doc riêng resource đó, vd. `docs/categories-module-plan.md`).
+Đây là bản rút gọn cho agent viết code — chỉ liệt kê điểm hành động/dễ sai. Đọc doc gốc khi cần code mẫu đầy đủ hoặc business rule của 1 resource cụ thể (sống ở doc riêng resource đó, `docs/architecture/modules/<module>.md`).
 
 ## Flow tổng quát (20 bước, xem §A trong doc gốc để chi tiết)
 

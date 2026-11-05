@@ -4,7 +4,7 @@ import { AppLogger } from '../common/app-logger.js';
 
 /**
  * Shared app configuration used by both `main.ts` and e2e test setup, so the
- * two never drift apart (see docs/convention/api-conventions.md §B8).
+ * two never drift apart (see docs/convention/api-rules.md §R10).
  */
 export function configureApp(app: INestApplication) {
   // Đăng ký logger toàn cục có gắn request-id — mọi `new Logger(X.name)` sẵn

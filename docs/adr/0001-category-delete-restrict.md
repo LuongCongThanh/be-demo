@@ -1,7 +1,7 @@
-# Xóa Category yêu cầu gán lại sản phẩm trước
+# Xoá Danh mục yêu cầu gán lại Sản phẩm và Danh mục con trước
 
-Bối cảnh: MVP của `categories` cần một endpoint xóa, nhưng `products.category_id → categories.id` chưa định nghĩa hành vi cascade cho trường hợp này. Có ba phương án được cân nhắc: (A) `ON DELETE CASCADE` — xóa luôn các sản phẩm thuộc category đó, rủi ro là phá hủy những sản phẩm mà variant của chúng đã từng bán trong một Order; (B) `ON DELETE SET NULL` — cho phép `category_id` nullable và tạo ra trạng thái sản phẩm "chưa phân loại" mà mọi màn hình liệt kê/lọc đều phải xử lý; (C) giữ FK ở mức DB là `RESTRICT` và để `CategoriesService.remove()` kiểm tra sản phẩm còn tồn tại trước, trả về 409 kèm số lượng thay vì để một lỗi FK violation thô lộ ra ngoài.
+Bối cảnh: Danh mục là cây nhiều cấp (`business/01-vision-scope.md` §5.1), Sản phẩm thuộc một Danh mục. Cần quyết định xoá một Danh mục còn được tham chiếu thì xử lý ra sao. Ba phương án: (A) `ON DELETE CASCADE` — xoá luôn Sản phẩm/Danh mục con, phá huỷ Sản phẩm đã có trong đơn (trái BR-CAT-09); (B) `SET NULL` — sinh ra Sản phẩm "chưa phân loại" hoặc Danh mục con mồ côi mà mọi màn hình phải xử lý; (C) FK `RESTRICT` ở DB, service kiểm tra trước và trả `409` kèm số Sản phẩm và số Danh mục con còn tham chiếu.
 
-Quyết định: **(C)**. Cách này tái sử dụng đúng hành vi FK đã ngụ ý trong tài liệu tóm tắt DB (`orders.user_id` cũng là `RESTRICT` vì cùng lý do "không phá hủy dữ liệu đang được tham chiếu"), tránh phải phát minh thêm khái niệm sản phẩm "chưa phân loại", và cho admin một thông báo lỗi rõ ràng, có thể hành động được thay vì một lỗi 500.
+Quyết định: **(C)**, áp dụng cho cả `products.category_id` và `categories.parent_id`.
 
-Hệ quả: xóa một category còn sản phẩm sẽ luôn thất bại cho tới khi admin gán lại các sản phẩm đó sang category khác trước — MVP này không có đường xóa hàng loạt/cascade cho category.
+Hệ quả: xoá Danh mục còn Sản phẩm hoặc Danh mục con luôn thất bại cho tới khi Admin chuyển chúng sang Danh mục khác. MVP không có xoá hàng loạt/cascade cho Danh mục.

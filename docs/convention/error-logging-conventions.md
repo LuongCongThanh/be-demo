@@ -12,7 +12,7 @@ Prisma error (P2002/P2003/P2025) → AllExceptionsFilter tự map sang HTTP stat
 Lỗi không lường trước           →  AllExceptionsFilter bắt, trả 500 generic, log stack
 ```
 
-`AllExceptionsFilter` (`../../src/common/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) là **safety net cho lỗi không lường trước, không phải nơi định nghĩa domain error** — nguyên tắc này giữ nguyên như đã ghi ở `api-conventions.md` §B5/§B7, tài liệu này chỉ mô tả phần filter đã được implement thật (trước đây là gap chưa code).
+`AllExceptionsFilter` (`../../src/common/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) là **safety net cho lỗi không lường trước, không phải nơi định nghĩa domain error** — nguyên tắc này giữ nguyên như đã ghi ở `api-rules.md` §R2/§R6, tài liệu này chỉ mô tả phần filter đã được implement thật (trước đây là gap chưa code).
 
 ## 2. Response shape lỗi — thống nhất toàn app
 
@@ -28,7 +28,7 @@ Lỗi không lường trước           →  AllExceptionsFilter bắt, trả 5
 
 - **`5xx` (không lường trước)**: `AllExceptionsFilter` tự động `.error()` kèm stack trace. Không cần tự log lại ở service.
 - **`4xx` (lỗi nghiệp vụ dự kiến — 400/401/403/404/409...)**: **không log** ở tầng filter — đây là luồng bình thường (user nhập sai, chưa đăng nhập, trùng dữ liệu...), log ra sẽ tạo noise, khó tìm lỗi thật giữa hàng nghìn dòng "login failed vì sai password".
-- **Business event quan trọng** (đăng ký thành công, huỷ đơn, thanh toán...) — tự log ở service bằng `Logger` (`new Logger(ClassName.name)`, pattern đã có ở `AuthService`/`MailService`) ở mức `.log()`; audit trail chi tiết hơn (ai làm gì, lúc nào) nằm ngoài phạm vi convention này — xem `api-conventions.md` §16 khi cần.
+- **Business event quan trọng** (đăng ký thành công, huỷ đơn, thanh toán...) — tự log ở service bằng `Logger` (`new Logger(ClassName.name)`, pattern đã có ở `AuthService`/`MailService`) ở mức `.log()`; audit trail chi tiết hơn (ai làm gì, lúc nào) nằm ngoài phạm vi convention này — xem `api-rules.md` §A (§16) khi cần.
 - **Không log secret**: password, token thô (JWT, refresh token, reset-password code), `Authorization` header — không bao giờ đưa vào message log, kể cả lúc debug tạm thời.
 
 ## 4. Request-id — trace 1 request qua nhiều dòng log
@@ -50,7 +50,7 @@ Mỗi request HTTP được gắn 1 `requestId` (UUID) ngay từ `RequestIdMiddl
 
 ## 5. Khi nào tự ném exception ở service (không dựa vào filter)
 
-Không đổi so với `api-conventions.md` §B5: nếu domain error đã biết trước (trùng field unique, còn record con tham chiếu, sai business rule...), ném rõ ràng bằng `NotFoundException`/`ConflictException`/... **ở service**, kèm message cụ thể — không để rơi xuống `AllExceptionsFilter` (message Prisma generic, không nói rõ nghiệp vụ gì). Pre-check (unique, FK) vẫn không thay thế constraint ở DB — filter là lớp bảo vệ cuối cùng, không phải lớp duy nhất.
+Không đổi so với `api-rules.md` §R2: nếu domain error đã biết trước (trùng field unique, còn record con tham chiếu, sai business rule...), ném rõ ràng bằng `NotFoundException`/`ConflictException`/... **ở service**, kèm message cụ thể — không để rơi xuống `AllExceptionsFilter` (message Prisma generic, không nói rõ nghiệp vụ gì). Pre-check (unique, FK) vẫn không thay thế constraint ở DB — filter là lớp bảo vệ cuối cùng, không phải lớp duy nhất.
 
 ## 6. Khi nào tự `try/catch` trong service
 
