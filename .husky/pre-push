@@ -1,0 +1,16 @@
+branch=$(git rev-parse --abbrev-ref HEAD)
+
+case "$branch" in
+  main|dev|master)
+    echo "✖ Không push thẳng lên '$branch' — mở Pull Request (docs/convention/git-workflow.md)."
+    exit 1
+    ;;
+esac
+
+if ! echo "$branch" | grep -Eq '^(feature|fix|chore|docs|hotfix)/[a-z0-9]+(-[a-z0-9]+)*$'; then
+  echo "✖ Tên branch '$branch' sai quy ước: <feature|fix|chore|docs|hotfix>/kebab-case."
+  exit 1
+fi
+
+npm run typecheck
+npm run test

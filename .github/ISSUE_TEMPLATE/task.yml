@@ -1,0 +1,23 @@
+name: Task
+description: Việc kỹ thuật (refactor, chore, docs, CI) không đổi hành vi nghiệp vụ
+title: 'chore(<scope>): <mô tả ngắn>'
+labels: [task]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Mục tiêu
+    validations:
+      required: true
+  - type: textarea
+    id: todo
+    attributes:
+      label: Việc cần làm
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Xong khi

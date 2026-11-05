@@ -314,17 +314,32 @@ Co-Authored-By: Claude
 
 ---
 
-## 14. CI & Branch Protection — TODO (chưa thiết lập)
+## 14. Hook local, CI & Branch Protection
 
-> Hiện tại repo **chưa có** CI workflow (`.github/workflows`) và **chưa bật** Branch Protection trên GitHub cho `main`/`dev`. Mục này ghi lại **cấu hình mục tiêu** để thiết lập khi cần (ví dụ khi thêm CI hoặc khi có người khác cùng làm việc trên repo).
+### Hook local (husky)
 
-Khi thiết lập, khuyến nghị bật Branch Protection cho `main` và `dev`:
+| Hook         | Chạy                                                   | Chặn khi                                                                   |
+| ------------ | ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `pre-commit` | `lint-staged`: oxlint + prettier trên file đang staged | Lint lỗi                                                                   |
+| `commit-msg` | `commitlint` (`commitlint.config.mjs`)                 | Sai Conventional Commits, header > 100 ký tự, có AI attribution (mục 12)   |
+| `pre-push`   | Kiểm tra branch, `typecheck`, `test`                   | Push thẳng `main`/`dev`/`master`; tên branch sai mục 4; typecheck/test lỗi |
 
-**`main`**: Require Pull Request, Require approval, Require CI checks, Block force push, Block direct push.
+Node theo `.nvmrc` (`nvm use`).
 
-**`dev`**: Require Pull Request, Require CI checks, Block force push, Block direct push.
+### CI (`.github/workflows/`)
 
-Cho tới khi thiết lập xong, các quy tắc ở mục 6–8 (review, CI pass) mang tính khuyến nghị/tự giác, chưa được GitHub enforce.
+- `ci.yml` — chạy trên mọi PR và push vào `dev`/`main`: lint, typecheck, unit test + ngưỡng coverage (`vitest.config.ts`), e2e trên Postgres kèm kiểm tra schema ↔ migration drift, kiểm tra link markdown (lychee), build + Docker build.
+- `pr-title.yml` — tiêu đề PR phải theo Conventional Commits, vì Squash and Merge dùng nó làm commit message.
+
+Template: `.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/`.
+
+### Branch Protection (thiết lập thủ công trên GitHub)
+
+**`main`**: Require Pull Request, Require approval, Require status checks (`lint`, `typecheck`, `unit-test`, `e2e-test`, `docs-links`, `build`, `conventional-title`), Block force push.
+
+**`dev`**: Require Pull Request, Require status checks như trên, Block force push.
+
+Hook local có thể bị bỏ qua bằng `--no-verify`; Branch Protection mới là lớp chặn thật.
 
 ---
 

@@ -1,3 +1,4 @@
 {
+  "*.ts": ["oxlint", "prettier --write"],
   "*": "prettier --ignore-unknown --write"
 }
