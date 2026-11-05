@@ -1,0 +1,24 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "oxc.oxc-vscode",
+    "prisma.prisma",
+    "vitest.explorer",
+    "ryanluker.vscode-coverage-gutters",
+    "yoavbls.pretty-ts-errors",
+    "usernamehw.errorlens",
+    "eamodio.gitlens",
+    "github.vscode-github-actions",
+    "ms-azuretools.vscode-containers",
+    "cweijan.vscode-postgresql-client2",
+    "dotenv.dotenv-vscode",
+    "redhat.vscode-yaml",
+    "bierner.markdown-mermaid",
+    "davidanson.vscode-markdownlint",
+    "yzhang.markdown-all-in-one",
+    "streetsidesoftware.code-spell-checker",
+    "gruntfuggly.todo-tree",
+    "imgildev.vscode-nestjs-snippets-extension"
+  ],
+  "unwantedRecommendations": ["dbaeumer.vscode-eslint", "orta.vscode-jest"]
+}
