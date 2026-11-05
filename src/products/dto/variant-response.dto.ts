@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { VariantStatus } from '../../generated/prisma/enums.js';
+import { VariantStatus } from '#src/generated/prisma/enums.js';
 
 export class VariantResponseDto {
   @ApiProperty()

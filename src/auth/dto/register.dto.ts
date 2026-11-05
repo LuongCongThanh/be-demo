@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
-import { IsStrongPassword } from '../decorators/is-strong-password.decorator.js';
+import { IsStrongPassword } from '#src/auth/decorators/is-strong-password.decorator.js';
 
 export class RegisterDto {
   @ApiProperty({ example: 'user@example.com' })

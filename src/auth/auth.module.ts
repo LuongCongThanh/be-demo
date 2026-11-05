@@ -3,12 +3,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import type ms from 'ms';
-import { MailModule } from '../mail/mail.module.js';
-import { AuthController } from './auth.controller.js';
-import { AuthService } from './services/auth.service.js';
-import { PasswordService } from './services/password.service.js';
-import { TokenService } from './services/token.service.js';
-import { JwtStrategy } from './strategies/jwt.strategy.js';
+import { MailModule } from '#src/mail/mail.module.js';
+import { AuthController } from '#src/auth/auth.controller.js';
+import { AuthService } from '#src/auth/services/auth.service.js';
+import { PasswordService } from '#src/auth/services/password.service.js';
+import { TokenService } from '#src/auth/services/token.service.js';
+import { JwtStrategy } from '#src/auth/strategies/jwt.strategy.js';
 
 @Module({
   imports: [

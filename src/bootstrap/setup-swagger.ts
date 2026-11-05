@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule, getSchemaPath } from '@nestjs/swagger';
-import { API_TAGS } from '../common/swagger/api-tags.js';
-import { ErrorResponseDto } from '../common/swagger/error-response.dto.js';
+import { API_TAGS } from '#src/common/swagger/api-tags.js';
+import { ErrorResponseDto } from '#src/common/swagger/error-response.dto.js';
 
 /** UI ở `/docs`, spec JSON ở `/docs-json` (ADR 0002). */
 export const SWAGGER_PATH = 'docs';

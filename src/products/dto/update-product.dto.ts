@@ -1,8 +1,8 @@
 import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
-import { ProductStatus } from '../../generated/prisma/enums.js';
-import { CreateProductDto } from './create-product.dto.js';
+import { ProductStatus } from '#src/generated/prisma/enums.js';
+import { CreateProductDto } from '#src/products/dto/create-product.dto.js';
 
 export class UpdateProductDto extends PartialType(CreateProductDto) {
   // Override `name` thay vì để nguyên field @IsOptional() PartialType tự sinh —

@@ -20,17 +20,17 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { ApiErrorResponses } from '../common/swagger/api-error-responses.decorator.js';
-import { API_TAGS } from '../common/swagger/api-tags.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../auth/guards/roles.guard.js';
-import { Roles } from '../auth/decorators/roles.decorator.js';
-import { CategoriesService } from './categories.service.js';
-import { CreateCategoryDto } from './dto/create-category.dto.js';
-import { UpdateCategoryDto } from './dto/update-category.dto.js';
-import { PaginationDto } from '../common/pagination/pagination.dto.js';
-import { CategoryResponseDto } from './dto/category-response.dto.js';
-import { PaginatedCategoryResponseDto } from './dto/paginated-category-response.dto.js';
+import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
+import { API_TAGS } from '#src/common/swagger/api-tags.js';
+import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '#src/auth/guards/roles.guard.js';
+import { Roles } from '#src/auth/decorators/roles.decorator.js';
+import { CategoriesService } from '#src/categories/categories.service.js';
+import { CreateCategoryDto } from '#src/categories/dto/create-category.dto.js';
+import { UpdateCategoryDto } from '#src/categories/dto/update-category.dto.js';
+import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
+import { CategoryResponseDto } from '#src/categories/dto/category-response.dto.js';
+import { PaginatedCategoryResponseDto } from '#src/categories/dto/paginated-category-response.dto.js';
 
 @ApiTags(API_TAGS.CATEGORIES.name)
 @Controller('categories')

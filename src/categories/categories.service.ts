@@ -1,12 +1,12 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
-import { Prisma } from '../generated/prisma/client.js';
-import type { Category } from '../generated/prisma/client.js';
-import { writeUnique } from '../common/prisma-error.util.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateCategoryDto } from './dto/create-category.dto.js';
-import { PaginationDto } from '../common/pagination/pagination.dto.js';
-import { UpdateCategoryDto } from './dto/update-category.dto.js';
+import { Prisma } from '#src/generated/prisma/client.js';
+import type { Category } from '#src/generated/prisma/client.js';
+import { writeUnique } from '#src/common/prisma-error.util.js';
+import { PrismaService } from '#src/prisma/prisma.service.js';
+import { CreateCategoryDto } from '#src/categories/dto/create-category.dto.js';
+import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
+import { UpdateCategoryDto } from '#src/categories/dto/update-category.dto.js';
 
 @Injectable()
 export class CategoriesService {

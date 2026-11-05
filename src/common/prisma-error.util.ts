@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { Prisma } from '../generated/prisma/client.js';
+import { Prisma } from '#src/generated/prisma/client.js';
 
 // Prisma không type hoá `meta` theo error code — `target` chỉ tồn tại (và chỉ
 // là string[]) cho P2002. Tách helper này để cả AllExceptionsFilter và mọi

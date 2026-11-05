@@ -1,11 +1,12 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  // Resolves the path aliases declared in tsconfig.json, including the ones
-  // added by `nest g library` — native Vite option, replaces the
-  // vite-tsconfig-paths plugin.
+  // `#src/*` (package.json "imports") points at ./dist for Node at runtime.
+  // Tests must load ./src instead, otherwise they run against stale build
+  // output and NestJS DI sees two copies of the same class.
   resolve: {
-    tsconfigPaths: true,
+    alias: [{ find: /^#src\/(.*)$/, replacement: fileURLToPath(new URL('./src/$1', import.meta.url)) }],
   },
   test: {
     globals: true,

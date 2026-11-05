@@ -2,15 +2,15 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { PrismaModule } from './prisma/prisma.module.js';
-import { AuthModule } from './auth/auth.module.js';
-import { HealthModule } from './health/health.module.js';
-import { MetricsModule } from './metrics/metrics.module.js';
-import { CategoriesModule } from './categories/categories.module.js';
-import { validate } from './config/env.validation.js';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
-import { RequestIdMiddleware } from './common/request-id.middleware.js';
-import { ProductsModule } from './products/products.module.js';
+import { PrismaModule } from '#src/prisma/prisma.module.js';
+import { AuthModule } from '#src/auth/auth.module.js';
+import { HealthModule } from '#src/health/health.module.js';
+import { MetricsModule } from '#src/metrics/metrics.module.js';
+import { CategoriesModule } from '#src/categories/categories.module.js';
+import { validate } from '#src/config/env.validation.js';
+import { AllExceptionsFilter } from '#src/common/filters/all-exceptions.filter.js';
+import { RequestIdMiddleware } from '#src/common/request-id.middleware.js';
+import { ProductsModule } from '#src/products/products.module.js';
 
 @Module({
   imports: [

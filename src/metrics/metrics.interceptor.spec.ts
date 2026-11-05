@@ -1,7 +1,7 @@
 import { CallHandler, ExecutionContext } from '@nestjs/common';
 import { of } from 'rxjs';
-import { MetricsInterceptor } from './metrics.interceptor.js';
-import { MetricsService } from './metrics.service.js';
+import { MetricsInterceptor } from '#src/metrics/metrics.interceptor.js';
+import { MetricsService } from '#src/metrics/metrics.service.js';
 
 function createContext(request: object) {
   const listeners: Record<string, () => void> = {};

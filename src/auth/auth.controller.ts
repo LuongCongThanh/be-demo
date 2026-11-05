@@ -4,24 +4,24 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags
 import type { Request, Response } from 'express';
 import ms from 'ms';
 import { Throttle } from '@nestjs/throttler';
-import { EmailThrottlerGuard } from './guards/email-throttler.guard.js';
-import { ResendVerificationDto } from './dto/resend-verification.dto.js';
-import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
-import { ResetPasswordDto } from './dto/reset-password.dto.js';
-import { VerifyEmailDto } from './dto/verify-email.dto.js';
-import { LoginDto } from './dto/login.dto.js';
-import { LoginResponseDto } from './dto/login-response.dto.js';
-import { RefreshResponseDto } from './dto/refresh-response.dto.js';
-import { AuthUserResponseDto } from './dto/auth-user-response.dto.js';
-import { MessageResponseDto } from './dto/message-response.dto.js';
-import { ApiErrorResponses } from '../common/swagger/api-error-responses.decorator.js';
-import { API_TAGS } from '../common/swagger/api-tags.js';
-import { AuthService } from './services/auth.service.js';
-import { RegisterDto } from './dto/register.dto.js';
-import { RegisterResponseDto } from './dto/register-response.dto.js';
-import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
-import { CurrentUser } from './decorators/current-user.decorator.js';
-import type { JwtPayload } from './strategies/jwt.strategy.js';
+import { EmailThrottlerGuard } from '#src/auth/guards/email-throttler.guard.js';
+import { ResendVerificationDto } from '#src/auth/dto/resend-verification.dto.js';
+import { ForgotPasswordDto } from '#src/auth/dto/forgot-password.dto.js';
+import { ResetPasswordDto } from '#src/auth/dto/reset-password.dto.js';
+import { VerifyEmailDto } from '#src/auth/dto/verify-email.dto.js';
+import { LoginDto } from '#src/auth/dto/login.dto.js';
+import { LoginResponseDto } from '#src/auth/dto/login-response.dto.js';
+import { RefreshResponseDto } from '#src/auth/dto/refresh-response.dto.js';
+import { AuthUserResponseDto } from '#src/auth/dto/auth-user-response.dto.js';
+import { MessageResponseDto } from '#src/auth/dto/message-response.dto.js';
+import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
+import { API_TAGS } from '#src/common/swagger/api-tags.js';
+import { AuthService } from '#src/auth/services/auth.service.js';
+import { RegisterDto } from '#src/auth/dto/register.dto.js';
+import { RegisterResponseDto } from '#src/auth/dto/register-response.dto.js';
+import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
+import { CurrentUser } from '#src/auth/decorators/current-user.decorator.js';
+import type { JwtPayload } from '#src/auth/strategies/jwt.strategy.js';
 
 // Phải khớp đúng path prefix route auth thực tế của app (với API versioning,
 // route thật là '/api/v1/auth'). Dùng chung cho mọi nơi set/clear cookie

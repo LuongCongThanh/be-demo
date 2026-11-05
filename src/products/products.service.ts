@@ -1,14 +1,14 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
-import type { Product, ProductVariant } from '../generated/prisma/client.js';
-import { writeUnique } from '../common/prisma-error.util.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateProductDto } from './dto/create-product.dto.js';
-import { UpdateProductDto } from './dto/update-product.dto.js';
-import { ListProductsQueryDto } from './dto/list-products-query.dto.js';
-import { CreateVariantDto } from './dto/create-variant.dto.js';
-import { UpdateVariantDto } from './dto/update-variant.dto.js';
-import { PaginationDto } from '../common/pagination/pagination.dto.js';
+import type { Product, ProductVariant } from '#src/generated/prisma/client.js';
+import { writeUnique } from '#src/common/prisma-error.util.js';
+import { PrismaService } from '#src/prisma/prisma.service.js';
+import { CreateProductDto } from '#src/products/dto/create-product.dto.js';
+import { UpdateProductDto } from '#src/products/dto/update-product.dto.js';
+import { ListProductsQueryDto } from '#src/products/dto/list-products-query.dto.js';
+import { CreateVariantDto } from '#src/products/dto/create-variant.dto.js';
+import { UpdateVariantDto } from '#src/products/dto/update-variant.dto.js';
+import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 
 @Injectable()
 export class ProductsService {

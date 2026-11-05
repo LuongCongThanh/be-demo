@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { PrismaService } from '@src/prisma/prisma.service.js';
-import { PasswordService } from '@src/auth/services/password.service.js';
+import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PasswordService } from '#src/auth/services/password.service.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
 

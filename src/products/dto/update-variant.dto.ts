@@ -1,7 +1,7 @@
 import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength, Min, ValidateIf } from 'class-validator';
-import { VariantStatus } from '../../generated/prisma/enums.js';
-import { CreateVariantDto } from './create-variant.dto.js';
+import { VariantStatus } from '#src/generated/prisma/enums.js';
+import { CreateVariantDto } from '#src/products/dto/create-variant.dto.js';
 
 export class UpdateVariantDto extends PartialType(CreateVariantDto) {
   // Override `sku`/`price` thay vì để nguyên field @IsOptional() PartialType tự

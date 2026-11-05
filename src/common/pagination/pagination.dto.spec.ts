@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { PaginationDto } from './pagination.dto.js';
+import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 
 describe('PaginationDto', () => {
   it('defaults page to 1 and limit to 20 when omitted', () => {

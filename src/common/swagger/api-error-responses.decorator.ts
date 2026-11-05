@@ -1,6 +1,6 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
-import { ErrorResponseDto } from './error-response.dto.js';
+import { ErrorResponseDto } from '#src/common/swagger/error-response.dto.js';
 
 type ErrorStatus = 400 | 401 | 403 | 404 | 409;
 

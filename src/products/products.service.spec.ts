@@ -1,8 +1,8 @@
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProductsService } from './products.service.js';
-import { PrismaService } from '../prisma/prisma.service.js';
+import { ProductsService } from '#src/products/products.service.js';
+import { PrismaService } from '#src/prisma/prisma.service.js';
 
 describe('ProductsService', () => {
   let service: ProductsService;

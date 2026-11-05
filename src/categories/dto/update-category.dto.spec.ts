@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { UpdateCategoryDto } from './update-category.dto.js';
+import { UpdateCategoryDto } from '#src/categories/dto/update-category.dto.js';
 
 describe('UpdateCategoryDto', () => {
   it('passes validation when name is omitted (all fields optional via PartialType)', async () => {

@@ -1,8 +1,8 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { Response } from 'express';
-import { Prisma } from '../../generated/prisma/client.js';
-import { getUniqueConstraintTarget } from '../prisma-error.util.js';
-import { RequestContext } from '../request-context.js';
+import { Prisma } from '#src/generated/prisma/client.js';
+import { getUniqueConstraintTarget } from '#src/common/prisma-error.util.js';
+import { RequestContext } from '#src/common/request-context.js';
 
 interface ResolvedError {
   status: number;
