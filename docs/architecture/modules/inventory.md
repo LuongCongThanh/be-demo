@@ -31,7 +31,7 @@ Mọi hàm nhận `tx` của module gọi; khoá `inventory_levels` theo `varian
 | `releaseReservation(orderId, tx)` | T4, T5 |
 | `returnAwaitingDispatch(orderId, tx)` | T7, T9 (BR-INV-07) |
 | `clearAwaitingDispatch(orderId, tx)` | T10 |
-| `restockReturned(orderId | returnId, lines, tx)` | Staff xác nhận hàng về Kho (BR-INV-08): theo `orderId` (Hoàn hàng T12) → movement `return_to_sender`; theo `returnId` (Đổi trả) → movement `return_restock` |
+| `restockReturned(orderId | returnId, lines, tx)` | Staff xác nhận hàng về Kho (BR-INV-08): theo `orderId` (Hoàn hàng T12) → movement `return_to_sender`; theo `returnId` (Đổi trả, gọi khi Staff `decide`, không phải khi `receive`) → movement `return_restock` |
 
 ## 4. API
 

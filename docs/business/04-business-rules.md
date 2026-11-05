@@ -148,10 +148,10 @@
 ### Làm tròn Hoàn tiền khi Đổi trả nhiều lần (BR-RET-07)
 
 - Với mỗi Dòng đơn hàng, gọi `N = unit_price * quantity - voucher_discount` là số tiền hàng thực trả, `q = quantity`. Số tiền hoàn lũy kế cho `k` sản phẩm được chấp nhận là `F(k) = (N * k) // q`, với `F(0) = 0`.
-- Nếu đã chấp nhận `k` sản phẩm ở các yêu cầu trước, lần này chấp nhận thêm `n` thì số hoàn của dòng là `F(k + n) - F(k)`. Tính `k` từ các yêu cầu `accepted` hoặc `refunded`, kể cả khoản hoàn còn chờ Staff xử lý; không tính yêu cầu bị từ chối hoặc số lượng không được chấp nhận. Khoá Order khi tính và chấp nhận để hai yêu cầu không dùng cùng một mốc `k`.
+- Nếu đã chấp nhận `k` sản phẩm ở các yêu cầu trước, lần này chấp nhận thêm `n` thì số hoàn của dòng là `F(k + n) - F(k)`. Tính `k` từ các yêu cầu `accepted` (đã hoặc chưa hoàn tiền), kể cả khoản hoàn còn chờ Staff xử lý; không tính yêu cầu bị từ chối hoặc số lượng không được chấp nhận. Khoá Order khi tính và chấp nhận để hai yêu cầu không dùng cùng một mốc `k`.
 - Tiền hoàn của yêu cầu là tổng số hoàn các dòng. Phần lẻ được bù theo số lượng lũy kế; khi trả hết dòng, `F(q) = N`, nên tổng các lần hoàn bằng đúng số tiền hàng thực trả. Không tính lại Voucher và không hoàn Phí ship trong Đổi trả.
 - Ví dụ: dòng 3 sản phẩm × 100đ, được phân bổ Voucher 1đ → `N = 299đ`. Trả lần lượt từng sản phẩm thì hoàn 99đ, 100đ, 100đ; tổng 299đ. Một lần trả cả 3 cũng hoàn 299đ.
-- Nếu có sản phẩm được chấp nhận nhưng tổng tiền hoàn của yêu cầu bằng 0 (do Voucher hoặc làm tròn), vẫn xử lý nhập lại Tồn kho theo lựa chọn của Staff và khép lại yêu cầu ở `refunded`, không tạo Hoàn tiền 0đ hay gọi Cổng thanh toán. `refunded` trong trường hợp này nghĩa là đã xử lý xong và không còn tiền phải hoàn. Không có sản phẩm nào được chấp nhận thì vẫn là `rejected` theo BR-RET-08.
+- Nếu có sản phẩm được chấp nhận nhưng tổng tiền hoàn của yêu cầu bằng 0 (do Voucher hoặc làm tròn), vẫn xử lý nhập lại Tồn kho theo lựa chọn của Staff và khép lại yêu cầu ở `accepted`, không tạo Hoàn tiền 0đ hay gọi Cổng thanh toán. Yêu cầu `accepted` không có Hoàn tiền nào ở trạng thái `requested` được coi là đã xử lý xong (không còn "đang mở"). Không có sản phẩm nào được chấp nhận thì vẫn là `rejected` theo BR-RET-08.
 
 ## 10. Thông báo
 

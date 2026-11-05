@@ -27,7 +27,7 @@ Phiên 30 phút của Khách vãng lai (`guest_order_sessions`) thuộc `identit
 
 Trạng thái và chuyển T1–T14 theo [`05-order-lifecycle.md`](../../business/05-order-lifecycle.md) §1–3. Cài đặt:
 
-- Một bảng chuyển trạng thái khai báo duy nhất trong code: `(from, to, transitionId, allowedActors, guard)`. **Mọi cặp không có trong bảng bị từ chối** (`409 INVALID_ORDER_TRANSITION`).
+- Một bảng chuyển trạng thái khai báo duy nhất trong code: `(from, to, transitionId, allowedActors, guard)`. **Mọi cặp không có trong bảng bị từ chối** (`409 INVALID_TRANSITION`).
 - Mỗi chuyển chạy trong một transaction: khoá dòng Order `FOR UPDATE` → kiểm tra `status` hiện tại và guard → `UPDATE orders SET status=:to WHERE id=:id AND status=:from` → tác động kèm theo (Tồn kho, Voucher, Hoàn tiền, khoản thu COD) → ghi history + outbox event `ordering.<transition>`.
 - Actor: `customer`/`guest` (T5, T7 trước `PACKING`), `staff` (T6–T9, T14; lý do bắt buộc với T7-bởi-Staff, T9, T14), `system` (T3, T4, T10–T13).
 - Trạng thái cuối `COMPLETED`, `CANCELLED`, `RETURNED_TO_SENDER` không có chuyển ra.
@@ -142,7 +142,7 @@ Thuật toán ở `business/04-business-rules.md` §5 ("Phân bổ Voucher về 
 | §4.1 Tiền về cho đơn không còn chờ thanh toán | `payments` gọi `ordering.onPaymentSucceeded`; xử lý theo [04-data-consistency](../04-data-consistency.md) §3; phát `ordering.unexpected-payment-received` |
 | §4.2 Thông báo không theo thứ tự | `ordering` chỉ áp dụng chuyển hợp lệ từ trạng thái hiện tại; trùng/đã qua → bỏ qua; tới sớm → `fulfillment` giữ lại và retry ([../07-async-events-jobs.md](../07-async-events-jobs.md) mục 1.3); mâu thuẫn → log |
 | §4.3 Huỷ khi Đang giao | Bảng chuyển chỉ cho T14 từ `SHIPPING` |
-| §4.4 Đổi trả | Không đổi `orders.status`; guard T13 hỏi `refunds-returns.hasOpen(orderId)` |
+| §4.4 Đổi trả | Không đổi `orders.status`; guard T13 hỏi `refunds-returns.hasOpen(orderId)` (đang mở = `recorded`/`received`, hoặc `accepted` còn Hoàn tiền `requested`) |
 | §4.5 Huỷ khi Vận đơn đang tạo | Guard T9; Vận đơn tạo xong cho đơn `CANCELLED` → `fulfillment` tự huỷ Vận đơn + Cờ |
 | §4.6 Sai số tiền | `payments` không gọi T3; tạo Hoàn tiền + Cờ `amount_mismatch` trên đơn |
 | §4.7 Vận đơn gặp sự cố | Cờ `shipment_exception`; Staff gỡ cờ hoặc T14 |

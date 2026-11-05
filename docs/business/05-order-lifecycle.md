@@ -85,7 +85,7 @@ Cách xử lý chung (BR-PAY-05):
 2. Hệ thống tự tạo **yêu cầu Hoàn tiền** cho khoản tiền đó và gắn Cờ cần xử lý cho Staff.
 3. Gửi email cho Người mua báo tiền sẽ được hoàn, qua sự kiện `ordering.unexpected-payment-received` ([07-async-events-jobs.md](../architecture/07-async-events-jobs.md) mục 2). Với đơn đã huỷ, email báo thêm đơn đã hết hạn.
 
-Hoàn tiền gắn đúng Thanh toán từ thông báo, có định danh thao tác ổn định để xử lý lại không tạo thêm yêu cầu (BR-REF-06). Thông báo lặp của chính Thanh toán đã dùng để đưa đơn vào `PLACED` chỉ bị bỏ qua; không coi là khoản trả thêm.
+Hoàn tiền gắn đúng Thanh toán từ thông báo, mỗi thao tác được định danh bằng khoá duy nhất `(payment_id, reason, return_id)` nên xử lý lại không tạo thêm yêu cầu (BR-REF-06). Thông báo lặp của chính Thanh toán đã dùng để đưa đơn vào `PLACED` chỉ bị bỏ qua; không coi là khoản trả thêm.
 
 ### 4.2. Thông báo tới không theo thứ tự
 
@@ -101,19 +101,19 @@ Các thông báo từ Cổng thanh toán và GHN có thể tới trễ hoặc l�
 
 ### 4.4. Đổi trả sau khi Đã giao
 
-Yêu cầu Đổi trả **không** đổi trạng thái của Đơn hàng. Nó được theo dõi như một yêu cầu riêng gắn với đơn, có vòng đời riêng: Đã ghi nhận → Đã nhận hàng → Chấp nhận / Từ chối → Đã hoàn tiền.
+Yêu cầu Đổi trả **không** đổi trạng thái của Đơn hàng. Nó được theo dõi như một yêu cầu riêng gắn với đơn, có vòng đời riêng: Đã ghi nhận (`recorded`) → Đã nhận hàng (`received`) → Chấp nhận (`accepted`) / Từ chối (`rejected`). "Đã hoàn tiền" không phải trạng thái của yêu cầu mà suy ra từ Hoàn tiền gắn với nó.
 
 - **Đã nhận hàng**: Staff xác nhận hàng gửi trả đã về Kho. Tồn kho **chưa** được cộng lại ở bước này.
 - **Chấp nhận / Từ chối**: Staff quyết định theo từng dòng, nhập số lượng được chấp nhận và chọn nhập lại Tồn kho hay không (BR-RET-08). Chỉ phần được chấp nhận và chọn nhập lại mới cộng lại Tồn kho (BR-INV-08). Không dòng nào được chấp nhận thì yêu cầu bị Từ chối; hàng không được chấp nhận được gửi lại cho Người mua (BR-RET-09).
-- **Đã hoàn tiền**: khi Chấp nhận, hệ thống tính số hoàn lũy kế theo BR-RET-07; nếu tổng > 0 thì tạo yêu cầu Hoàn tiền và gắn nó với yêu cầu Đổi trả. Yêu cầu chuyển sang Đã hoàn tiền khi Staff ghi nhận đúng Hoàn tiền đó. Nếu có hàng được chấp nhận nhưng tổng số hoàn bằng 0 do Voucher hoặc làm tròn, hệ thống xử lý nhập kho theo lựa chọn rồi chuyển thẳng sang Đã hoàn tiền, không tạo Hoàn tiền 0đ; không còn nghĩa vụ hoàn tiền cho yêu cầu này.
+- **Đã hoàn tiền**: khi Chấp nhận, hệ thống tính số hoàn lũy kế theo BR-RET-07; nếu tổng > 0 thì tạo yêu cầu Hoàn tiền và gắn nó với yêu cầu Đổi trả. Yêu cầu được coi là Đã hoàn tiền khi Staff ghi nhận đúng Hoàn tiền đó. Nếu có hàng được chấp nhận nhưng tổng số hoàn bằng 0 do Voucher hoặc làm tròn, hệ thống xử lý nhập kho theo lựa chọn, không tạo Hoàn tiền 0đ và coi yêu cầu như Đã hoàn tiền; không còn nghĩa vụ hoàn tiền cho yêu cầu này.
 
-Yêu cầu Đổi trả **đang mở** là yêu cầu chưa bị Từ chối và chưa Đã hoàn tiền. Khi còn yêu cầu đang mở, đơn chưa chuyển sang `COMPLETED` (T13), kể cả khi đã hết hạn Đổi trả.
+Yêu cầu Đổi trả **đang mở** là yêu cầu chưa bị Từ chối và chưa Đã hoàn tiền: đang ở `recorded`/`received`, hoặc `accepted` mà Hoàn tiền gắn với nó vẫn còn chờ Staff ghi nhận. Khi còn yêu cầu đang mở, đơn chưa chuyển sang `COMPLETED` (T13), kể cả khi đã hết hạn Đổi trả.
 
 ### 4.5. Staff huỷ đơn khi Vận đơn đang được tạo
 
 Sau khi Staff bàn giao, việc tạo Vận đơn ở GHN chạy nền nên đơn vẫn ở `PACKING` trong lúc chờ. Nếu Staff huỷ đúng lúc này (T9) mà GHN vẫn tạo xong Vận đơn, shipper sẽ tới lấy hàng của một đơn đã huỷ. Vì vậy:
 
-1. T9 bị **từ chối** khi Vận đơn requested hoặc creation_unknown (chưa biết GHN đã tạo hay chưa). Staff chờ đối soát có kết quả chắc chắn rồi mới huỷ hoặc bàn giao lại; timeout không có nghĩa tạo thất bại.
+1. T9 bị **từ chối** khi Vận đơn đang ở `creating` hoặc `creation_unknown` (timeout khi gọi GHN, chưa biết GHN đã tạo hay chưa). Staff chờ đối soát có kết quả chắc chắn rồi mới huỷ hoặc bàn giao lại; timeout không có nghĩa tạo thất bại.
 2. Nếu vẫn xảy ra (GHN báo tạo xong Vận đơn khi đơn đã `CANCELLED`), hệ thống tự yêu cầu GHN huỷ Vận đơn đó và gắn Cờ cần xử lý cho Staff kiểm tra.
 
 ### 4.6. Tiền về sai số tiền

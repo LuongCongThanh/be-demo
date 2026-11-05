@@ -8,10 +8,10 @@
 |---|---|---|
 | `identity` | Đăng ký, đăng nhập email/Google, xác thực email, quên mật khẩu, phiên, Tài khoản Staff/Admin (Admin chỉ tạo bằng `npm run cli -- create-admin`), vai trò | E5, US-1001, ADR 0005 — [modules/identity.md](./modules/identity.md) |
 | `catalog` | Danh mục nhiều cấp, Sản phẩm, Biến thể size×màu, danh sách size, bảng màu, ảnh theo màu, tìm kiếm/lọc | BR-CAT-*, E1, E8, ADR 0001 — [modules/catalog.md](./modules/catalog.md) |
-| `pricing` | Giá khuyến mãi, Voucher, lượt dùng Voucher, phân bổ Voucher | BR-PRC-*, BR-VCH-*, E9 — [modules/pricing.md](./modules/pricing.md) |
+| `pricing` | Giá khuyến mãi, Voucher, lượt dùng Voucher | BR-PRC-*, BR-VCH-*, E9 — [modules/pricing.md](./modules/pricing.md) |
 | `cart` | Giỏ Khách hàng và Khách vãng lai, gộp giỏ | BR-CRT-*, E2, ADR 0009 — [modules/cart.md](./modules/cart.md) |
 | `inventory` | Tồn kho theo Biến thể × Kho, Giữ hàng, Hàng chờ xuất, nhập/điều chỉnh, Kiểm kê, sổ biến động | BR-INV-*, E7, ADR 0003, ADR 0010 — [modules/inventory.md](./modules/inventory.md) |
-| `ordering` | Tính thử, checkout, Đơn hàng, state machine, huỷ, tra cứu đơn Khách vãng lai | BR-ORD-*, E3, E4, E6, ADR 0011–0013 — [modules/ordering.md](./modules/ordering.md) |
+| `ordering` | Tính thử, checkout, phân bổ Voucher vào dòng đơn (ADR 0012), Đơn hàng, state machine, huỷ, tra cứu đơn Khách vãng lai | BR-ORD-*, E3, E4, E6, ADR 0011–0013 — [modules/ordering.md](./modules/ordering.md) |
 | `payments` | Thanh toán COD/online, adapter VNPay/MoMo, IPN, Đối soát | BR-PAY-*, ADR 0004 |
 | `refunds-returns` | Yêu cầu Hoàn tiền, ghi nhận Hoàn tiền thủ công, Đổi trả | BR-REF-*, BR-RET-*, ADR 0006 |
 | `fulfillment` | Phí ship, Vận đơn GHN, webhook và đối soát trạng thái giao, ánh xạ địa chỉ | BR-SHP-*, US-1004 |

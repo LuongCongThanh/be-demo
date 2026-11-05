@@ -23,7 +23,7 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.8](../11-database
 |---|---|---|
 | `requestFullRefund(tx, orderId, reason)` (`reason` = `order_cancelled`/`returned_to_sender`) | `ordering` (T7, T9, T12, T14) | Chỉ khi đơn online đã có Thanh toán captured; số tiền = Tổng tiền đơn (BR-REF-05) |
 | `requestRefund(tx, paymentId, amount, reason, returnId?)` | `payments` (BR-PAY-04/05, `reason` = `amount_mismatch`/`unexpected_payment`), chính module khi Đổi trả (`return_accepted`) | Đúng số tiền đã nhận |
-| `hasOpen(orderId)` | `ordering` (guard T13) | Đổi trả **đang mở** = `returns.status = 'open'`, hoặc `accepted` mà còn `refunds` `requested` gắn `return_id` đó |
+| `hasOpen(orderId)` | `ordering` (guard T13) | Đổi trả **đang mở** = `returns.status IN ('recorded','received')`, hoặc `accepted` mà còn `refunds` `requested` gắn `return_id` đó (business/05 §4.4) |
 
 Ràng buộc tổng (BR-REF-06) kiểm tra trong transaction có khoá dòng `payments` (hoặc `cod_collections`): `SUM(refunds.amount WHERE status IN ('requested','refunded')) + amount <= amount_captured` (COD: `cod_collections.amount`); UK `(payment_id, reason, return_id)` (NULLS NOT DISTINCT) làm việc xử lý lại idempotent — insert trùng → coi như đã tạo ([`../04-data-consistency.md`](../04-data-consistency.md)).
 
@@ -33,8 +33,9 @@ Ràng buộc tổng (BR-REF-06) kiểm tra trong transaction có khoá dòng `pa
 |---|---|---|---|
 | `GET` | `/admin/refunds?status=requested&reason=` | staff | Danh sách chờ xử lý, gồm yêu cầu tự tạo (US-608) |
 | `POST` | `/admin/refunds/:id/record` | staff | `{ gatewayRefundRef, refundedAt }` → `refunded`, ghi `gateway_refund_ref`, `recorded_by` (US-605, BR-REF-03) |
-| `POST` | `/admin/orders/:id/returns` | staff | Ghi nhận Đổi trả (`open`, `requested_at`, `channel`): dòng + `quantity_returned`. Từ chối nếu quá 7×24h từ `delivered_at` (BR-RET-01) hoặc dòng có Giá khuyến mãi giảm > 50% (BR-RET-03) |
-| `POST` | `/admin/returns/:id/decide` | staff | Sau khi hàng đã về Kho; theo từng dòng: `quantityAccepted`, `restock` (BR-RET-08) → `accepted`/`rejected`, ghi `decided_by`, `decided_at` |
+| `POST` | `/admin/orders/:id/returns` | staff | Ghi nhận Đổi trả (`recorded`, `requested_at`, `channel`): dòng + `quantity_returned`. Từ chối nếu quá 7×24h từ `delivered_at` (BR-RET-01) hoặc dòng có Giá khuyến mãi giảm > 50% (BR-RET-03) |
+| `POST` | `/admin/returns/:id/receive` | staff | `recorded` → `received`: xác nhận hàng gửi trả đã về Kho, ghi `received_by`, `received_at`. **Chưa** cộng Tồn kho (business/05 §4.4) |
+| `POST` | `/admin/returns/:id/decide` | staff | Chỉ từ `received`; theo từng dòng: `quantityAccepted`, `restock` (BR-RET-08) → `accepted`/`rejected`, ghi `decided_by`, `decided_at` |
 | `PATCH` | `/admin/returns/:id/notes` | staff | Ghi chú gửi lại hàng (BR-RET-09) |
 
 ## 5. Luồng
@@ -43,14 +44,15 @@ Ràng buộc tổng (BR-REF-06) kiểm tra trong transaction có khoá dòng `pa
 
 ```mermaid
 stateDiagram-v2
-    [*] --> open: Staff ghi nhận (trong 7 ngày)
-    open --> rejected: Hàng về Kho, không dòng nào được chấp nhận
-    open --> accepted: Hàng về Kho, ≥ 1 sản phẩm được chấp nhận
+    [*] --> recorded: Staff ghi nhận (trong 7 ngày)
+    recorded --> received: Hàng gửi trả về Kho (/receive)
+    received --> rejected: Không dòng nào được chấp nhận
+    received --> accepted: ≥ 1 sản phẩm được chấp nhận
     rejected --> [*]
     accepted --> [*]
 ```
 
-Schema chỉ có `open`/`accepted`/`rejected`: bước "Đã nhận hàng" không lưu trạng thái riêng (Staff chỉ `decide` khi hàng đã về Kho), "Đã hoàn tiền" suy ra từ `refunds.status = 'refunded'` gắn `return_id` (hoặc số hoàn = 0). Khi `decide`, trong một transaction khoá dòng Order:
+`returns.status` = `recorded` → `received` → `accepted` | `rejected`. "Đã hoàn tiền" không phải trạng thái: suy ra từ `refunds.status = 'refunded'` gắn `return_id` (hoặc số hoàn = 0). `receive` chỉ đổi trạng thái (conditional update `WHERE status = 'recorded'`), không đụng Tồn kho. Khi `decide` (`WHERE status = 'received'`), trong một transaction khoá dòng Order:
 
 1. Với mỗi dòng, `k` = tổng `quantity_accepted` của các `returns` `accepted` trước đó; `N = unit_price × quantity − voucher_discount`; số hoàn dòng = `F(k + n) − F(k)` với `F(x) = (N × x) // quantity` (BR-RET-07 "Làm tròn…"). Không hoàn Phí ship, không tính lại Voucher.
 2. Gọi `inventory.restockReturned(returnId, …)` cho phần `restock = true` (movement `return_restock`, BR-INV-08); lưu `return_items.refund_amount`.

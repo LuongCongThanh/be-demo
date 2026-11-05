@@ -19,7 +19,8 @@ PostgreSQL, 49 bảng chia theo module (xem [`architecture/02-modules.md`](./02-
 | fulfillment | `provinces`, `wards`, `ghn_ward_mappings`, `shipments`, `shipment_events` |
 | notifications | `outbox_events`, `email_logs` |
 | compliance | `consents`, `data_erasure_requests`, `data_access_logs` |
-| admin-config | `settings` |
+| admin-config | `settings`, `audit_logs` |
+| hạ tầng dùng chung | `idempotency_keys` |
 
 ---
 
@@ -576,28 +577,13 @@ Cờ cần xử lý cho Staff.
 |---|---|---|---|
 | id | uuid | PK | |
 | order_id | uuid | FK → orders RESTRICT, NN | |
-| type | enum `shipping_fee_fallback`/`amount_mismatch`/`unexpected_payment`/`shipment_creation_failed`/`shipment_exception`/`out_of_order_event` | NN | BR-SHP-02, BR-PAY-04, BR-PAY-05, BR-SHP-05, BR-SHP-08 |
+| type | enum `shipping_fee_fallback`/`amount_mismatch`/`unexpected_payment`/`shipment_creation_failed`/`shipment_exception` | NN | BR-SHP-02, BR-PAY-04, BR-PAY-05, BR-SHP-05, BR-SHP-08 |
 | details | jsonb | | |
 | resolved_at | timestamptz | | |
 | resolved_by | uuid | FK → users | |
 | created_at | timestamptz | NN | |
 
 Partial IX `(created_at) WHERE resolved_at IS NULL` cho danh sách cần xử lý.
-
-#### `idempotency_keys`
-
-| Cột | Kiểu | Ràng buộc | Ghi chú |
-|---|---|---|---|
-| id | uuid | PK | |
-| scope | text | NN | ví dụ `checkout.place-order`, `payments.create-link` |
-| key | text | NN | header `Idempotency-Key` ([03-api.md](./03-api.md)) |
-| request_hash | text | NN | cùng key khác body → `409` |
-| response_status | int | | |
-| response_body | jsonb | | |
-| expires_at | timestamptz | NN | |
-| created_at | timestamptz | NN | |
-
-UK `(scope, key)`.
 
 ### 4.7. Payments
 
@@ -678,15 +664,15 @@ CHECK đúng một trong `payment_id`/`cod_collection_id`. UK `(payment_id, reas
 |---|---|---|---|
 | id | uuid | PK | |
 | order_id | uuid | FK → orders RESTRICT, NN, IX | |
-| status | enum `open`/`accepted`/`rejected` | NN | BR-RET-08 |
+| status | enum `recorded`/`received`/`accepted`/`rejected` | NN | business/05 §4.4, BR-RET-08; "Đã hoàn tiền" suy ra từ `refunds` |
 | requested_at | timestamptz | NN | trong 7 ngày từ `delivered_at` (BR-RET-01) |
 | channel | enum `hotline`/`zalo` | NN | |
 | return_shipping_paid_by | enum `store`/`buyer` | | BR-RET-06 |
 | notes | text | | gửi lại hàng không chấp nhận (BR-RET-09) |
-| created_by, decided_by | uuid | FK → users | |
-| decided_at | timestamptz | | |
+| created_by, received_by, decided_by | uuid | FK → users | |
+| received_at, decided_at | timestamptz | | |
 
-Partial IX `(order_id) WHERE status = 'open'` để chặn T13.
+Partial IX `(order_id) WHERE status IN ('recorded','received')` cho guard T13. Đổi trả **đang mở** còn gồm `accepted` có `refunds` `requested` gắn `return_id` (tra qua `refunds`).
 
 #### `return_items`
 
@@ -802,6 +788,8 @@ Partial IX `(next_attempt_at) WHERE status IN ('pending','enqueued')`.
 | sent_at | timestamptz | | |
 | created_at | timestamptz | NN, IX | |
 
+UK `(outbox_event_id, template)` → một sự kiện chỉ sinh một email mỗi template (chống gửi trùng).
+
 ### 4.11. Compliance
 
 #### `consents`
@@ -868,6 +856,25 @@ US-1002. Giá trị cấu hình được: hạn mức COD (BR-PAY-06), Phí ship
 
 ---
 
+### 4.13. Hạ tầng dùng chung
+
+#### `idempotency_keys`
+
+Hạ tầng dùng chung ([02-modules.md](./02-modules.md) §2), không thuộc riêng module nào.
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| scope | text | NN | ví dụ `checkout.place-order`, `payments.create-link` |
+| key | text | NN | header `Idempotency-Key` ([03-api.md](./03-api.md)) |
+| request_hash | text | NN | cùng key khác body → `409` |
+| response_status | int | | |
+| response_body | jsonb | | |
+| expires_at | timestamptz | NN | |
+| created_at | timestamptz | NN | |
+
+UK `(scope, key)`.
+
 ## 5. Ràng buộc toàn vẹn & concurrency
 
 Chi tiết cơ chế (transaction, khoá, thứ tự khoá, cuộc đua thanh toán–hết hạn) ở [`architecture/04-data-consistency.md`](./04-data-consistency.md). Tóm tắt những gì database tự đảm bảo:
@@ -891,6 +898,7 @@ Chi tiết cơ chế (transaction, khoá, thứ tự khoá, cuộc đua thanh to
 | `sale_prices` EXCLUDE theo khoảng thời gian | BR-PRC-02 |
 | `payment_notifications(gateway, dedup_key)`, `shipment_events(shipment_id, dedup_key)` | xử lý thông báo một lần (BR-PAY-03) |
 | `idempotency_keys(scope, key)` | retry không tạo đơn/link trùng |
+| `email_logs(outbox_event_id, template)` | chống gửi trùng một email cho một sự kiện |
 
 ### 5.3. Bất biến kiểm tra ở service (trong transaction có khoá)
 

@@ -60,7 +60,7 @@ sequenceDiagram
     end
 ```
 
-Chống gửi trùng: BullMQ `jobId = event_id` + kiểm tra `email_logs` theo `(outbox_event_id, template)` trước khi gửi (schema không có UK trên `email_logs`). `outbox done` chỉ đặt **sau** khi email đã gửi hoặc đã kết luận (ADR 0007).
+Chống gửi trùng: BullMQ `jobId = event_id` + UK `(outbox_event_id, template)` trên `email_logs`. `outbox done` chỉ đặt **sau** khi email đã gửi hoặc đã kết luận (ADR 0007).
 
 ## 5. API
 

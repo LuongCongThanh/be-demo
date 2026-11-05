@@ -84,7 +84,7 @@ flowchart LR
 
 ### 3.2. Nhật ký email (`email_logs`)
 
-Mỗi email có một bản ghi `email_logs`: `outbox_event_id`, `order_id`, `template`, `locale`, `recipient`, `amount`, `status` (`sent`, `failed`, `cancelled`), `attempts`, `last_error`, `sent_at`. Chống gửi trùng: BullMQ `jobId = event_id` + consumer kiểm tra đã có dòng `sent` cho `(outbox_event_id, template)` trước khi gửi (schema không đặt UK).
+Mỗi email có một bản ghi `email_logs`: `outbox_event_id`, `order_id`, `template`, `locale`, `recipient`, `amount`, `status` (`sent`, `failed`, `cancelled`), `attempts`, `last_error`, `sent_at`. Chống gửi trùng: BullMQ `jobId = event_id` + UK `(outbox_event_id, template)` trên `email_logs`.
 
 - `cancelled`: email không còn đúng lúc gửi (vd. đơn đã đổi trạng thái trước khi worker chạy).
 - Sau **90 ngày** kể từ trạng thái cuối, job dọn dẹp **đặt `recipient`, `amount` = null**, giữ phần còn lại để thống kê (business/06 mục 5).
