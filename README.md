@@ -84,11 +84,11 @@ be-demo/
 └── prisma7.config.ts
 ```
 
-`src/` đang được tái cấu trúc sang `src/modules/<module>/` + `src/infrastructure/`. Cấu trúc mục tiêu nằm trong `docs/architecture/02-modules.md` §4.
+`src/` đang được tái cấu trúc sang `src/modules/<module>/` + `src/infrastructure/`. Cấu trúc mục tiêu nằm trong [`docs/architecture/02-modules.md` §4](docs/architecture/02-modules.md#4-cấu-trúc-thư-mục-mục-tiêu).
 
 ## Tài liệu
 
-Mục lục ở `docs/README.md`. Thứ tự đọc: `docs/business/` (nghiệp vụ, nguồn ưu tiên) → `GLOSSARY.md` → `docs/architecture/` → `docs/adr/` → [`docs/convention/`](docs/convention/).
+Mục lục ở [`docs/README.md`](docs/README.md). Thứ tự đọc: [`docs/business/`](docs/business/) (nghiệp vụ, nguồn ưu tiên) → [`GLOSSARY.md`](GLOSSARY.md) → [`docs/architecture/`](docs/architecture/) → [`docs/adr/`](docs/adr/) → [`docs/convention/`](docs/convention/).
 
 ## Quy trình đóng góp
 
