@@ -1,0 +1,39 @@
+name: Feature request
+description: Tính năng mới hoặc thay đổi nghiệp vụ
+title: 'feat(<module>): <mô tả ngắn>'
+labels: [enhancement, needs-triage]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User story
+      placeholder: Là <vai trò>, tôi muốn <hành động> để <lợi ích>.
+    validations:
+      required: true
+  - type: input
+    id: refs
+    attributes:
+      label: Liên kết nghiệp vụ
+      placeholder: US-xxx, BR-xxx, ADR xxxx
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Tiêu chí chấp nhận
+      placeholder: |
+        - [ ] Khi ..., thì ...
+        - [ ] Trường hợp lỗi: ...
+    validations:
+      required: true
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Ảnh hưởng dự kiến
+      options:
+        - label: Đổi schema / cần migration
+        - label: Đổi hợp đồng API
+        - label: Tích hợp bên ngoài (VNPay, MoMo, GHN, email)
+        - label: Cần cập nhật docs/business hoặc ADR
+  - type: textarea
+    id: notes
+    attributes:
+      label: Ghi chú / ngoài phạm vi
