@@ -1,7 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtStrategy } from './jwt.strategy.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { JwtStrategy } from '#src/auth/strategies/jwt.strategy.js';
+import { PrismaService } from '#src/prisma/prisma.service.js';
 
 function createStrategy(userAuthorizationVersion: number | null) {
   const config = { getOrThrow: () => 'test-secret' } as unknown as ConfigService;

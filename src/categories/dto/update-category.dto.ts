@@ -1,7 +1,7 @@
 import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, MaxLength, ValidateIf } from 'class-validator';
-import { CreateCategoryDto } from './create-category.dto.js';
+import { CreateCategoryDto } from '#src/categories/dto/create-category.dto.js';
 
 export class UpdateCategoryDto extends PartialType(CreateCategoryDto) {
   // Override `name` thay vì để nguyên field @IsOptional() PartialType tự sinh:

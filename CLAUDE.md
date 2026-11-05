@@ -22,7 +22,7 @@ Naming, required-vs-optional env vars, startup fail-fast validation (`src/config
 
 ### Coding style & naming conventions
 
-File/class naming, folder structure per module, barrel files banned, `@src/*` import alias scoped to test files only (never in runtime `src/` code — see the doc for the two DI-breaking bugs that forced this scope), `no-explicit-any` lint rule, when to split large files. See `docs/convention`.
+File/class naming, folder structure per module, barrel files banned, `#src/*` import alias (Node subpath imports) for every import into `src/` — never relative, never `@src/*` (see the doc for why), `no-explicit-any` lint rule, when to split large files. See `docs/convention`.
 
 ### Error handling & logging conventions
 

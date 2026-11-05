@@ -1,9 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
-import { API_TAGS } from '../common/swagger/api-tags.js';
-import { ErrorResponseDto } from '../common/swagger/error-response.dto.js';
-import { PrismaHealthIndicator } from './prisma-health.indicator.js';
+import { API_TAGS } from '#src/common/swagger/api-tags.js';
+import { ErrorResponseDto } from '#src/common/swagger/error-response.dto.js';
+import { PrismaHealthIndicator } from '#src/health/prisma-health.indicator.js';
 
 @ApiTags(API_TAGS.HEALTH.name)
 @Controller('health')

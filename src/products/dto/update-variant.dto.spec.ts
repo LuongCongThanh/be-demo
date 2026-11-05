@@ -1,8 +1,8 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { VariantStatus } from '../../generated/prisma/enums.js';
-import { UpdateVariantDto } from './update-variant.dto.js';
+import { VariantStatus } from '#src/generated/prisma/enums.js';
+import { UpdateVariantDto } from '#src/products/dto/update-variant.dto.js';
 
 describe('UpdateVariantDto', () => {
   it('passes validation when sku/price are omitted (all fields optional via PartialType)', async () => {

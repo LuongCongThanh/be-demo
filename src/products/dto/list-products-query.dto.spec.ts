@@ -1,8 +1,8 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { ProductStatus } from '../../generated/prisma/enums.js';
-import { ListProductsQueryDto } from './list-products-query.dto.js';
+import { ProductStatus } from '#src/generated/prisma/enums.js';
+import { ListProductsQueryDto } from '#src/products/dto/list-products-query.dto.js';
 
 describe('ListProductsQueryDto', () => {
   it('defaults page to 1 and limit to 20 when omitted', () => {

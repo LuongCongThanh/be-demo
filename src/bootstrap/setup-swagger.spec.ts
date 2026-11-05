@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OpenAPIObject } from '@nestjs/swagger';
-import { addTooManyRequestsResponse, isSwaggerEnabled } from './setup-swagger.js';
+import { addTooManyRequestsResponse, isSwaggerEnabled } from '#src/bootstrap/setup-swagger.js';
 
 const doc = (): OpenAPIObject => ({
   openapi: '3.0.0',

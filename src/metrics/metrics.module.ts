@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { MetricsController } from './metrics.controller.js';
-import { MetricsInterceptor } from './metrics.interceptor.js';
-import { MetricsService } from './metrics.service.js';
+import { MetricsController } from '#src/metrics/metrics.controller.js';
+import { MetricsInterceptor } from '#src/metrics/metrics.interceptor.js';
+import { MetricsService } from '#src/metrics/metrics.service.js';
 
 @Module({
   controllers: [MetricsController],

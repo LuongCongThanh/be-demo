@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { CreateCategoryDto } from './create-category.dto.js';
+import { CreateCategoryDto } from '#src/categories/dto/create-category.dto.js';
 
 describe('CreateCategoryDto', () => {
   it('fails validation when name is missing', async () => {

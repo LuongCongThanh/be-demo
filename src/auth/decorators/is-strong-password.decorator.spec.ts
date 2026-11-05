@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { IsStrongPassword } from './is-strong-password.decorator.js';
+import { IsStrongPassword } from '#src/auth/decorators/is-strong-password.decorator.js';
 
 class PasswordDto {
   @IsStrongPassword()

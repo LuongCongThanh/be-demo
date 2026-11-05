@@ -30,48 +30,45 @@ Mỗi module nghiệp vụ (`auth/`, `mail/`...) tổ chức con theo vai trò k
 
 Không tạo file `index.ts` để re-export gộp nhiều module con. Mọi import phải trỏ thẳng tới file thật (vd. `from './dto/create-resource.dto.js'`, không phải `from './dto/index.js'`).
 
-**Lý do**: project dùng ESM (`"type": "module"`) + NestJS DI dựa trên **class reference làm token**. Barrel file (đặc biệt với vòng phụ thuộc giữa các module) là nguồn gây lỗi kinh điển trong ESM — module load theo thứ tự khác dự kiến, hoặc 1 class bị load 2 lần qua 2 đường (trực tiếp và qua barrel) tạo ra 2 object class khác nhau về mặt tham chiếu, khiến NestJS DI báo "cannot resolve dependency" dù code nhìn thì đúng 100% (xem thêm [§4](#4-import-alias--phạm-vi-rất-hẹp-và-vì-sao) — đây là **chính xác loại bug** đã gặp phải khi thử nghiệm alias, chỉ khác là do 2 specifier khác nhau resolve ra thay vì qua barrel).
+**Lý do**: project dùng ESM (`"type": "module"`) + NestJS DI dựa trên **class reference làm token**. Barrel file (đặc biệt với vòng phụ thuộc giữa các module) là nguồn gây lỗi kinh điển trong ESM — module load theo thứ tự khác dự kiến, hoặc 1 class bị load 2 lần qua 2 đường (trực tiếp và qua barrel) tạo ra 2 object class khác nhau về mặt tham chiếu, khiến NestJS DI báo "cannot resolve dependency" dù code nhìn thì đúng 100% (xem thêm [§4](#4-import-alias-src--dùng-ở-mọi-nơi) — đây là **chính xác loại bug** đã gặp phải khi thử nghiệm alias, chỉ khác là do 2 specifier khác nhau resolve ra thay vì qua barrel).
 
-## 4. Import alias — phạm vi rất hẹp, và vì sao
+## 4. Import alias `#src/*` — dùng ở mọi nơi
 
-Project có 1 alias duy nhất, khai ở `tsconfig.json`:
+Mọi import trỏ vào `src/` dùng alias `#src/*`, kể cả trong cùng thư mục và trong file test. Không dùng relative import (`./`, `../`) tới file trong `src/`. Ngoại lệ: `src/generated/` (Prisma sinh tự động) và import tới `test/support/` từ file e2e.
+
+```ts
+// ✓ Đúng — ở bất kỳ đâu (src/, *.spec.ts, test/)
+import { PrismaService } from '#src/prisma/prisma.service.js';
+
+// ✗ Sai
+import { PrismaService } from '../../prisma/prisma.service.js';
+```
+
+Alias là [Node subpath imports](https://nodejs.org/api/packages.html#subpath-imports), khai ở `package.json`:
 
 ```json
-"paths": {
-  "@src/*": ["./src/*"]
+"imports": {
+  "#src/*": { "types": "./src/*", "default": "./dist/*" }
 }
 ```
 
-**Phạm vi dùng alias — chỉ trong file test** (`test/**/*.ts`, `src/**/*.spec.ts`):
+| Môi trường        | `#src/x.js` resolve tới                                                            |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| `tsc` / typecheck | `src/x.ts` (điều kiện `types`)                                                     |
+| `node dist/main`  | `dist/x.js` (điều kiện `default`)                                                  |
+| Vitest            | `src/x.ts` — qua `resolve.alias` trong `vitest.config.ts` / `vitest.config.e2e.ts` |
 
-```ts
-// ✓ Đúng — trong file test
-import { PrismaService } from '@src/prisma/prisma.service.js';
-```
+### Vì sao `#src` mà không phải `@src`
 
-**Không dùng alias trong code chạy thật (`src/` — trừ file `.spec.ts`)** — mọi import ở đó vẫn dùng relative (`./`, `../`) như từ trước tới giờ:
+- **`@src/*` (tsconfig `paths`) không chạy được ở runtime.** `tsc` không viết lại `paths` khi build, và Node coi mọi specifier bắt đầu bằng `@` là tên npm package có scope → `Cannot find package '@src/...'`. Muốn dùng phải thêm bước viết lại đường dẫn sau build (`tsc-alias`) hoặc custom loader.
+- **`#` là ký tự Node dành riêng cho subpath imports** — Node, `tsc` (`nodenext`) và Vitest đều hiểu sẵn, không cần thêm công cụ.
 
-```ts
-// ✓ Đúng — trong src/auth/services/auth.service.ts
-import { PrismaService } from '../../prisma/prisma.service.js';
+### Hai lỗi đã gặp — vẫn phải tránh
 
-// ✗ Sai — KHÔNG dùng alias ở đây
-import { PrismaService } from '@src/prisma/prisma.service.js';
-```
+1. **Một class import bằng 2 kiểu specifier → NestJS DI coi là 2 class khác nhau.** Vite/Vitest coi `#src/a.js` và `../a.js` là 2 module riêng (dù cùng 1 file) → 2 object class khác tham chiếu → "Nest can't resolve dependencies". Typecheck, lint và unit test có mock **không bắt được**, chỉ lộ ra khi chạy DI thật (e2e, app boot). → Đây là lý do quy tắc là "`#src` ở mọi nơi", không có vùng nào được trộn với relative.
+2. **Vitest không được resolve `#src` sang `dist/`.** Nếu bỏ `resolve.alias` trong config Vitest, Vite đi theo điều kiện `default` → test chạy trên bản build cũ trong `dist/` (hoặc lỗi `Cannot find module` khi chưa build). Đừng thêm điều kiện resolve toàn cục (`ssr.resolve.conditions`) thay cho alias — nó đổi cách resolve của cả dependency (đã làm vỡ `@opentelemetry/api`).
 
-### Vì sao lại chia phạm vi kỳ lạ vậy — không phải "cho gọn" thì dùng khắp nơi luôn?
-
-Đây là kết quả sau khi **thử thật và gặp 2 bug nghiêm trọng**, không phải quyết định lý thuyết — ghi lại rõ để không ai lặp lại thử nghiệm tốn thời gian này:
-
-1. **`tsx`/esbuild làm vỡ decorator metadata.** NestJS DI cần TypeScript emit `design:paramtypes` metadata (`emitDecoratorMetadata`) để biết inject class nào vào constructor. `tsx` (dùng esbuild) không emit đúng metadata này cho một số trường hợp (cụ thể: class extend 1 class phức tạp khác, như `PrismaService extends PrismaClient`) — kết quả: tham số constructor nhận `undefined` lúc runtime, lỗi `Cannot read properties of undefined`. → **Không chạy dev/build bằng `tsx`/esbuild cho code NestJS có DI** — `nest start --watch` (dùng `tsc` thật) là lựa chọn an toàn duy nhất đã verify.
-
-2. **Trộn alias + relative import cho cùng 1 class → NestJS DI không nhận ra nhau.** Khi 1 class (vd. `PrismaService`) được import bằng **2 kiểu specifier khác nhau** ở 2 nơi (nơi A dùng alias `@src/...`, nơi B dùng relative `./...`), Vite/Vitest coi đây là **2 module khác nhau** (dù cùng trỏ tới 1 file vật lý) → tạo ra **2 object class riêng biệt về tham chiếu**. NestJS DI match provider bằng class reference, nên báo lỗi "Nest can't resolve dependencies" / "could not find X element" dù code đọc vào hoàn toàn hợp lý. Lỗi này **không bị bắt bởi typecheck, lint, hay unit test có mock** — chỉ lộ ra khi chạy DI thật (e2e test, hoặc app thật lúc boot).
-
-   → Do đó bất kỳ class nào là NestJS provider (`@Injectable()`, dùng trong `providers: []`) **phải được import theo đúng 1 kiểu resolution xuyên suốt mọi nơi nó được dùng làm DI token**. Cách an toàn nhất để đảm bảo điều này mà không phải audit tay từng class: **giữ nguyên toàn bộ `src/` dùng relative import** (không có class nào lẫn 2 kiểu), chỉ cho phép alias ở lớp ngoài cùng — file test — nơi alias chỉ dùng để `import` phục vụ gọi `moduleFixture.get(X)`/mock, không tham gia vào graph DI nội bộ của `src/`.
-
-3. **Ký tự alias: `#` (Node subpath imports) khác `@` (npm scoped package).** Ban đầu thử `@/*` cho alias — Node runtime báo `Cannot find package '@/...'` vì bất kỳ specifier bắt đầu bằng `@` đều bị Node coi là tên package npm có scope, đi tìm trong `node_modules`. `#` mới là ký tự Node dành riêng cho "subpath imports" (package.json `imports` field). Vì alias trong project này **chỉ tồn tại trong phạm vi Vitest** (không bao giờ chạm tới Node runtime thật, vì `src/` không dùng alias), nên có thể dùng `@src` mà không vi phạm giới hạn của Node — Vitest tự resolve qua `tsconfig.json` (`resolve.tsconfigPaths: true`, xem `vitest.config.ts`/`vitest.config.e2e.ts`), không đi qua Node module loader.
-
-**Tóm lại — quy tắc thực dụng**: nếu bạn đang viết code trong `src/` (trừ `.spec.ts`), dùng relative import, không có ngoại lệ, không có barrel file để rút ngắn. Nếu bạn đang viết file test và thấy `../../../src/...` dài dòng, dùng `@src/...`.
+Ngoài ra: **không chạy dev/build code NestJS bằng `tsx`/esbuild** — esbuild không emit đủ `design:paramtypes` (`emitDecoratorMetadata`) cho một số class (vd. `PrismaService extends PrismaClient`) → tham số constructor `undefined` lúc runtime. Dùng `nest start --watch` (dùng `tsc`).
 
 ## 5. `any` — hạn chế, có lint rule bắt
 
@@ -89,6 +86,5 @@ Không có ngưỡng dòng cứng, nhưng nếu 1 service/controller vượt qu�
 
 - [ ] Tên file kebab-case, đúng hậu tố theo vai trò ([§1](#1-đặt-tên-file))
 - [ ] Không tạo `index.ts` barrel file
-- [ ] Import trong `src/` (trừ `.spec.ts`) dùng relative — không alias
-- [ ] Import trong file test (`test/**/*.ts`, `src/**/*.spec.ts`) luôn dùng `@src/...` — không dùng relative, kể cả khi path ngắn (giữ nhất quán, không phải tự phán đoán "đủ dài chưa")
+- [ ] Import tới file trong `src/` dùng `#src/...` — không dùng relative, kể cả trong cùng thư mục và trong test
 - [ ] Không thêm `any` mới trừ khi thực sự cần thiết (lint sẽ warn)

@@ -6,7 +6,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { IsStrongPassword } from '../decorators/is-strong-password.decorator.js';
+import { IsStrongPassword } from '#src/auth/decorators/is-strong-password.decorator.js';
 
 @ValidatorConstraint({ name: 'MatchesPassword', async: false })
 class MatchesPasswordConstraint implements ValidatorConstraintInterface {

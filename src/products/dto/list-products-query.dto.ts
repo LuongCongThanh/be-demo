@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsUUID } from 'class-validator';
-import { ProductStatus } from '../../generated/prisma/enums.js';
-import { PaginationDto } from '../../common/pagination/pagination.dto.js';
+import { ProductStatus } from '#src/generated/prisma/enums.js';
+import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 
 export class ListProductsQueryDto extends PaginationDto {
   @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000' })

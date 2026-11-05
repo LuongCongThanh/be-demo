@@ -1,7 +1,7 @@
 import { Controller, Get, Header, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { Registry } from 'prom-client';
-import { MetricsService } from './metrics.service.js';
+import { MetricsService } from '#src/metrics/metrics.service.js';
 
 // Endpoint hạ tầng cho Prometheus scrape, không phải API cho client — ẩn khỏi Swagger.
 @ApiExcludeController()

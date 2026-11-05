@@ -1,7 +1,7 @@
 import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { RolesGuard } from './roles.guard.js';
-import { ROLES_KEY } from '../decorators/roles.decorator.js';
+import { RolesGuard } from '#src/auth/guards/roles.guard.js';
+import { ROLES_KEY } from '#src/auth/decorators/roles.decorator.js';
 
 function createContext(user: unknown): ExecutionContext {
   return {

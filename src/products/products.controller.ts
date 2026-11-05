@@ -20,22 +20,22 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { ApiErrorResponses } from '../common/swagger/api-error-responses.decorator.js';
-import { API_TAGS } from '../common/swagger/api-tags.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../auth/guards/roles.guard.js';
-import { Roles } from '../auth/decorators/roles.decorator.js';
-import { ProductsService } from './products.service.js';
-import { CreateProductDto } from './dto/create-product.dto.js';
-import { UpdateProductDto } from './dto/update-product.dto.js';
-import { ListProductsQueryDto } from './dto/list-products-query.dto.js';
-import { CreateVariantDto } from './dto/create-variant.dto.js';
-import { UpdateVariantDto } from './dto/update-variant.dto.js';
-import { PaginationDto } from '../common/pagination/pagination.dto.js';
-import { ProductResponseDto } from './dto/product-response.dto.js';
-import { PaginatedProductResponseDto } from './dto/paginated-product-response.dto.js';
-import { VariantResponseDto } from './dto/variant-response.dto.js';
-import { PaginatedVariantResponseDto } from './dto/paginated-variant-response.dto.js';
+import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
+import { API_TAGS } from '#src/common/swagger/api-tags.js';
+import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '#src/auth/guards/roles.guard.js';
+import { Roles } from '#src/auth/decorators/roles.decorator.js';
+import { ProductsService } from '#src/products/products.service.js';
+import { CreateProductDto } from '#src/products/dto/create-product.dto.js';
+import { UpdateProductDto } from '#src/products/dto/update-product.dto.js';
+import { ListProductsQueryDto } from '#src/products/dto/list-products-query.dto.js';
+import { CreateVariantDto } from '#src/products/dto/create-variant.dto.js';
+import { UpdateVariantDto } from '#src/products/dto/update-variant.dto.js';
+import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
+import { ProductResponseDto } from '#src/products/dto/product-response.dto.js';
+import { PaginatedProductResponseDto } from '#src/products/dto/paginated-product-response.dto.js';
+import { VariantResponseDto } from '#src/products/dto/variant-response.dto.js';
+import { PaginatedVariantResponseDto } from '#src/products/dto/paginated-variant-response.dto.js';
 
 @ApiTags(API_TAGS.PRODUCTS.name)
 @Controller('products')

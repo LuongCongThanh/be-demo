@@ -1,6 +1,6 @@
 import { Transform, plainToInstance } from 'class-transformer';
 import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, Max, Min, MinLength, validateSync } from 'class-validator';
-import { IsStrongPassword } from '../auth/decorators/is-strong-password.decorator.js';
+import { IsStrongPassword } from '#src/auth/decorators/is-strong-password.decorator.js';
 
 // class-validator's `@IsOptional()` only skips null/undefined, not an empty
 // string — an optional numeric env var left blank (as .env.example does)

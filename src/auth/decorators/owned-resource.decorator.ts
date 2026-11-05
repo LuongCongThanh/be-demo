@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { PrismaService } from '#src/prisma/prisma.service.js';
 
 export interface OwnedResourceOptions {
   /** Tên param trong route chứa id của resource, vd 'id' trong `/orders/:id`. */

@@ -7,21 +7,21 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma } from '../../generated/prisma/client.js';
-import { getUniqueConstraintTarget } from '../../common/prisma-error.util.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
-import { ResendVerificationDto } from '../dto/resend-verification.dto.js';
-import { ForgotPasswordDto } from '../dto/forgot-password.dto.js';
-import { ResetPasswordDto } from '../dto/reset-password.dto.js';
-import { VerifyEmailDto } from '../dto/verify-email.dto.js';
-import { LoginDto } from '../dto/login.dto.js';
-import { AuthUserResponseDto } from '../dto/auth-user-response.dto.js';
-import { MessageResponseDto } from '../dto/message-response.dto.js';
-import { PasswordService } from './password.service.js';
-import { TokenService } from './token.service.js';
-import { MailService } from '../../mail/mail.service.js';
-import { RegisterDto } from '../dto/register.dto.js';
-import { RegisterResponseDto } from '../dto/register-response.dto.js';
+import { Prisma } from '#src/generated/prisma/client.js';
+import { getUniqueConstraintTarget } from '#src/common/prisma-error.util.js';
+import { PrismaService } from '#src/prisma/prisma.service.js';
+import { ResendVerificationDto } from '#src/auth/dto/resend-verification.dto.js';
+import { ForgotPasswordDto } from '#src/auth/dto/forgot-password.dto.js';
+import { ResetPasswordDto } from '#src/auth/dto/reset-password.dto.js';
+import { VerifyEmailDto } from '#src/auth/dto/verify-email.dto.js';
+import { LoginDto } from '#src/auth/dto/login.dto.js';
+import { AuthUserResponseDto } from '#src/auth/dto/auth-user-response.dto.js';
+import { MessageResponseDto } from '#src/auth/dto/message-response.dto.js';
+import { PasswordService } from '#src/auth/services/password.service.js';
+import { TokenService } from '#src/auth/services/token.service.js';
+import { MailService } from '#src/mail/mail.service.js';
+import { RegisterDto } from '#src/auth/dto/register.dto.js';
+import { RegisterResponseDto } from '#src/auth/dto/register-response.dto.js';
 
 // Code 6 chữ số chỉ có 1.000.000 khả năng, khác với raw token 32-byte cũ,
 // nên có thể bị brute-force trong thời gian hết hạn nếu không giới hạn số
