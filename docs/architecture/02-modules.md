@@ -70,7 +70,28 @@ flowchart TB
 - `notifications`, `compliance`, `admin-config` chỉ được gọi tới hoặc lắng nghe event; không module nghiệp vụ nào phụ thuộc vào chúng để hoàn thành transaction.
 - Trong một module: Controller → Service → Prisma. Controller không truy cập DB; không thêm lớp repository mặc định (`../convention/`).
 
-## 4. Cấu trúc thư mục mục tiêu
+## 4. Cấu trúc thư mục
+
+Đây là nơi duy nhất mô tả cây `src/`. README chỉ giữ cây cấp repo; quy tắc đặt tên, thư mục con, barrel file và alias nằm ở [coding-style-conventions.md](../convention/coding-style-conventions.md).
+
+**Hiện tại** — module để phẳng dưới `src/`, chưa chuyển sang `modules/` + `infrastructure/`:
+
+```text
+src/
+├── main.ts                  # bootstrap API
+├── app.module.ts
+├── bootstrap/               # cấu hình app dùng chung cho main và e2e
+├── config/                  # validate env
+├── common/                  # filter, logger, request context
+├── generated/               # Prisma Client (sinh tự động, không commit)
+├── prisma/                  # → infrastructure/database/
+├── health/  metrics/        # chưa xếp chỗ trong cây mục tiêu
+├── mail/                    # → modules/notifications/
+├── auth/                    # → modules/identity/
+└── categories/  products/   # → modules/catalog/
+```
+
+**Mục tiêu:**
 
 ```text
 src/
@@ -116,5 +137,3 @@ modules/<module>/
 ├── events/                  # tên và payload event module phát ra
 └── <module>.service.spec.ts
 ```
-
-Không dùng barrel file (`index.ts`); alias `@src/*` chỉ dùng trong test (`../convention/`).

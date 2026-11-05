@@ -68,14 +68,7 @@ be-demo/
 │   ├── migrations/
 │   └── seed.ts
 ├── scripts/               # script phụ trợ (đồng bộ Postman, …)
-├── src/
-│   ├── main.ts            # bootstrap API
-│   ├── app.module.ts
-│   ├── bootstrap/         # cấu hình app dùng chung cho main và e2e
-│   ├── config/            # validate env
-│   ├── common/            # filter, logger, request context
-│   ├── generated/         # Prisma Client (sinh tự động, không commit)
-│   └── <module>/          # auth, categories, products, health, mail, metrics, prisma
+├── src/                   # mã nguồn — chi tiết: docs/architecture/02-modules.md §4
 ├── test/                  # e2e (*.e2e-spec.ts) và test/support
 ├── GLOSSARY.md            # thuật ngữ domain chuẩn
 ├── commitlint.config.mjs
@@ -84,7 +77,7 @@ be-demo/
 └── prisma7.config.ts
 ```
 
-`src/` đang được tái cấu trúc sang `src/modules/<module>/` + `src/infrastructure/`. Cấu trúc mục tiêu nằm trong [`docs/architecture/02-modules.md` §4](docs/architecture/02-modules.md#4-cấu-trúc-thư-mục-mục-tiêu).
+Cấu trúc bên trong `src/` (hiện tại và mục tiêu): [`docs/architecture/02-modules.md` §4](docs/architecture/02-modules.md#4-cấu-trúc-thư-mục).
 
 ## Tài liệu
 
