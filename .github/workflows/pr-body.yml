@@ -1,0 +1,42 @@
+name: PR body
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  template-sections:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check body follows .github/pull_request_template.md
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          required=(
+            "# 🏷️ Type"
+            "## 📌 Summary"
+            "**Làm gì:**"
+            "**Vì sao:**"
+            "**Giải pháp:**"
+            "**Kết quả:**"
+            "## 📋 Changes"
+            "## 🔌 API / Migration / Cấu hình"
+            "## 🧪 Cách kiểm"
+            "## ⚠️ Gap và lưu ý"
+            "## ✅ Checklist"
+          )
+          status=0
+          for h in "${required[@]}"; do
+            if [[ "$BODY" != *"$h"* ]]; then
+              echo "::error::Missing section: $h"
+              status=1
+            fi
+          done
+          if ! grep -Eq -- '- \[[xX]\] (✨|🐛|♻️|🧹|📚)' <<< "$BODY"; then
+            echo "::error::Tick one Type checkbox"
+            status=1
+          fi
+          exit $status
