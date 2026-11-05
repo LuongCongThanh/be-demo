@@ -10,7 +10,7 @@ import { convert } from 'openapi-to-postmanv2';
  * này.
  */
 
-// SwaggerModule.setup('docs', ...) trong main.ts quyết định path này — JSON
+// SWAGGER_PATH trong src/bootstrap/setup-swagger.ts quyết định path này — JSON
 // spec luôn nằm ở `{path}-json`, không phải `/api-json` mặc định của Nest.
 const OPENAPI_URL = process.env.OPENAPI_URL || 'http://localhost:3000/docs-json';
 const POSTMAN_API_KEY = process.env.POSTMAN_API_KEY;

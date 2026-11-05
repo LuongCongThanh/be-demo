@@ -51,13 +51,12 @@ src/resources/
   dto/
     create-resource.dto.ts
     update-resource.dto.ts
-    pagination.dto.ts
   resources.controller.ts
   resources.service.ts
   resources.module.ts
 ```
 
-Chỉnh tay sau CLI: xoá `entities/` + `*.spec.ts` rỗng; thêm validator + `@ApiProperty` vào DTO; thêm decorator Swagger vào controller; sửa import `.js`; thêm `pagination.dto.ts`.
+Chỉnh tay sau CLI: xoá `entities/` + `*.spec.ts` rỗng; thêm validator + `@ApiProperty` vào DTO; thêm decorator Swagger vào controller; sửa import `.js`; dùng `PaginationDto` có sẵn ở `src/common/pagination/` (không tạo bản riêng).
 
 ## B4. Request DTO
 
@@ -97,7 +96,7 @@ import type { Resource } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateResourceDto } from './dto/create-resource.dto.js';
 import { UpdateResourceDto } from './dto/update-resource.dto.js';
-import { PaginationDto } from './dto/pagination.dto.js';
+import { PaginationDto } from '../common/pagination/pagination.dto.js';
 
 @Injectable()
 export class ResourcesService {
@@ -184,7 +183,7 @@ import { Roles } from '../auth/decorators/roles.decorator.js';
 import { ResourcesService } from './resources.service.js';
 import { CreateResourceDto } from './dto/create-resource.dto.js';
 import { UpdateResourceDto } from './dto/update-resource.dto.js';
-import { PaginationDto } from './dto/pagination.dto.js';
+import { PaginationDto } from '../common/pagination/pagination.dto.js';
 
 @ApiTags('resources')
 @Controller('resources')
@@ -287,18 +286,14 @@ app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 Quy tắc: [§R8](api-rules.md#r8-swagger--openapi). Mẫu:
 
 ```ts
-@ApiTags('Authentication & Authorization') // tag đủ nghĩa; path giữ nguyên
-@Controller('auth')
-export class AuthController { ... }
+// src/common/swagger/api-tags.ts — nguồn duy nhất, setup-swagger.ts tự addTag từ đây
+export const API_TAGS = {
+  RESOURCES: { name: 'Resources', description: 'Resource CRUD — writes gated to MASTER_ADMIN, reads public' },
+} as const;
 
-// src/main.ts — name khớp chính xác @ApiTags()
-const config = new DocumentBuilder()
-  .addTag(
-    'Authentication & Authorization',
-    'Register, email verification, login/refresh/logout, and role/ownership-based access control',
-  )
-  .addTag('Categories', 'Product category CRUD — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public')
-  .build();
+@ApiTags(API_TAGS.RESOURCES.name)
+@Controller('resources')
+export class ResourcesController { ... }
 
 @Post('verify-email')
 @ApiOperation({ summary: 'Verify email address using the 6-digit code sent by email' })
@@ -306,6 +301,7 @@ verify(@Body() dto: VerifyEmailDto) { ... }
 
 @Get(':id')
 @ApiOkResponse({ type: ResourceResponseDto })
+@ApiErrorResponses(400, [404, 'Resource not found']) // body = ErrorResponseDto
 findOne(@Param('id', ParseUUIDPipe) id: string) { ... }
 ```
 
@@ -313,29 +309,7 @@ Tham khảo `src/auth/auth.controller.ts`. Sau khi xong: `npm run start:dev` →
 
 ## B9. Pagination
 
-```ts
-// dto/pagination.dto.ts
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
-
-export class PaginationDto {
-  @ApiPropertyOptional({ default: 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page: number = 1;
-
-  @ApiPropertyOptional({ default: 20 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100) // chặn client gọi ?limit=1000000 làm quá tải DB
-  limit: number = 20;
-}
-```
+Dùng `PaginationDto` (query `page`, `limit` 1–100) và `PaginationMetaDto` (response `meta`) dùng chung ở `src/common/pagination/` — **không copy vào module**. Response list: class `PaginatedResourceResponseDto { data: ResourceResponseDto[]; meta: PaginationMetaDto }`.
 
 Service xem `findAll` ở B5 (`orderBy` có tie-breaker, trả `{ data, meta }`); quy tắc: [§R9](api-rules.md#r9-pagination).
 

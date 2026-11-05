@@ -5,7 +5,7 @@ import type { Category } from '../generated/prisma/client.js';
 import { writeUnique } from '../common/prisma-error.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
-import { PaginationDto } from './dto/pagination.dto.js';
+import { PaginationDto } from '../common/pagination/pagination.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
 
 @Injectable()

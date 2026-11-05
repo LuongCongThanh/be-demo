@@ -20,17 +20,19 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { ApiErrorResponses } from '../common/swagger/api-error-responses.decorator.js';
+import { API_TAGS } from '../common/swagger/api-tags.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CategoriesService } from './categories.service.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
-import { PaginationDto } from './dto/pagination.dto.js';
+import { PaginationDto } from '../common/pagination/pagination.dto.js';
 import { CategoryResponseDto } from './dto/category-response.dto.js';
 import { PaginatedCategoryResponseDto } from './dto/paginated-category-response.dto.js';
 
-@ApiTags('Categories')
+@ApiTags(API_TAGS.CATEGORIES.name)
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
@@ -41,6 +43,7 @@ export class CategoriesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new category (STORE_MANAGER/MASTER_ADMIN only)' })
   @ApiCreatedResponse({ type: CategoryResponseDto })
+  @ApiErrorResponses(400, 401, 403, [409, 'Category name already exists'])
   create(@Body() createCategoryDto: CreateCategoryDto) {
     return this.categoriesService.create(createCategoryDto);
   }
@@ -48,6 +51,7 @@ export class CategoriesController {
   @Get()
   @ApiOperation({ summary: 'List categories (paginated, public)' })
   @ApiOkResponse({ type: PaginatedCategoryResponseDto })
+  @ApiErrorResponses(400)
   findAll(@Query() pagination: PaginationDto) {
     return this.categoriesService.findAll(pagination);
   }
@@ -55,6 +59,7 @@ export class CategoriesController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a category by id (public)' })
   @ApiOkResponse({ type: CategoryResponseDto })
+  @ApiErrorResponses(400, [404, 'Category not found'])
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.findOne(id);
   }
@@ -67,6 +72,7 @@ export class CategoriesController {
     summary: 'Update a category, regenerating its slug if the name changes (STORE_MANAGER/MASTER_ADMIN only)',
   })
   @ApiOkResponse({ type: CategoryResponseDto })
+  @ApiErrorResponses(400, 401, 403, [404, 'Category not found'], [409, 'Category name already exists'])
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
     return this.categoriesService.update(id, updateCategoryDto);
   }
@@ -81,6 +87,7 @@ export class CategoriesController {
       'Delete a category (blocked with 409 while any product still references it, STORE_MANAGER/MASTER_ADMIN only)',
   })
   @ApiNoContentResponse({ description: 'Deleted' })
+  @ApiErrorResponses(400, 401, 403, [404, 'Category not found'], [409, 'Category still has products'])
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.remove(id);
   }
