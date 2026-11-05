@@ -1,6 +1,6 @@
 # Module `pricing`
 
-> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../../database-design.md`](../../database-design.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/04](../../business/04-business-rules.md) §2 (BR-PRC-*, BR-VCH-*), [business/03](../../business/03-user-stories.md) US-804, E9.
+> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../11-database.md`](../11-database.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/04](../../business/04-business-rules.md) §2 (BR-PRC-*, BR-VCH-*), [business/03](../../business/03-user-stories.md) US-804, E9.
 
 ## 1. Trách nhiệm
 
@@ -9,11 +9,11 @@
 
 ## 2. Mô hình
 
-| Bảng | Ghi chú |
-|---|---|
-| `sale_prices` | `variant_id`, `price` < Giá bán (BR-PRC-01), `starts_at`, `ends_at`; không chồng thời gian cho cùng Biến thể (BR-PRC-02) — exclusion constraint `tstzrange` |
-| `vouchers` | `code` in hoa unique (BR-VCH-09), `type` `percent`/`fixed`, `value`, `max_discount?`, `min_subtotal`, `total_limit?`, `per_buyer_limit?`, `starts_at`, `ends_at`, `disabled_at?`, `used_count` |
-| `voucher_usages` | `voucher_id`, `order_id` unique, `user_id?`, `phone` (chuẩn hoá), `released_at?` |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.3](../11-database.md#43-pricing-promotions).
+
+- `sale_prices` — Giá khuyến mãi theo khoảng thời gian
+- `vouchers` — Voucher
+- `voucher_usages` — lượt dùng Voucher theo đơn
 
 ## 3. Interface cho module khác
 

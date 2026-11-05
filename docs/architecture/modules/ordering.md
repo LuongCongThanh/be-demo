@@ -1,6 +1,6 @@
 # Module `ordering`
 
-> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../../business/05-order-lifecycle.md`](../../business/05-order-lifecycle.md), [`../../business/04-business-rules.md`](../../business/04-business-rules.md) §5. Nhất quán dữ liệu: [`../04-data-consistency.md`](../04-data-consistency.md).
+> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../../business/05-order-lifecycle.md`](../../business/05-order-lifecycle.md), [`../../business/04-business-rules.md`](../../business/04-business-rules.md) §5. Nhất quán dữ liệu: [`../04-data-consistency.md`](../04-data-consistency.md). Bảng: [`../11-database.md`](../11-database.md).
 
 ## 1. Trách nhiệm
 
@@ -10,14 +10,16 @@
 
 ## 2. Mô hình
 
-| Thực thể | Ghi chú |
-|---|---|
-| `Quote` | Bản Tính thử có hạn: dòng, đơn giá áp dụng, Voucher, phí ship, tổng, `expires_at`, `fingerprint`. Không Giữ hàng ([ADR 0013](../../adr/0013-checkout-must-match-confirmed-quote.md)) |
-| `Order` | `order_code` (BR-ORD-03), `status`, `payment_method` (COD/online), `user_id?`, thông tin liên hệ + địa chỉ 2 cấp bản chụp (BR-ORD-04), Tạm tính, giảm, phí ship, tổng (BR-ORD-01), `locale` (BR-NTF-02) |
-| `OrderItem` | Bản chụp tên, SKU, size, màu, đơn giá, mức giảm, `voucher_discount` (BR-ORD-02, [ADR 0012](../../adr/0012-order-line-snapshot-and-voucher-allocation.md)) |
-| `OrderStatusHistory` | Mỗi chuyển trạng thái: từ, sang, mã T, actor, lý do |
-| `OrderFlag` | Cờ cần xử lý: `payment_amount_mismatch`, `unexpected_payment`, `shipment_exception`, `shipment_creation_failed`… |
-| `GuestAccessGrant` | Phiên 30 phút cho một đơn của Khách vãng lai ([ADR 0011](../../adr/0011-guest-identity-by-order-code-and-phone.md)) |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.6](../11-database.md#46-ordering).
+
+- `checkout_quotes` — bản Tính thử có hạn
+- `orders` — Đơn hàng
+- `order_items` — bản chụp dòng đơn lúc đặt
+- `order_status_history` — lịch sử chuyển trạng thái Đơn
+- `order_flags` — cờ cần Staff xử lý
+- `idempotency_keys` — chống tạo trùng khi retry
+
+Phiên 30 phút của Khách vãng lai (`guest_order_sessions`) thuộc `identity`; `ordering` tạo qua interface của `identity`.
 
 ## 3. State machine
 

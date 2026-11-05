@@ -101,7 +101,7 @@ Job chạy bằng BullMQ repeatable job trong worker; mỗi lần chạy giữ m
 | Thử lại thông báo `deferred` | Mỗi phút | Mục 1.3 |
 | Quét outbox kẹt `ENQUEUED` | Mỗi 5 phút | ADR 0007 |
 | Xoá Giỏ Khách vãng lai không hoạt động 30 ngày | Mỗi ngày | BR-CRT-02 |
-| Xoá token hết hạn/đã dùng (refresh, reset, verify) và Tính thử hết hạn | Mỗi ngày | [database-design.md](../database-design.md) |
+| Xoá token hết hạn/đã dùng (refresh, reset, verify) và Tính thử hết hạn | Mỗi ngày | [11-database.md](./11-database.md) |
 | Tính số liệu **bán chạy** 30 ngày | Mỗi đêm | BR-CAT-12 |
 | Dọn outbox `DONE` > 90 ngày, ẩn PII EmailLog > 90 ngày | Mỗi ngày | business/06 mục 5 |
 

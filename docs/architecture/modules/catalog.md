@@ -1,6 +1,6 @@
 # Module `catalog`
 
-> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../../database-design.md`](../../database-design.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/04](../../business/04-business-rules.md) §1 (BR-CAT-*), [business/03](../../business/03-user-stories.md) E1, E8.
+> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../11-database.md`](../11-database.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/04](../../business/04-business-rules.md) §1 (BR-CAT-*), [business/03](../../business/03-user-stories.md) E1, E8.
 
 ## 1. Trách nhiệm
 
@@ -9,14 +9,14 @@
 
 ## 2. Mô hình
 
-| Bảng | Ghi chú |
-|---|---|
-| `categories` | `parent_id?` (cây nhiều cấp), `sort_order`, tên tiếng Việt (BR-CAT-10); xoá theo [ADR 0001](../../adr/0001-category-delete-restrict.md) |
-| `products` | `status` `draft`/`active`/`archived` (BR-CAT-07), `weight_grams` bắt buộc (BR-CAT-06), `name_search` (bỏ dấu, lowercase) cho BR-CAT-13 |
-| `sizes`, `colors` | Dùng chung; size có `sort_order`; màu có mã, tên, hex; `hidden` thay cho xoá khi đã dùng (BR-CAT-11) |
-| `product_variants` | Unique `(product_id, size_id, color_id)` (BR-CAT-02); `sku` unique toàn hệ thống, khoá sau khi có đơn (BR-CAT-03); `price` số nguyên VND > 0 (BR-CAT-04); `archived` |
-| `product_images` | Gắn `(product_id, color_id)` (BR-CAT-05), `sort_order`, khoá object storage |
-| `product_sales_stats` | Số lượng bán 30 ngày theo Sản phẩm, cập nhật mỗi đêm (BR-CAT-12) |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.2](../11-database.md#42-catalog).
+
+- `categories` — cây Danh mục
+- `products` — Sản phẩm
+- `sizes`, `colors` — danh sách size/màu dùng chung
+- `product_variants` — Biến thể size × màu, mang SKU và Giá bán
+- `product_images` — ảnh theo màu
+- `product_sales_stats` — số liệu bán chạy 30 ngày
 
 ## 3. Interface cho module khác
 

@@ -1,6 +1,6 @@
 # Module `inventory`
 
-> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../../database-design.md`](../../database-design.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/04](../../business/04-business-rules.md) §3 (BR-INV-*), [business/03](../../business/03-user-stories.md) E7. Nhất quán: [../04-data-consistency.md](../04-data-consistency.md).
+> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../11-database.md`](../11-database.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/04](../../business/04-business-rules.md) §3 (BR-INV-*), [business/03](../../business/03-user-stories.md) E7. Nhất quán: [../04-data-consistency.md](../04-data-consistency.md).
 
 ## 1. Trách nhiệm
 
@@ -9,14 +9,14 @@
 
 ## 2. Mô hình
 
-| Bảng | Ghi chú |
-|---|---|
-| `warehouses` | MVP một dòng (BR-INV-01) |
-| `inventory_levels` | PK `(variant_id, warehouse_id)`, `on_hand`, `reserved`; check `0 <= reserved <= on_hand` |
-| `inventory_reservations` | `order_id`, `variant_id`, `quantity`, `status` `ACTIVE`/`CONSUMED`/`RELEASED`/`EXPIRED`, `expires_at` = đặt đơn + 15 phút ([ADR 0003](../../adr/0003-inventory-reservations-and-transactional-outbox.md)) |
-| `awaiting_dispatch_items` | `order_id`, `variant_id`, `quantity`; xoá khi T10 (BR-INV-10) |
-| `inventory_movements` | Chỉ thêm: loại (`receive`, `adjust`, `stock_count`, `sale`, `cancel_return`, `return_to_sender`, `return_restock`), số lượng ±, `order_id?`, `actor`, lý do (BR-INV-09) |
-| `stock_counts` | Phiếu Kiểm kê: số đếm, Tồn kho và Hàng chờ xuất lúc xác nhận, chênh lệch (BR-INV-12) |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.5](../11-database.md#45-inventory).
+
+- `warehouses` — Kho (MVP một Kho)
+- `inventory_levels` — Tồn kho và Giữ hàng theo Biến thể × Kho
+- `inventory_reservations` — Giữ hàng 15 phút của đơn online
+- `awaiting_dispatch_items` — Hàng chờ xuất theo đơn
+- `inventory_movements` — sổ biến động tồn kho, chỉ thêm
+- `stock_counts` — phiếu Kiểm kê
 
 ## 3. Interface cho module khác
 

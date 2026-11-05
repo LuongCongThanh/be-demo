@@ -1,6 +1,6 @@
 # Module `identity`
 
-> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../../database-design.md`](../../database-design.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/02](../../business/02-actors-permissions.md), [business/03](../../business/03-user-stories.md) E5, US-1001. Bảo mật: [../05-auth-security.md](../05-auth-security.md).
+> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../11-database.md`](../11-database.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/02](../../business/02-actors-permissions.md), [business/03](../../business/03-user-stories.md) E5, US-1001. Bảo mật: [../05-auth-security.md](../05-auth-security.md).
 
 ## 1. Trách nhiệm
 
@@ -10,16 +10,16 @@
 
 ## 2. Mô hình
 
-| Bảng | Ghi chú |
-|---|---|
-| `users` | `email` (unique, lowercase), `password_hash?`, `role` (`customer`/`staff`/`admin`), `status` (`active`/`disabled`), `email_verified_at?`, `locale` (vi/en, US-505), `session_version` |
-| `user_auth_providers` | Liên kết Google (`provider`, `provider_user_id` unique) |
-| `customer_addresses` | Sổ địa chỉ 2 cấp tỉnh + phường (BR-ORD-04, US-504) |
-| `refresh_tokens` | Hash, `expires_at`, `revoked_at`, xoay vòng mỗi lần refresh |
-| `password_reset_tokens`, `email_verification_tokens` | Hash, dùng một lần, có hạn |
-| `guest_order_sessions` | Phiên 30 phút gắn một `order_id`, lưu hash token ([ADR 0011](../../adr/0011-guest-identity-by-order-code-and-phone.md)); `ordering` tạo qua interface của `identity` |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.1](../11-database.md#41-identity).
 
-Bảng `audit_logs` thuộc `admin-config` theo [02-modules](../02-modules.md) §2; `identity` ghi vào đó qua service.
+- `users` — Tài khoản Khách hàng/Staff/Admin
+- `user_auth_providers` — liên kết đăng nhập Google
+- `customer_addresses` — sổ địa chỉ 2 cấp của Khách hàng
+- `refresh_tokens` — phiên đăng nhập, xoay vòng
+- `password_reset_tokens`, `email_verification_tokens` — token một lần cho đặt lại mật khẩu, xác minh email
+- `guest_order_sessions` — phiên 30 phút của Khách vãng lai với một đơn
+
+`audit_logs` thuộc `admin-config`; `identity` ghi vào qua service.
 
 ## 3. Interface cho module khác
 

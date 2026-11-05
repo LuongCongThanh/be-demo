@@ -1,6 +1,6 @@
 # Module `payments`
 
-> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../../business/04-business-rules.md`](../../business/04-business-rules.md) §7, [`../../business/05-order-lifecycle.md`](../../business/05-order-lifecycle.md) §4.1, §4.6. Quyết định: [ADR 0004](../../adr/0004-payment-gateways-vnpay-momo-cod.md), [ADR 0006](../../adr/0006-manual-refund-mvp-scope.md). Tích hợp: [`../06-integrations.md`](../06-integrations.md) §2.
+> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../../business/04-business-rules.md`](../../business/04-business-rules.md) §7, [`../../business/05-order-lifecycle.md`](../../business/05-order-lifecycle.md) §4.1, §4.6. Quyết định: [ADR 0004](../../adr/0004-payment-gateways-vnpay-momo-cod.md), [ADR 0006](../../adr/0006-manual-refund-mvp-scope.md). Tích hợp: [`../06-integrations.md`](../06-integrations.md) §2. Bảng: [`../11-database.md`](../11-database.md).
 
 ## 1. Trách nhiệm
 
@@ -11,15 +11,11 @@
 
 ## 2. Mô hình
 
-Chi tiết cột: [`../../database-design.md`](../../database-design.md).
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.7](../11-database.md#47-payments).
 
-| Bảng | Ghi chú |
-|---|---|
-| `payments` | `order_id`, `gateway` (`VNPAY`/`MOMO`), `amount` (VND nguyên), `status` (`PENDING → CAPTURED \| FAILED \| EXPIRED`), `provider_ref`, `provider_transaction_id`, `captured_amount`, `link_expires_at`, `captured_at`. Một đơn có nhiều bản ghi (thử lại, đổi Cổng — BR-PAY-01) |
-| `payment_notifications` | Inbox thô: `gateway`, `provider_transaction_id`, `source` (`IPN`/`RECONCILIATION`), `raw_payload`, `status` (`RECEIVED`, `APPLIED`, `IGNORED`, `REJECTED`), `received_at`. Unique `(gateway, provider_transaction_id, provider_status)` — xử lý một lần (BR-PAY-03) |
-| `cod_collections` | Một dòng mỗi đơn COD: `order_id` unique, `amount` = Tổng tiền đơn (BR-SHP-07), `status` (`PENDING → COLLECTED \| CANCELLED`), `collected_at` |
-
-Ràng buộc: tối đa một `payments` ở `CAPTURED` được dùng để đưa đơn vào `PLACED`; các khoản captured khác của cùng đơn đều sinh yêu cầu Hoàn tiền (BR-PAY-05).
+- `payments` — mỗi lần thử thanh toán online
+- `payment_notifications` — inbox thô IPN/Đối soát của Cổng
+- `cod_collections` — khoản thu COD của đơn
 
 ## 3. Interface public
 

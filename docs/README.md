@@ -5,7 +5,7 @@
 1. [`business/`](./business/) — yêu cầu nghiệp vụ, **nguồn ưu tiên** khi có mâu thuẫn: tầm nhìn & phạm vi, vai trò & phân quyền, user stories, quy tắc nghiệp vụ (`BR-*`), vòng đời Đơn hàng, tuân thủ pháp lý.
 2. [`../GLOSSARY.md`](../GLOSSARY.md) — thuật ngữ chuẩn.
 3. [`architecture/`](./architecture/) — kiến trúc & thiết kế hệ thống, chia theo chủ đề và theo module.
-4. [`database-design.md`](./database-design.md) — thiết kế database.
+4. [`architecture/11-database.md`](./architecture/11-database.md) — thiết kế database (schema mục tiêu).
 5. [`adr/`](./adr/) — các quyết định khó đảo ngược.
 6. [`convention/`](./convention/) — quy ước code, API, config, lỗi/log, Prisma, git.
 

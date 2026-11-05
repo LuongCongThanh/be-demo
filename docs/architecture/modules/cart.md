@@ -1,6 +1,6 @@
 # Module `cart`
 
-> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../../database-design.md`](../../database-design.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/04](../../business/04-business-rules.md) §4 (BR-CRT-*), [business/03](../../business/03-user-stories.md) E2.
+> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../11-database.md`](../11-database.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/04](../../business/04-business-rules.md) §4 (BR-CRT-*), [business/03](../../business/03-user-stories.md) E2.
 
 ## 1. Trách nhiệm
 
@@ -9,10 +9,10 @@
 
 ## 2. Mô hình
 
-| Bảng | Ghi chú |
-|---|---|
-| `carts` | `user_id?` hoặc `guest_token_hash?` (đúng một trong hai), `status` `ACTIVE`/`CHECKED_OUT`/`MERGED`, `last_activity_at`; partial unique một giỏ `ACTIVE` cho mỗi chủ |
-| `cart_items` | Unique `(cart_id, variant_id)`, `quantity` 1–10 (BR-CRT-05), `price_seen` (Giá áp dụng lúc thêm — chỉ để báo đổi giá, không dùng để tính tiền) |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.4](../11-database.md#44-cart).
+
+- `carts` — giỏ hàng của Tài khoản hoặc Khách vãng lai
+- `cart_items` — dòng giỏ theo Biến thể
 
 ## 3. Interface cho module khác
 

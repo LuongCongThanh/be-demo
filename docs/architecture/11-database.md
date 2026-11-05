@@ -1,10 +1,10 @@
 # Thiết kế Database (schema mục tiêu)
 
-> Trạng thái: **Đã chốt cho MVP** ([quy ước](./README.md#trạng-thái-tài-liệu)). Đây là schema **mục tiêu** cho lần tái cấu trúc toàn bộ source, suy ra từ [`business/`](./business/) (nguồn ưu tiên), [`adr/`](./adr/) và [`architecture/`](./architecture/). Không mô tả schema đang migrate. Thuật ngữ theo [GLOSSARY.md](../GLOSSARY.md). Quy tắc nghiệp vụ được **tham chiếu** bằng mã `BR-*`, `US-*`, `CMP-*`, ADR và không chép lại ở đây.
+> Trạng thái: **Đã chốt cho MVP** ([quy ước](../README.md#trạng-thái-tài-liệu)). Đây là schema **mục tiêu** cho lần tái cấu trúc toàn bộ source, suy ra từ [`business/`](../business/) (nguồn ưu tiên), [`adr/`](../adr/) và [`architecture/`](./). Không mô tả schema đang migrate. Thuật ngữ theo [GLOSSARY.md](../../GLOSSARY.md). Quy tắc nghiệp vụ được **tham chiếu** bằng mã `BR-*`, `US-*`, `CMP-*`, ADR và không chép lại ở đây.
 
 ## 1. Tổng quan
 
-PostgreSQL, 49 bảng chia theo module (xem [`architecture/02-modules.md`](./architecture/02-modules.md)). Mỗi bảng chỉ do **một** module ghi.
+PostgreSQL, 49 bảng chia theo module (xem [`architecture/02-modules.md`](./02-modules.md)). Mỗi bảng chỉ do **một** module ghi.
 
 | Module | Bảng |
 |---|---|
@@ -143,7 +143,7 @@ PostgreSQL **không** tự tạo index cho FK. Mọi FK đều có index, riêng
 
 - **Composite index cho listing**: đặt theo đúng cột filter + sort, ví dụ `orders(status, created_at DESC)`, `orders(user_id, created_at DESC)`, `products(category_id, status, created_at DESC)`.
 - **Partial unique**: viết bằng migration SQL tay nếu Prisma đang dùng chưa hỗ trợ `where` (Preview `partialIndexes` từ v7.4.0). Danh sách ở mục 5.2.
-- **CHECK** cho bất biến cục bộ một dòng (số lượng > 0, tồn kho ≥ 0, giá KM < giá bán…). Bất biến **liên dòng** nằm ở service trong transaction có khoá ([04-data-consistency.md](./architecture/04-data-consistency.md)).
+- **CHECK** cho bất biến cục bộ một dòng (số lượng > 0, tồn kho ≥ 0, giá KM < giá bán…). Bất biến **liên dòng** nằm ở service trong transaction có khoá ([04-data-consistency.md](./04-data-consistency.md)).
 - **Tìm kiếm tên không dấu** (BR-CAT-13): cột sinh `products.search_name` = `lower(unaccent(name))` + index `pg_trgm` GIN.
 
 ---
@@ -201,7 +201,7 @@ UK `(provider, provider_subject)`. Tài khoản nội bộ không được liên
 
 #### `refresh_tokens`, `password_reset_tokens`, `email_verification_tokens`
 
-Cùng khuôn: chỉ lưu **hash** token, không lưu token thô.
+Cùng khuôn: chỉ lưu **hash** token, không lưu token thô. `refresh_tokens` xoay vòng mỗi lần refresh; token đặt lại mật khẩu/xác minh email dùng một lần, có hạn.
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
@@ -211,12 +211,12 @@ Cùng khuôn: chỉ lưu **hash** token, không lưu token thô.
 | expires_at | timestamptz | NN | |
 | session_version | int | NN | *(chỉ `refresh_tokens`)* khác `users.session_version` → token vô hiệu |
 | revoked_at / used_at / verified_at | timestamptz | | tương ứng từng bảng |
-| user_agent, ip_hmac | text | | *(chỉ `refresh_tokens`)* IP dạng HMAC ([05-auth-security.md](./architecture/05-auth-security.md) §8) |
+| user_agent, ip_hmac | text | | *(chỉ `refresh_tokens`)* IP dạng HMAC ([05-auth-security.md](./05-auth-security.md) §8) |
 | created_at | timestamptz | NN | |
 
 #### `guest_order_sessions`
 
-Quyền thao tác 30 phút của Khách vãng lai với **một** đơn (`business/02` §2, ADR 0011).
+Quyền thao tác 30 phút của Khách vãng lai với **một** đơn (`business/02` §2, ADR 0011). Thuộc `identity`; `ordering` tạo phiên qua interface của `identity`.
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
@@ -229,7 +229,7 @@ Quyền thao tác 30 phút của Khách vãng lai với **một** đơn (`busine
 
 #### `audit_logs`
 
-Mọi thao tác ghi trên back-office (`business/02` §4).
+Mọi thao tác ghi trên back-office (`business/02` §4). Chỉ thêm, không sửa. Thuộc module `admin-config` ([02-modules](./02-modules.md) §2); module khác (vd. `identity`) ghi qua service.
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
@@ -265,7 +265,7 @@ Chống vòng lặp cây (A là cha của B là cha của A) ở service.
 | id | uuid | PK | |
 | category_id | uuid | FK → categories RESTRICT, NN | |
 | name | text | NN | BR-CAT-10 |
-| search_name | text | generated, IX GIN trgm | BR-CAT-13 |
+| search_name | text | generated, IX GIN trgm | bỏ dấu, lowercase (BR-CAT-13) |
 | slug | text | UK, NN | |
 | description | text | | |
 | weight_grams | int | NN, CHECK > 0 | BR-CAT-06 |
@@ -352,7 +352,7 @@ Tối đa một Giá khuyến mãi hiệu lực mỗi thời điểm (BR-PRC-02)
 | min_subtotal | bigint | NN, default 0 | BR-VCH-04 |
 | total_limit | int | | null = không giới hạn |
 | per_buyer_limit | int | | BR-VCH-07 |
-| used_count | int | NN, default 0, CHECK ≥ 0 | đếm có khoá dòng ([04-data-consistency.md](./architecture/04-data-consistency.md)) |
+| used_count | int | NN, default 0, CHECK ≥ 0 | đếm có khoá dòng ([04-data-consistency.md](./04-data-consistency.md)) |
 | starts_at, ends_at | timestamptz | NN | |
 | is_active | boolean | NN | |
 
@@ -364,7 +364,7 @@ Tối đa một Giá khuyến mãi hiệu lực mỗi thời điểm (BR-PRC-02)
 | voucher_id | uuid | FK → vouchers RESTRICT, NN | |
 | order_id | uuid | FK → orders RESTRICT, UK, NN | tối đa một Voucher mỗi đơn (BR-VCH-01) |
 | user_id | uuid | FK → users, IX | |
-| phone | text | NN, IX | đếm theo Tài khoản **hoặc** SĐT (BR-VCH-07) |
+| phone | text | NN, IX | SĐT đã chuẩn hoá; đếm theo Tài khoản **hoặc** SĐT (BR-VCH-07) |
 | discount_amount | bigint | NN | |
 | released_at | timestamptz | | trả lượt khi huỷ trước Đang giao (BR-VCH-08) |
 | created_at | timestamptz | NN | |
@@ -437,7 +437,7 @@ Giữ hàng 15 phút của đơn online (BR-INV-05, ADR 0003).
 | warehouse_id | uuid | FK → warehouses, NN | |
 | quantity | int | NN, CHECK > 0 | |
 | status | enum `active`/`converted`/`released`/`expired` | NN | |
-| expires_at | timestamptz | NN | |
+| expires_at | timestamptz | NN | = thời điểm đặt đơn + 15 phút |
 | resolved_at | timestamptz | | |
 
 Partial UK `(order_id, variant_id) WHERE status = 'active'`. IX `(status, expires_at)` cho job hết hạn.
@@ -455,7 +455,7 @@ Hàng chờ xuất theo Mã đơn (BR-INV-10, ADR 0010).
 | quantity | int | NN, CHECK > 0 | |
 | created_at | timestamptz | NN | |
 
-UK `(order_id, variant_id)`. Dòng bị **xoá** khi Vận đơn tạo xong hoặc trả về Tồn kho khi huỷ (BR-INV-07). Hàng trên kệ = `on_hand` + tổng dòng ở đây.
+UK `(order_id, variant_id)`. Dòng bị **xoá** khi Vận đơn tạo xong (T10) hoặc trả về Tồn kho khi huỷ (BR-INV-07). Hàng trên kệ = `on_hand` + tổng dòng ở đây.
 
 #### `inventory_movements`
 
@@ -494,7 +494,7 @@ Kiểm kê (BR-INV-12, US-703).
 
 #### `checkout_quotes`
 
-Tính thử có hạn (BR-ORD-07, ADR 0013).
+Tính thử có hạn (BR-ORD-07, ADR 0013). Không Giữ hàng.
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
@@ -590,7 +590,7 @@ Partial IX `(created_at) WHERE resolved_at IS NULL` cho danh sách cần xử l�
 |---|---|---|---|
 | id | uuid | PK | |
 | scope | text | NN | ví dụ `checkout.place-order`, `payments.create-link` |
-| key | text | NN | header `Idempotency-Key` ([03-api.md](./architecture/03-api.md)) |
+| key | text | NN | header `Idempotency-Key` ([03-api.md](./03-api.md)) |
 | request_hash | text | NN | cùng key khác body → `409` |
 | response_status | int | | |
 | response_body | jsonb | | |
@@ -603,7 +603,7 @@ UK `(scope, key)`.
 
 #### `payments`
 
-Một dòng cho **mỗi lần thử** thanh toán online (ADR 0004).
+Một dòng cho **mỗi lần thử** thanh toán online (ADR 0004): một đơn có nhiều dòng (thử lại, đổi Cổng — BR-PAY-01).
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
@@ -620,7 +620,7 @@ Một dòng cho **mỗi lần thử** thanh toán online (ADR 0004).
 | succeeded_at | timestamptz | | |
 | created_at, updated_at | timestamptz | NN | |
 
-IX `(status, created_at)` cho job Đối soát 5 phút.
+IX `(status, created_at)` cho job Đối soát 5 phút. Tối đa một dòng `succeeded` được dùng để đưa đơn vào `PLACED`; mọi khoản thu thành công khác của cùng đơn đều sinh yêu cầu Hoàn tiền (BR-PAY-05, kiểm tra ở service).
 
 #### `payment_notifications`
 
@@ -668,7 +668,7 @@ ADR 0006. Gắn với đúng **một** nguồn tiền đã nhận (BR-REF-01).
 | refunded_at | timestamptz | | |
 | created_at | timestamptz | NN | |
 
-CHECK đúng một trong `payment_id`/`cod_collection_id`. UK `(payment_id, reason, return_id)` (NULLS NOT DISTINCT) → một thao tác một yêu cầu (BR-REF-06). Tổng ≤ số thực nhận: kiểm tra ở service ([04-data-consistency.md](./architecture/04-data-consistency.md)).
+CHECK đúng một trong `payment_id`/`cod_collection_id`. UK `(payment_id, reason, return_id)` (NULLS NOT DISTINCT) → một thao tác một yêu cầu (BR-REF-06). Tổng ≤ số thực nhận: kiểm tra ở service ([04-data-consistency.md](./04-data-consistency.md)).
 
 #### `returns`
 
@@ -698,7 +698,7 @@ Partial IX `(order_id) WHERE status = 'open'` để chặn T13.
 | quantity_returned | int | NN, CHECK > 0 | |
 | quantity_accepted | int | CHECK 0..quantity_returned | BR-RET-08 |
 | restock | boolean | | hàng lỗi = false (BR-INV-08) |
-| refund_amount | bigint | | BR-RET-07 |
+| refund_amount | bigint | | số hoàn của dòng trong lần Đổi trả này (BR-RET-07) |
 
 UK `(return_id, order_item_id)`. Tổng `quantity_accepted` qua mọi lần Đổi trả ≤ `order_items.quantity` (service).
 
@@ -717,7 +717,7 @@ UK `(return_id, order_item_id)`. Tổng `quantity_accepted` qua mọi lần Đ�
 
 #### `ghn_ward_mappings`
 
-US-1004, [06-integrations.md](./architecture/06-integrations.md) §4.2.
+US-1004, [06-integrations.md](./06-integrations.md) §4.2. Bỏ bảng này nếu GHN nhận địa chỉ 2 cấp.
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
@@ -737,14 +737,17 @@ US-1004, [06-integrations.md](./architecture/06-integrations.md) §4.2.
 | status | enum `creating`/`created`/`creation_failed`/`picked`/`delivering`/`delivered`/`returning`/`returned`/`exception`/`cancelled` | NN | |
 | cod_amount | bigint | NN | BR-SHP-07 |
 | carrier_fee | bigint | | Cước vận chuyển cửa hàng trả (BR-SHP-03) |
-| creation_input | jsonb | | thời hạn lưu chờ chốt (`business/06` §5) |
-| last_event_at | timestamptz | | sắp thứ tự sự kiện ([07-async-events-jobs.md](./architecture/07-async-events-jobs.md) §1.3) |
+| creation_input | jsonb | | payload gửi GHN; thời hạn lưu chờ chốt (`business/06` §5) |
+| last_error | text | | lỗi tạo/huỷ gần nhất |
+| last_event_at | timestamptz | | sắp thứ tự sự kiện ([07-async-events-jobs.md](./07-async-events-jobs.md) §1.3) |
 | handed_over_by | uuid | FK → users | |
 | created_at, updated_at | timestamptz | NN | |
 
 IX `(status, updated_at)` cho Đối soát 15 phút.
 
 #### `shipment_events`
+
+Inbox thô sự kiện GHN.
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
@@ -757,16 +760,17 @@ IX `(status, updated_at)` cho Đối soát 15 phút.
 | raw_payload | jsonb | NN | |
 | applied_at | timestamptz | | null = đang giữ chờ áp dụng (`business/05` §4.2) |
 | attempts | int | NN, default 0 | |
+| next_attempt_at | timestamptz | | lần thử áp dụng lại kế tiếp |
 
 ### 4.10. Notifications
 
 #### `outbox_events`
 
-ADR 0003, ADR 0007, [07-async-events-jobs.md](./architecture/07-async-events-jobs.md) §2.
+ADR 0003, ADR 0007, [07-async-events-jobs.md](./07-async-events-jobs.md) §2.
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
-| id | uuid | PK | |
+| id | uuid | PK | = `event_id` |
 | type | text | NN | ví dụ `ordering.unexpected-payment-received` |
 | aggregate_type, aggregate_id | text, uuid | NN | không FK |
 | payload | jsonb | NN | không chứa PII |
@@ -780,7 +784,7 @@ Partial IX `(next_attempt_at) WHERE status IN ('pending','enqueued')`.
 
 #### `email_logs`
 
-[07-async-events-jobs.md](./architecture/07-async-events-jobs.md) §3.2.
+[07-async-events-jobs.md](./07-async-events-jobs.md) §3.2.
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
@@ -792,7 +796,10 @@ Partial IX `(next_attempt_at) WHERE status IN ('pending','enqueued')`.
 | recipient | citext | | xoá sau 90 ngày |
 | amount | bigint | | xoá sau 90 ngày |
 | status | enum `sent`/`failed`/`cancelled` | NN | |
+| attempts | int | NN, default 0 | |
+| last_error | text | | |
 | provider_message_id | text | | |
+| sent_at | timestamptz | | |
 | created_at | timestamptz | NN, IX | |
 
 ### 4.11. Compliance
@@ -813,7 +820,7 @@ CMP-01..03.
 | ip_hmac | text | | |
 | created_at | timestamptz | NN | |
 
-CHECK ít nhất một trong `user_id`/`order_id`.
+CHECK ít nhất một trong `user_id`/`order_id`. Chỉ thêm, không sửa — đổi ý là một dòng mới (CMP-02, CMP-03).
 
 #### `data_erasure_requests`
 
@@ -823,16 +830,17 @@ CMP-05, CMP-06, US-1101.
 |---|---|---|---|
 | id | uuid | PK | |
 | user_id | uuid | FK → users RESTRICT | null với đơn vãng lai |
-| guest_phone, guest_order_code | text | | yêu cầu riêng cho đơn vãng lai |
+| guest_phone, guest_order_code | text | | yêu cầu riêng cho đơn vãng lai chưa gắn Tài khoản — cần Staff xác minh |
+| channel | text | | kênh tiếp nhận yêu cầu |
 | status | enum `received`/`verified`/`processing`/`completed`/`rejected` | NN | |
-| steps | jsonb | NN | trạng thái từng bước ẩn danh |
+| steps | jsonb | NN | trạng thái từng bước ẩn danh theo module, lỗi cuối |
 | verified_by | uuid | FK → users | |
 | received_at | timestamptz | NN | |
 | completed_at | timestamptz | | chỉ khi mọi bước thành công |
 
 #### `data_access_logs`
 
-CMP-07, US-1102.
+CMP-07, US-1102. Không ghi khi chỉ mở danh sách đơn.
 
 | Cột | Kiểu | Ràng buộc | Ghi chú |
 |---|---|---|---|
@@ -842,6 +850,7 @@ CMP-07, US-1102.
 | subject_user_id | uuid | FK → users | |
 | order_id | uuid | FK → orders | |
 | query_hmac | text | | SĐT tìm kiếm, không lưu thô |
+| ip_hmac | text | | |
 | created_at | timestamptz | NN, IX | |
 
 ### 4.12. Admin-config
@@ -861,7 +870,7 @@ US-1002. Giá trị cấu hình được: hạn mức COD (BR-PAY-06), Phí ship
 
 ## 5. Ràng buộc toàn vẹn & concurrency
 
-Chi tiết cơ chế (transaction, khoá, thứ tự khoá, cuộc đua thanh toán–hết hạn) ở [`architecture/04-data-consistency.md`](./architecture/04-data-consistency.md). Tóm tắt những gì database tự đảm bảo:
+Chi tiết cơ chế (transaction, khoá, thứ tự khoá, cuộc đua thanh toán–hết hạn) ở [`architecture/04-data-consistency.md`](./04-data-consistency.md). Tóm tắt những gì database tự đảm bảo:
 
 ### 5.1. CHECK
 
@@ -891,7 +900,7 @@ Tổng Hoàn tiền ≤ số thực nhận (BR-REF-06); lượt Voucher (BR-VCH-
 
 ## 6. Retention & cleanup
 
-Thời hạn theo [`business/06-compliance.md`](./business/06-compliance.md) §5; job ở [`architecture/07-async-events-jobs.md`](./architecture/07-async-events-jobs.md) §4.
+Thời hạn theo [`business/06-compliance.md`](../business/06-compliance.md) §5; job ở [`architecture/07-async-events-jobs.md`](./07-async-events-jobs.md) §4.
 
 | Bảng | Xử lý |
 |---|---|

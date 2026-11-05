@@ -12,7 +12,7 @@ interface ResolvedError {
 // Safety net cho MỌI exception (HttpException, Prisma, hay lỗi không lường
 // trước) — chuẩn hoá 1 shape response lỗi duy nhất cho toàn app. Không thay
 // thế domain error nên ném rõ ràng ở service (xem docs/convention/error-logging-conventions.md
-// và docs/convention/api-conventions.md §B5 — pre-check vẫn phải giữ, filter chỉ là lớp
+// và docs/convention/api-rules.md §R2 — pre-check vẫn phải giữ, filter chỉ là lớp
 // cuối cùng).
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {

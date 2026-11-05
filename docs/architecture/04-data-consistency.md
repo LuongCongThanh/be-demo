@@ -1,6 +1,6 @@
 # 04. Tính nhất quán dữ liệu
 
-> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../business/04-business-rules.md`](../business/04-business-rules.md), [`../business/05-order-lifecycle.md`](../business/05-order-lifecycle.md). Schema: [`../database-design.md`](../database-design.md).
+> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../business/04-business-rules.md`](../business/04-business-rules.md), [`../business/05-order-lifecycle.md`](../business/05-order-lifecycle.md). Schema: [`./11-database.md`](./11-database.md).
 
 ## 1. Nguyên tắc
 

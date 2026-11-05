@@ -42,7 +42,7 @@ Chỉ module sở hữu được **ghi** vào bảng của nó; module khác g�
 | `admin-config` | settings, audit_logs |
 | hạ tầng `outbox` | outbox_events, idempotency_keys |
 
-Chi tiết bảng: [../database-design.md](../database-design.md).
+Chi tiết bảng: [./11-database.md](./11-database.md).
 
 Một use case cần ghi nhiều module (ví dụ checkout: `ordering` + `inventory` + `pricing` + `payments`) chạy trong **một transaction** do module điều phối (`ordering`) mở; transaction client được truyền vào service của module khác ([04-data-consistency.md](./04-data-consistency.md)).
 

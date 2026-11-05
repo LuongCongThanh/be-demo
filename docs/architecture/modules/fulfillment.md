@@ -1,6 +1,6 @@
 # Module `fulfillment`
 
-> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../../business/04-business-rules.md`](../../business/04-business-rules.md) §6, [`../../business/05-order-lifecycle.md`](../../business/05-order-lifecycle.md) T10–T12, T14, §4.5, §4.7. Tích hợp: [`../06-integrations.md`](../06-integrations.md) §4.
+> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../../business/04-business-rules.md`](../../business/04-business-rules.md) §6, [`../../business/05-order-lifecycle.md`](../../business/05-order-lifecycle.md) T10–T12, T14, §4.5, §4.7. Tích hợp: [`../06-integrations.md`](../06-integrations.md) §4. Bảng: [`../11-database.md`](../11-database.md).
 
 ## 1. Trách nhiệm
 
@@ -12,13 +12,12 @@
 
 ## 2. Mô hình
 
-| Bảng | Ghi chú |
-|---|---|
-| `provinces` | Tỉnh/thành theo sắp xếp từ 07/2025: `code`, `name` |
-| `wards` | `province_code`, `code`, `name` (BR-ORD-04) |
-| `ghn_ward_mappings` | `ward_code` unique → `ghn_province_id`, `ghn_district_id`, `ghn_ward_code`; `mapped_by`, `mapped_at` (US-1004). Bỏ nếu GHN nhận địa chỉ 2 cấp ([`../06-integrations.md`](../06-integrations.md) §4.2) |
-| `shipments` | `order_id` unique (một Vận đơn mỗi đơn — bàn giao lại dùng lại, BR-SHP-05), `status` (`REQUESTED`, `CREATION_UNKNOWN`, `CREATED`, `CREATION_FAILED`, `DELIVERED`, `RETURNED`, `EXCEPTION`, `CANCEL_REQUESTED`, `CANCELLED`), `ghn_order_code`, `cod_amount`, `creation_input` (payload gửi GHN), `last_error` |
-| `shipment_events` | Inbox thô: `source` (`WEBHOOK`/`RECONCILIATION`), `ghn_order_code`, `ghn_status`, `raw_payload`, `status` (`RECEIVED`, `APPLIED`, `IGNORED`, `DEFERRED`, `STUCK`, `REJECTED`), `attempts`, `next_attempt_at`; unique theo `(ghn_order_code, ghn_status, event_time)` |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.9](../11-database.md#49-fulfillment).
+
+- `provinces`, `wards` — đơn vị hành chính 2 cấp
+- `ghn_ward_mappings` — ánh xạ phường sang mã GHN
+- `shipments` — Vận đơn GHN, một mỗi đơn
+- `shipment_events` — inbox thô sự kiện GHN
 
 ## 3. Interface public
 

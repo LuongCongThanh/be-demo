@@ -1,6 +1,6 @@
 # Module `refunds-returns`
 
-> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../../business/04-business-rules.md`](../../business/04-business-rules.md) §8–9, [`../../business/05-order-lifecycle.md`](../../business/05-order-lifecycle.md) §4.4. Quyết định: [ADR 0006](../../adr/0006-manual-refund-mvp-scope.md), [ADR 0012](../../adr/0012-order-line-snapshot-and-voucher-allocation.md).
+> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../../business/04-business-rules.md`](../../business/04-business-rules.md) §8–9, [`../../business/05-order-lifecycle.md`](../../business/05-order-lifecycle.md) §4.4. Quyết định: [ADR 0006](../../adr/0006-manual-refund-mvp-scope.md), [ADR 0012](../../adr/0012-order-line-snapshot-and-voucher-allocation.md). Bảng: [`../11-database.md`](../11-database.md).
 
 ## 1. Trách nhiệm
 
@@ -11,13 +11,11 @@
 
 ## 2. Mô hình
 
-| Bảng | Ghi chú |
-|---|---|
-| `refunds` | `payment_id?` (online) hoặc `cod_collection_id?` (COD Đổi trả — chuyển khoản, BR-REF-04), `order_id`, `return_id?`, `reason` (`ORDER_CANCELLED`, `RETURNED_TO_SENDER`, `RETURN_ACCEPTED`, `AMOUNT_MISMATCH`, `UNEXPECTED_PAYMENT`), `amount`, `status` (`REQUESTED → REFUNDED`), `operation_key` unique (định danh thao tác ổn định — BR-REF-06), `refund_transaction_ref`, `refunded_at`, `recorded_by` |
-| `returns` | `order_id`, `status` (`RECORDED → RECEIVED → ACCEPTED \| REJECTED → REFUNDED`), kênh tiếp nhận (hotline/Zalo — BR-RET-04), ai chịu phí ship trả (BR-RET-06), ghi chú gửi lại hàng (BR-RET-09), `recorded_at` |
-| `return_items` | `return_id`, `order_item_id`, `quantity_returned`, `quantity_accepted`, `restock` (bool), `refund_amount` (số hoàn của dòng trong lần này) |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.8](../11-database.md#48-refunds-returns).
 
-"Đang mở" = `returns.status NOT IN (REJECTED, REFUNDED)`.
+- `refunds` — yêu cầu Hoàn tiền gắn một nguồn tiền đã nhận
+- `returns` — Đổi trả do Staff ghi nhận
+- `return_items` — dòng hàng trong một lần Đổi trả
 
 ## 3. Interface public
 

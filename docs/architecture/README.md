@@ -16,8 +16,8 @@
 | 08 | [08-observability.md](./08-observability.md) | Log, metrics, tracing, cảnh báo |
 | 09 | [09-deployment.md](./09-deployment.md) | Docker, CI/CD, topology, rollout |
 | 10 | [10-nfr.md](./10-nfr.md) | Yêu cầu phi chức năng |
-| — | [modules/ordering.md](./modules/ordering.md) | Thiết kế chi tiết module Đặt hàng (checkout) |
-| — | [../database-design.md](../database-design.md) | Thiết kế database |
+| 11 | [11-database.md](./11-database.md) | Schema mục tiêu: bảng, cột, ràng buộc, index |
+| — | [modules/](./modules/) | Thiết kế chi tiết từng module: `identity`, `catalog`, `pricing`, `cart`, `inventory`, `ordering`, `payments`, `refunds-returns`, `fulfillment`, `notifications`, `compliance`, `admin-config` |
 
 ## 2. Quy ước viết
 

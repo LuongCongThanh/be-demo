@@ -1,6 +1,6 @@
 # Module `admin-config`
 
-> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../../database-design.md`](../../database-design.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/03](../../business/03-user-stories.md) US-1002, [business/02](../../business/02-actors-permissions.md) §4.
+> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../11-database.md`](../11-database.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/03](../../business/03-user-stories.md) US-1002, [business/02](../../business/02-actors-permissions.md) §4.
 
 ## 1. Trách nhiệm
 
@@ -9,10 +9,11 @@
 
 ## 2. Mô hình
 
-| Bảng | Ghi chú |
-|---|---|
-| `settings` | `key` (enum cố định: `shipping_fallback_fee`, `free_shipping_threshold`, `cod_limit`), `value` (số nguyên VND), `updated_by`, `updated_at` |
-| `audit_logs` | Chỉ thêm: `actor` (user/`cli`/`system`), hành động, đối tượng, `before`, `after`, thời điểm; cả lượt **xem** dữ liệu cá nhân Người mua ([05-auth-security](../05-auth-security.md) §6) |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.12](../11-database.md#412-admin-config).
+
+- `settings` — giá trị cấu hình do Admin chỉnh
+
+`audit_logs` (nhật ký thao tác back-office, [§4.1](../11-database.md#41-identity)) cũng thuộc module này.
 
 ## 3. Interface cho module khác
 

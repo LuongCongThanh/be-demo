@@ -1,6 +1,6 @@
 # Module `compliance`
 
-> Trạng thái: **Đã chốt cho MVP**, trừ các mục **[Cần xác minh trước go-live]**. Nguồn nghiệp vụ: [`../../business/06-compliance.md`](../../business/06-compliance.md), US-1101, US-1102. Bảo mật: [`../05-auth-security.md`](../05-auth-security.md).
+> Trạng thái: **Đã chốt cho MVP**, trừ các mục **[Cần xác minh trước go-live]**. Nguồn nghiệp vụ: [`../../business/06-compliance.md`](../../business/06-compliance.md), US-1101, US-1102. Bảo mật: [`../05-auth-security.md`](../05-auth-security.md). Bảng: [`../11-database.md`](../11-database.md).
 
 ## 1. Trách nhiệm
 
@@ -11,11 +11,11 @@
 
 ## 2. Mô hình
 
-| Bảng | Ghi chú |
-|---|---|
-| `consents` | `subject_type` (`USER`/`ORDER`), `subject_id`, `purpose` (`DATA_PROCESSING`, `MARKETING_EMAIL`), `granted` (bool), `policy_version`, `channel` (`REGISTER`/`CHECKOUT`), `created_at`. Chỉ thêm, không sửa — đổi ý là một dòng mới (CMP-02, CMP-03) |
-| `data_erasure_requests` | `user_id?`, `order_ids` (đơn vãng lai chưa gắn — cần Staff xác minh), `channel`, `status` (`PENDING → PROCESSING → COMPLETED`), `verified_by`, `received_at`, `completed_at`, `steps` (tiến độ từng module, lỗi cuối) (CMP-05, CMP-06) |
-| `data_access_logs` | `staff_id`, `action` (`VIEW_CUSTOMER`, `VIEW_ORDER`, `SEARCH_ORDER_BY_PHONE`, …), `subject_type`, `subject_id`, `ip_hmac`, `created_at` (CMP-07). Không ghi khi mở danh sách đơn |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.11](../11-database.md#411-compliance).
+
+- `consents` — bằng chứng đồng ý, chỉ thêm
+- `data_erasure_requests` — Yêu cầu xoá dữ liệu và tiến độ ẩn danh
+- `data_access_logs` — nhật ký Staff xem dữ liệu cá nhân
 
 ## 3. Interface public
 

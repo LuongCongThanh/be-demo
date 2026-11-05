@@ -1,6 +1,6 @@
 # Module `notifications`
 
-> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../../business/04-business-rules.md`](../../business/04-business-rules.md) §10, [`../../business/06-compliance.md`](../../business/06-compliance.md) §5. Kỹ thuật: [`../07-async-events-jobs.md`](../07-async-events-jobs.md) §2–3, [ADR 0007](../../adr/0007-outbox-done-means-downstream-ack.md).
+> Trạng thái: **Đã chốt cho MVP**. Nguồn nghiệp vụ: [`../../business/04-business-rules.md`](../../business/04-business-rules.md) §10, [`../../business/06-compliance.md`](../../business/06-compliance.md) §5. Kỹ thuật: [`../07-async-events-jobs.md`](../07-async-events-jobs.md) §2–3, [ADR 0007](../../adr/0007-outbox-done-means-downstream-ack.md). Bảng: [`../11-database.md`](../11-database.md).
 
 ## 1. Trách nhiệm
 
@@ -11,10 +11,10 @@
 
 ## 2. Mô hình
 
-| Bảng | Ghi chú |
-|---|---|
-| `outbox_events` | `id` (event_id), `type`, `aggregate_id`, `payload` (chỉ ID/mã, **không PII**), `status` (`PENDING → ENQUEUED → DONE \| FAILED`), `attempts`, `created_at`, `done_at`. Xoá `DONE` sau 90 ngày |
-| `email_logs` | `event_id` + `email_type` unique (chống gửi trùng), `locale`, `recipient`, `amount_shown`, `status` (`QUEUED`, `SENT`, `FAILED`, `CANCELLED`), `attempts`, `last_error`, `sent_at`. Sau 90 ngày: xoá `recipient`, `amount_shown` ([`../07-async-events-jobs.md`](../07-async-events-jobs.md) §3.2) |
+Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.10](../11-database.md#410-notifications).
+
+- `outbox_events` — transactional outbox
+- `email_logs` — nhật ký gửi email, chống gửi trùng
 
 ## 3. Email theo sự kiện
 
