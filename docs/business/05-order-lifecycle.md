@@ -4,17 +4,17 @@
 
 ## 1. Các trạng thái
 
-| Trạng thái | Mã (code) | Ý nghĩa |
-|---|---|---|
-| Chờ thanh toán | `PENDING_PAYMENT` | Đơn online đã tạo, đang Giữ hàng 15 phút, chờ tiền về |
-| Chờ xác nhận | `PLACED` | Đơn COD vừa đặt, hoặc đơn online đã thanh toán; chờ Staff xác nhận |
-| Đã xác nhận | `CONFIRMED` | Staff đã kiểm tra đơn hợp lệ |
-| Đang đóng gói | `PACKING` | Kho đang soạn và đóng gói hàng; khi Staff đã bàn giao, đơn vẫn ở đây cho tới khi GHN tạo xong Vận đơn |
-| Đang giao | `SHIPPING` | GHN đã tạo Vận đơn, hàng đã bàn giao |
-| Đã giao | `DELIVERED` | GHN báo giao thành công; bắt đầu tính 7 ngày Đổi trả |
-| Hoàn tất | `COMPLETED` | Đã hết hạn Đổi trả (7 ngày sau Đã giao) và không còn Đổi trả nào đang mở; chốt Doanh thu |
-| Đã huỷ | `CANCELLED` | Đơn bị huỷ (bởi Người mua, Staff hoặc hệ thống) |
-| Hoàn hàng | `RETURNED_TO_SENDER` | Giao thất bại, GHN trả hàng về Kho |
+| Trạng thái     | Mã (code)            | Ý nghĩa                                                                                               |
+| -------------- | -------------------- | ----------------------------------------------------------------------------------------------------- |
+| Chờ thanh toán | `PENDING_PAYMENT`    | Đơn online đã tạo, đang Giữ hàng 15 phút, chờ tiền về                                                 |
+| Chờ xác nhận   | `PLACED`             | Đơn COD vừa đặt, hoặc đơn online đã thanh toán; chờ Staff xác nhận                                    |
+| Đã xác nhận    | `CONFIRMED`          | Staff đã kiểm tra đơn hợp lệ                                                                          |
+| Đang đóng gói  | `PACKING`            | Kho đang soạn và đóng gói hàng; khi Staff đã bàn giao, đơn vẫn ở đây cho tới khi GHN tạo xong Vận đơn |
+| Đang giao      | `SHIPPING`           | GHN đã tạo Vận đơn, hàng đã bàn giao                                                                  |
+| Đã giao        | `DELIVERED`          | GHN báo giao thành công; bắt đầu tính 7 ngày Đổi trả                                                  |
+| Hoàn tất       | `COMPLETED`          | Đã hết hạn Đổi trả (7 ngày sau Đã giao) và không còn Đổi trả nào đang mở; chốt Doanh thu              |
+| Đã huỷ         | `CANCELLED`          | Đơn bị huỷ (bởi Người mua, Staff hoặc hệ thống)                                                       |
+| Hoàn hàng      | `RETURNED_TO_SENDER` | Giao thất bại, GHN trả hàng về Kho                                                                    |
 
 Trạng thái cuối (không chuyển tiếp được nữa): `COMPLETED`, `CANCELLED`, `RETURNED_TO_SENDER`.
 
@@ -50,22 +50,22 @@ stateDiagram-v2
 
 ## 3. Bảng chuyển trạng thái
 
-| # | Từ | Sang | Ai / cái gì kích hoạt | Điều kiện | Tác động kèm theo |
-|---|---|---|---|---|---|
-| T1 | — | `PENDING_PAYMENT` | Người mua đặt đơn online | Đủ hàng (BR-INV-06); tổng tiền khớp bước tính thử (BR-ORD-07) | Tạo Giữ hàng 15 phút; tính lượt Voucher. **Không** gửi email |
-| T2 | — | `PLACED` | Người mua đặt đơn COD | Đủ hàng; tổng tiền khớp bước tính thử (BR-ORD-07); tổng tiền ≤ hạn mức COD (BR-PAY-06) | Trừ Tồn kho, ghi Hàng chờ xuất; tính lượt Voucher; tạo khoản thu COD chờ thu; email "Đặt đơn thành công" |
-| T3 | `PENDING_PAYMENT` | `PLACED` | Hệ thống, khi nhận IPN hoặc Đối soát thành công | Số tiền khớp (BR-PAY-04); Giữ hàng còn hiệu lực, hoặc đã quá hạn nhưng Số lượng bán được vẫn đủ để giữ lại (mục 4.1). Link thanh toán hết hạn sau 10 phút, sớm hơn Giữ hàng 5 phút (BR-INV-05) | Chuyển Giữ hàng thành trừ Tồn kho và Hàng chờ xuất; email "Thanh toán thành công" |
-| T4 | `PENDING_PAYMENT` | `CANCELLED` | Hệ thống, khi hết 15 phút | Đơn vẫn ở `PENDING_PAYMENT` lúc job chạy. Tiền đã về nhưng chưa kịp xử lý T3 không chặn T4 (mục 4.1) | Giải phóng Giữ hàng; trả lượt Voucher. **Không** gửi email (BR-NTF-01) |
-| T5 | `PENDING_PAYMENT` | `CANCELLED` | Người mua | — | Như T4 |
-| T6 | `PLACED` | `CONFIRMED` | Staff | — | — |
-| T7 | `PLACED`, `CONFIRMED` | `CANCELLED` | Người mua hoặc Staff | Staff phải nhập lý do | Trả Hàng chờ xuất về Tồn kho; trả lượt Voucher; tạo Hoàn tiền toàn bộ Tổng tiền đơn nếu đã thanh toán online (BR-REF-05); huỷ khoản thu COD nếu là đơn COD; email "Đơn đã huỷ" |
-| T8 | `CONFIRMED` | `PACKING` | Staff | — | Từ đây Người mua **không** tự huỷ được nữa |
-| T9 | `PACKING` | `CANCELLED` | Chỉ Staff | Bắt buộc nhập lý do; **không** có Vận đơn đang được tạo (mục 4.5) | Như T7 |
-| T10 | `PACKING` | `SHIPPING` | Hệ thống, khi GHN tạo Vận đơn thành công sau khi Staff bàn giao | Staff đã bấm bàn giao; việc tạo Vận đơn chạy nền | Lưu mã Vận đơn; xoá Hàng chờ xuất của đơn (BR-INV-10); email "Đơn đang được giao". Tạo Vận đơn thất bại: đơn giữ `PACKING` và được gắn Cờ cần xử lý; Staff bàn giao lại thì dùng lại Vận đơn đó |
-| T11 | `SHIPPING` | `DELIVERED` | Hệ thống, khi GHN báo giao thành công | — | Ghi thời điểm giao; email "Đã giao"; với COD: ghi nhận khoản thu COD đã thu |
-| T12 | `SHIPPING` | `RETURNED_TO_SENDER` | Hệ thống, khi GHN báo hoàn hàng | — | Chờ Staff xác nhận nhận hàng về Kho để cộng lại Tồn kho (BR-INV-08); tạo Hoàn tiền toàn bộ Tổng tiền đơn nếu đã thanh toán online (BR-REF-05); huỷ khoản thu COD nếu là đơn COD |
-| T13 | `DELIVERED` | `COMPLETED` | Hệ thống, job định kỳ | Đã qua 7 ngày (đủ 7 × 24 giờ) kể từ Đã giao và không có yêu cầu Đổi trả đang mở (mục 4.4) | Chốt Doanh thu (BR-REV-01) |
-| T14 | `SHIPPING` | `CANCELLED` | Chỉ Staff | Vận đơn gặp sự cố (mục 4.7); bắt buộc nhập lý do | Hoàn tiền toàn bộ Tổng tiền đơn nếu đã thanh toán online (BR-REF-05); huỷ khoản thu COD nếu là đơn COD; **không** trả lượt Voucher (BR-VCH-08); hàng chưa rời Kho thì chờ Staff xác nhận nhập lại Tồn kho như đơn Hoàn hàng; email "Đơn đã huỷ" |
+| #   | Từ                    | Sang                 | Ai / cái gì kích hoạt                                           | Điều kiện                                                                                                                                                                                      | Tác động kèm theo                                                                                                                                                                                                                               |
+| --- | --------------------- | -------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | —                     | `PENDING_PAYMENT`    | Người mua đặt đơn online                                        | Đủ hàng (BR-INV-06); tổng tiền khớp bước tính thử (BR-ORD-07)                                                                                                                                  | Tạo Giữ hàng 15 phút; tính lượt Voucher. **Không** gửi email                                                                                                                                                                                    |
+| T2  | —                     | `PLACED`             | Người mua đặt đơn COD                                           | Đủ hàng; tổng tiền khớp bước tính thử (BR-ORD-07); tổng tiền ≤ hạn mức COD (BR-PAY-06)                                                                                                         | Trừ Tồn kho, ghi Hàng chờ xuất; tính lượt Voucher; tạo khoản thu COD chờ thu; email "Đặt đơn thành công"                                                                                                                                        |
+| T3  | `PENDING_PAYMENT`     | `PLACED`             | Hệ thống, khi nhận IPN hoặc Đối soát thành công                 | Số tiền khớp (BR-PAY-04); Giữ hàng còn hiệu lực, hoặc đã quá hạn nhưng Số lượng bán được vẫn đủ để giữ lại (mục 4.1). Link thanh toán hết hạn sau 10 phút, sớm hơn Giữ hàng 5 phút (BR-INV-05) | Chuyển Giữ hàng thành trừ Tồn kho và Hàng chờ xuất; email "Thanh toán thành công"                                                                                                                                                               |
+| T4  | `PENDING_PAYMENT`     | `CANCELLED`          | Hệ thống, khi hết 15 phút                                       | Đơn vẫn ở `PENDING_PAYMENT` lúc job chạy. Tiền đã về nhưng chưa kịp xử lý T3 không chặn T4 (mục 4.1)                                                                                           | Giải phóng Giữ hàng; trả lượt Voucher. **Không** gửi email (BR-NTF-01)                                                                                                                                                                          |
+| T5  | `PENDING_PAYMENT`     | `CANCELLED`          | Người mua                                                       | —                                                                                                                                                                                              | Như T4                                                                                                                                                                                                                                          |
+| T6  | `PLACED`              | `CONFIRMED`          | Staff                                                           | —                                                                                                                                                                                              | —                                                                                                                                                                                                                                               |
+| T7  | `PLACED`, `CONFIRMED` | `CANCELLED`          | Người mua hoặc Staff                                            | Staff phải nhập lý do                                                                                                                                                                          | Trả Hàng chờ xuất về Tồn kho; trả lượt Voucher; tạo Hoàn tiền toàn bộ Tổng tiền đơn nếu đã thanh toán online (BR-REF-05); huỷ khoản thu COD nếu là đơn COD; email "Đơn đã huỷ"                                                                  |
+| T8  | `CONFIRMED`           | `PACKING`            | Staff                                                           | —                                                                                                                                                                                              | Từ đây Người mua **không** tự huỷ được nữa                                                                                                                                                                                                      |
+| T9  | `PACKING`             | `CANCELLED`          | Chỉ Staff                                                       | Bắt buộc nhập lý do; **không** có Vận đơn đang được tạo (mục 4.5)                                                                                                                              | Như T7                                                                                                                                                                                                                                          |
+| T10 | `PACKING`             | `SHIPPING`           | Hệ thống, khi GHN tạo Vận đơn thành công sau khi Staff bàn giao | Staff đã bấm bàn giao; việc tạo Vận đơn chạy nền                                                                                                                                               | Lưu mã Vận đơn; xoá Hàng chờ xuất của đơn (BR-INV-10); email "Đơn đang được giao". Tạo Vận đơn thất bại: đơn giữ `PACKING` và được gắn Cờ cần xử lý; Staff bàn giao lại thì dùng lại Vận đơn đó                                                 |
+| T11 | `SHIPPING`            | `DELIVERED`          | Hệ thống, khi GHN báo giao thành công                           | —                                                                                                                                                                                              | Ghi thời điểm giao; email "Đã giao"; với COD: ghi nhận khoản thu COD đã thu                                                                                                                                                                     |
+| T12 | `SHIPPING`            | `RETURNED_TO_SENDER` | Hệ thống, khi GHN báo hoàn hàng                                 | —                                                                                                                                                                                              | Chờ Staff xác nhận nhận hàng về Kho để cộng lại Tồn kho (BR-INV-08); tạo Hoàn tiền toàn bộ Tổng tiền đơn nếu đã thanh toán online (BR-REF-05); huỷ khoản thu COD nếu là đơn COD                                                                 |
+| T13 | `DELIVERED`           | `COMPLETED`          | Hệ thống, job định kỳ                                           | Đã qua 7 ngày (đủ 7 × 24 giờ) kể từ Đã giao và không có yêu cầu Đổi trả đang mở (mục 4.4)                                                                                                      | Chốt Doanh thu (BR-REV-01)                                                                                                                                                                                                                      |
+| T14 | `SHIPPING`            | `CANCELLED`          | Chỉ Staff                                                       | Vận đơn gặp sự cố (mục 4.7); bắt buộc nhập lý do                                                                                                                                               | Hoàn tiền toàn bộ Tổng tiền đơn nếu đã thanh toán online (BR-REF-05); huỷ khoản thu COD nếu là đơn COD; **không** trả lượt Voucher (BR-VCH-08); hàng chưa rời Kho thì chờ Staff xác nhận nhập lại Tồn kho như đơn Hoàn hàng; email "Đơn đã huỷ" |
 
 Mọi chuyển trạng thái không có trong bảng đều bị **từ chối**.
 
@@ -135,9 +135,9 @@ GHN báo mất hàng, hư hàng, sự cố, hoặc tự huỷ một Vận đơn 
 
 ## 5. Thời gian và job tự động
 
-| Việc | Tần suất | Liên quan |
-|---|---|---|
-| Huỷ đơn `PENDING_PAYMENT` quá 15 phút | Mỗi phút | T4 |
-| Đối soát Thanh toán treo với VNPay / MoMo | Mỗi 5 phút | T3 |
-| Đối soát trạng thái Vận đơn với GHN | Mỗi 15 phút **[Giả định · kiểm chứng: hạn mức API GHN khi nghiệm thu sandbox]** | T11, T12 |
-| Chuyển `DELIVERED` quá 7 ngày sang `COMPLETED` | Mỗi giờ | T13 |
+| Việc                                           | Tần suất                                                                        | Liên quan |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- | --------- |
+| Huỷ đơn `PENDING_PAYMENT` quá 15 phút          | Mỗi phút                                                                        | T4        |
+| Đối soát Thanh toán treo với VNPay / MoMo      | Mỗi 5 phút                                                                      | T3        |
+| Đối soát trạng thái Vận đơn với GHN            | Mỗi 15 phút **[Giả định · kiểm chứng: hạn mức API GHN khi nghiệm thu sandbox]** | T11, T12  |
+| Chuyển `DELIVERED` quá 7 ngày sang `COMPLETED` | Mỗi giờ                                                                         | T13       |

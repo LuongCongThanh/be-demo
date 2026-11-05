@@ -1,6 +1,6 @@
 # Module `pricing`
 
-> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../11-database.md`](../11-database.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/04](../../business/04-business-rules.md) §2 (BR-PRC-*, BR-VCH-*), [business/03](../../business/03-user-stories.md) US-804, E9.
+> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../11-database.md`](../11-database.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/04](../../business/04-business-rules.md) §2 (BR-PRC-_, BR-VCH-_), [business/03](../../business/03-user-stories.md) US-804, E9.
 
 ## 1. Trách nhiệm
 
@@ -17,19 +17,19 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.3](../11-database
 
 ## 3. Interface cho module khác
 
-| Hàm | Dùng bởi |
-|---|---|
-| `getEffectivePrices(variantIds, at)` → Giá bán, Giá áp dụng, mức giảm (BR-PRC-03, BR-PRC-04) | `cart`, `catalog`, `ordering` |
-| `evaluateVoucher(code, subtotal, buyer{userId?, phone})` → `D` hoặc lý do từ chối | `ordering` (Tính thử) |
-| `recordUsage(voucherId, orderId, buyer, tx)` / `releaseUsage(orderId, tx)` | `ordering` (T1/T2; T4/T5/T7/T9 — không gọi ở T14, BR-VCH-08) |
-| `assertPriceChangeAllowed(variantId, newPrice)` | `catalog` (BR-PRC-05) |
+| Hàm                                                                                          | Dùng bởi                                                     |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `getEffectivePrices(variantIds, at)` → Giá bán, Giá áp dụng, mức giảm (BR-PRC-03, BR-PRC-04) | `cart`, `catalog`, `ordering`                                |
+| `evaluateVoucher(code, subtotal, buyer{userId?, phone})` → `D` hoặc lý do từ chối            | `ordering` (Tính thử)                                        |
+| `recordUsage(voucherId, orderId, buyer, tx)` / `releaseUsage(orderId, tx)`                   | `ordering` (T1/T2; T4/T5/T7/T9 — không gọi ở T14, BR-VCH-08) |
+| `assertPriceChangeAllowed(variantId, newPrice)`                                              | `catalog` (BR-PRC-05)                                        |
 
 ## 4. API
 
-| Method | Path | Actor | Ghi chú |
-|---|---|---|---|
+| Method | Path                 | Actor | Ghi chú                                             |
+| ------ | -------------------- | ----- | --------------------------------------------------- |
 | `CRUD` | `/admin/sale-prices` | admin | US-804; một Biến thể hoặc mọi Biến thể của Sản phẩm |
-| `CRUD` | `/admin/vouchers` | admin | US-901; xem `used_count`, vô hiệu hoá |
+| `CRUD` | `/admin/vouchers`    | admin | US-901; xem `used_count`, vô hiệu hoá               |
 
 Áp Voucher phía storefront đi qua Tính thử của `ordering` (`POST /checkout/quotes`), không có endpoint "validate" riêng.
 

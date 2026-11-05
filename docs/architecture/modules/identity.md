@@ -23,25 +23,25 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.1](../11-database
 
 ## 3. Interface cho module khác
 
-| Hàm | Dùng bởi |
-|---|---|
-| `getActor(request)` → `{ kind: guest|customer|staff|admin, userId?, guestOrderId? }` | Guard của mọi module |
-| `findVerifiedUserByEmail(email)` | `ordering` (gắn đơn lúc đặt, BR-ORD-08) |
-| `issueGuestOrderSession(orderId, tx)` / `verifyGuestOrderSession(token, orderId)` | `ordering` |
-| `getLocale(userId)` | `notifications` |
+| Hàm                                                                               | Dùng bởi                                |
+| --------------------------------------------------------------------------------- | --------------------------------------- |
+| `getActor(request)` → `{ kind: guest                                              | customer                                | staff | admin, userId?, guestOrderId? }` | Guard của mọi module |
+| `findVerifiedUserByEmail(email)`                                                  | `ordering` (gắn đơn lúc đặt, BR-ORD-08) |
+| `issueGuestOrderSession(orderId, tx)` / `verifyGuestOrderSession(token, orderId)` | `ordering`                              |
+| `getLocale(userId)`                                                               | `notifications`                         |
 
 ## 4. API
 
-| Method | Path | Actor | Ghi chú |
-|---|---|---|---|
-| `POST` | `/auth/register` | guest | US-501; gửi email xác thực |
-| `POST` | `/auth/verify-email` · `/auth/resend-verification` | guest, customer | |
-| `POST` | `/auth/login` · `/auth/google` · `/auth/refresh` · `/auth/logout` | — | US-502; từ chối email Tài khoản nội bộ ở storefront bằng lỗi chung |
-| `POST` | `/auth/forgot-password` · `/auth/reset-password` | guest | US-503; luôn trả cùng một phản hồi |
-| `GET/PATCH` | `/me` | customer | Hồ sơ, ngôn ngữ (US-505, US-506) |
-| `GET/POST/PATCH/DELETE` | `/me/addresses` | customer | US-504 |
-| `POST` | `/admin/auth/login` | staff, admin | Back-office, tách khỏi storefront |
-| `GET/POST` | `/admin/staff` · `POST /admin/staff/:id/disable` | admin | US-1001; không tạo được `admin` |
+| Method                  | Path                                                              | Actor           | Ghi chú                                                            |
+| ----------------------- | ----------------------------------------------------------------- | --------------- | ------------------------------------------------------------------ |
+| `POST`                  | `/auth/register`                                                  | guest           | US-501; gửi email xác thực                                         |
+| `POST`                  | `/auth/verify-email` · `/auth/resend-verification`                | guest, customer |                                                                    |
+| `POST`                  | `/auth/login` · `/auth/google` · `/auth/refresh` · `/auth/logout` | —               | US-502; từ chối email Tài khoản nội bộ ở storefront bằng lỗi chung |
+| `POST`                  | `/auth/forgot-password` · `/auth/reset-password`                  | guest           | US-503; luôn trả cùng một phản hồi                                 |
+| `GET/PATCH`             | `/me`                                                             | customer        | Hồ sơ, ngôn ngữ (US-505, US-506)                                   |
+| `GET/POST/PATCH/DELETE` | `/me/addresses`                                                   | customer        | US-504                                                             |
+| `POST`                  | `/admin/auth/login`                                               | staff, admin    | Back-office, tách khỏi storefront                                  |
+| `GET/POST`              | `/admin/staff` · `POST /admin/staff/:id/disable`                  | admin           | US-1001; không tạo được `admin`                                    |
 
 ## 5. Luồng
 
@@ -69,14 +69,14 @@ npm run cli -- create-admin --email admin@example.com
 
 ## 6. Sự kiện
 
-| Phát | Nghe |
-|---|---|
-| `identity.email-verification-requested`, `identity.password-reset-requested`, `identity.email-verified` | — |
+| Phát                                                                                                    | Nghe |
+| ------------------------------------------------------------------------------------------------------- | ---- |
+| `identity.email-verification-requested`, `identity.password-reset-requested`, `identity.email-verified` | —    |
 
 ## 7. Job
 
-| Job | Tần suất | Hành vi |
-|---|---|---|
+| Job               | Tần suất | Hành vi                                                                |
+| ----------------- | -------- | ---------------------------------------------------------------------- |
 | Dọn token hết hạn | Mỗi ngày | Xoá refresh/reset/verification token và `guest_order_sessions` quá hạn |
 
 ## 8. Bao phủ

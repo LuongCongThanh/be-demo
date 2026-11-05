@@ -13,14 +13,14 @@ Control bắt buộc: HTTPS, hash mật khẩu (argon2/bcrypt), access token ng�
 
 ## 2. Xác thực Khách hàng
 
-| Luồng | Quy tắc | Nguồn |
-|---|---|---|
-| Đăng ký email + mật khẩu | Bắt buộc tick đồng ý dữ liệu (không tick sẵn). Mọi request hợp lệ về định dạng trả **cùng một phản hồi**, không lộ email đã tồn tại; email đã có Tài khoản đã xác thực hoặc Tài khoản nội bộ thì gửi thư cảnh báo cho chủ email | US-501, CMP-01/02 |
-| Xác thực email | Token một lần, lưu dạng hash. Xác thực xong thì gắn các đơn vãng lai cùng email (không phân biệt hoa thường) | US-501 AC3, BR-ORD-08 |
-| Đăng nhập Google | Email mới → tạo Tài khoản (email coi như đã xác thực). Email đã có Tài khoản → liên kết; nếu Tài khoản đó chưa xác thực thì **xoá mật khẩu cũ và thu hồi mọi phiên** | US-502 AC1–2 |
-| Đăng nhập sai | Sai nhiều lần liên tiếp thì tạm khoá đăng nhập theo tài khoản | US-502 AC3 |
-| Quên mật khẩu | Luôn trả "Nếu email tồn tại…". Link dùng một lần, hết hạn **1 giờ**. Đặt lại thành công thì thu hồi mọi phiên | US-503 |
-| Tài khoản nội bộ trên storefront | Bị từ chối, kể cả qua Google, với thông báo lỗi chung | US-502 AC4 |
+| Luồng                            | Quy tắc                                                                                                                                                                                                                         | Nguồn                 |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| Đăng ký email + mật khẩu         | Bắt buộc tick đồng ý dữ liệu (không tick sẵn). Mọi request hợp lệ về định dạng trả **cùng một phản hồi**, không lộ email đã tồn tại; email đã có Tài khoản đã xác thực hoặc Tài khoản nội bộ thì gửi thư cảnh báo cho chủ email | US-501, CMP-01/02     |
+| Xác thực email                   | Token một lần, lưu dạng hash. Xác thực xong thì gắn các đơn vãng lai cùng email (không phân biệt hoa thường)                                                                                                                    | US-501 AC3, BR-ORD-08 |
+| Đăng nhập Google                 | Email mới → tạo Tài khoản (email coi như đã xác thực). Email đã có Tài khoản → liên kết; nếu Tài khoản đó chưa xác thực thì **xoá mật khẩu cũ và thu hồi mọi phiên**                                                            | US-502 AC1–2          |
+| Đăng nhập sai                    | Sai nhiều lần liên tiếp thì tạm khoá đăng nhập theo tài khoản                                                                                                                                                                   | US-502 AC3            |
+| Quên mật khẩu                    | Luôn trả "Nếu email tồn tại…". Link dùng một lần, hết hạn **1 giờ**. Đặt lại thành công thì thu hồi mọi phiên                                                                                                                   | US-503                |
+| Tài khoản nội bộ trên storefront | Bị từ chối, kể cả qua Google, với thông báo lỗi chung                                                                                                                                                                           | US-502 AC4            |
 
 **Token:** access token JWT ngắn hạn (khoảng 15 phút); refresh token ngẫu nhiên, chỉ lưu hash, xoay vòng mỗi lần dùng; dùng lại một refresh token đã xoay thì thu hồi cả chuỗi (phát hiện token bị lộ). Mỗi thiết bị một phiên.
 
@@ -60,12 +60,12 @@ Vô hiệu hoá Tài khoản Staff, đổi mật khẩu, hoặc liên kết Goog
 
 **Rate limiting** (Redis, fail closed `503` khi Redis lỗi — [ADR 0008](../adr/0008-redis-outage-degrades-not-unready.md)):
 
-| Endpoint | Khoá giới hạn |
-|---|---|
-| Đăng nhập | IP + email |
-| Đăng ký, quên mật khẩu, gửi lại xác thực | IP + email |
-| Tra cứu đơn vãng lai | **IP** — chống dò mã đơn (US-401 AC3) |
-| Tính thử, đặt đơn | IP + giỏ |
+| Endpoint                                 | Khoá giới hạn                         |
+| ---------------------------------------- | ------------------------------------- |
+| Đăng nhập                                | IP + email                            |
+| Đăng ký, quên mật khẩu, gửi lại xác thực | IP + email                            |
+| Tra cứu đơn vãng lai                     | **IP** — chống dò mã đơn (US-401 AC3) |
+| Tính thử, đặt đơn                        | IP + giỏ                              |
 
 Webhook (VNPay, MoMo, GHN) **không** bị rate limit chung và không cần Redis.
 

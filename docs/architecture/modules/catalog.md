@@ -20,24 +20,24 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.2](../11-database
 
 ## 3. Interface cho module khác
 
-| Hàm | Dùng bởi |
-|---|---|
-| `getSellableVariants(ids, tx?)` → tên, SKU, size, màu, Giá bán, cân nặng, trạng thái | `cart`, `ordering` (bản chụp), `pricing` |
-| `assertVariantSellable(id)` | `cart` (US-202 AC2) |
-| `markSkuLocked(variantIds, tx)` | `ordering` khi tạo đơn đầu tiên chứa Biến thể |
+| Hàm                                                                                  | Dùng bởi                                      |
+| ------------------------------------------------------------------------------------ | --------------------------------------------- |
+| `getSellableVariants(ids, tx?)` → tên, SKU, size, màu, Giá bán, cân nặng, trạng thái | `cart`, `ordering` (bản chụp), `pricing`      |
+| `assertVariantSellable(id)`                                                          | `cart` (US-202 AC2)                           |
+| `markSkuLocked(variantIds, tx)`                                                      | `ordering` khi tạo đơn đầu tiên chứa Biến thể |
 
 ## 4. API
 
-| Method | Path | Actor | Ghi chú |
-|---|---|---|---|
-| `GET` | `/categories` | mọi người | Cây danh mục |
-| `GET` | `/products` | mọi người | `category`, `size`, `color`, `priceMin/Max` (theo Giá áp dụng), `q`, `sort` = `newest`/`price_asc`/`price_desc`/`best_selling` (US-101–103) |
-| `GET` | `/products/:slug` | mọi người | Biến thể, ảnh theo màu, Giá áp dụng, còn hàng (US-104) |
-| `CRUD` | `/admin/categories` | admin | US-801 |
-| `CRUD` | `/admin/products`, `/admin/products/:id/variants` | admin | US-802; sinh ma trận Biến thể |
-| `POST` | `/admin/products/:id/publish` · `/archive` | admin | US-803 |
-| `POST` | `/admin/products/:id/images` | admin | Upload lên object storage, gắn màu |
-| `CRUD` | `/admin/sizes`, `/admin/colors` | admin | US-805; xoá → ẩn nếu đã dùng |
+| Method | Path                                              | Actor     | Ghi chú                                                                                                                                     |
+| ------ | ------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/categories`                                     | mọi người | Cây danh mục                                                                                                                                |
+| `GET`  | `/products`                                       | mọi người | `category`, `size`, `color`, `priceMin/Max` (theo Giá áp dụng), `q`, `sort` = `newest`/`price_asc`/`price_desc`/`best_selling` (US-101–103) |
+| `GET`  | `/products/:slug`                                 | mọi người | Biến thể, ảnh theo màu, Giá áp dụng, còn hàng (US-104)                                                                                      |
+| `CRUD` | `/admin/categories`                               | admin     | US-801                                                                                                                                      |
+| `CRUD` | `/admin/products`, `/admin/products/:id/variants` | admin     | US-802; sinh ma trận Biến thể                                                                                                               |
+| `POST` | `/admin/products/:id/publish` · `/archive`        | admin     | US-803                                                                                                                                      |
+| `POST` | `/admin/products/:id/images`                      | admin     | Upload lên object storage, gắn màu                                                                                                          |
+| `CRUD` | `/admin/sizes`, `/admin/colors`                   | admin     | US-805; xoá → ẩn nếu đã dùng                                                                                                                |
 
 ## 5. Luồng
 
@@ -51,15 +51,15 @@ Sản phẩm/Biến thể đã có trong đơn không xoá cứng, chỉ `archiv
 
 ## 6. Sự kiện
 
-| Phát | Nghe |
-|---|---|
-| — | `ordering.order-placed`, `ordering.order-paid` không cần; số bán chạy tính từ `order_items` bằng job |
+| Phát | Nghe                                                                                                 |
+| ---- | ---------------------------------------------------------------------------------------------------- |
+| —    | `ordering.order-placed`, `ordering.order-paid` không cần; số bán chạy tính từ `order_items` bằng job |
 
 ## 7. Job
 
-| Job | Tần suất | Hành vi |
-|---|---|---|
-| Tính bán chạy | Mỗi đêm | Tổng số lượng Dòng đơn hàng của đơn đã vào `PLACED`, chưa huỷ, không Hoàn hàng, trong 30 ngày (BR-CAT-12) → `product_sales_stats` |
+| Job           | Tần suất | Hành vi                                                                                                                           |
+| ------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Tính bán chạy | Mỗi đêm  | Tổng số lượng Dòng đơn hàng của đơn đã vào `PLACED`, chưa huỷ, không Hoàn hàng, trong 30 ngày (BR-CAT-12) → `product_sales_stats` |
 
 ## 8. Bao phủ
 

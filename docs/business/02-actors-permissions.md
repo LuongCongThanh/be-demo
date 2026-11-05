@@ -4,12 +4,12 @@
 
 ## 1. Các vai trò
 
-| Vai trò | Mã (code) | Mô tả | Kênh sử dụng |
-|---|---|---|---|
-| Khách vãng lai | `guest` | Người mua không có Tài khoản, được nhận diện bằng số điện thoại khi đặt hàng và tra cứu đơn | Storefront |
-| Khách hàng | `customer` | Người mua có Tài khoản | Storefront |
-| Nhân viên vận hành | `staff` | Người của doanh nghiệp, xử lý công việc hằng ngày | Back-office |
-| Quản trị viên | `admin` | Người của doanh nghiệp, quản lý cấu hình và nhân sự | Back-office |
+| Vai trò            | Mã (code)  | Mô tả                                                                                       | Kênh sử dụng |
+| ------------------ | ---------- | ------------------------------------------------------------------------------------------- | ------------ |
+| Khách vãng lai     | `guest`    | Người mua không có Tài khoản, được nhận diện bằng số điện thoại khi đặt hàng và tra cứu đơn | Storefront   |
+| Khách hàng         | `customer` | Người mua có Tài khoản                                                                      | Storefront   |
+| Nhân viên vận hành | `staff`    | Người của doanh nghiệp, xử lý công việc hằng ngày                                           | Back-office  |
+| Quản trị viên      | `admin`    | Người của doanh nghiệp, quản lý cấu hình và nhân sự                                         | Back-office  |
 
 Các quy tắc chung:
 
@@ -33,18 +33,18 @@ Ký hiệu: ✅ được phép · ⚠️ được phép có điều kiện (xem 
 
 ### 3.1. Storefront
 
-| Hành động | Guest | Customer |
-|---|---|---|
-| Xem, tìm kiếm, lọc Sản phẩm | ✅ | ✅ |
-| Thêm, sửa, xoá Giỏ hàng | ✅ | ✅ |
-| Đặt hàng | ✅ | ✅ |
-| Áp Voucher | ✅ | ✅ |
-| Xem chi tiết đơn của mình | ⚠️ (1) | ✅ |
-| Tự huỷ đơn | ⚠️ (1)(2) | ⚠️ (2) |
-| Lưu sổ địa chỉ | — | ✅ |
-| Xem lịch sử đơn | — | ✅ |
-| Đổi mật khẩu, cập nhật hồ sơ, chọn ngôn ngữ | — | ⚠️ (4) |
-| Yêu cầu xoá hoặc ẩn danh dữ liệu cá nhân | ⚠️ (3) | ✅ |
+| Hành động                                   | Guest     | Customer |
+| ------------------------------------------- | --------- | -------- |
+| Xem, tìm kiếm, lọc Sản phẩm                 | ✅        | ✅       |
+| Thêm, sửa, xoá Giỏ hàng                     | ✅        | ✅       |
+| Đặt hàng                                    | ✅        | ✅       |
+| Áp Voucher                                  | ✅        | ✅       |
+| Xem chi tiết đơn của mình                   | ⚠️ (1)    | ✅       |
+| Tự huỷ đơn                                  | ⚠️ (1)(2) | ⚠️ (2)   |
+| Lưu sổ địa chỉ                              | —         | ✅       |
+| Xem lịch sử đơn                             | —         | ✅       |
+| Đổi mật khẩu, cập nhật hồ sơ, chọn ngôn ngữ | —         | ⚠️ (4)   |
+| Yêu cầu xoá hoặc ẩn danh dữ liệu cá nhân    | ⚠️ (3)    | ✅       |
 
 1. Ngay sau khi đặt đơn, hoặc sau khi tra cứu đúng Mã đơn và số điện thoại; có hiệu lực 30 phút (mục 2).
 2. Chỉ khi đơn còn ở trạng thái **trước Đang đóng gói** (xem [05-order-lifecycle.md](./05-order-lifecycle.md)).
@@ -53,26 +53,26 @@ Ký hiệu: ✅ được phép · ⚠️ được phép có điều kiện (xem 
 
 ### 3.2. Back-office
 
-| Hành động | Staff | Admin |
-|---|---|---|
-| Xem danh sách và chi tiết Đơn hàng | ✅ | ✅ |
-| Xác nhận đơn, chuyển Đang đóng gói, bàn giao vận chuyển | ✅ | ✅ |
-| Huỷ đơn (mọi trạng thái được phép huỷ, bắt buộc nhập lý do) | ✅ | ✅ |
-| Xem và gỡ Cờ cần xử lý trên Đơn hàng | ✅ | ✅ |
-| Ghi nhận Hoàn tiền thủ công | ✅ | ✅ |
-| Ghi nhận và xử lý Đổi trả (nhận hàng, Chấp nhận theo từng dòng, Từ chối) | ✅ | ✅ |
-| Nhập kho, điều chỉnh Tồn kho (có ghi lý do) | ✅ | ✅ |
-| Kiểm kê | ✅ | ✅ |
-| Xem thông tin Khách hàng | ✅ | ✅ |
-| Xử lý yêu cầu xoá hoặc ẩn danh dữ liệu | ✅ | ✅ |
-| Tạo, sửa, ẩn Sản phẩm và Biến thể | — | ✅ |
-| Quản lý danh sách size và bảng màu | — | ✅ |
-| Đặt giá bán và Giá khuyến mãi | — | ✅ |
-| Tạo, sửa, vô hiệu Voucher | — | ✅ |
-| Quản lý Tài khoản Staff | — | ✅ |
-| Cấu hình vận hành: Phí ship dự phòng, Ngưỡng miễn phí ship, Hạn mức COD (thời gian Giữ hàng là cố định, không cấu hình) | — | ✅ |
-| Sửa ánh xạ phường/xã sang GHN | — | ✅ |
-| Xem báo cáo Doanh thu, xuất danh sách đơn đã thu tiền cho kế toán | — | ✅ |
+| Hành động                                                                                                               | Staff | Admin |
+| ----------------------------------------------------------------------------------------------------------------------- | ----- | ----- |
+| Xem danh sách và chi tiết Đơn hàng                                                                                      | ✅    | ✅    |
+| Xác nhận đơn, chuyển Đang đóng gói, bàn giao vận chuyển                                                                 | ✅    | ✅    |
+| Huỷ đơn (mọi trạng thái được phép huỷ, bắt buộc nhập lý do)                                                             | ✅    | ✅    |
+| Xem và gỡ Cờ cần xử lý trên Đơn hàng                                                                                    | ✅    | ✅    |
+| Ghi nhận Hoàn tiền thủ công                                                                                             | ✅    | ✅    |
+| Ghi nhận và xử lý Đổi trả (nhận hàng, Chấp nhận theo từng dòng, Từ chối)                                                | ✅    | ✅    |
+| Nhập kho, điều chỉnh Tồn kho (có ghi lý do)                                                                             | ✅    | ✅    |
+| Kiểm kê                                                                                                                 | ✅    | ✅    |
+| Xem thông tin Khách hàng                                                                                                | ✅    | ✅    |
+| Xử lý yêu cầu xoá hoặc ẩn danh dữ liệu                                                                                  | ✅    | ✅    |
+| Tạo, sửa, ẩn Sản phẩm và Biến thể                                                                                       | —     | ✅    |
+| Quản lý danh sách size và bảng màu                                                                                      | —     | ✅    |
+| Đặt giá bán và Giá khuyến mãi                                                                                           | —     | ✅    |
+| Tạo, sửa, vô hiệu Voucher                                                                                               | —     | ✅    |
+| Quản lý Tài khoản Staff                                                                                                 | —     | ✅    |
+| Cấu hình vận hành: Phí ship dự phòng, Ngưỡng miễn phí ship, Hạn mức COD (thời gian Giữ hàng là cố định, không cấu hình) | —     | ✅    |
+| Sửa ánh xạ phường/xã sang GHN                                                                                           | —     | ✅    |
+| Xem báo cáo Doanh thu, xuất danh sách đơn đã thu tiền cho kế toán                                                       | —     | ✅    |
 
 ## 4. Quy tắc kiểm soát
 

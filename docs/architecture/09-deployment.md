@@ -15,24 +15,24 @@ Phụ thuộc: PostgreSQL (nguồn dữ liệu duy nhất), Redis (queue, rate l
 
 `docker-compose.yml` cho local và test tích hợp trong CI — không phải topology production:
 
-| Service | Vai trò |
-|---|---|
-| `api` | NestJS chế độ watch |
-| `worker` | Cùng code, chạy entrypoint worker |
+| Service    | Vai trò                                               |
+| ---------- | ----------------------------------------------------- |
+| `api`      | NestJS chế độ watch                                   |
+| `worker`   | Cùng code, chạy entrypoint worker                     |
 | `postgres` | PostgreSQL (port có thể override qua biến môi trường) |
-| `redis` | Redis |
-| `minio` | Object storage tương thích S3 |
-| `mailpit` | Bắt email gửi ra để xem local |
+| `redis`    | Redis                                                 |
+| `minio`    | Object storage tương thích S3                         |
+| `mailpit`  | Bắt email gửi ra để xem local                         |
 
 Cổng thanh toán và GHN dùng **sandbox** ở local/staging; test tự động dùng adapter giả lập theo hợp đồng ([06-integrations.md](./06-integrations.md)).
 
 ## 3. Môi trường
 
-| Môi trường | Mục đích | Dữ liệu | Tích hợp ngoài |
-|---|---|---|---|
-| `dev` (local) | Phát triển | Seed | Sandbox / giả lập |
-| `staging` | UAT, test tải k6 ([10](./10-nfr.md)), nghiệm thu sandbox VNPay/MoMo/GHN | Dữ liệu giả, không PII thật | Sandbox |
-| `production` | Bán thật | Thật | Production |
+| Môi trường    | Mục đích                                                                | Dữ liệu                     | Tích hợp ngoài    |
+| ------------- | ----------------------------------------------------------------------- | --------------------------- | ----------------- |
+| `dev` (local) | Phát triển                                                              | Seed                        | Sandbox / giả lập |
+| `staging`     | UAT, test tải k6 ([10](./10-nfr.md)), nghiệm thu sandbox VNPay/MoMo/GHN | Dữ liệu giả, không PII thật | Sandbox           |
+| `production`  | Bán thật                                                                | Thật                        | Production        |
 
 Cấu hình qua biến môi trường, kiểm tra fail-fast khi khởi động; secret lấy từ secret manager, không commit vào repo.
 

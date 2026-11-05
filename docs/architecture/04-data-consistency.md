@@ -12,11 +12,11 @@
 
 ## 2. Ba đại lượng Tồn kho
 
-| Đại lượng | Ý nghĩa | Nguồn |
-|---|---|---|
-| Tồn kho (`on_hand`) | Hàng có thể bán theo Biến thể × Kho (MVP một Kho) | BR-INV-01 |
-| Giữ hàng | Bản ghi `inventory_reservations` có hạn 15 phút, chỉ cho đơn online chưa thanh toán | BR-INV-05, ADR 0003 |
-| Hàng chờ xuất | Phần đã trừ Tồn kho nhưng chưa Bàn giao, theo Mã đơn × Biến thể | BR-INV-10, [ADR 0010](../adr/0010-stock-decremented-at-order-awaiting-dispatch.md) |
+| Đại lượng           | Ý nghĩa                                                                             | Nguồn                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Tồn kho (`on_hand`) | Hàng có thể bán theo Biến thể × Kho (MVP một Kho)                                   | BR-INV-01                                                                          |
+| Giữ hàng            | Bản ghi `inventory_reservations` có hạn 15 phút, chỉ cho đơn online chưa thanh toán | BR-INV-05, ADR 0003                                                                |
+| Hàng chờ xuất       | Phần đã trừ Tồn kho nhưng chưa Bàn giao, theo Mã đơn × Biến thể                     | BR-INV-10, [ADR 0010](../adr/0010-stock-decremented-at-order-awaiting-dispatch.md) |
 
 - **Số lượng bán được** = Tồn kho − tổng Giữ hàng `active` còn hạn (BR-INV-02). Lưu bộ đếm `reserved` trên dòng tồn kho để đọc O(1); bộ đếm và bản ghi Giữ hàng luôn đổi trong cùng transaction.
 - **Hàng trên kệ** = Tồn kho + Hàng chờ xuất (dùng cho Kiểm kê, BR-INV-12).
@@ -25,16 +25,16 @@
 
 ### 2.1. Chuyển động Tồn kho theo sự kiện
 
-| Sự kiện | Giữ hàng | Tồn kho | Hàng chờ xuất |
-|---|---|---|---|
-| Đặt đơn COD (T2) | — | `−qty` có điều kiện | `+qty` |
-| Đặt đơn online (T1) | tạo `active`, `reserved += qty` | — | — |
-| Thanh toán thành công (T3) | `active → converted`, `reserved −= qty` | `−qty` | `+qty` |
-| Hết hạn / huỷ chưa thanh toán (T4, T5) | `active → expired/released`, `reserved −= qty` | — | — |
-| Huỷ trước Đang giao (T7, T9) | — | `+qty` | `−qty` (BR-INV-07) |
-| Vận đơn tạo xong (T10) | — | — | xoá dòng của đơn |
-| Hoàn hàng / Đổi trả nhập lại (BR-INV-08) | — | `+qty` khi Staff xác nhận, **một lần** (idempotent theo đơn/yêu cầu); movement `return_to_sender` (Hoàn hàng) / `return_restock` (Đổi trả) | — |
-| Nhập kho, điều chỉnh, Kiểm kê (US-701..703) | — | `±qty`, giảm không vượt Số lượng bán được (BR-INV-11) | — |
+| Sự kiện                                     | Giữ hàng                                       | Tồn kho                                                                                                                                    | Hàng chờ xuất      |
+| ------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
+| Đặt đơn COD (T2)                            | —                                              | `−qty` có điều kiện                                                                                                                        | `+qty`             |
+| Đặt đơn online (T1)                         | tạo `active`, `reserved += qty`                | —                                                                                                                                          | —                  |
+| Thanh toán thành công (T3)                  | `active → converted`, `reserved −= qty`        | `−qty`                                                                                                                                     | `+qty`             |
+| Hết hạn / huỷ chưa thanh toán (T4, T5)      | `active → expired/released`, `reserved −= qty` | —                                                                                                                                          | —                  |
+| Huỷ trước Đang giao (T7, T9)                | —                                              | `+qty`                                                                                                                                     | `−qty` (BR-INV-07) |
+| Vận đơn tạo xong (T10)                      | —                                              | —                                                                                                                                          | xoá dòng của đơn   |
+| Hoàn hàng / Đổi trả nhập lại (BR-INV-08)    | —                                              | `+qty` khi Staff xác nhận, **một lần** (idempotent theo đơn/yêu cầu); movement `return_to_sender` (Hoàn hàng) / `return_restock` (Đổi trả) | —                  |
+| Nhập kho, điều chỉnh, Kiểm kê (US-701..703) | —                                              | `±qty`, giảm không vượt Số lượng bán được (BR-INV-11)                                                                                      | —                  |
 
 Mọi dòng trên ghi một bản ghi sổ biến động (loại, số lượng, đơn liên quan, người thực hiện — BR-INV-09).
 

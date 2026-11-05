@@ -20,22 +20,22 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.9](../11-database
 
 ## 3. Interface public
 
-| Hàm | Gọi bởi | Ghi chú |
-|---|---|---|
-| `quoteShippingFee(address, weightGrams, subtotalAfterVoucher)` | `ordering` (Tính thử, đặt đơn) | Trả `{ fee, isFallback }`; GHN lỗi/timeout hoặc phường chưa ánh xạ → 35.000đ, `isFallback` để `ordering` gắn Cờ `shipping_fee_fallback` (BR-SHP-02) |
-| `requestHandover(tx, orderId)` | `ordering` (Staff bàn giao) | Upsert `shipments` `creating`, ghi outbox `fulfillment.handover-requested` |
-| `hasPendingCreation(orderId)` | `ordering` (guard T9) | `true` khi `creating`/`creation_unknown` (business/05 §4.5) |
-| `cancelShipment(tx, orderId)` | `ordering` (T14, hoặc Vận đơn tạo xong cho đơn đã huỷ) | |
+| Hàm                                                            | Gọi bởi                                                | Ghi chú                                                                                                                                             |
+| -------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quoteShippingFee(address, weightGrams, subtotalAfterVoucher)` | `ordering` (Tính thử, đặt đơn)                         | Trả `{ fee, isFallback }`; GHN lỗi/timeout hoặc phường chưa ánh xạ → 35.000đ, `isFallback` để `ordering` gắn Cờ `shipping_fee_fallback` (BR-SHP-02) |
+| `requestHandover(tx, orderId)`                                 | `ordering` (Staff bàn giao)                            | Upsert `shipments` `creating`, ghi outbox `fulfillment.handover-requested`                                                                          |
+| `hasPendingCreation(orderId)`                                  | `ordering` (guard T9)                                  | `true` khi `creating`/`creation_unknown` (business/05 §4.5)                                                                                         |
+| `cancelShipment(tx, orderId)`                                  | `ordering` (T14, hoặc Vận đơn tạo xong cho đơn đã huỷ) |                                                                                                                                                     |
 
 ## 4. API
 
-| Method | Path | Actor | Ghi chú |
-|---|---|---|---|
-| `GET` | `/provinces`, `/provinces/:code/wards` | public | Chọn địa chỉ ở checkout / sổ địa chỉ |
-| `POST` | `/webhooks/ghn` | GHN | Xác minh token/IP, lưu `shipment_events`, trả `200` |
-| `GET` | `/admin/shipments?orderId=` | staff | Trạng thái, lỗi cuối |
-| `GET` | `/admin/ghn-ward-mappings?unmapped=true` | admin | Phường chưa ánh xạ + số đơn có Cờ `shipment_creation_failed` do phường chưa ánh xạ (`order_flags.details`) (US-1004 AC1) |
-| `PUT` | `/admin/ghn-ward-mappings/:wardCode` | admin | Lưu ánh xạ, ghi `verified_by` (US-1004 AC2) |
+| Method | Path                                     | Actor  | Ghi chú                                                                                                                  |
+| ------ | ---------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `GET`  | `/provinces`, `/provinces/:code/wards`   | public | Chọn địa chỉ ở checkout / sổ địa chỉ                                                                                     |
+| `POST` | `/webhooks/ghn`                          | GHN    | Xác minh token/IP, lưu `shipment_events`, trả `200`                                                                      |
+| `GET`  | `/admin/shipments?orderId=`              | staff  | Trạng thái, lỗi cuối                                                                                                     |
+| `GET`  | `/admin/ghn-ward-mappings?unmapped=true` | admin  | Phường chưa ánh xạ + số đơn có Cờ `shipment_creation_failed` do phường chưa ánh xạ (`order_flags.details`) (US-1004 AC1) |
+| `PUT`  | `/admin/ghn-ward-mappings/:wardCode`     | admin  | Lưu ánh xạ, ghi `verified_by` (US-1004 AC2)                                                                              |
 
 ## 5. Luồng
 
@@ -76,10 +76,10 @@ Lắng nghe: `ordering.order-cancelled` — huỷ Vận đơn nếu đã tạo.
 
 ## 7. Job
 
-| Job | Tần suất |
-|---|---|
+| Job                                                                                        | Tần suất                                                |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
 | Đối soát trạng thái Vận đơn (`creation_unknown` và Vận đơn chưa ở trạng thái cuối) với GHN | Mỗi 15 phút **[Giả định · kiểm chứng hạn mức API GHN]** |
-| Thử lại `shipment_events` chưa áp dụng (`applied_at IS NULL AND next_attempt_at <= now`) | Mỗi phút |
+| Thử lại `shipment_events` chưa áp dụng (`applied_at IS NULL AND next_attempt_at <= now`)   | Mỗi phút                                                |
 
 ## 8. Bao phủ nghiệp vụ
 

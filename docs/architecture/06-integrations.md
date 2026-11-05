@@ -10,13 +10,13 @@
 - Callback/webhook: xác minh chữ ký → lưu bản ghi sự kiện thô (khử trùng theo mã giao dịch của nhà cung cấp) → trả `200` nhanh → xử lý.
 - Sandbox của từng nhà cung cấp dùng cho môi trường dev/staging; go-live cần nghiệm thu sandbox.
 
-| Nhà cung cấp | Dùng cho | Module sở hữu |
-|---|---|---|
-| VNPay, MoMo | Thanh toán online | `payments` |
-| GHN | Phí ship, Vận đơn, trạng thái giao | `fulfillment` |
-| Email provider (SMTP/API) | Email giao dịch | `notifications` |
-| Object storage (S3-compatible) | Ảnh Sản phẩm | `catalog` |
-| Google OAuth | Đăng nhập Google | `identity` |
+| Nhà cung cấp                   | Dùng cho                           | Module sở hữu   |
+| ------------------------------ | ---------------------------------- | --------------- |
+| VNPay, MoMo                    | Thanh toán online                  | `payments`      |
+| GHN                            | Phí ship, Vận đơn, trạng thái giao | `fulfillment`   |
+| Email provider (SMTP/API)      | Email giao dịch                    | `notifications` |
+| Object storage (S3-compatible) | Ảnh Sản phẩm                       | `catalog`       |
+| Google OAuth                   | Đăng nhập Google                   | `identity`      |
 
 ## 2. Thanh toán: VNPay và MoMo
 
@@ -24,9 +24,16 @@
 
 ```ts
 interface PaymentGateway {
-  createPaymentLink(input: { paymentId; amount; orderCode; expiresAt; returnUrl; locale }): Promise<{ url; providerRef }>;
+  createPaymentLink(input: {
+    paymentId;
+    amount;
+    orderCode;
+    expiresAt;
+    returnUrl;
+    locale;
+  }): Promise<{ url; providerRef }>;
   verifyCallback(raw: RawCallback): VerifiedCallback; // ném lỗi nếu sai chữ ký
-  query(providerRef: string): Promise<GatewayStatus>;  // cho Đối soát
+  query(providerRef: string): Promise<GatewayStatus>; // cho Đối soát
 }
 ```
 
@@ -67,12 +74,12 @@ MVP không gọi API hoàn tiền: Staff hoàn trên trang quản trị của C�
 
 ### 4.1. Các API dùng
 
-| Việc | Khi nào | Quy tắc |
-|---|---|---|
-| Tính phí ship | Tính thử và đặt đơn | Theo địa chỉ giao + tổng cân nặng; kích thước gói mặc định cấu hình được (BR-SHP-01). GHN lỗi/timeout → **Phí ship dự phòng** 35.000đ và gắn Cờ "phí ship dự phòng" (BR-SHP-02). Miễn phí ship khi Tạm tính sau Voucher ≥ ngưỡng 500.000đ (BR-SHP-03/04) |
-| Tạo Vận đơn | Staff bàn giao | Chạy nền qua outbox. Timeout/không rõ kết quả → Vận đơn `creation_unknown`, Đối soát chốt (không coi là thất bại, business/05 §4.5). Thành công → `SHIPPING` (T10); thất bại → giữ `PACKING` + Cờ. Bàn giao lại **dùng lại** Vận đơn đó — idempotency theo Mã đơn (BR-SHP-05). COD: thu hộ = tổng tiền đơn (BR-SHP-07) |
-| Webhook trạng thái | GHN đẩy | Xác minh nguồn (token/IP whitelist theo GHN), lưu sự kiện thô, ánh xạ sang T11/T12 hoặc Cờ sự cố (BR-SHP-06, BR-SHP-08) |
-| Đối soát trạng thái | Mỗi **15 phút** | Bù webhook bị mất. Tần suất là giả định, kiểm chứng hạn mức API GHN khi nghiệm thu sandbox ([business/05 §5](../business/05-order-lifecycle.md)) |
+| Việc                | Khi nào             | Quy tắc                                                                                                                                                                                                                                                                                                                |
+| ------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tính phí ship       | Tính thử và đặt đơn | Theo địa chỉ giao + tổng cân nặng; kích thước gói mặc định cấu hình được (BR-SHP-01). GHN lỗi/timeout → **Phí ship dự phòng** 35.000đ và gắn Cờ "phí ship dự phòng" (BR-SHP-02). Miễn phí ship khi Tạm tính sau Voucher ≥ ngưỡng 500.000đ (BR-SHP-03/04)                                                               |
+| Tạo Vận đơn         | Staff bàn giao      | Chạy nền qua outbox. Timeout/không rõ kết quả → Vận đơn `creation_unknown`, Đối soát chốt (không coi là thất bại, business/05 §4.5). Thành công → `SHIPPING` (T10); thất bại → giữ `PACKING` + Cờ. Bàn giao lại **dùng lại** Vận đơn đó — idempotency theo Mã đơn (BR-SHP-05). COD: thu hộ = tổng tiền đơn (BR-SHP-07) |
+| Webhook trạng thái  | GHN đẩy             | Xác minh nguồn (token/IP whitelist theo GHN), lưu sự kiện thô, ánh xạ sang T11/T12 hoặc Cờ sự cố (BR-SHP-06, BR-SHP-08)                                                                                                                                                                                                |
+| Đối soát trạng thái | Mỗi **15 phút**     | Bù webhook bị mất. Tần suất là giả định, kiểm chứng hạn mức API GHN khi nghiệm thu sandbox ([business/05 §5](../business/05-order-lifecycle.md))                                                                                                                                                                       |
 
 Sự kiện đến sai thứ tự (ví dụ "đã giao" trước khi ghi nhận Vận đơn tạo xong) được giữ lại và áp dụng lại sau — [07-async-events-jobs.md](./07-async-events-jobs.md) §1.3.
 

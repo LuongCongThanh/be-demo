@@ -17,18 +17,18 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.12](../11-databas
 
 ## 3. Interface cho module khác
 
-| Hàm | Dùng bởi |
-|---|---|
-| `getSetting(key)` (cache ngắn, nguồn PostgreSQL) | `ordering` (hạn mức COD), `fulfillment` (phí dự phòng, ngưỡng miễn phí) |
-| `audit(entry, tx)` | Mọi thao tác **ghi** của module back-office, `identity` (CLI, `actor_user_id = null`). Lượt xem dữ liệu cá nhân không ghi ở đây mà ở `data_access_logs` (`compliance`) |
+| Hàm                                              | Dùng bởi                                                                                                                                                               |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getSetting(key)` (cache ngắn, nguồn PostgreSQL) | `ordering` (hạn mức COD), `fulfillment` (phí dự phòng, ngưỡng miễn phí)                                                                                                |
+| `audit(entry, tx)`                               | Mọi thao tác **ghi** của module back-office, `identity` (CLI, `actor_user_id = null`). Lượt xem dữ liệu cá nhân không ghi ở đây mà ở `data_access_logs` (`compliance`) |
 
 ## 4. API
 
-| Method | Path | Actor | Ghi chú |
-|---|---|---|---|
-| `GET` | `/admin/settings` | staff, admin | |
-| `PATCH` | `/admin/settings/:key` | admin | Ghi audit với giá trị trước/sau (US-1002 AC1) |
-| `GET` | `/admin/audit-logs` | admin | Lọc theo actor, đối tượng, thời gian |
+| Method  | Path                   | Actor        | Ghi chú                                       |
+| ------- | ---------------------- | ------------ | --------------------------------------------- |
+| `GET`   | `/admin/settings`      | staff, admin |                                               |
+| `PATCH` | `/admin/settings/:key` | admin        | Ghi audit với giá trị trước/sau (US-1002 AC1) |
+| `GET`   | `/admin/audit-logs`    | admin        | Lọc theo actor, đối tượng, thời gian          |
 
 ## 5. Luồng
 

@@ -13,11 +13,11 @@
 
 Mỗi tài liệu ghi trạng thái ở dòng đầu:
 
-| Trạng thái | Ý nghĩa |
-|---|---|
-| **Nháp** | Đang thảo luận, có thể đổi bất kỳ lúc nào. |
+| Trạng thái          | Ý nghĩa                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------- |
+| **Nháp**            | Đang thảo luận, có thể đổi bất kỳ lúc nào.                                                |
 | **Đã chốt cho MVP** | Đã review; thay đổi phải cập nhật tài liệu (và ADR nếu khó đảo ngược) trước khi sửa code. |
-| **Thay thế** | Không còn hiệu lực; ghi rõ tài liệu thay thế. |
+| **Thay thế**        | Không còn hiệu lực; ghi rõ tài liệu thay thế.                                             |
 
 Trong nội dung, **[Giả định · kiểm chứng: …]** đánh dấu điều chưa được xác minh, kèm cách xác minh; **[Cần xác minh trước go-live]** là điều không chặn việc code nhưng phải xong trước khi mở bán thật.
 

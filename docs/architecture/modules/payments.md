@@ -19,24 +19,24 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.7](../11-database
 
 ## 3. Interface public
 
-| Hàm | Gọi bởi | Ghi chú |
-|---|---|---|
-| `createPending(tx, order)` | `ordering` (T1) | Ghi nhận đơn online chờ thanh toán; chưa tạo link |
-| `createCodReceivable(tx, order)` | `ordering` (T2) | Tạo `cod_collections` `pending` |
-| `markCodCollected(tx, orderId)` / `cancelCodReceivable(tx, orderId)` | `ordering` (T11 / T7, T9, T12, T14) | |
-| `capturedPaymentsOf(orderId)` | `refunds-returns` | Thanh toán đã nhận tiền để gắn Hoàn tiền (BR-REF-01) |
+| Hàm                                                                  | Gọi bởi                             | Ghi chú                                              |
+| -------------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------- |
+| `createPending(tx, order)`                                           | `ordering` (T1)                     | Ghi nhận đơn online chờ thanh toán; chưa tạo link    |
+| `createCodReceivable(tx, order)`                                     | `ordering` (T2)                     | Tạo `cod_collections` `pending`                      |
+| `markCodCollected(tx, orderId)` / `cancelCodReceivable(tx, orderId)` | `ordering` (T11 / T7, T9, T12, T14) |                                                      |
+| `capturedPaymentsOf(orderId)`                                        | `refunds-returns`                   | Thanh toán đã nhận tiền để gắn Hoàn tiền (BR-REF-01) |
 
 ## 4. API
 
 Prefix `/api/v1`, quy ước ở [`../03-api.md`](../03-api.md).
 
-| Method | Path | Actor | Ghi chú |
-|---|---|---|---|
-| `POST` | `/orders/:code/payments` | owner / guest có phiên | Body `{ gateway }`. Tạo `payments` (`status = pending`, `gateway_txn_ref`, `payment_url_expires_at`) + link. Từ chối nếu đơn không `PENDING_PAYMENT` hoặc đã qua phút 7 (BR-INV-05). Bắt buộc `Idempotency-Key` |
-| `GET` | `/orders/:code/payments/latest` | owner / guest có phiên | Trang Return URL hỏi trạng thái; chỉ đọc, không xác nhận (BR-PAY-02) |
-| `POST` | `/webhooks/vnpay/ipn` | VNPay | Xác minh chữ ký, lưu inbox, trả đúng định dạng VNPay |
-| `POST` | `/webhooks/momo/ipn` | MoMo | Như trên |
-| `GET` | `/admin/payments?orderId=` | staff | Lịch sử thử thanh toán của đơn |
+| Method | Path                            | Actor                  | Ghi chú                                                                                                                                                                                                         |
+| ------ | ------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST` | `/orders/:code/payments`        | owner / guest có phiên | Body `{ gateway }`. Tạo `payments` (`status = pending`, `gateway_txn_ref`, `payment_url_expires_at`) + link. Từ chối nếu đơn không `PENDING_PAYMENT` hoặc đã qua phút 7 (BR-INV-05). Bắt buộc `Idempotency-Key` |
+| `GET`  | `/orders/:code/payments/latest` | owner / guest có phiên | Trang Return URL hỏi trạng thái; chỉ đọc, không xác nhận (BR-PAY-02)                                                                                                                                            |
+| `POST` | `/webhooks/vnpay/ipn`           | VNPay                  | Xác minh chữ ký, lưu inbox, trả đúng định dạng VNPay                                                                                                                                                            |
+| `POST` | `/webhooks/momo/ipn`            | MoMo                   | Như trên                                                                                                                                                                                                        |
+| `GET`  | `/admin/payments?orderId=`      | staff                  | Lịch sử thử thanh toán của đơn                                                                                                                                                                                  |
 
 ## 5. Luồng
 
@@ -88,9 +88,9 @@ Lắng nghe: không có — mọi thay đổi đến từ IPN/Đối soát hoặ
 
 ## 7. Job
 
-| Job | Tần suất |
-|---|---|
-| Đối soát Thanh toán treo | Mỗi 5 phút |
+| Job                                                             | Tần suất            |
+| --------------------------------------------------------------- | ------------------- |
+| Đối soát Thanh toán treo                                        | Mỗi 5 phút          |
 | Xử lý `payment_notifications` tồn đọng (`processed_at IS NULL`) | Liên tục (consumer) |
 
 Khi inbox dồn ứ, `payments` báo cờ "backlog" để job huỷ đơn hết hạn của `ordering` tạm dừng ([`../07-async-events-jobs.md`](../07-async-events-jobs.md) §1.2).

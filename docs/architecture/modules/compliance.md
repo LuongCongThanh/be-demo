@@ -19,22 +19,22 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.11](../11-databas
 
 ## 3. Interface public
 
-| Hàm | Gọi bởi | Ghi chú |
-|---|---|---|
-| `recordConsent(tx, {userId?, orderId?}, purpose, granted, policyVersion, channel)` | `identity` (đăng ký, `channel = signup`), `ordering` (checkout, `channel = checkout`), chính module (`/me/consents`, `channel = account`) | `purpose` = `data_processing`/`marketing_email`; chỉ thêm dòng, không sửa. Checkbox không tick sẵn là trách nhiệm frontend; backend từ chối đăng ký/đặt đơn nếu thiếu đồng ý `data_processing` (CMP-01) |
-| `logAccess(staff, action, {subjectUserId?, orderId?, queryHmac?})` (`action` = `view_customer`/`view_order`/`search_by_phone`) | decorator/interceptor trên route back-office có PII; không ghi khi chỉ mở danh sách đơn | Ghi bất đồng bộ được nhưng không mất (qua outbox) |
+| Hàm                                                                                                                            | Gọi bởi                                                                                                                                   | Ghi chú                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recordConsent(tx, {userId?, orderId?}, purpose, granted, policyVersion, channel)`                                             | `identity` (đăng ký, `channel = signup`), `ordering` (checkout, `channel = checkout`), chính module (`/me/consents`, `channel = account`) | `purpose` = `data_processing`/`marketing_email`; chỉ thêm dòng, không sửa. Checkbox không tick sẵn là trách nhiệm frontend; backend từ chối đăng ký/đặt đơn nếu thiếu đồng ý `data_processing` (CMP-01) |
+| `logAccess(staff, action, {subjectUserId?, orderId?, queryHmac?})` (`action` = `view_customer`/`view_order`/`search_by_phone`) | decorator/interceptor trên route back-office có PII; không ghi khi chỉ mở danh sách đơn                                                   | Ghi bất đồng bộ được nhưng không mất (qua outbox)                                                                                                                                                       |
 
 ## 4. API
 
-| Method | Path | Actor | Ghi chú |
-|---|---|---|---|
-| `PATCH` | `/me/consents/marketing-email` | customer | Đổi lựa chọn marketing |
-| `POST` | `/me/data-erasure-requests` | customer | US-1101 AC1 |
-| `GET` | `/admin/data-erasure-requests` | staff | |
-| `POST` | `/admin/data-erasure-requests` | staff | Tạo cho Khách vãng lai qua kênh hỗ trợ (`guest_phone`, `guest_order_code`, `channel`) (US-1101 AC5) |
-| `POST` | `/admin/data-erasure-requests/:id/verify` · `/reject` | staff | Xác minh (`verified`, ghi `verified_by`) hoặc từ chối (`rejected`) |
-| `POST` | `/admin/data-erasure-requests/:id/process` | staff | Bắt đầu xử lý (`processing`) |
-| `GET` | `/admin/data-access-logs?subjectUserId=&orderId=` | admin | US-1102 |
+| Method  | Path                                                  | Actor    | Ghi chú                                                                                             |
+| ------- | ----------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `PATCH` | `/me/consents/marketing-email`                        | customer | Đổi lựa chọn marketing                                                                              |
+| `POST`  | `/me/data-erasure-requests`                           | customer | US-1101 AC1                                                                                         |
+| `GET`   | `/admin/data-erasure-requests`                        | staff    |                                                                                                     |
+| `POST`  | `/admin/data-erasure-requests`                        | staff    | Tạo cho Khách vãng lai qua kênh hỗ trợ (`guest_phone`, `guest_order_code`, `channel`) (US-1101 AC5) |
+| `POST`  | `/admin/data-erasure-requests/:id/verify` · `/reject` | staff    | Xác minh (`verified`, ghi `verified_by`) hoặc từ chối (`rejected`)                                  |
+| `POST`  | `/admin/data-erasure-requests/:id/process`            | staff    | Bắt đầu xử lý (`processing`)                                                                        |
+| `GET`   | `/admin/data-access-logs?subjectUserId=&orderId=`     | admin    | US-1102                                                                                             |
 
 ## 5. Luồng xoá dữ liệu
 
@@ -59,8 +59,8 @@ Phát: `compliance.erasure-step-requested` (nội bộ, để worker chạy từ
 
 ## 7. Job
 
-| Job | Tần suất |
-|---|---|
+| Job                                                      | Tần suất                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------------ |
 | Thử lại bước ẩn danh lỗi; cảnh báo yêu cầu quá hạn xử lý | Mỗi giờ (thời hạn: **[Cần xác minh trước go-live]**, CMP-06) |
 
 ## 8. Bao phủ nghiệp vụ

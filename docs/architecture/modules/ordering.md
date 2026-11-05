@@ -32,34 +32,34 @@ Trạng thái và chuyển T1–T14 theo [`05-order-lifecycle.md`](../../busines
 - Actor: `customer`/`guest` (T5, T7 trước `PACKING`), `staff` (T6–T9, T14; lý do bắt buộc với T7-bởi-Staff, T9, T14), `system` (T3, T4, T10–T13).
 - Trạng thái cuối `COMPLETED`, `CANCELLED`, `RETURNED_TO_SENDER` không có chuyển ra.
 
-| T | Tác động kèm theo (module được gọi) |
-|---|---|
-| T1 | `inventory.reserve`, `pricing.recordUsage`, `payments.createPending` |
-| T2 | `inventory.decrementToAwaitingDispatch`, `pricing.recordUsage`, `payments.createCodReceivable`; event email |
-| T3 | `inventory.consumeReservation`; event email |
-| T4, T5 | `inventory.releaseReservation`, `pricing.releaseUsage`; không email (BR-NTF-01) |
+| T      | Tác động kèm theo (module được gọi)                                                                                                                             |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1     | `inventory.reserve`, `pricing.recordUsage`, `payments.createPending`                                                                                            |
+| T2     | `inventory.decrementToAwaitingDispatch`, `pricing.recordUsage`, `payments.createCodReceivable`; event email                                                     |
+| T3     | `inventory.consumeReservation`; event email                                                                                                                     |
+| T4, T5 | `inventory.releaseReservation`, `pricing.releaseUsage`; không email (BR-NTF-01)                                                                                 |
 | T7, T9 | `inventory.returnAwaitingDispatch`, `pricing.releaseUsage`, `refunds-returns.requestFullRefund` nếu online đã trả / `payments.cancelCodReceivable`; event email |
-| T10 | `inventory.clearAwaitingDispatch`; lưu mã Vận đơn; event email |
-| T11 | ghi `delivered_at`; COD: `payments.markCodCollected`; event email |
-| T12 | đánh dấu cần nhận lại hàng; `refunds-returns.requestFullRefund` / `payments.cancelCodReceivable` |
-| T13 | guard: `delivered_at + 7×24h <= now` và không có Đổi trả đang mở (`refunds-returns.hasOpen`); chốt Doanh thu (BR-REV-01) |
-| T14 | như T12 nhưng **không** trả lượt Voucher (BR-VCH-08); Staff chọn "chưa rời Kho" hay "mất/hư" |
+| T10    | `inventory.clearAwaitingDispatch`; lưu mã Vận đơn; event email                                                                                                  |
+| T11    | ghi `delivered_at`; COD: `payments.markCodCollected`; event email                                                                                               |
+| T12    | đánh dấu cần nhận lại hàng; `refunds-returns.requestFullRefund` / `payments.cancelCodReceivable`                                                                |
+| T13    | guard: `delivered_at + 7×24h <= now` và không có Đổi trả đang mở (`refunds-returns.hasOpen`); chốt Doanh thu (BR-REV-01)                                        |
+| T14    | như T12 nhưng **không** trả lượt Voucher (BR-VCH-08); Staff chọn "chưa rời Kho" hay "mất/hư"                                                                    |
 
 ## 4. API
 
 Prefix `/api/v1` ([ADR 0002](../../adr/0002-uri-versioned-api-contract.md)). Chi tiết quy ước ở [../03-api.md](../03-api.md).
 
-| Method | Path | Actor | Ghi chú |
-|---|---|---|---|
-| `POST` | `/checkout/quotes` | guest, customer | Tạo Tính thử từ giỏ hiện tại + địa chỉ + Voucher + phương thức |
-| `POST` | `/orders` | guest, customer | Đặt đơn từ `quoteId`; bắt buộc `Idempotency-Key` |
-| `GET` | `/orders/:code` | owner / guest có phiên | |
-| `POST` | `/orders/lookup` | guest | Mã đơn + SĐT → phiên 30 phút (`guest_order_sessions`, `origin = lookup`, qua `identity`); rate-limit theo IP (US-401) |
-| `POST` | `/orders/:code/cancel` | owner / guest có phiên | T5, T7 |
-| `GET` | `/me/orders` | customer | US-402 |
-| `GET` | `/admin/orders` | staff | Lọc theo trạng thái, Cờ (US-601) |
-| `POST` | `/admin/orders/:id/confirm` · `/start-packing` · `/hand-over` · `/cancel` | staff | T6, T8, bàn giao (kích hoạt tạo Vận đơn), T7/T9/T14 |
-| `POST` | `/admin/orders/:id/flags/:flagId/resolve` | staff | Gỡ Cờ: ghi `resolved_at`, `resolved_by` (không xoá dòng) |
+| Method | Path                                                                      | Actor                  | Ghi chú                                                                                                               |
+| ------ | ------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `POST` | `/checkout/quotes`                                                        | guest, customer        | Tạo Tính thử từ giỏ hiện tại + địa chỉ + Voucher + phương thức                                                        |
+| `POST` | `/orders`                                                                 | guest, customer        | Đặt đơn từ `quoteId`; bắt buộc `Idempotency-Key`                                                                      |
+| `GET`  | `/orders/:code`                                                           | owner / guest có phiên |                                                                                                                       |
+| `POST` | `/orders/lookup`                                                          | guest                  | Mã đơn + SĐT → phiên 30 phút (`guest_order_sessions`, `origin = lookup`, qua `identity`); rate-limit theo IP (US-401) |
+| `POST` | `/orders/:code/cancel`                                                    | owner / guest có phiên | T5, T7                                                                                                                |
+| `GET`  | `/me/orders`                                                              | customer               | US-402                                                                                                                |
+| `GET`  | `/admin/orders`                                                           | staff                  | Lọc theo trạng thái, Cờ (US-601)                                                                                      |
+| `POST` | `/admin/orders/:id/confirm` · `/start-packing` · `/hand-over` · `/cancel` | staff                  | T6, T8, bàn giao (kích hoạt tạo Vận đơn), T7/T9/T14                                                                   |
+| `POST` | `/admin/orders/:id/flags/:flagId/resolve`                                 | staff                  | Gỡ Cờ: ghi `resolved_at`, `resolved_by` (không xoá dòng)                                                              |
 
 ## 5. Luồng
 
@@ -67,7 +67,7 @@ Prefix `/api/v1` ([ADR 0002](../../adr/0002-uri-versioned-api-contract.md)). Chi
 
 Hai bước theo BR-ORD-07 và [ADR 0013](../../adr/0013-checkout-must-match-confirmed-quote.md):
 
-1. **Tính thử** — backend đọc giỏ, Giá áp dụng (BR-PRC-*), kiểm tra Số lượng bán được (không giữ), Voucher (BR-VCH-*), phí ship GHN theo cân nặng (BR-CAT-06, BR-SHP-*), hạn mức COD (BR-PAY-06), tổng > 0 (BR-ORD-09). Lưu `checkout_quotes` với `fingerprint` = hash chuẩn hoá của (dòng `variant_id`, số lượng, đơn giá, giảm theo dòng, mã Voucher + giảm, phí ship, phương thức, địa chỉ, tổng) và `expires_at`.
+1. **Tính thử** — backend đọc giỏ, Giá áp dụng (BR-PRC-_), kiểm tra Số lượng bán được (không giữ), Voucher (BR-VCH-_), phí ship GHN theo cân nặng (BR-CAT-06, BR-SHP-*), hạn mức COD (BR-PAY-06), tổng > 0 (BR-ORD-09). Lưu `checkout_quotes` với `fingerprint` = hash chuẩn hoá của (dòng `variant_id`, số lượng, đơn giá, giảm theo dòng, mã Voucher + giảm, phí ship, phương thức, địa chỉ, tổng) và `expires_at`.
 2. **Đặt đơn** — `POST /orders { quoteId }` với `Idempotency-Key`. Trong **một transaction**:
    1. Khoá giỏ qua `cart.lockActiveCart` (`FOR UPDATE`, `status='active'`, ADR 0009); `checkout_quotes` chưa hết hạn và thuộc đúng giỏ/người.
    2. Tính lại toàn bộ như bước 1 từ dữ liệu hiện tại; so `fingerprint`. **Khác bất kỳ điểm nào → rollback, `409 QUOTE_CHANGED`** kèm Tính thử mới để Người mua xác nhận — kể cả khi tổng không đổi.
@@ -137,22 +137,22 @@ Thuật toán ở `business/04-business-rules.md` §5 ("Phân bổ Voucher về 
 
 ## 7. Tình huống đặc biệt
 
-| `business/05` | Cài đặt |
-|---|---|
-| §4.1 Tiền về cho đơn không còn chờ thanh toán | `payments` gọi `ordering.onPaymentSucceeded`; xử lý theo [04-data-consistency](../04-data-consistency.md) §3; phát `ordering.unexpected-payment-received` |
-| §4.2 Thông báo không theo thứ tự | `ordering` chỉ áp dụng chuyển hợp lệ từ trạng thái hiện tại; trùng/đã qua → bỏ qua; tới sớm → `fulfillment` giữ lại và retry ([../07-async-events-jobs.md](../07-async-events-jobs.md) mục 1.3); mâu thuẫn → log |
-| §4.3 Huỷ khi Đang giao | Bảng chuyển chỉ cho T14 từ `SHIPPING` |
-| §4.4 Đổi trả | Không đổi `orders.status`; guard T13 hỏi `refunds-returns.hasOpen(orderId)` (đang mở = `recorded`/`received`, hoặc `accepted` còn Hoàn tiền `requested`) |
-| §4.5 Huỷ khi Vận đơn đang tạo | Guard T9; Vận đơn tạo xong cho đơn `CANCELLED` → `fulfillment` tự huỷ Vận đơn + Cờ |
-| §4.6 Sai số tiền | `payments` không gọi T3; tạo Hoàn tiền + Cờ `amount_mismatch` trên đơn |
-| §4.7 Vận đơn gặp sự cố | Cờ `shipment_exception`; Staff gỡ cờ hoặc T14 |
+| `business/05`                                 | Cài đặt                                                                                                                                                                                                          |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §4.1 Tiền về cho đơn không còn chờ thanh toán | `payments` gọi `ordering.onPaymentSucceeded`; xử lý theo [04-data-consistency](../04-data-consistency.md) §3; phát `ordering.unexpected-payment-received`                                                        |
+| §4.2 Thông báo không theo thứ tự              | `ordering` chỉ áp dụng chuyển hợp lệ từ trạng thái hiện tại; trùng/đã qua → bỏ qua; tới sớm → `fulfillment` giữ lại và retry ([../07-async-events-jobs.md](../07-async-events-jobs.md) mục 1.3); mâu thuẫn → log |
+| §4.3 Huỷ khi Đang giao                        | Bảng chuyển chỉ cho T14 từ `SHIPPING`                                                                                                                                                                            |
+| §4.4 Đổi trả                                  | Không đổi `orders.status`; guard T13 hỏi `refunds-returns.hasOpen(orderId)` (đang mở = `recorded`/`received`, hoặc `accepted` còn Hoàn tiền `requested`)                                                         |
+| §4.5 Huỷ khi Vận đơn đang tạo                 | Guard T9; Vận đơn tạo xong cho đơn `CANCELLED` → `fulfillment` tự huỷ Vận đơn + Cờ                                                                                                                               |
+| §4.6 Sai số tiền                              | `payments` không gọi T3; tạo Hoàn tiền + Cờ `amount_mismatch` trên đơn                                                                                                                                           |
+| §4.7 Vận đơn gặp sự cố                        | Cờ `shipment_exception`; Staff gỡ cờ hoặc T14                                                                                                                                                                    |
 
 ## 8. Job
 
-| Job | Tần suất | Hành vi |
-|---|---|---|
+| Job                               | Tần suất | Hành vi                                                                                                          |
+| --------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
 | Huỷ đơn `PENDING_PAYMENT` quá hạn | Mỗi phút | Chọn đơn có Giữ hàng hết hạn, mỗi đơn T4 trong transaction riêng có khoá; tạm dừng khi hàng đợi IPN dồn ứ (§4.1) |
-| `DELIVERED` → `COMPLETED` | Mỗi giờ | T13 cho đơn đủ 7×24h và không có Đổi trả mở |
-| Dọn Tính thử hết hạn | Mỗi ngày | Xoá `checkout_quotes` hết hạn không gắn đơn (`guest_order_sessions` do job của `identity` dọn) |
+| `DELIVERED` → `COMPLETED`         | Mỗi giờ  | T13 cho đơn đủ 7×24h và không có Đổi trả mở                                                                      |
+| Dọn Tính thử hết hạn              | Mỗi ngày | Xoá `checkout_quotes` hết hạn không gắn đơn (`guest_order_sessions` do job của `identity` dọn)                   |
 
 Lịch và cơ chế chạy job: [../07-async-events-jobs.md](../07-async-events-jobs.md).

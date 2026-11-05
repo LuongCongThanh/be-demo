@@ -22,13 +22,13 @@ Job huỷ đơn hết hạn (mục 4) **tạm dừng** khi inbox thanh toán đa
 
 Hệ thống không dựa vào thứ tự tới (business/05 mục 4.2):
 
-| Trường hợp | Xử lý |
-|---|---|
-| Trùng | Chặn ở UK `dedup_key` lúc lưu, không xử lý lại |
-| Báo một bước đơn đã qua | Đặt `applied_at`/`processed_at`, không đổi gì |
-| Tới sớm hơn bước trước nó (vd. GHN báo đã giao khi chưa ghi nhận Vận đơn tạo xong) | Giữ `applied_at` null, tăng `attempts`, đặt `next_attempt_at` theo backoff tăng dần (1, 2, 5, 10, 30 phút…) |
-| Thử lại quá giới hạn (mặc định 10 lần / 24 giờ) mà vẫn chưa áp dụng được | Ngừng thử (`next_attempt_at` null, `applied_at` vẫn null), gửi cảnh báo cho đội kỹ thuật ([08-observability.md](./08-observability.md) mục 4) |
-| Mâu thuẫn với trạng thái đơn (vd. báo đã giao khi đơn đã Hoàn hàng) | Đặt `applied_at`, không áp dụng, chỉ ghi log |
+| Trường hợp                                                                         | Xử lý                                                                                                                                         |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Trùng                                                                              | Chặn ở UK `dedup_key` lúc lưu, không xử lý lại                                                                                                |
+| Báo một bước đơn đã qua                                                            | Đặt `applied_at`/`processed_at`, không đổi gì                                                                                                 |
+| Tới sớm hơn bước trước nó (vd. GHN báo đã giao khi chưa ghi nhận Vận đơn tạo xong) | Giữ `applied_at` null, tăng `attempts`, đặt `next_attempt_at` theo backoff tăng dần (1, 2, 5, 10, 30 phút…)                                   |
+| Thử lại quá giới hạn (mặc định 10 lần / 24 giờ) mà vẫn chưa áp dụng được           | Ngừng thử (`next_attempt_at` null, `applied_at` vẫn null), gửi cảnh báo cho đội kỹ thuật ([08-observability.md](./08-observability.md) mục 4) |
+| Mâu thuẫn với trạng thái đơn (vd. báo đã giao khi đơn đã Hoàn hàng)                | Đặt `applied_at`, không áp dụng, chỉ ghi log                                                                                                  |
 
 Job Đối soát (mục 4) là đường thứ hai: nếu thông báo bị mất hẳn, đối soát với API của provider vẫn đưa đơn về đúng trạng thái.
 
@@ -55,25 +55,25 @@ flowchart LR
 
 **Danh mục sự kiện (MVP):**
 
-| Sự kiện | Phát sinh khi | Consumer |
-|---|---|---|
-| `ordering.order-placed` | T2 (COD) | Email "Đặt đơn thành công" |
-| `ordering.order-paid` | T3 | Email "Thanh toán thành công" |
-| `ordering.order-cancelled` | T7, T9, T14 (không gồm T4/T5 — BR-NTF-01) | Email "Đơn đã huỷ"; huỷ Vận đơn nếu có |
-| `ordering.order-expired` | T4 | Không gửi email; chỉ thống kê |
-| `ordering.unexpected-payment-received` | Tiền về cho đơn không còn chờ thanh toán (BR-PAY-05) | Email báo tiền sẽ được hoàn; cảnh báo Staff |
-| `payments.amount-mismatch` | BR-PAY-04 | Cảnh báo Staff (Cờ `amount_mismatch`) |
-| `refunds.refund-requested` | Tạo yêu cầu Hoàn tiền | Cảnh báo Staff |
-| `refunds.refund-recorded` | Staff ghi nhận Đã hoàn tiền | Email "Hoàn tiền được ghi nhận" |
-| `fulfillment.handover-requested` | Staff bàn giao | Tạo Vận đơn GHN |
-| `fulfillment.shipment-created` | T10 | Email "Đơn đang được giao" |
-| `fulfillment.shipment-delivered` | T11 | Email "Đã giao" |
-| `fulfillment.returned-to-sender` | T12 | Cảnh báo Staff chờ nhận hàng về Kho |
-| `fulfillment.shipment-exception` | BR-SHP-08 | Cảnh báo Staff (`shipment_exception`) |
-| `identity.email-verified` | Email Tài khoản được xác thực (kể cả qua Google) | `ordering` gắn đơn vãng lai cùng email (BR-ORD-08) |
-| `compliance.erasure-step-requested` | Yêu cầu xoá dữ liệu được duyệt (US-1101) | Mỗi module xoá/ẩn danh phần dữ liệu của mình |
-| `compliance.erasure-completed` | Mọi bước xoá đã xác nhận | Email xác nhận cho Người mua |
-| `identity.email-verification-requested`, `identity.password-reset-requested` | Đăng ký, quên mật khẩu | Email tài khoản |
+| Sự kiện                                                                      | Phát sinh khi                                        | Consumer                                           |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------- |
+| `ordering.order-placed`                                                      | T2 (COD)                                             | Email "Đặt đơn thành công"                         |
+| `ordering.order-paid`                                                        | T3                                                   | Email "Thanh toán thành công"                      |
+| `ordering.order-cancelled`                                                   | T7, T9, T14 (không gồm T4/T5 — BR-NTF-01)            | Email "Đơn đã huỷ"; huỷ Vận đơn nếu có             |
+| `ordering.order-expired`                                                     | T4                                                   | Không gửi email; chỉ thống kê                      |
+| `ordering.unexpected-payment-received`                                       | Tiền về cho đơn không còn chờ thanh toán (BR-PAY-05) | Email báo tiền sẽ được hoàn; cảnh báo Staff        |
+| `payments.amount-mismatch`                                                   | BR-PAY-04                                            | Cảnh báo Staff (Cờ `amount_mismatch`)              |
+| `refunds.refund-requested`                                                   | Tạo yêu cầu Hoàn tiền                                | Cảnh báo Staff                                     |
+| `refunds.refund-recorded`                                                    | Staff ghi nhận Đã hoàn tiền                          | Email "Hoàn tiền được ghi nhận"                    |
+| `fulfillment.handover-requested`                                             | Staff bàn giao                                       | Tạo Vận đơn GHN                                    |
+| `fulfillment.shipment-created`                                               | T10                                                  | Email "Đơn đang được giao"                         |
+| `fulfillment.shipment-delivered`                                             | T11                                                  | Email "Đã giao"                                    |
+| `fulfillment.returned-to-sender`                                             | T12                                                  | Cảnh báo Staff chờ nhận hàng về Kho                |
+| `fulfillment.shipment-exception`                                             | BR-SHP-08                                            | Cảnh báo Staff (`shipment_exception`)              |
+| `identity.email-verified`                                                    | Email Tài khoản được xác thực (kể cả qua Google)     | `ordering` gắn đơn vãng lai cùng email (BR-ORD-08) |
+| `compliance.erasure-step-requested`                                          | Yêu cầu xoá dữ liệu được duyệt (US-1101)             | Mỗi module xoá/ẩn danh phần dữ liệu của mình       |
+| `compliance.erasure-completed`                                               | Mọi bước xoá đã xác nhận                             | Email xác nhận cho Người mua                       |
+| `identity.email-verification-requested`, `identity.password-reset-requested` | Đăng ký, quên mật khẩu                               | Email tài khoản                                    |
 
 ## 3. Thông báo cho Người mua (email)
 
@@ -93,18 +93,18 @@ Mỗi email có một bản ghi `email_logs`: `outbox_event_id`, `order_id`, `te
 
 Job chạy bằng BullMQ repeatable job trong worker; mỗi lần chạy giữ một khoá để chỉ một instance chạy cùng lúc, và xử lý theo lô nhỏ, idempotent.
 
-| Job | Tần suất | Nguồn |
-|---|---|---|
-| Huỷ đơn `PENDING_PAYMENT` quá 15 phút (T4), giải phóng Giữ hàng | Mỗi phút | BR-INV-05, T4 |
-| Đối soát Thanh toán treo với VNPay / MoMo | Mỗi 5 phút | BR-PAY-02, T3 |
-| Đối soát trạng thái Vận đơn với GHN | Mỗi 15 phút **[Giả định · kiểm chứng hạn mức API GHN]** | T11, T12 |
-| Chuyển `DELIVERED` quá 7 ngày, không còn Đổi trả đang mở, sang `COMPLETED` | Mỗi giờ | T13, BR-REV-01 |
-| Thử lại `shipment_events` chưa áp dụng (`next_attempt_at` tới hạn) | Mỗi phút | Mục 1.3 |
-| Quét outbox kẹt `enqueued` | Mỗi 5 phút | ADR 0007 |
-| Xoá Giỏ Khách vãng lai không hoạt động 30 ngày | Mỗi ngày | BR-CRT-02 |
-| Xoá token hết hạn/đã dùng (refresh, reset, verify) và Tính thử hết hạn | Mỗi ngày | [11-database.md](./11-database.md) |
-| Tính số liệu **bán chạy** 30 ngày | Mỗi đêm | BR-CAT-12 |
-| Dọn outbox `done` > 90 ngày, ẩn PII `email_logs` > 90 ngày | Mỗi ngày | business/06 mục 5 |
+| Job                                                                        | Tần suất                                                | Nguồn                              |
+| -------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------- |
+| Huỷ đơn `PENDING_PAYMENT` quá 15 phút (T4), giải phóng Giữ hàng            | Mỗi phút                                                | BR-INV-05, T4                      |
+| Đối soát Thanh toán treo với VNPay / MoMo                                  | Mỗi 5 phút                                              | BR-PAY-02, T3                      |
+| Đối soát trạng thái Vận đơn với GHN                                        | Mỗi 15 phút **[Giả định · kiểm chứng hạn mức API GHN]** | T11, T12                           |
+| Chuyển `DELIVERED` quá 7 ngày, không còn Đổi trả đang mở, sang `COMPLETED` | Mỗi giờ                                                 | T13, BR-REV-01                     |
+| Thử lại `shipment_events` chưa áp dụng (`next_attempt_at` tới hạn)         | Mỗi phút                                                | Mục 1.3                            |
+| Quét outbox kẹt `enqueued`                                                 | Mỗi 5 phút                                              | ADR 0007                           |
+| Xoá Giỏ Khách vãng lai không hoạt động 30 ngày                             | Mỗi ngày                                                | BR-CRT-02                          |
+| Xoá token hết hạn/đã dùng (refresh, reset, verify) và Tính thử hết hạn     | Mỗi ngày                                                | [11-database.md](./11-database.md) |
+| Tính số liệu **bán chạy** 30 ngày                                          | Mỗi đêm                                                 | BR-CAT-12                          |
+| Dọn outbox `done` > 90 ngày, ẩn PII `email_logs` > 90 ngày                 | Mỗi ngày                                                | business/06 mục 5                  |
 
 ## 5. Vai trò của Redis/BullMQ và khi Redis lỗi
 

@@ -22,26 +22,26 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.5](../11-database
 
 Mọi hàm nhận `tx` của module gọi; khoá `inventory_levels` theo `variant_id` tăng dần.
 
-| Hàm | Gọi ở |
-|---|---|
-| `getSellable(variantIds)` | `catalog`, `cart`, `ordering` (Tính thử) |
-| `reserve(orderId, lines, tx)` | T1 (online) — thiếu → lỗi kèm số còn (BR-INV-06) |
-| `decrementToAwaitingDispatch(orderId, lines, tx)` | T2 (COD, BR-INV-04) |
-| `consumeReservation(orderId, tx)` | T3 — `on_hand -= q`, `reserved -= q`, tạo Hàng chờ xuất; Giữ hàng đã quá hạn thì giữ lại nếu còn đủ (business/05 §4.1) |
-| `releaseReservation(orderId, tx)` | T4, T5 |
-| `returnAwaitingDispatch(orderId, tx)` | T7, T9 (BR-INV-07) |
-| `clearAwaitingDispatch(orderId, tx)` | T10 |
-| `restockReturned(orderId | returnId, lines, tx)` | Staff xác nhận hàng về Kho (BR-INV-08): theo `orderId` (Hoàn hàng T12) → movement `return_to_sender`; theo `returnId` (Đổi trả, gọi khi Staff `decide`, không phải khi `receive`) → movement `return_restock` |
+| Hàm                                               | Gọi ở                                                                                                                  |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `getSellable(variantIds)`                         | `catalog`, `cart`, `ordering` (Tính thử)                                                                               |
+| `reserve(orderId, lines, tx)`                     | T1 (online) — thiếu → lỗi kèm số còn (BR-INV-06)                                                                       |
+| `decrementToAwaitingDispatch(orderId, lines, tx)` | T2 (COD, BR-INV-04)                                                                                                    |
+| `consumeReservation(orderId, tx)`                 | T3 — `on_hand -= q`, `reserved -= q`, tạo Hàng chờ xuất; Giữ hàng đã quá hạn thì giữ lại nếu còn đủ (business/05 §4.1) |
+| `releaseReservation(orderId, tx)`                 | T4, T5                                                                                                                 |
+| `returnAwaitingDispatch(orderId, tx)`             | T7, T9 (BR-INV-07)                                                                                                     |
+| `clearAwaitingDispatch(orderId, tx)`              | T10                                                                                                                    |
+| `restockReturned(orderId                          | returnId, lines, tx)`                                                                                                  | Staff xác nhận hàng về Kho (BR-INV-08): theo `orderId` (Hoàn hàng T12) → movement `return_to_sender`; theo `returnId` (Đổi trả, gọi khi Staff `decide`, không phải khi `receive`) → movement `return_restock` |
 
 ## 4. API
 
-| Method | Path | Actor | Ghi chú |
-|---|---|---|---|
-| `GET` | `/admin/inventory` | staff | Theo Biến thể: Tồn kho, Giữ hàng, Hàng chờ xuất, Số lượng bán được; lọc dưới ngưỡng (mặc định 5) (US-702) |
-| `POST` | `/admin/inventory/receipts` | staff | Nhập kho (US-701) |
-| `POST` | `/admin/inventory/adjustments` | staff | Lý do bắt buộc; giảm ≤ Số lượng bán được (BR-INV-11) |
-| `POST` | `/admin/inventory/stock-counts` (+ `/preview`) | staff | Kiểm kê (US-703) |
-| `GET` | `/admin/inventory/:variantId/movements` | staff | Lịch sử |
+| Method | Path                                           | Actor | Ghi chú                                                                                                   |
+| ------ | ---------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/admin/inventory`                             | staff | Theo Biến thể: Tồn kho, Giữ hàng, Hàng chờ xuất, Số lượng bán được; lọc dưới ngưỡng (mặc định 5) (US-702) |
+| `POST` | `/admin/inventory/receipts`                    | staff | Nhập kho (US-701)                                                                                         |
+| `POST` | `/admin/inventory/adjustments`                 | staff | Lý do bắt buộc; giảm ≤ Số lượng bán được (BR-INV-11)                                                      |
+| `POST` | `/admin/inventory/stock-counts` (+ `/preview`) | staff | Kiểm kê (US-703)                                                                                          |
+| `GET`  | `/admin/inventory/:variantId/movements`        | staff | Lịch sử                                                                                                   |
 
 ## 5. Luồng
 

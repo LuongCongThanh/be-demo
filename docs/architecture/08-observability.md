@@ -16,14 +16,14 @@ Mục tiêu: luôn trả lời được "tiền và tồn kho của đơn này �
 
 ## 2. Metric
 
-| Nhóm | Metric |
-|---|---|
-| HTTP | Latency P50/P95/P99 theo route, tỷ lệ lỗi 5xx, số request |
-| Checkout | Số đơn tạo, số lần từ chối vì Tính thử lệch (BR-ORD-07), vì hết hàng (BR-INV-06) |
-| Thanh toán | IPN nhận/lỗi chữ ký/trùng; Thanh toán treo chờ đối soát; số đơn hết hạn T4 |
-| Tồn kho | Số Giữ hàng đang hiệu lực, Giữ hàng hết hạn |
-| Async | Độ dài queue, job thất bại, outbox `pending`/`enqueued` theo tuổi, inbox chưa áp dụng (`applied_at`/`processed_at` null) và đã ngừng thử |
-| Hạ tầng | CPU, bộ nhớ, số kết nối PostgreSQL đang dùng/chờ, bộ nhớ Redis |
+| Nhóm       | Metric                                                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP       | Latency P50/P95/P99 theo route, tỷ lệ lỗi 5xx, số request                                                                                |
+| Checkout   | Số đơn tạo, số lần từ chối vì Tính thử lệch (BR-ORD-07), vì hết hàng (BR-INV-06)                                                         |
+| Thanh toán | IPN nhận/lỗi chữ ký/trùng; Thanh toán treo chờ đối soát; số đơn hết hạn T4                                                               |
+| Tồn kho    | Số Giữ hàng đang hiệu lực, Giữ hàng hết hạn                                                                                              |
+| Async      | Độ dài queue, job thất bại, outbox `pending`/`enqueued` theo tuổi, inbox chưa áp dụng (`applied_at`/`processed_at` null) và đã ngừng thử |
+| Hạ tầng    | CPU, bộ nhớ, số kết nối PostgreSQL đang dùng/chờ, bộ nhớ Redis                                                                           |
 
 Xuất theo chuẩn Prometheus (OpenTelemetry metrics).
 
@@ -45,9 +45,9 @@ OpenTelemetry trace cho HTTP, Prisma và lời gọi ra ngoài (VNPay, MoMo, GHN
 
 ## 5. Health check
 
-| Endpoint | Kiểm tra | Dùng cho |
-|---|---|---|
-| `GET /health/live` | Process còn chạy | Restart container |
+| Endpoint            | Kiểm tra                    | Dùng cho                      |
+| ------------------- | --------------------------- | ----------------------------- |
+| `GET /health/live`  | Process còn chạy            | Restart container             |
 | `GET /health/ready` | Kết nối được **PostgreSQL** | Load balancer nhận/bỏ replica |
 
 Redis **không** nằm trong readiness: Redis lỗi chỉ làm suy giảm tính năng (ADR 0008, [07](./07-async-events-jobs.md) mục 5), được báo qua metric và cảnh báo. Worker có health riêng: còn kết nối PostgreSQL và job định kỳ chạy đúng lịch.

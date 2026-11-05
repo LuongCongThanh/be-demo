@@ -13,15 +13,15 @@ Quy mô MVP giả định 500–5.000 đơn/ngày ([10-nfr.md](./10-nfr.md)).
 
 ## 2. Stack
 
-| Thành phần | Lựa chọn | Vai trò |
-|---|---|---|
-| Ứng dụng | NestJS (TypeScript) | API và worker, cùng một codebase |
-| Database | PostgreSQL + Prisma | Nguồn dữ liệu chính, mọi trạng thái thương mại |
-| Cache / queue | Redis + BullMQ | Rate limit, cache, hàng đợi job; **không** là nguồn dữ liệu (ADR 0008) |
-| Lưu file | Object storage (S3-compatible) | Ảnh Sản phẩm theo màu (BR-CAT-05) |
-| Thanh toán | VNPay, MoMo, COD | ADR 0004 |
-| Vận chuyển | GHN | Phí ship, Vận đơn, trạng thái giao |
-| Email | Nhà cung cấp email giao dịch | Thông báo đơn (BR-NTF-*) |
+| Thành phần    | Lựa chọn                       | Vai trò                                                                |
+| ------------- | ------------------------------ | ---------------------------------------------------------------------- |
+| Ứng dụng      | NestJS (TypeScript)            | API và worker, cùng một codebase                                       |
+| Database      | PostgreSQL + Prisma            | Nguồn dữ liệu chính, mọi trạng thái thương mại                         |
+| Cache / queue | Redis + BullMQ                 | Rate limit, cache, hàng đợi job; **không** là nguồn dữ liệu (ADR 0008) |
+| Lưu file      | Object storage (S3-compatible) | Ảnh Sản phẩm theo màu (BR-CAT-05)                                      |
+| Thanh toán    | VNPay, MoMo, COD               | ADR 0004                                                               |
+| Vận chuyển    | GHN                            | Phí ship, Vận đơn, trạng thái giao                                     |
+| Email         | Nhà cung cấp email giao dịch   | Thông báo đơn (BR-NTF-*)                                               |
 
 ## 3. Phong cách kiến trúc
 

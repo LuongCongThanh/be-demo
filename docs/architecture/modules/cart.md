@@ -16,19 +16,19 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.4](../11-database
 
 ## 3. Interface cho module khác
 
-| Hàm | Dùng bởi |
-|---|---|
+| Hàm                                      | Dùng bởi                                                                                  |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `lockActiveCart(owner, tx)` → giỏ + dòng | `ordering` (đặt đơn, [ADR 0009](../../adr/0009-cart-row-lock-over-optimistic-version.md)) |
-| `markCheckedOut(cartId, tx)` | `ordering` |
-| `mergeGuestCart(guestToken, userId)` | `identity` sau đăng nhập |
+| `markCheckedOut(cartId, tx)`             | `ordering`                                                                                |
+| `mergeGuestCart(guestToken, userId)`     | `identity` sau đăng nhập                                                                  |
 
 ## 4. API
 
-| Method | Path | Actor | Ghi chú |
-|---|---|---|---|
-| `GET` | `/cart` | guest, customer | Giá hiện tại, cờ đổi giá, Biến thể hết hàng/`archived` (US-202) |
-| `POST` | `/cart/items` | guest, customer | Kẹp theo Số lượng bán được và 10 (US-201) |
-| `PATCH/DELETE` | `/cart/items/:variantId` | guest, customer | |
+| Method         | Path                     | Actor           | Ghi chú                                                         |
+| -------------- | ------------------------ | --------------- | --------------------------------------------------------------- |
+| `GET`          | `/cart`                  | guest, customer | Giá hiện tại, cờ đổi giá, Biến thể hết hàng/`archived` (US-202) |
+| `POST`         | `/cart/items`            | guest, customer | Kẹp theo Số lượng bán được và 10 (US-201)                       |
+| `PATCH/DELETE` | `/cart/items/:variantId` | guest, customer |                                                                 |
 
 Khách vãng lai nhận cookie `HttpOnly` chứa token giỏ ở lần ghi đầu tiên; server chỉ lưu hash.
 
@@ -44,8 +44,8 @@ Không phát, không nghe.
 
 ## 7. Job
 
-| Job | Tần suất | Hành vi |
-|---|---|---|
+| Job                  | Tần suất | Hành vi                                                                                                           |
+| -------------------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
 | Hết hạn giỏ vãng lai | Mỗi ngày | Giỏ vãng lai (`guest_token_hash` khác null) có `last_activity_at` quá 30 ngày → `expired`, xoá sau đó (BR-CRT-02) |
 
 ## 8. Bao phủ

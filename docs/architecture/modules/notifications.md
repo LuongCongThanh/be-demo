@@ -18,16 +18,16 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.10](../11-databas
 
 ## 3. Email theo sự kiện
 
-| Sự kiện | Email | Ghi chú |
-|---|---|---|
-| `ordering.order-placed` | Đặt đơn thành công | Chỉ COD (T2) |
-| `ordering.order-paid` | Thanh toán thành công | T3 |
-| `ordering.order-cancelled` | Đơn đã huỷ | Không gửi cho T4/T5 — đơn online chưa thanh toán (BR-NTF-01) |
-| `fulfillment.shipment-created` | Đơn đang được giao | T10 |
-| `fulfillment.shipment-delivered` | Đã giao | T11 |
-| `refunds.refund-recorded` | Hoàn tiền được ghi nhận | US-605 |
-| `ordering.unexpected-payment-received` | Tiền sẽ được hoàn (kèm "đơn đã hết hạn" nếu đã huỷ) | Ngoại lệ BR-NTF-01, business/05 §4.1 |
-| `identity.email-verification-requested`, `identity.password-reset-requested` | Email tài khoản | US-501, US-503 |
+| Sự kiện                                                                      | Email                                               | Ghi chú                                                      |
+| ---------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------ |
+| `ordering.order-placed`                                                      | Đặt đơn thành công                                  | Chỉ COD (T2)                                                 |
+| `ordering.order-paid`                                                        | Thanh toán thành công                               | T3                                                           |
+| `ordering.order-cancelled`                                                   | Đơn đã huỷ                                          | Không gửi cho T4/T5 — đơn online chưa thanh toán (BR-NTF-01) |
+| `fulfillment.shipment-created`                                               | Đơn đang được giao                                  | T10                                                          |
+| `fulfillment.shipment-delivered`                                             | Đã giao                                             | T11                                                          |
+| `refunds.refund-recorded`                                                    | Hoàn tiền được ghi nhận                             | US-605                                                       |
+| `ordering.unexpected-payment-received`                                       | Tiền sẽ được hoàn (kèm "đơn đã hết hạn" nếu đã huỷ) | Ngoại lệ BR-NTF-01, business/05 §4.1                         |
+| `identity.email-verification-requested`, `identity.password-reset-requested` | Email tài khoản                                     | US-501, US-503                                               |
 
 Ngôn ngữ: `users.locale` của Khách hàng; Khách vãng lai dùng `orders.locale` lúc đặt. Tên Sản phẩm luôn tiếng Việt (bản chụp trên Dòng đơn hàng).
 
@@ -72,11 +72,11 @@ Lắng nghe: bảng §3. Phát: không.
 
 ## 7. Job
 
-| Job | Tần suất |
-|---|---|
-| Outbox dispatcher | Liên tục |
-| Quét outbox kẹt `enqueued` | Mỗi 5 phút |
-| Xoá outbox `done` > 90 ngày; `email_logs.recipient`, `amount` = null sau 90 ngày | Mỗi ngày |
+| Job                                                                              | Tần suất   |
+| -------------------------------------------------------------------------------- | ---------- |
+| Outbox dispatcher                                                                | Liên tục   |
+| Quét outbox kẹt `enqueued`                                                       | Mỗi 5 phút |
+| Xoá outbox `done` > 90 ngày; `email_logs.recipient`, `amount` = null sau 90 ngày | Mỗi ngày   |
 
 ## 8. Bao phủ nghiệp vụ
 

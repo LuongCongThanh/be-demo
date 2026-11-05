@@ -30,14 +30,14 @@ Mọi route dưới `/api/v1`, Swagger ở `/docs` (ADR 0002).
 
 ## 3. Nhóm route
 
-| Nhóm | Prefix | Người gọi | Ví dụ |
-|---|---|---|---|
-| Storefront public | `/api/v1/` | Mọi người | `GET /products`, `GET /categories`, `POST /checkout/quotes` |
-| Storefront Người mua | `/api/v1/` | `guest` (cookie/phiên tra cứu) hoặc `customer` | `/cart`, `POST /orders`, `POST /orders/{code}/payments`, `POST /orders/{code}/cancel`, `POST /order-lookups` |
-| Tài khoản | `/api/v1/me` | `customer` | hồ sơ, sổ địa chỉ, lịch sử đơn, ngôn ngữ |
-| Back-office | `/api/v1/admin/` | `staff`, `admin` | đơn, tồn kho, Kiểm kê, Sản phẩm, Voucher, Đổi trả, Hoàn tiền |
-| Chỉ Admin | `/api/v1/admin/` | `admin` | Tài khoản Staff, cấu hình, báo cáo |
-| Callback | `/api/v1/webhooks/` | VNPay, MoMo, GHN | `/webhooks/vnpay`, `/webhooks/momo`, `/webhooks/ghn` |
+| Nhóm                 | Prefix              | Người gọi                                      | Ví dụ                                                                                                        |
+| -------------------- | ------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Storefront public    | `/api/v1/`          | Mọi người                                      | `GET /products`, `GET /categories`, `POST /checkout/quotes`                                                  |
+| Storefront Người mua | `/api/v1/`          | `guest` (cookie/phiên tra cứu) hoặc `customer` | `/cart`, `POST /orders`, `POST /orders/{code}/payments`, `POST /orders/{code}/cancel`, `POST /order-lookups` |
+| Tài khoản            | `/api/v1/me`        | `customer`                                     | hồ sơ, sổ địa chỉ, lịch sử đơn, ngôn ngữ                                                                     |
+| Back-office          | `/api/v1/admin/`    | `staff`, `admin`                               | đơn, tồn kho, Kiểm kê, Sản phẩm, Voucher, Đổi trả, Hoàn tiền                                                 |
+| Chỉ Admin            | `/api/v1/admin/`    | `admin`                                        | Tài khoản Staff, cấu hình, báo cáo                                                                           |
+| Callback             | `/api/v1/webhooks/` | VNPay, MoMo, GHN                               | `/webhooks/vnpay`, `/webhooks/momo`, `/webhooks/ghn`                                                         |
 
 Ma trận quyền đầy đủ: [02-actors-permissions.md](../business/02-actors-permissions.md) §3. Đơn được tham chiếu bằng Mã đơn (BR-ORD-03) ở storefront, không lộ `id` nội bộ.
 
@@ -66,12 +66,12 @@ Mọi lỗi đi qua một `AllExceptionsFilter` duy nhất (`../convention/error
 
 ## 6. Idempotency
 
-| Thao tác | Cơ chế |
-|---|---|
+| Thao tác               | Cơ chế                                                                                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Đặt đơn `POST /orders` | Header `Idempotency-Key` bắt buộc; lưu theo `scope + actor + key` cùng fingerprint payload và response. Gửi lại cùng key → trả kết quả cũ; cùng key khác payload → `409` |
-| Tạo link thanh toán | `Idempotency-Key` như trên; mã giao dịch gửi Cổng sinh một lần và dùng lại khi retry (ADR 0004) |
-| IPN VNPay/MoMo | Khử trùng theo mã giao dịch Cổng (BR-PAY-03) |
-| Webhook GHN | Khử trùng theo mã Vận đơn + trạng thái + thời điểm ([07-async-events-jobs.md](./07-async-events-jobs.md) §1.3) |
-| Yêu cầu Hoàn tiền | Một yêu cầu mỗi thao tác nghiệp vụ mỗi Thanh toán (BR-REF-06) |
+| Tạo link thanh toán    | `Idempotency-Key` như trên; mã giao dịch gửi Cổng sinh một lần và dùng lại khi retry (ADR 0004)                                                                          |
+| IPN VNPay/MoMo         | Khử trùng theo mã giao dịch Cổng (BR-PAY-03)                                                                                                                             |
+| Webhook GHN            | Khử trùng theo mã Vận đơn + trạng thái + thời điểm ([07-async-events-jobs.md](./07-async-events-jobs.md) §1.3)                                                           |
+| Yêu cầu Hoàn tiền      | Một yêu cầu mỗi thao tác nghiệp vụ mỗi Thanh toán (BR-REF-06)                                                                                                            |
 
 Bản ghi idempotency đang `processing` quá ngưỡng thời gian thì retry phải đối soát với Cổng trước, không tạo lời gọi mới mù quáng.

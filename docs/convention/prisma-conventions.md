@@ -21,11 +21,11 @@ src/prisma/         — PrismaService + PrismaModule (@Global)
 
 ## 2. Naming & mapping
 
-| Thành phần       | Trong code Prisma             | Trong DB (qua `@map`/`@@map`) |
-| ---------------- | ----------------------------- | ----------------------------- |
-| Model            | `PascalCase` số ít (`ProductVariant`) | bảng `snake_case` số nhiều (`product_variants`) |
-| Field            | `camelCase` (`variantId`)     | cột `snake_case` (`variant_id`) |
-| Enum             | `PascalCase` (`OrderStatus`)  | giá trị theo `11-database.md` |
+| Thành phần | Trong code Prisma                     | Trong DB (qua `@map`/`@@map`)                   |
+| ---------- | ------------------------------------- | ----------------------------------------------- |
+| Model      | `PascalCase` số ít (`ProductVariant`) | bảng `snake_case` số nhiều (`product_variants`) |
+| Field      | `camelCase` (`variantId`)             | cột `snake_case` (`variant_id`)                 |
+| Enum       | `PascalCase` (`OrderStatus`)          | giá trị theo `11-database.md`                   |
 
 Kiểu dữ liệu (theo `11-database.md` §3.1):
 
@@ -129,10 +129,10 @@ this.prisma.product.findMany({
 
 ### 4.3. Phân trang
 
-| Kiểu   | Dùng khi | Cách |
-| ------ | -------- | ---- |
-| Offset | Admin dashboard, cần nhảy trang, dữ liệu vừa phải | `skip: (page - 1) * limit, take: limit` + `count()` trong `$transaction([...])` |
-| Cursor | Listing public lớn, infinite scroll | `take: limit + 1, cursor: { id }, skip: 1`, `orderBy` có cột duy nhất (vd. `[{ createdAt: 'desc' }, { id: 'desc' }]`) |
+| Kiểu   | Dùng khi                                          | Cách                                                                                                                  |
+| ------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Offset | Admin dashboard, cần nhảy trang, dữ liệu vừa phải | `skip: (page - 1) * limit, take: limit` + `count()` trong `$transaction([...])`                                       |
+| Cursor | Listing public lớn, infinite scroll               | `take: limit + 1, cursor: { id }, skip: 1`, `orderBy` có cột duy nhất (vd. `[{ createdAt: 'desc' }, { id: 'desc' }]`) |
 
 `orderBy` phải khớp composite index đã khai cho listing đó.
 
@@ -158,15 +158,15 @@ this.prisma.product.findMany({
 
 Thêm `--config prisma7.config.ts` cho mọi lệnh dưới đây.
 
-| Lệnh | Mục đích |
-| ---- | -------- |
-| `npx prisma format` | Format + kiểm cú pháp schema |
-| `npx prisma validate` | Validate schema |
-| `npx prisma generate` | Sinh lại Prisma Client vào `src/generated/prisma` |
-| `npx prisma migrate dev --create-only --name x` | Sinh SQL migration, chưa apply |
-| `npx prisma migrate dev` | Apply migration đang chờ (máy dev) |
-| `npx prisma migrate deploy` | Apply migration ở CI/production |
-| `npx prisma migrate status` | Xem migration nào chưa apply |
-| `npx prisma migrate reset` | Xoá DB dev, apply lại từ đầu (**chỉ máy dev**) |
-| `npx prisma studio` | Xem/sửa dữ liệu qua UI |
-| `npm run db:seed` | Chạy seed |
+| Lệnh                                            | Mục đích                                          |
+| ----------------------------------------------- | ------------------------------------------------- |
+| `npx prisma format`                             | Format + kiểm cú pháp schema                      |
+| `npx prisma validate`                           | Validate schema                                   |
+| `npx prisma generate`                           | Sinh lại Prisma Client vào `src/generated/prisma` |
+| `npx prisma migrate dev --create-only --name x` | Sinh SQL migration, chưa apply                    |
+| `npx prisma migrate dev`                        | Apply migration đang chờ (máy dev)                |
+| `npx prisma migrate deploy`                     | Apply migration ở CI/production                   |
+| `npx prisma migrate status`                     | Xem migration nào chưa apply                      |
+| `npx prisma migrate reset`                      | Xoá DB dev, apply lại từ đầu (**chỉ máy dev**)    |
+| `npx prisma studio`                             | Xem/sửa dữ liệu qua UI                            |
+| `npm run db:seed`                               | Chạy seed                                         |

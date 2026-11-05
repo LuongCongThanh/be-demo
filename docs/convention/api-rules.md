@@ -115,10 +115,10 @@ Swagger UI: `http://localhost:3000/api`; spec: `/api-json`.
 
 Vitest (`vitest.config.ts` unit, `vitest.config.e2e.ts` e2e) + `supertest`.
 
-| Loại test            | Khi nào                                                                                                                  |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Service unit test    | **Bắt buộc** nếu service có business logic (not-found, conflict, tính toán, điều kiện) — test cả nhánh lỗi              |
-| API e2e test         | **Bắt buộc** cho endpoint public/quan trọng (checkout, auth, payment); khuyến nghị cho mọi CRUD                         |
+| Loại test            | Khi nào                                                                                                              |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Service unit test    | **Bắt buộc** nếu service có business logic (not-found, conflict, tính toán, điều kiện) — test cả nhánh lỗi           |
+| API e2e test         | **Bắt buộc** cho endpoint public/quan trọng (checkout, auth, payment); khuyến nghị cho mọi CRUD                      |
 | Controller unit test | **Optional** — controller mỏng chỉ xác nhận "có gọi service"; e2e mới cover route/pipe/validation/status/filter thật |
 
 - Unit test mock `PrismaService`, không chạm DB.
