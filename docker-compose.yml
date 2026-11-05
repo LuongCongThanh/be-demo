@@ -20,6 +20,17 @@ services:
     ports:
       - '6379:6379'
 
+  # Local SMTP catcher: receives all emails, never delivers them.
+  # Web UI: http://localhost:8025 · SMTP: localhost:1025 (any user/pass).
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
   api:
     build: .
     ports:
