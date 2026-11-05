@@ -3,8 +3,6 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module.js';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MetricsModule } from './metrics/metrics.module.js';
@@ -27,9 +25,7 @@ import { ProductsModule } from './products/products.module.js';
     CategoriesModule,
     ProductsModule,
   ],
-  controllers: [AppController],
   providers: [
-    AppService,
     // `useExisting` (not `useClass`) so `ThrottlerGuard` is also reachable as
     // its own overridable provider — APP_GUARD is a `multi: true` token, so
     // `overrideProvider(APP_GUARD)` in e2e tests would only ADD a stub guard

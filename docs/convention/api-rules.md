@@ -97,17 +97,19 @@ Cần authorization (role/ownership)? → có → RolesGuard + @Roles() / Owners
 
 ### R8. Swagger / OpenAPI
 
-Swagger UI: `http://localhost:3000/api`; spec: `/api-json`.
+Swagger UI: `http://localhost:3000/docs`; spec: `/docs-json` (ADR 0002). Cấu hình ở `src/bootstrap/setup-swagger.ts`; tắt bằng `SWAGGER_ENABLED=false` (mặc định tắt khi `NODE_ENV=production`).
 
 - **`@ApiOperation({ summary })` cho mọi route** — câu mệnh lệnh mô tả đúng hành vi, không lặp tên method (`"Create a new category"`, không phải `"Create"`).
 - **`@ApiTags()` đủ nghĩa** khi path là viết tắt (`@ApiTags('Authentication & Authorization')` cho `@Controller('auth')`); path số nhiều tự rõ (`'categories'`) thì giữ nguyên.
-- **Mọi module phải có `DocumentBuilder.addTag(name, description)`** ở `main.ts`; `name` khớp **chính xác** chuỗi `@ApiTags()` (lệch thì mất mô tả, không báo lỗi). Description 1 câu: quản lý gì, ràng buộc quyền đáng chú ý.
+- **Mọi module khai tag trong `src/common/swagger/api-tags.ts`** (`name` + `description` 1 câu: quản lý gì, ràng buộc quyền đáng chú ý); controller dùng `@ApiTags(API_TAGS.X.name)`, `setup-swagger.ts` tự `addTag` từ đó — không gõ chuỗi tag tay.
+- **Ngoại lệ — endpoint hạ tầng** không dành cho client (vd. `/metrics` cho Prometheus): ẩn bằng `@ApiExcludeController()`, không cần tag.
+- **Response lỗi**: dùng `@ApiErrorResponses(...)` (`src/common/swagger/api-error-responses.decorator.ts`) — body `ErrorResponseDto` khớp `AllExceptionsFilter`. Khai đúng các status route thực sự trả (400 khi có body/query/`ParseUUIDPipe`; 401+403 khi có guard; 404/409 theo service), `[status, 'mô tả']` khi cần ghi rõ nguyên nhân. **Không khai 429** ở route — `setup-swagger.ts` tự thêm cho mọi route vì `ThrottlerGuard` là guard toàn cục.
 - Khai **response `type:`** (`@ApiOkResponse({ type })`, `@ApiCreatedResponse({ type })`), không chỉ `description`. Nếu trả Prisma type, `type:` trỏ vào class khai lại field cho Swagger.
 - **Postman**: không sửa tay collection. Sau khi thêm/sửa API: `npm run start:dev` rồi `npm run postman:sync` (cần `POSTMAN_API_KEY`, `POSTMAN_COLLECTION_ID` trong `.env`). Script ghi đè toàn bộ collection.
 
 ### R9. Pagination
 
-- **Mọi `findAll()` phân trang** bằng `PaginationDto` dùng chung (`page` ≥1 mặc định 1; `limit` 1–100 mặc định 20, `@Max(100)` chặn quá tải) — kể cả resource ít bản ghi, để response shape nhất quán.
+- **Mọi `findAll()` phân trang** bằng `PaginationDto` dùng chung (`src/common/pagination/`, kèm `PaginationMetaDto`) (`page` ≥1 mặc định 1; `limit` 1–100 mặc định 20, `@Max(100)` chặn quá tải) — kể cả resource ít bản ghi, để response shape nhất quán.
 - Response envelope `{ data: [...], meta: { page, limit, total, totalPages } }`.
 - **Luôn `orderBy` có tie-breaker** (vd. `[{ createdAt: 'desc' }, { id: 'desc' }]`) — thiếu thì chuyển trang có thể trùng/sót record. Cho client chọn field sort thì whitelist field.
 
@@ -160,7 +162,7 @@ Một API **xong** (không phải "code chạy được") khi:
 - Lỗi map đúng HTTP status (không `500` cho case biết trước)
 - Response contract rõ — không rò field nhạy cảm
 - Test pass: service unit (nếu có business logic) + e2e (nếu endpoint public/quan trọng)
-- Swagger đúng thực tế: `type:` response, `@ApiOperation({ summary })` mỗi route, `example:` mỗi field client gửi, `@ApiTags()` khớp `addTag(name, description)`
+- Swagger đúng thực tế: `type:` response, `@ApiOperation({ summary })` mỗi route, `example:` mỗi field client gửi, tag lấy từ `API_TAGS`
 - `npm run lint` + `npm run format` + `npm run build` sạch
 - PR đã mở + review (`/ship`)
 
@@ -175,7 +177,7 @@ Một API **xong** (không phải "code chạy được") khi:
 - [ ] Domain error ném ở service với message nghiệp vụ; không pre-fetch chỉ để check tồn tại (R2)
 - [ ] Service unit test nếu có business logic; e2e cho endpoint public/quan trọng (R10)
 - [ ] Response DTO allow-list nếu model có field nhạy cảm (R7)
-- [ ] Swagger: `type:`, `@ApiOperation`, `@ApiTags` + `addTag` khớp (R8)
+- [ ] Swagger: `type:`, `@ApiOperation`, `@ApiTags(API_TAGS.X.name)` (R8)
 - [ ] Pagination + `@Max(limit)` + `orderBy` tie-breaker cho mọi `findAll()` (R9)
 - [ ] Đã qua Authorization checkpoint (R5)
 - [ ] `npm run test`, `npm run test:e2e` (nếu có), `lint`, `format`, `build` sạch

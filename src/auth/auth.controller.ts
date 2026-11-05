@@ -1,16 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  ApiBadRequestResponse,
-  ApiBearerAuth,
-  ApiConflictResponse,
-  ApiCreatedResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import ms from 'ms';
 import { Throttle } from '@nestjs/throttler';
@@ -24,6 +14,8 @@ import { LoginResponseDto } from './dto/login-response.dto.js';
 import { RefreshResponseDto } from './dto/refresh-response.dto.js';
 import { AuthUserResponseDto } from './dto/auth-user-response.dto.js';
 import { MessageResponseDto } from './dto/message-response.dto.js';
+import { ApiErrorResponses } from '../common/swagger/api-error-responses.decorator.js';
+import { API_TAGS } from '../common/swagger/api-tags.js';
 import { AuthService } from './services/auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { RegisterResponseDto } from './dto/register-response.dto.js';
@@ -42,7 +34,7 @@ const REFRESH_TOKEN_COOKIE_PATH = '/api/v1/auth';
 // `@Throttle()` (register, verify-email, refresh).
 const DEFAULT_THROTTLE = { default: { limit: 20, ttl: 60_000 } };
 
-@ApiTags('Authentication & Authorization')
+@ApiTags(API_TAGS.AUTH.name)
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -55,8 +47,7 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new CUSTOMER account' })
   @ApiCreatedResponse({ type: RegisterResponseDto })
-  @ApiConflictResponse({ description: 'Email already exists' })
-  @ApiBadRequestResponse({ description: 'Invalid input' })
+  @ApiErrorResponses([409, 'Email already exists'], [400, 'Invalid input'])
   async register(@Body() dto: RegisterDto): Promise<RegisterResponseDto> {
     return this.authService.register(dto);
   }
@@ -66,8 +57,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email address using the 6-digit code sent by email' })
   @ApiOkResponse({ type: MessageResponseDto, description: 'Email verified successfully' })
-  @ApiNotFoundResponse({ description: 'Invalid email or code' })
-  @ApiBadRequestResponse({ description: 'Code already used or expired' })
+  @ApiErrorResponses(
+    [404, 'Invalid email or code'],
+    [400, 'Invalid input, code already used or expired, or too many attempts'],
+  )
   async verifyEmail(@Body() dto: VerifyEmailDto): Promise<MessageResponseDto> {
     return this.authService.verifyEmail(dto);
   }
@@ -77,7 +70,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Resend the email verification code' })
   @ApiOkResponse({ type: MessageResponseDto, description: 'A new verification email has been sent (if applicable)' })
-  @ApiBadRequestResponse({ description: 'Invalid input' })
+  @ApiErrorResponses([400, 'Invalid input'])
   async resendVerification(@Body() dto: ResendVerificationDto): Promise<MessageResponseDto> {
     return this.authService.resendVerification(dto);
   }
@@ -87,7 +80,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Log in and receive an access token (refresh token is set as an HttpOnly cookie)' })
   @ApiOkResponse({ type: LoginResponseDto })
-  @ApiUnauthorizedResponse({ description: 'Invalid credentials, account locked, or email not verified' })
+  @ApiErrorResponses([400, 'Invalid input'], [401, 'Invalid credentials, account locked, or email not verified'])
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response): Promise<LoginResponseDto> {
     const { accessToken, rawRefreshToken, user } = await this.authService.login(dto);
 
@@ -104,7 +97,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rotate the refresh token cookie and issue a new access token' })
   @ApiOkResponse({ type: RefreshResponseDto })
-  @ApiUnauthorizedResponse({ description: 'Missing, invalid, expired, or reused refresh token' })
+  @ApiErrorResponses([401, 'Missing, invalid, expired, or reused refresh token'])
   async refresh(@Req() request: Request, @Res({ passthrough: true }) response: Response): Promise<RefreshResponseDto> {
     const rawRefreshToken = request.cookies?.[this.getRefreshTokenCookieName()] as string | undefined;
 
@@ -120,7 +113,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request a password reset email' })
   @ApiOkResponse({ type: MessageResponseDto, description: 'A password reset email has been sent (if applicable)' })
-  @ApiBadRequestResponse({ description: 'Invalid input' })
+  @ApiErrorResponses([400, 'Invalid input'])
   async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<MessageResponseDto> {
     return this.authService.forgotPassword(dto);
   }
@@ -129,7 +122,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password using the token received by email' })
   @ApiOkResponse({ type: MessageResponseDto, description: 'Password has been reset' })
-  @ApiBadRequestResponse({ description: 'Invalid, expired, or already-used token; or invalid input' })
+  @ApiErrorResponses([400, 'Invalid, expired, or already-used token; or invalid input'])
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<MessageResponseDto> {
     return this.authService.resetPassword(dto);
   }
@@ -139,7 +132,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get the currently authenticated user' })
   @ApiOkResponse({ type: AuthUserResponseDto })
-  @ApiUnauthorizedResponse({ description: 'Missing, invalid, or expired access token' })
+  @ApiErrorResponses(401)
   getMe(@CurrentUser() user: JwtPayload): Promise<AuthUserResponseDto> {
     return this.authService.getMe(user.sub);
   }
@@ -150,7 +143,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Log out the current session (revokes its refresh token)' })
   @ApiOkResponse({ type: MessageResponseDto })
-  @ApiUnauthorizedResponse({ description: 'Missing, invalid, or expired access token' })
+  @ApiErrorResponses(401)
   async logout(@Req() request: Request, @Res({ passthrough: true }) response: Response): Promise<MessageResponseDto> {
     const rawRefreshToken = request.cookies?.[this.getRefreshTokenCookieName()] as string | undefined;
 
@@ -169,7 +162,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Log out of all sessions (revokes every refresh token of the current user)' })
   @ApiOkResponse({ type: MessageResponseDto })
-  @ApiUnauthorizedResponse({ description: 'Missing, invalid, or expired access token' })
+  @ApiErrorResponses(401)
   async logoutAll(
     @CurrentUser() user: JwtPayload,
     @Res({ passthrough: true }) response: Response,

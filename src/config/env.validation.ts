@@ -1,5 +1,5 @@
 import { Transform, plainToInstance } from 'class-transformer';
-import { IsEmail, IsInt, IsOptional, IsString, Max, Min, MinLength, validateSync } from 'class-validator';
+import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, Max, Min, MinLength, validateSync } from 'class-validator';
 import { IsStrongPassword } from '../auth/decorators/is-strong-password.decorator.js';
 
 // class-validator's `@IsOptional()` only skips null/undefined, not an empty
@@ -75,6 +75,19 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsString()
   FRONTEND_URL?: string;
+
+  // Đọc chuỗi gốc `obj[key]`: `enableImplicitConversion` biến mọi chuỗi khác
+  // rỗng (kể cả 'false') thành `true`. Giá trị lạ giữ nguyên để @IsBoolean() báo lỗi.
+  @Transform(({ obj, key }: { obj: Record<string, unknown>; key: string }) => {
+    const raw = obj[key];
+    if (raw === undefined || raw === '') return undefined;
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+    return raw;
+  })
+  @IsOptional()
+  @IsBoolean()
+  SWAGGER_ENABLED?: boolean;
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {

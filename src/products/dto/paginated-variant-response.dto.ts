@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { PaginationMetaDto } from './pagination-meta.dto.js';
+import { PaginationMetaDto } from '../../common/pagination/pagination-meta.dto.js';
 import { VariantResponseDto } from './variant-response.dto.js';
 
 export class PaginatedVariantResponseDto {

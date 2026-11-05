@@ -8,7 +8,7 @@ import { UpdateProductDto } from './dto/update-product.dto.js';
 import { ListProductsQueryDto } from './dto/list-products-query.dto.js';
 import { CreateVariantDto } from './dto/create-variant.dto.js';
 import { UpdateVariantDto } from './dto/update-variant.dto.js';
-import { PaginationDto } from './dto/pagination.dto.js';
+import { PaginationDto } from '../common/pagination/pagination.dto.js';
 
 @Injectable()
 export class ProductsService {
