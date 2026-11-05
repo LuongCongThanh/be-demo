@@ -21,8 +21,8 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.11](../11-databas
 
 | Hàm | Gọi bởi | Ghi chú |
 |---|---|---|
-| `recordConsent(tx, subject, purpose, granted, policyVersion, channel)` | `identity` (đăng ký), `ordering` (checkout) | Checkbox không tick sẵn là trách nhiệm frontend; backend từ chối đăng ký/đặt đơn nếu thiếu đồng ý `DATA_PROCESSING` (CMP-01) |
-| `logAccess(staff, action, subject)` | decorator/interceptor trên route back-office có PII | Ghi bất đồng bộ được nhưng không mất (qua outbox) |
+| `recordConsent(tx, {userId?, orderId?}, purpose, granted, policyVersion, channel)` | `identity` (đăng ký, `channel = signup`), `ordering` (checkout, `channel = checkout`), chính module (`/me/consents`, `channel = account`) | `purpose` = `data_processing`/`marketing_email`; chỉ thêm dòng, không sửa. Checkbox không tick sẵn là trách nhiệm frontend; backend từ chối đăng ký/đặt đơn nếu thiếu đồng ý `data_processing` (CMP-01) |
+| `logAccess(staff, action, {subjectUserId?, orderId?, queryHmac?})` (`action` = `view_customer`/`view_order`/`search_by_phone`) | decorator/interceptor trên route back-office có PII; không ghi khi chỉ mở danh sách đơn | Ghi bất đồng bộ được nhưng không mất (qua outbox) |
 
 ## 4. API
 
@@ -31,24 +31,27 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.11](../11-databas
 | `PATCH` | `/me/consents/marketing-email` | customer | Đổi lựa chọn marketing |
 | `POST` | `/me/data-erasure-requests` | customer | US-1101 AC1 |
 | `GET` | `/admin/data-erasure-requests` | staff | |
-| `POST` | `/admin/data-erasure-requests` | staff | Tạo cho Khách vãng lai qua kênh hỗ trợ, kèm xác minh (US-1101 AC5) |
-| `POST` | `/admin/data-erasure-requests/:id/process` | staff | Bắt đầu xử lý |
-| `GET` | `/admin/data-access-logs?subjectId=` | admin | US-1102 |
+| `POST` | `/admin/data-erasure-requests` | staff | Tạo cho Khách vãng lai qua kênh hỗ trợ (`guest_phone`, `guest_order_code`, `channel`) (US-1101 AC5) |
+| `POST` | `/admin/data-erasure-requests/:id/verify` · `/reject` | staff | Xác minh (`verified`, ghi `verified_by`) hoặc từ chối (`rejected`) |
+| `POST` | `/admin/data-erasure-requests/:id/process` | staff | Bắt đầu xử lý (`processing`) |
+| `GET` | `/admin/data-access-logs?subjectUserId=&orderId=` | admin | US-1102 |
 
 ## 5. Luồng xoá dữ liệu
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING: Nhận yêu cầu (ghi received_at)
-    PENDING --> PENDING: Còn đơn chưa ở trạng thái cuối / còn Hoàn tiền REQUESTED
-    PENDING --> PROCESSING: Staff xử lý, điều kiện đủ
-    PROCESSING --> PROCESSING: Một bước lỗi → retry + cảnh báo
-    PROCESSING --> COMPLETED: Mọi bước bắt buộc thành công (ghi completed_at)
+    [*] --> received: Nhận yêu cầu (ghi received_at)
+    received --> verified: Staff xác minh (verified_by; Khách hàng đăng nhập coi như đã xác minh)
+    received --> rejected: Xác minh thất bại
+    verified --> verified: Còn đơn chưa ở trạng thái cuối / còn Hoàn tiền requested
+    verified --> processing: Staff xử lý, điều kiện đủ
+    processing --> processing: Một bước lỗi → retry + cảnh báo
+    processing --> completed: Mọi bước bắt buộc thành công (ghi completed_at)
 ```
 
-1. Điều kiện: mọi đơn liên quan ở `COMPLETED`/`CANCELLED`/`RETURNED_TO_SENDER` và không còn Hoàn tiền `REQUESTED` (US-1101 AC4). Yêu cầu của Khách hàng chỉ áp cho đơn đã gắn Tài khoản (AC5).
-2. Worker gọi lần lượt `anonymizeFor` của `identity` (tên, email, SĐT; Tài khoản không đăng nhập được nữa — AC3; thu hồi mọi phiên), `ordering` (thông tin liên hệ, địa chỉ, email nhận hoá đơn — **giữ** tên công ty, MST, địa chỉ công ty), `fulfillment` (địa chỉ trong `creation_input`), `payments`/`fulfillment` (`raw_payload` có PII), `notifications` (`email_logs.recipient`). Mỗi bước idempotent; tiến độ ghi vào `steps`.
-3. Chỉ `COMPLETED` khi mọi bước thành công; bước lỗi giữ `PROCESSING` (CMP-05).
+1. Điều kiện: mọi đơn liên quan ở `COMPLETED`/`CANCELLED`/`RETURNED_TO_SENDER` và không còn Hoàn tiền `requested` (US-1101 AC4). Yêu cầu của Khách hàng chỉ áp cho đơn đã gắn Tài khoản (AC5).
+2. Worker gọi lần lượt `anonymizeFor` của `identity` (tên, email, SĐT; Tài khoản không đăng nhập được nữa — AC3; thu hồi mọi phiên), `ordering` (thông tin liên hệ, địa chỉ, email nhận hoá đơn — **giữ** tên công ty, MST, địa chỉ công ty), `fulfillment` (địa chỉ trong `creation_input`), `payments`/`fulfillment` (`raw_payload` có PII), `notifications` (`email_logs.recipient`, `amount`). Mỗi bước idempotent; tiến độ ghi vào `steps`.
+3. Chỉ `completed` khi mọi bước thành công; bước lỗi giữ `processing` (CMP-05).
 
 ## 6. Sự kiện
 
@@ -68,4 +71,4 @@ CMP-01..07, US-1101, US-1102, business/06 §2, §5. CMP-08, CMP-09 là quy trìn
 
 - Thời hạn xử lý yêu cầu xoá (CMP-06), thời hạn thông báo sự cố (CMP-09) — pháp chế chốt.
 - Thời hạn lưu `raw_payload`, `creation_input`, địa chỉ trên Đơn hàng khi **không** có yêu cầu xoá (business/06 §5).
-- `data_access_logs` có PII gián tiếp (subject_id) — thời hạn lưu của chính bảng này.
+- `data_access_logs` có PII gián tiếp (`subject_user_id`, `order_id`) — thời hạn lưu của chính bảng này.

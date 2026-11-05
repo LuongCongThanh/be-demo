@@ -64,7 +64,7 @@ npm run cli -- create-admin --email admin@example.com
 ```
 
 - Entrypoint riêng `src/cli.ts` dùng **nest-commander**, khởi tạo Nest application context (không mở HTTP server). Lệnh **không** có endpoint HTTP tương ứng (US-1001 AC3).
-- Hỏi mật khẩu qua prompt ẩn (hoặc đọc từ biến môi trường khi chạy trong CI/ops), kiểm tra email chưa thuộc Tài khoản nào (US-1001 AC2), tạo `users` với `role=admin`, `email_verified_at=now`, ghi audit với actor `cli`.
+- Hỏi mật khẩu qua prompt ẩn (hoặc đọc từ biến môi trường khi chạy trong CI/ops), kiểm tra email chưa thuộc Tài khoản nào (US-1001 AC2), tạo `users` với `role=admin`, `email_verified_at=now`, ghi `audit_logs` với `actor_user_id = null` (hệ thống — schema không có actor `cli`), `action = 'admin.create'`.
 - Chạy được trong container production bằng `node dist/cli.js create-admin`.
 
 ## 6. Sự kiện

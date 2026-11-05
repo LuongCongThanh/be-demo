@@ -36,7 +36,7 @@ Khách vãng lai nhận cookie `HttpOnly` chứa token giỏ ở lần ghi đầ
 
 ### 5.1. Gộp giỏ (BR-CRT-03, US-204)
 
-Một transaction: khoá giỏ vãng lai và giỏ Tài khoản theo `id` tăng dần (ADR 0009) → với mỗi dòng vãng lai, cộng dồn vào giỏ Tài khoản, kẹp `min(tổng, Số lượng bán được, 10)` → giỏ vãng lai `MERGED` → trả danh sách dòng bị kẹp để báo Người mua.
+Một transaction: khoá giỏ vãng lai và giỏ Tài khoản theo `id` tăng dần (ADR 0009) → với mỗi dòng vãng lai, cộng dồn vào giỏ Tài khoản, kẹp `min(tổng, Số lượng bán được, 10)` → giỏ vãng lai `merged` → trả danh sách dòng bị kẹp để báo Người mua.
 
 ## 6. Sự kiện
 
@@ -46,7 +46,7 @@ Không phát, không nghe.
 
 | Job | Tần suất | Hành vi |
 |---|---|---|
-| Xoá giỏ vãng lai | Mỗi ngày | Giỏ `guest` có `last_activity_at` quá 30 ngày (BR-CRT-02) |
+| Hết hạn giỏ vãng lai | Mỗi ngày | Giỏ vãng lai (`guest_token_hash` khác null) có `last_activity_at` quá 30 ngày → `expired`, xoá sau đó (BR-CRT-02) |
 
 ## 8. Bao phủ
 

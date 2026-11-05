@@ -22,7 +22,7 @@ Mục tiêu: luôn trả lời được "tiền và tồn kho của đơn này �
 | Checkout | Số đơn tạo, số lần từ chối vì Tính thử lệch (BR-ORD-07), vì hết hàng (BR-INV-06) |
 | Thanh toán | IPN nhận/lỗi chữ ký/trùng; Thanh toán treo chờ đối soát; số đơn hết hạn T4 |
 | Tồn kho | Số Giữ hàng đang hiệu lực, Giữ hàng hết hạn |
-| Async | Độ dài queue, job thất bại, outbox `PENDING`/`ENQUEUED` theo tuổi, inbox `deferred`/`stuck` |
+| Async | Độ dài queue, job thất bại, outbox `pending`/`enqueued` theo tuổi, inbox chưa áp dụng (`applied_at`/`processed_at` null) và đã ngừng thử |
 | Hạ tầng | CPU, bộ nhớ, số kết nối PostgreSQL đang dùng/chờ, bộ nhớ Redis |
 
 Xuất theo chuẩn Prometheus (OpenTelemetry metrics).
@@ -35,13 +35,13 @@ OpenTelemetry trace cho HTTP, Prisma và lời gọi ra ngoài (VNPay, MoMo, GHN
 
 **Cho đội kỹ thuật:**
 
-- Outbox `ENQUEUED` quá 15 phút, hoặc backlog `PENDING` tăng liên tục.
-- Inbox `stuck` (07 mục 1.3); IPN lỗi chữ ký tăng đột biến.
+- Outbox `enqueued` quá 15 phút, hoặc backlog `pending` tăng liên tục.
+- Inbox đã ngừng thử mà chưa áp dụng (07 mục 1.3); IPN lỗi chữ ký tăng đột biến.
 - Job định kỳ không chạy đúng lịch (đặc biệt job huỷ đơn và đối soát).
 - Tỷ lệ 5xx, P95 latency vượt ngưỡng ở [10-nfr.md](./10-nfr.md); pool kết nối DB cạn.
 - Readiness thất bại.
 
-**Cho Staff (Cờ cần xử lý trên back-office, kèm thông báo):** `payment_amount_mismatch` (BR-PAY-04), tiền về cho đơn không còn chờ thanh toán (BR-PAY-05), yêu cầu Hoàn tiền mới, tạo Vận đơn thất bại (T10), `shipment_exception` (BR-SHP-08), Vận đơn bị tạo cho đơn đã huỷ (business/05 mục 4.5), đơn Hoàn hàng chờ nhận về Kho.
+**Cho Staff (Cờ cần xử lý trên back-office, kèm thông báo):** `amount_mismatch` (BR-PAY-04), tiền về cho đơn không còn chờ thanh toán (BR-PAY-05), yêu cầu Hoàn tiền mới, tạo Vận đơn thất bại (T10), `shipment_exception` (BR-SHP-08), Vận đơn bị tạo cho đơn đã huỷ (business/05 mục 4.5), đơn Hoàn hàng chờ nhận về Kho.
 
 ## 5. Health check
 

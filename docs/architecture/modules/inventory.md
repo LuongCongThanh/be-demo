@@ -31,7 +31,7 @@ Mọi hàm nhận `tx` của module gọi; khoá `inventory_levels` theo `varian
 | `releaseReservation(orderId, tx)` | T4, T5 |
 | `returnAwaitingDispatch(orderId, tx)` | T7, T9 (BR-INV-07) |
 | `clearAwaitingDispatch(orderId, tx)` | T10 |
-| `restockReturned(orderId | returnId, lines, tx)` | Staff xác nhận hàng về Kho (BR-INV-08) |
+| `restockReturned(orderId | returnId, lines, tx)` | Staff xác nhận hàng về Kho (BR-INV-08): theo `orderId` (Hoàn hàng T12) → movement `return_to_sender`; theo `returnId` (Đổi trả) → movement `return_restock` |
 
 ## 4. API
 
@@ -47,15 +47,17 @@ Mọi hàm nhận `tx` của module gọi; khoá `inventory_levels` theo `varian
 
 ### 5.1. Kiểm kê (BR-INV-12)
 
+Mỗi thay đổi Tồn kho ghi một dòng `inventory_movements` với `type` ∈ `receipt`/`adjustment`/`stock_count`/`sale`/`cancel_restock`/`return_restock`/`return_to_sender`.
+
 Preview không khoá. Xác nhận: khoá dòng `inventory_levels` → chênh lệch = số đếm − (`on_hand` + Hàng chờ xuất của Biến thể) tính **lúc xác nhận** → nếu giảm vượt Số lượng bán được thì `422` kèm số tối đa → cập nhật `on_hand`, ghi `stock_counts` và movement `stock_count`.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ACTIVE: T1 reserve
-    ACTIVE --> CONSUMED: T3 thanh toán
-    ACTIVE --> RELEASED: T5 Người mua huỷ
-    ACTIVE --> EXPIRED: T4 hết 15 phút
-    EXPIRED --> CONSUMED: tiền về muộn, còn đủ hàng (business/05 §4.1)
+    [*] --> active: T1 reserve
+    active --> converted: T3 thanh toán
+    active --> released: T5 Người mua huỷ
+    active --> expired: T4 hết 15 phút
+    expired --> converted: tiền về muộn, còn đủ hàng (business/05 §4.1)
 ```
 
 ## 6. Sự kiện
@@ -72,4 +74,4 @@ BR-INV-01–12; US-701–703; ADR 0003, ADR 0010.
 
 ## 9. Câu hỏi mở
 
-- Danh sách lý do điều chỉnh cố định hay Staff nhập tự do? Business chỉ ví dụ (kiểm kê, hàng lỗi, hàng mẫu) — đề xuất enum + ghi chú tự do.
+- Danh sách lý do điều chỉnh cố định hay Staff nhập tự do? Business chỉ ví dụ (kiểm kê, hàng lỗi, hàng mẫu) — schema lưu `inventory_movements.reason` dạng text tự do; nếu cần danh sách cố định thì validate ở DTO.

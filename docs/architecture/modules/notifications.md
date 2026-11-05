@@ -41,30 +41,30 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant M as Mailer
 
-    D->>DB: đọc outbox PENDING
+    D->>DB: đọc outbox pending
     D->>Q: enqueue (jobId = event_id)
-    D->>DB: ENQUEUED
+    D->>DB: enqueued
     Q->>N: job
-    N->>DB: đọc đơn/người nhận; insert email_logs (unique) — trùng thì dừng
+    N->>DB: đọc đơn/người nhận; đã có email_logs sent cho outbox_event_id + template → dừng
     alt không còn đúng (vd. trạng thái đơn đã đổi) / không có email
-        N->>DB: email_logs CANCELLED, outbox DONE
+        N->>DB: email_logs cancelled, outbox done
     else
         N->>M: send(template, locale)
         alt OK
-            N->>DB: SENT, outbox DONE
+            N->>DB: email_logs sent, outbox done
         else lỗi tạm thời
             N->>Q: retry backoff
         else lỗi vĩnh viễn / hết retry
-            N->>DB: FAILED, outbox FAILED + cảnh báo
+            N->>DB: email_logs failed, outbox failed + cảnh báo
         end
     end
 ```
 
-`outbox DONE` chỉ đặt **sau** khi email đã gửi hoặc đã kết luận (ADR 0007).
+Chống gửi trùng: BullMQ `jobId = event_id` + kiểm tra `email_logs` theo `(outbox_event_id, template)` trước khi gửi (schema không có UK trên `email_logs`). `outbox done` chỉ đặt **sau** khi email đã gửi hoặc đã kết luận (ADR 0007).
 
 ## 5. API
 
-Không có API storefront. Back-office: `GET /api/v1/admin/email-logs?orderId=` (staff) để tra cứu email đã gửi cho đơn — mỗi lần mở được ghi `data_access_logs` vì có địa chỉ nhận (CMP-07, module `compliance`).
+Không có API storefront. Back-office: `GET /api/v1/admin/email-logs?orderId=` (staff) để tra cứu email đã gửi cho đơn — mỗi lần mở được ghi `data_access_logs` (`action = view_order`, `order_id`) vì có địa chỉ nhận (CMP-07, module `compliance`).
 
 ## 6. Sự kiện
 
@@ -75,8 +75,8 @@ Lắng nghe: bảng §3. Phát: không.
 | Job | Tần suất |
 |---|---|
 | Outbox dispatcher | Liên tục |
-| Quét outbox kẹt `ENQUEUED` | Mỗi 5 phút |
-| Xoá outbox `DONE` > 90 ngày; ẩn PII `email_logs` > 90 ngày | Mỗi ngày |
+| Quét outbox kẹt `enqueued` | Mỗi 5 phút |
+| Xoá outbox `done` > 90 ngày; `email_logs.recipient`, `amount` = null sau 90 ngày | Mỗi ngày |
 
 ## 8. Bao phủ nghiệp vụ
 

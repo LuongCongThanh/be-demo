@@ -465,7 +465,7 @@ Sổ biến động, chỉ thêm không sửa (BR-INV-09).
 |---|---|---|---|
 | id | uuid | PK | |
 | inventory_level_id | uuid | FK → inventory_levels RESTRICT, NN | |
-| type | enum `receipt`/`adjustment`/`stock_count`/`sale`/`cancel_restock`/`return_restock` | NN | |
+| type | enum `receipt`/`adjustment`/`stock_count`/`sale`/`cancel_restock`/`return_restock`/`return_to_sender` | NN | `return_to_sender`: hàng Hoàn hàng (T12) GHN trả về được nhập lại; `return_restock`: hàng Đổi trả |
 | quantity_delta | int | NN, CHECK ≠ 0 | |
 | order_id | uuid | FK → orders | |
 | return_id | uuid | FK → returns | |
@@ -734,7 +734,7 @@ US-1004, [06-integrations.md](./06-integrations.md) §4.2. Bỏ bảng này nế
 | id | uuid | PK | |
 | order_id | uuid | FK → orders RESTRICT, UK, NN | bàn giao lại dùng lại Vận đơn (BR-SHP-05) |
 | ghn_order_code | text | UK | null tới khi GHN tạo xong |
-| status | enum `creating`/`created`/`creation_failed`/`picked`/`delivering`/`delivered`/`returning`/`returned`/`exception`/`cancelled` | NN | |
+| status | enum `creating`/`creation_unknown`/`created`/`creation_failed`/`picked`/`delivering`/`delivered`/`returning`/`returned`/`exception`/`cancelled` | NN | `creation_unknown`: gọi GHN tạo bị timeout, chưa biết kết quả — Đối soát chốt (`business/05` §4.5) |
 | cod_amount | bigint | NN | BR-SHP-07 |
 | carrier_fee | bigint | | Cước vận chuyển cửa hàng trả (BR-SHP-03) |
 | creation_input | jsonb | | payload gửi GHN; thời hạn lưu chờ chốt (`business/06` §5) |

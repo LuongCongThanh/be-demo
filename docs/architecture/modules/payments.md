@@ -6,7 +6,7 @@
 
 - Sở hữu: Thanh toán online (mỗi lần thử một bản ghi), thông báo thô từ Cổng (IPN, kết quả Đối soát), khoản thu COD.
 - Adapter `PaymentGateway` cho VNPay và MoMo; tạo link thanh toán; xác minh chữ ký; Đối soát.
-- Quyết định một thông báo có phải **bằng chứng đã thu tiền** (chỉ `captured`) và số tiền có khớp không (BR-PAY-04).
+- Quyết định một thông báo có phải **bằng chứng đã thu tiền** (chỉ khi Cổng báo đã thu — `captured`) và số tiền có khớp không (BR-PAY-04).
 - Không sở hữu: trạng thái Đơn (`ordering`), Hoàn tiền (`refunds-returns`). Thanh toán thành công được báo cho `ordering` qua interface `ordering.onPaymentSucceeded` (ordering khai báo, payments gọi — không import ngược, [`../02-modules.md`](../02-modules.md) §3); khoản thu sai gọi `refunds-returns.requestRefund`.
 
 ## 2. Mô hình
@@ -22,7 +22,7 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.7](../11-database
 | Hàm | Gọi bởi | Ghi chú |
 |---|---|---|
 | `createPending(tx, order)` | `ordering` (T1) | Ghi nhận đơn online chờ thanh toán; chưa tạo link |
-| `createCodReceivable(tx, order)` | `ordering` (T2) | Tạo `cod_collections` `PENDING` |
+| `createCodReceivable(tx, order)` | `ordering` (T2) | Tạo `cod_collections` `pending` |
 | `markCodCollected(tx, orderId)` / `cancelCodReceivable(tx, orderId)` | `ordering` (T11 / T7, T9, T12, T14) | |
 | `capturedPaymentsOf(orderId)` | `refunds-returns` | Thanh toán đã nhận tiền để gắn Hoàn tiền (BR-REF-01) |
 
@@ -32,8 +32,8 @@ Prefix `/api/v1`, quy ước ở [`../03-api.md`](../03-api.md).
 
 | Method | Path | Actor | Ghi chú |
 |---|---|---|---|
-| `POST` | `/orders/:code/payments` | owner / guest có grant | Body `{ gateway }`. Tạo `payments` + link. Từ chối nếu đơn không `PENDING_PAYMENT` hoặc đã qua phút 7 (BR-INV-05). Bắt buộc `Idempotency-Key` |
-| `GET` | `/orders/:code/payments/latest` | owner / guest có grant | Trang Return URL hỏi trạng thái; chỉ đọc, không xác nhận (BR-PAY-02) |
+| `POST` | `/orders/:code/payments` | owner / guest có phiên | Body `{ gateway }`. Tạo `payments` (`status = pending`, `gateway_txn_ref`, `payment_url_expires_at`) + link. Từ chối nếu đơn không `PENDING_PAYMENT` hoặc đã qua phút 7 (BR-INV-05). Bắt buộc `Idempotency-Key` |
+| `GET` | `/orders/:code/payments/latest` | owner / guest có phiên | Trang Return URL hỏi trạng thái; chỉ đọc, không xác nhận (BR-PAY-02) |
 | `POST` | `/webhooks/vnpay/ipn` | VNPay | Xác minh chữ ký, lưu inbox, trả đúng định dạng VNPay |
 | `POST` | `/webhooks/momo/ipn` | MoMo | Như trên |
 | `GET` | `/admin/payments?orderId=` | staff | Lịch sử thử thanh toán của đơn |
@@ -57,19 +57,19 @@ sequenceDiagram
     P-->>B: url
     B->>G: trả tiền
     G->>P: IPN (ký)
-    P->>P: verify, lưu payment_notifications (unique)
+    P->>P: verify, lưu payment_notifications (UK gateway, dedup_key)
     P-->>G: 2xx
     W->>P: xử lý notification
     alt không captured
-        P->>P: payments FAILED/giữ PENDING, không tạo nghĩa vụ hoàn (BR-PAY-04)
+        P->>P: payments failed/giữ pending, không tạo nghĩa vụ hoàn (BR-PAY-04)
     else captured, số tiền khác tổng
-        P->>R: requestRefund(captured_amount) + Cờ payment_amount_mismatch
+        P->>R: requestRefund(amount_captured, reason=amount_mismatch) + Cờ amount_mismatch
     else captured, khớp
         P->>O: onPaymentSucceeded(tx, paymentId)
         alt đơn còn PENDING_PAYMENT (hoặc quá hạn nhưng còn hàng)
             O->>O: T3
         else đơn đã huỷ / đã PLACED bởi lần trả khác
-            O->>R: requestRefund + Cờ unexpected_payment (BR-PAY-05)
+            O->>R: requestRefund(reason=unexpected_payment) + Cờ unexpected_payment (BR-PAY-05)
         end
     end
 ```
@@ -78,7 +78,7 @@ Toàn bộ bước "xử lý notification" chạy trong một transaction có kh
 
 ### 5.2. Đối soát
 
-Job mỗi 5 phút gọi `gateway.query(provider_ref)` cho `payments` `PENDING` đã có link, kể cả sau khi link hết hạn (tới khi Cổng trả kết quả cuối). Kết quả ghi thành `payment_notifications` `source = RECONCILIATION` và đi cùng đường xử lý §5.1.
+Job mỗi 5 phút gọi `gateway.query(gateway_txn_ref)` cho `payments` `pending` đã có link, kể cả sau khi link hết hạn (tới khi Cổng trả kết quả cuối). Kết quả ghi thành `payment_notifications` (cùng UK `(gateway, dedup_key)` nên trùng với IPN đã nhận thì bỏ qua) và đi cùng đường xử lý §5.1; khi đưa `payments` sang `succeeded` thì ghi `confirmed_via = reconciliation` (IPN: `ipn`), `gateway_txn_id`, `amount_captured`, `succeeded_at`.
 
 ## 6. Sự kiện
 
@@ -91,7 +91,7 @@ Lắng nghe: không có — mọi thay đổi đến từ IPN/Đối soát hoặ
 | Job | Tần suất |
 |---|---|
 | Đối soát Thanh toán treo | Mỗi 5 phút |
-| Xử lý `payment_notifications` `RECEIVED` tồn đọng | Liên tục (consumer) |
+| Xử lý `payment_notifications` tồn đọng (`processed_at IS NULL`) | Liên tục (consumer) |
 
 Khi inbox dồn ứ, `payments` báo cờ "backlog" để job huỷ đơn hết hạn của `ordering` tạm dừng ([`../07-async-events-jobs.md`](../07-async-events-jobs.md) §1.2).
 
@@ -101,5 +101,5 @@ BR-PAY-01..06, BR-SHP-07, BR-INV-05 (phút 7/10), US-305, US-306, US-608 (phần
 
 ## 9. Câu hỏi mở
 
-- Định dạng và danh sách `provider_status` thực tế của VNPay/MoMo (pending/authorized/captured) — chốt khi nghiệm thu sandbox.
+- Định dạng và danh sách trạng thái giao dịch thực tế của VNPay/MoMo (pending/authorized/captured) — chốt khi nghiệm thu sandbox.
 - Cổng có cho truyền `expiresAt` tuyệt đối không; nếu chỉ nhận thời lượng thì tính lại tại lúc tạo link.

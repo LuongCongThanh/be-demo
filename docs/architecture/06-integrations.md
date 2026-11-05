@@ -40,7 +40,7 @@ Mỗi lần Người mua bấm trả tiền tạo một bản ghi `payments` m�
 ### 2.3. Xác nhận thanh toán
 
 - Chỉ **IPN** (server-to-server, đã xác minh chữ ký) hoặc **Đối soát** mới đổi trạng thái; Return URL chỉ hiển thị "đang xác nhận" (BR-PAY-02).
-- IPN trùng chỉ xử lý một lần: unique theo `(gateway, provider_transaction_id)` (BR-PAY-03).
+- IPN trùng chỉ xử lý một lần: UK `payment_notifications(gateway, dedup_key)` (BR-PAY-03).
 - Chỉ trạng thái **captured** mới là bằng chứng thu tiền. Số tiền captured khác Tổng tiền đơn → không xác nhận đơn, gắn Cờ, tự tạo yêu cầu Hoàn tiền (BR-PAY-04).
 - Tiền về cho đơn không còn chờ thanh toán → tự tạo yêu cầu Hoàn tiền, gắn Cờ, đơn giữ nguyên (BR-PAY-05, [ADR 0006](../adr/0006-manual-refund-mvp-scope.md)).
 - Trả lời IPN theo đúng định dạng mỗi Cổng yêu cầu để Cổng ngừng gửi lại.
@@ -61,7 +61,7 @@ MVP không gọi API hoàn tiền: Staff hoàn trên trang quản trị của C�
 
 - Adapter `MailSender` (SMTP/API); gửi qua worker, không gửi trong request.
 - Template theo ngôn ngữ Khách hàng chọn (vi/en); tên Sản phẩm luôn tiếng Việt (BR-NTF-02). Khách vãng lai không có email thì không gửi (BR-NTF-03).
-- Mỗi lần gửi ghi `EmailLog` (trạng thái gửi, thất bại, huỷ); thời hạn lưu theo [business/06 §5](../business/06-compliance.md) — xem [07-async-events-jobs.md](./07-async-events-jobs.md) §3.2.
+- Mỗi lần gửi ghi `email_logs` (`sent`/`failed`/`cancelled`); thời hạn lưu theo [business/06 §5](../business/06-compliance.md) — xem [07-async-events-jobs.md](./07-async-events-jobs.md) §3.2.
 
 ## 4. Vận chuyển: GHN
 
@@ -70,7 +70,7 @@ MVP không gọi API hoàn tiền: Staff hoàn trên trang quản trị của C�
 | Việc | Khi nào | Quy tắc |
 |---|---|---|
 | Tính phí ship | Tính thử và đặt đơn | Theo địa chỉ giao + tổng cân nặng; kích thước gói mặc định cấu hình được (BR-SHP-01). GHN lỗi/timeout → **Phí ship dự phòng** 35.000đ và gắn Cờ "phí ship dự phòng" (BR-SHP-02). Miễn phí ship khi Tạm tính sau Voucher ≥ ngưỡng 500.000đ (BR-SHP-03/04) |
-| Tạo Vận đơn | Staff bàn giao | Chạy nền qua outbox. Thành công → `SHIPPING` (T10); thất bại → giữ `PACKING` + Cờ. Bàn giao lại **dùng lại** Vận đơn đó — idempotency theo Mã đơn (BR-SHP-05). COD: thu hộ = tổng tiền đơn (BR-SHP-07) |
+| Tạo Vận đơn | Staff bàn giao | Chạy nền qua outbox. Timeout/không rõ kết quả → Vận đơn `creation_unknown`, Đối soát chốt (không coi là thất bại, business/05 §4.5). Thành công → `SHIPPING` (T10); thất bại → giữ `PACKING` + Cờ. Bàn giao lại **dùng lại** Vận đơn đó — idempotency theo Mã đơn (BR-SHP-05). COD: thu hộ = tổng tiền đơn (BR-SHP-07) |
 | Webhook trạng thái | GHN đẩy | Xác minh nguồn (token/IP whitelist theo GHN), lưu sự kiện thô, ánh xạ sang T11/T12 hoặc Cờ sự cố (BR-SHP-06, BR-SHP-08) |
 | Đối soát trạng thái | Mỗi **15 phút** | Bù webhook bị mất. Tần suất là giả định, kiểm chứng hạn mức API GHN khi nghiệm thu sandbox ([business/05 §5](../business/05-order-lifecycle.md)) |
 
@@ -80,7 +80,7 @@ Sự kiện đến sai thứ tự (ví dụ "đã giao" trước khi ghi nhận 
 
 - Địa chỉ giao hàng theo **2 cấp: tỉnh/thành phố và phường/xã**, theo sắp xếp đơn vị hành chính từ 07/2025, kèm địa chỉ chi tiết (BR-ORD-04). Hệ thống lưu danh mục đơn vị hành chính của riêng mình.
 - Nếu API GHN vẫn cần mã tỉnh–quận–phường cũ, hệ thống giữ một bảng **ánh xạ phường/xã → (GHN province_id, district_id, ward_code)**.
-- Phường/xã chưa có ánh xạ: tính phí dùng Phí ship dự phòng; tạo Vận đơn không được → đơn gắn Cờ `ghn_ward_unmapped`. Admin bổ sung ánh xạ trên back-office, rồi Staff bàn giao lại và gỡ cờ (US-1004).
+- Phường/xã chưa có ánh xạ: tính phí dùng Phí ship dự phòng; tạo Vận đơn không được → đơn gắn Cờ `shipment_creation_failed` (`details` ghi phường chưa ánh xạ). Admin bổ sung ánh xạ trên back-office, rồi Staff bàn giao lại và gỡ cờ (US-1004).
 - Nếu khi nghiệm thu sandbox GHN đã nhận địa chỉ 2 cấp trực tiếp thì bỏ bảng ánh xạ và US-1004 (US-1004 AC3).
 
 ## 5. Object storage cho ảnh Sản phẩm

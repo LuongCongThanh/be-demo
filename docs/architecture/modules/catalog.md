@@ -43,7 +43,7 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.2](../11-database
 
 ### 5.1. Tìm kiếm (BR-CAT-13)
 
-Chuẩn hoá từ khoá: trim, lowercase, bỏ dấu tiếng Việt (gồm `đ → d`); rỗng → không lọc. Truy vấn `name_search LIKE '%' || :q || '%'` có index trigram (`pg_trgm`), kết hợp với bộ lọc và sắp xếp. Không fuzzy.
+Chuẩn hoá từ khoá: trim, lowercase, bỏ dấu tiếng Việt (gồm `đ → d`); rỗng → không lọc. Truy vấn `search_name LIKE '%' || :q || '%'` (cột generated, index GIN trigram `pg_trgm`), kết hợp với bộ lọc và sắp xếp. Không fuzzy.
 
 ### 5.2. Xoá và lưu trữ
 
