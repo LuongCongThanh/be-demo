@@ -26,7 +26,7 @@ Control bắt buộc: HTTPS, hash mật khẩu (argon2/bcrypt), access token ng�
 
 ## 3. Vai trò và phân quyền
 
-Bốn vai trò `guest`, `customer`, `staff`, `admin` (ADR 0005). Tài khoản nội bộ có đúng một vai trò `staff` hoặc `admin`; `admin` có mọi quyền của `staff`. Tài khoản Admin chỉ tạo bằng CLI; trên back-office Admin chỉ quản lý Tài khoản Staff.
+Bốn vai trò `guest`, `customer`, `staff`, `admin` (ADR 0005). Tài khoản nội bộ có đúng một vai trò `staff` hoặc `admin`; `admin` có mọi quyền của `staff`. Tài khoản Admin chỉ tạo bằng CLI `npm run cli -- create-admin` (entrypoint riêng `src/cli.ts`, nest-commander, không mở qua HTTP — xem [modules/identity.md](./modules/identity.md) §5.4); trên back-office Admin chỉ quản lý Tài khoản Staff.
 
 - Mỗi route khai báo **tường minh** danh sách vai trò được phép (`@Roles('staff', 'admin')`); không có cây phân cấp ẩn.
 - Guard thứ tự: `AuthGuard` (401) → `RolesGuard` (403) → kiểm tra sở hữu tài nguyên trong service (đơn của chính mình).

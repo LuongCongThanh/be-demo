@@ -62,13 +62,16 @@ flowchart LR
 | `ordering.order-expired` | T4 | Không gửi email; chỉ thống kê |
 | `ordering.unexpected-payment-received` | Tiền về cho đơn không còn chờ thanh toán (BR-PAY-05) | Email báo tiền sẽ được hoàn; cảnh báo Staff |
 | `payments.amount-mismatch` | BR-PAY-04 | Cảnh báo Staff (`payment_amount_mismatch`) |
-| `payments.refund-requested` | Tạo yêu cầu Hoàn tiền | Cảnh báo Staff |
-| `payments.refund-recorded` | Staff ghi nhận Đã hoàn tiền | Email "Hoàn tiền được ghi nhận" |
+| `refunds.refund-requested` | Tạo yêu cầu Hoàn tiền | Cảnh báo Staff |
+| `refunds.refund-recorded` | Staff ghi nhận Đã hoàn tiền | Email "Hoàn tiền được ghi nhận" |
 | `fulfillment.handover-requested` | Staff bàn giao | Tạo Vận đơn GHN |
 | `fulfillment.shipment-created` | T10 | Email "Đơn đang được giao" |
 | `fulfillment.shipment-delivered` | T11 | Email "Đã giao" |
 | `fulfillment.returned-to-sender` | T12 | Cảnh báo Staff chờ nhận hàng về Kho |
 | `fulfillment.shipment-exception` | BR-SHP-08 | Cảnh báo Staff (`shipment_exception`) |
+| `identity.email-verified` | Email Tài khoản được xác thực (kể cả qua Google) | `ordering` gắn đơn vãng lai cùng email (BR-ORD-08) |
+| `compliance.erasure-step-requested` | Yêu cầu xoá dữ liệu được duyệt (US-1101) | Mỗi module xoá/ẩn danh phần dữ liệu của mình |
+| `compliance.erasure-completed` | Mọi bước xoá đã xác nhận | Email xác nhận cho Người mua |
 | `identity.email-verification-requested`, `identity.password-reset-requested` | Đăng ký, quên mật khẩu | Email tài khoản |
 
 ## 3. Thông báo cho Người mua (email)

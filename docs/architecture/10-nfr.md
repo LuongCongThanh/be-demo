@@ -1,16 +1,16 @@
 # 10. Yêu cầu phi chức năng (NFR)
 
-> Trạng thái: **Giả định — cần kiểm chứng trên staging**. Các con số dưới đây là mục tiêu thiết kế, chưa phải cam kết SLA.
+> Trạng thái: **Nháp**. Mọi con số đánh dấu Giả định là **[Giả định · kiểm chứng: k6 trên staging]** — mục tiêu thiết kế, không phải cam kết SLA.
 
 ## 1. Quy mô
 
 | Chỉ số | Giả định MVP | Nguồn |
 |---|---|---|
 | Đơn hàng/ngày | 500–5.000 | [01-vision-scope.md](../business/01-vision-scope.md) mục 6 |
-| Đơn giờ cao điểm | ~20% đơn/ngày trong 1 giờ → tới ~1.000 đơn/giờ | Giả định |
-| Tỷ lệ xem/đặt | ~50 request đọc cho mỗi đơn | Giả định |
-| Đỉnh khuyến mãi | ×5 lưu lượng bình thường trong 15 phút | Giả định |
-| Sản phẩm / Biến thể | ~5.000 / ~50.000 | Giả định |
+| Đơn giờ cao điểm | ~20% đơn/ngày trong 1 giờ → tới ~1.000 đơn/giờ | [Giả định · kiểm chứng: k6 trên staging] |
+| Tỷ lệ xem/đặt | ~50 request đọc cho mỗi đơn | [Giả định · kiểm chứng: k6 trên staging] |
+| Đỉnh khuyến mãi | ×5 lưu lượng bình thường trong 15 phút | [Giả định · kiểm chứng: k6 trên staging] |
+| Sản phẩm / Biến thể | ~5.000 / ~50.000 | [Giả định · kiểm chứng: k6 trên staging] |
 
 ## 2. Hiệu năng
 
@@ -26,7 +26,7 @@
 
 ## 3. Độ sẵn sàng và phục hồi
 
-| Mục | Giả định |
+| Mục | [Giả định · kiểm chứng: k6 trên staging] |
 |---|---|
 | Availability API | 99,5%/tháng |
 | RPO | ≤ 5 phút (point-in-time recovery của PostgreSQL) |

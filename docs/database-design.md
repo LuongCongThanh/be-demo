@@ -1,1161 +1,905 @@
-# E-commerce Database Design
+# Thiết kế Database (schema mục tiêu)
+
+> Trạng thái: **Đã chốt cho MVP** ([quy ước](./README.md#trạng-thái-tài-liệu)). Đây là schema **mục tiêu** cho lần tái cấu trúc toàn bộ source, suy ra từ [`business/`](./business/) (nguồn ưu tiên), [`adr/`](./adr/) và [`architecture/`](./architecture/). Không mô tả schema đang migrate. Thuật ngữ theo [GLOSSARY.md](../GLOSSARY.md). Quy tắc nghiệp vụ được **tham chiếu** bằng mã `BR-*`, `US-*`, `CMP-*`, ADR và không chép lại ở đây.
 
 ## 1. Tổng quan
 
-Database MVP hiện tại gồm **15 bảng**, chia làm 2 domain:
+PostgreSQL, 49 bảng chia theo module (xem [`architecture/02-modules.md`](./architecture/02-modules.md)). Mỗi bảng chỉ do **một** module ghi.
 
-**Catalog / Cart / Order** (10 bảng):
-
-1. `users`
-2. `categories`
-3. `products`
-4. `product_images`
-5. `product_variants`
-6. `inventory`
-7. `carts`
-8. `cart_items`
-9. `orders`
-10. `order_items`
-
-**Auth** (5 bảng, xem mục 4.10 → 4.14):
-
-11. `roles`
-12. `user_roles`
-13. `refresh_tokens`
-14. `password_reset_tokens`
-15. `email_verification_tokens`
+| Module | Bảng |
+|---|---|
+| identity | `users`, `user_auth_providers`, `customer_addresses`, `refresh_tokens`, `password_reset_tokens`, `email_verification_tokens`, `guest_order_sessions` |
+| catalog | `categories`, `products`, `sizes`, `colors`, `product_variants`, `product_images`, `product_sales_stats` |
+| pricing | `sale_prices`, `vouchers`, `voucher_usages` |
+| cart | `carts`, `cart_items` |
+| inventory | `warehouses`, `inventory_levels`, `inventory_reservations`, `awaiting_dispatch_items`, `inventory_movements`, `stock_counts` |
+| ordering | `checkout_quotes`, `orders`, `order_items`, `order_status_history`, `order_flags` |
+| payments | `payments`, `payment_notifications`, `cod_collections` |
+| refunds-returns | `refunds`, `returns`, `return_items` |
+| fulfillment | `provinces`, `wards`, `ghn_ward_mappings`, `shipments`, `shipment_events` |
+| notifications | `outbox_events`, `email_logs` |
+| compliance | `consents`, `data_erasure_requests`, `data_access_logs` |
+| admin-config | `settings` |
 
 ---
 
-## 2. Sơ đồ quan hệ tổng thể
+## 2. Sơ đồ quan hệ
 
-```text
-                    USERS
-                   /     \
-                  /       \
-                 v         v
-              CARTS      ORDERS
-                |           |
-                v           v
-           CART_ITEMS   ORDER_ITEMS
-                \           /
-                 \         /
-                  v       v
-              PRODUCT_VARIANTS
-                     |
-                     v
-                  PRODUCTS ----> PRODUCT_IMAGES
-                     |
-                     v
-                 CATEGORIES
+Chỉ vẽ khoá và quan hệ; cột đầy đủ ở mục 4.
 
-              PRODUCT_VARIANTS
-                     |
-                     v
-                 INVENTORY
-
-
-                                          USERS
-                    ┌───────────┬───────────┼───────────┐
-                    v           v           v           v
-             REFRESH_TOKENS  PASSWORD_   EMAIL_       USER_ROLES
-                             RESET_      VERIFICATION_     |
-                             TOKENS      TOKENS            v
-                                                          ROLES
-```
-
-> Nhánh `USERS → ...` phía dưới là domain **Auth** (5 bảng) — xem chi tiết quan hệ M:N `USER_ROLES ↔ ROLES` ở mục 7 "Auth".
-
----
-
-## 2.1. ER Diagram
-
-👉 **Bản trực quan, dễ đọc hơn (hover/focus vào 1 bảng để làm nổi bật liên kết FK → PK của nó):**
-https://claude.ai/code/artifact/8f76b013-35be-4995-9a1e-c12f2e4092a4
-
-Bản Mermaid dưới đây là fallback dạng text, dùng khi không mở được link trên (editor không hỗ trợ Mermaid vẫn xem được cấu trúc field/PK/FK/UK):
+### 2.1. Identity
 
 ```mermaid
 erDiagram
-    CATEGORIES ||--o{ PRODUCTS : "1 : N"
-    PRODUCTS ||--o{ PRODUCT_IMAGES : "1 : N"
-    PRODUCTS ||--o{ PRODUCT_VARIANTS : "1 : N"
-    PRODUCT_VARIANTS ||--|| INVENTORY : "1 : 1"
-    USERS ||--o{ CARTS : "1 : N"
-    CARTS ||--o{ CART_ITEMS : "1 : N"
-    PRODUCT_VARIANTS ||--o{ CART_ITEMS : "1 : N"
-    USERS ||--o{ ORDERS : "1 : N"
-    ORDERS ||--o{ ORDER_ITEMS : "1 : N"
-    PRODUCT_VARIANTS ||--o{ ORDER_ITEMS : "1 : N"
-    USERS ||--o{ REFRESH_TOKENS : "1 : N"
-    USERS ||--o{ PASSWORD_RESET_TOKENS : "1 : N"
-    USERS ||--o{ EMAIL_VERIFICATION_TOKENS : "1 : N"
-    USERS ||--o{ USER_ROLES : "1 : N"
-    ROLES ||--o{ USER_ROLES : "1 : N"
-
-    USERS {
-        uuid id PK
-        string email UK
-        string password_hash
-        string full_name
-        string phone
-        string status
-        datetime email_verified_at "nullable"
-        datetime created_at
-        datetime updated_at
-    }
-
-    CATEGORIES {
-        uuid id PK
-        string name
-        string slug UK
-        string description
-        datetime created_at
-        datetime updated_at
-    }
-
-    PRODUCTS {
-        uuid id PK
-        uuid category_id FK
-        string name
-        string slug UK
-        string description
-        string status
-        datetime created_at
-        datetime updated_at
-    }
-
-    PRODUCT_IMAGES {
-        uuid id PK
-        uuid product_id FK
-        string url
-        string alt_text
-        int sort_order
-        boolean is_primary "partial UK per product"
-        datetime created_at
-    }
-
-    PRODUCT_VARIANTS {
-        uuid id PK
-        uuid product_id FK
-        string sku UK
-        string color
-        string size
-        decimal price
-        string status
-        datetime created_at
-        datetime updated_at
-    }
-
-    INVENTORY {
-        uuid id PK
-        uuid variant_id FK, UK
-        int quantity
-        int reserved_quantity
-        datetime updated_at
-    }
-
-    CARTS {
-        uuid id PK
-        uuid user_id FK, UK "partial: WHERE status=ACTIVE"
-        string status
-        datetime created_at
-        datetime updated_at
-    }
-
-    CART_ITEMS {
-        uuid id PK
-        uuid cart_id FK
-        uuid variant_id FK
-        int quantity
-        datetime created_at
-        datetime updated_at
-    }
-
-    ORDERS {
-        uuid id PK
-        string order_number UK
-        uuid user_id FK
-        string status
-        decimal total_amount
-        datetime created_at
-        datetime updated_at
-    }
-
-    ORDER_ITEMS {
-        uuid id PK
-        uuid order_id FK
-        uuid variant_id FK
-        string product_name "snapshot"
-        string sku "snapshot"
-        int quantity
-        decimal unit_price "snapshot"
-        decimal total_price
-        datetime created_at
-    }
-
-    ROLES {
-        uuid id PK
-        string name UK
-        datetime created_at
-        datetime updated_at
-    }
-
-    USER_ROLES {
-        uuid user_id PK, FK
-        uuid role_id PK, FK
-        datetime created_at
-    }
-
-    REFRESH_TOKENS {
-        uuid id PK
-        uuid user_id FK
-        string token_hash UK
-        datetime expires_at
-        datetime revoked_at "nullable"
-        datetime created_at
-    }
-
-    PASSWORD_RESET_TOKENS {
-        uuid id PK
-        uuid user_id FK
-        string token_hash UK
-        datetime expires_at
-        datetime used_at "nullable"
-        datetime created_at
-    }
-
-    EMAIL_VERIFICATION_TOKENS {
-        uuid id PK
-        uuid user_id FK
-        string token_hash UK
-        datetime expires_at
-        datetime verified_at "nullable"
-        datetime created_at
-    }
+    USERS ||--o{ USER_AUTH_PROVIDERS : "đăng nhập qua"
+    USERS ||--o{ CUSTOMER_ADDRESSES : "sổ địa chỉ"
+    USERS ||--o{ REFRESH_TOKENS : ""
+    USERS ||--o{ PASSWORD_RESET_TOKENS : ""
+    USERS ||--o{ EMAIL_VERIFICATION_TOKENS : ""
+    USERS ||--o{ AUDIT_LOGS : "actor"
+    ORDERS ||--o{ GUEST_ORDER_SESSIONS : "quyền tạm"
+    WARDS ||--o{ CUSTOMER_ADDRESSES : ""
 ```
 
-> Ghi chú ký hiệu: `||--o{` = 1:N, `||--||` = 1:1. `PK` = Primary Key, `FK` = Foreign Key, `UK` = Unique Key. Mermaid không có key type riêng cho "partial unique", nên ràng buộc `carts.user_id` (chỉ unique khi `status = 'ACTIVE'`, xem mục 4.6) được ghi chú thêm bằng text bên cạnh. `USER_ROLES` có PK là **cặp** `(user_id, role_id)` (mỗi cột đánh dấu `PK, FK`) — không có cột `id` riêng, xem mục 4.11.
+### 2.2. Catalog & pricing
 
----
-
-## 3. Nguyên tắc PK và FK
-
-### Primary Key - PK
-
-Primary Key dùng để xác định duy nhất một record trong table.
-
-Ví dụ:
-
-```text
-users.id
-products.id
-orders.id
+```mermaid
+erDiagram
+    CATEGORIES ||--o{ CATEGORIES : "parent_id"
+    CATEGORIES ||--o{ PRODUCTS : ""
+    PRODUCTS ||--o{ PRODUCT_VARIANTS : ""
+    SIZES ||--o{ PRODUCT_VARIANTS : ""
+    COLORS ||--o{ PRODUCT_VARIANTS : ""
+    PRODUCTS ||--o{ PRODUCT_IMAGES : ""
+    COLORS ||--o{ PRODUCT_IMAGES : "ảnh theo màu"
+    PRODUCTS ||--|| PRODUCT_SALES_STATS : ""
+    PRODUCT_VARIANTS ||--o{ SALE_PRICES : ""
+    VOUCHERS ||--o{ VOUCHER_USAGES : ""
+    ORDERS ||--o| VOUCHER_USAGES : ""
 ```
 
-### Foreign Key - FK
+### 2.3. Cart & inventory
 
-Foreign Key dùng để liên kết một table với table khác.
-
-Ví dụ:
-
-```text
-products.category_id
-        ↓
-categories.id
+```mermaid
+erDiagram
+    USERS ||--o| CARTS : "giỏ active"
+    CARTS ||--o{ CART_ITEMS : ""
+    PRODUCT_VARIANTS ||--o{ CART_ITEMS : ""
+    WAREHOUSES ||--o{ INVENTORY_LEVELS : ""
+    PRODUCT_VARIANTS ||--o{ INVENTORY_LEVELS : ""
+    ORDERS ||--o{ INVENTORY_RESERVATIONS : ""
+    ORDERS ||--o{ AWAITING_DISPATCH_ITEMS : ""
+    INVENTORY_LEVELS ||--o{ INVENTORY_MOVEMENTS : ""
+    INVENTORY_LEVELS ||--o{ STOCK_COUNTS : ""
 ```
 
-Quy tắc dễ nhớ:
+### 2.4. Ordering, payments, refunds-returns
 
-> Với quan hệ `1:N`, Foreign Key thường nằm ở phía `N`.
-
-### Lưu ý: PK tự động có index, FK thì KHÔNG
-
-Postgres tự tạo index cho Primary Key, nhưng **không** tự tạo index cho Foreign Key. Các bảng có FK hay bị query theo (ví dụ `cart_items.cart_id`, `order_items.order_id`, `products.category_id`) cần tạo index thủ công, nếu không sẽ chậm dần khi data lớn:
-
-```sql
-CREATE INDEX ON cart_items (cart_id);
-CREATE INDEX ON order_items (order_id);
-CREATE INDEX ON products (category_id);
+```mermaid
+erDiagram
+    USERS |o--o{ ORDERS : "nullable (Khách vãng lai)"
+    CHECKOUT_QUOTES ||--o| ORDERS : "khớp Tính thử"
+    ORDERS ||--o{ ORDER_ITEMS : ""
+    PRODUCT_VARIANTS ||--o{ ORDER_ITEMS : ""
+    ORDERS ||--o{ ORDER_STATUS_HISTORY : ""
+    ORDERS ||--o{ ORDER_FLAGS : ""
+    ORDERS ||--o{ PAYMENTS : "mỗi lần thử"
+    PAYMENTS ||--o{ PAYMENT_NOTIFICATIONS : ""
+    ORDERS ||--o| COD_COLLECTIONS : ""
+    PAYMENTS ||--o{ REFUNDS : ""
+    COD_COLLECTIONS ||--o{ REFUNDS : ""
+    ORDERS ||--o{ RETURNS : ""
+    RETURNS ||--o{ RETURN_ITEMS : ""
+    ORDER_ITEMS ||--o{ RETURN_ITEMS : ""
+    RETURNS ||--o| REFUNDS : ""
 ```
 
-### Gợi ý index cho phân trang (listing)
+### 2.5. Fulfillment, notifications, compliance
 
-Phân trang (`GET /products?...`, `GET /orders?...`) không cần thêm cột hay bảng mới — `id`/`created_at` có sẵn ở mọi bảng đã đủ làm cursor/sort key. Nhưng để filter + sort + phân trang không bị chậm dần khi data lớn, cần **composite index** đúng thứ tự (các cột filter trước, cột sort sau):
-
-```sql
--- products: liệt kê theo category, lọc status, mới nhất trước
-CREATE INDEX ON products (category_id, status, created_at DESC);
-
--- orders: "đơn hàng của tôi" — lọc theo user, mới nhất trước
-CREATE INDEX ON orders (user_id, created_at DESC);
-
--- orders: trang quản trị — lọc theo status, mới nhất trước
-CREATE INDEX ON orders (status, created_at DESC);
-
--- product_variants: liệt kê variant theo product, thứ tự ổn định
-CREATE INDEX ON product_variants (product_id, created_at DESC);
-```
-
-> Cột đứng **đầu tiên** trong composite index (VD: `category_id`, `user_id`) đã tự đóng luôn vai trò index cho FK đó — không cần tạo thêm 1 index đơn cột riêng nữa (tránh trùng lặp, tốn bộ nhớ + chậm ghi). VD: đã có `products (category_id, status, created_at DESC)` thì không cần `CREATE INDEX ON products (category_id)` riêng như ví dụ ở trên nữa.
-
----
-
-# 4. Chi tiết từng bảng
-
-## 4.1. `users`
-
-Lưu thông tin người dùng.
-
-| Field               | Type gợi ý             | Ý nghĩa                    |
-| ------------------- | ---------------------- | -------------------------- |
-| `id`                | UUID                   | ID user                    |
-| `email`             | VARCHAR(255)           | Email                      |
-| `password_hash`     | TEXT                   | Password đã hash           |
-| `full_name`         | VARCHAR(255)           | Họ tên                     |
-| `phone`             | VARCHAR(30)            | Số điện thoại              |
-| `status`            | VARCHAR(30)            | ACTIVE / BLOCKED           |
-| `email_verified_at` | TIMESTAMPTZ (nullable) | NULL = chưa xác thực email |
-| `created_at`        | TIMESTAMPTZ            | Ngày tạo                   |
-| `updated_at`        | TIMESTAMPTZ            | Ngày cập nhật              |
-
-### Khóa
-
-```text
-PK:
-id
-
-UNIQUE:
-email
-```
-
-### Giả định MVP (Auth)
-
-- `email_verified_at` được set khi user bấm link xác thực gửi qua `email_verification_tokens` (mục 4.12). Trước khi verify, `status` vẫn có thể là `ACTIVE` (tuỳ bạn có muốn chặn login trước khi verify hay không) — đây là quyết định nghiệp vụ cần chốt riêng khi code, tài liệu này chỉ mô tả chỗ lưu.
-- Phân quyền dùng bảng `roles` + `user_roles` (mục 4.10, 4.11) vì 1 user có thể có **nhiều role cùng lúc** — không lưu role trực tiếp trên `users`.
-
----
-
-## 4.2. `categories`
-
-Lưu danh mục sản phẩm.
-
-Ví dụ:
-
-```text
-Áo
-Quần
-Giày
-Phụ kiện
-```
-
-| Field         | Type gợi ý   | Ý nghĩa       |
-| ------------- | ------------ | ------------- |
-| `id`          | UUID         | ID category   |
-| `name`        | VARCHAR(150) | Tên category  |
-| `slug`        | VARCHAR(150) | URL slug      |
-| `description` | TEXT         | Mô tả         |
-| `created_at`  | TIMESTAMPTZ  | Ngày tạo      |
-| `updated_at`  | TIMESTAMPTZ  | Ngày cập nhật |
-
-### Khóa
-
-```text
-PK:
-id
-
-UNIQUE:
-slug
-```
-
-### Giả định MVP
-
-Category chỉ có **1 cấp** (`name`, `slug` phẳng), **không** có `parent_id` — chưa hỗ trợ danh mục con (VD: Áo → Áo nam/Áo nữ). Nếu cần phân cấp, đây là bước mở rộng sau, không nằm trong 15 bảng này.
-
----
-
-## 4.3. `products`
-
-Lưu sản phẩm ở cấp tổng quát.
-
-Ví dụ:
-
-```text
-Nike T-Shirt
-Nike Air Max
-Adidas Polo
-```
-
-| Field         | Type gợi ý   | Ý nghĩa              |
-| ------------- | ------------ | -------------------- |
-| `id`          | UUID         | ID product           |
-| `category_id` | UUID         | Category của product |
-| `name`        | VARCHAR(255) | Tên product          |
-| `slug`        | VARCHAR(255) | URL slug             |
-| `description` | TEXT         | Mô tả                |
-| `status`      | VARCHAR(30)  | ACTIVE / INACTIVE    |
-| `created_at`  | TIMESTAMPTZ  | Ngày tạo             |
-| `updated_at`  | TIMESTAMPTZ  | Ngày cập nhật        |
-
-### Khóa
-
-```text
-PK:
-id
-
-FK:
-category_id
-    ↓
-categories.id
-
-UNIQUE:
-slug
-```
-
-### Quan hệ
-
-```text
-Category 1 : N Product
+```mermaid
+erDiagram
+    PROVINCES ||--o{ WARDS : ""
+    WARDS ||--o| GHN_WARD_MAPPINGS : ""
+    ORDERS ||--o| SHIPMENTS : ""
+    SHIPMENTS ||--o{ SHIPMENT_EVENTS : ""
+    OUTBOX_EVENTS }o--|| ORDERS : "aggregate_id (không FK)"
+    EMAIL_LOGS }o--o| ORDERS : ""
+    USERS ||--o{ CONSENTS : ""
+    ORDERS ||--o{ CONSENTS : "checkout"
+    DATA_ERASURE_REQUESTS }o--o| USERS : ""
+    USERS ||--o{ DATA_ACCESS_LOGS : "staff"
 ```
 
 ---
 
-## 4.3.1. `product_images`
+## 3. Nguyên tắc
 
-Lưu ảnh gallery của Product (nhiều ảnh / product).
+### 3.1. Khoá và kiểu
 
-Ví dụ:
+- **PK**: `id uuid` (UUID v7, sinh ở app để có thứ tự thời gian), trừ bảng tra cứu có mã tự nhiên ổn định (`provinces.code`, `wards.code`, `settings.key`) và bảng nối. PK tự có index.
+- **Mã hiển thị** tách khỏi PK: `orders.code` (BR-ORD-03), `product_variants.sku` (BR-CAT-03), `vouchers.code` (BR-VCH-09). Không lộ UUID nội bộ làm mã nghiệp vụ.
+- **Tiền** là `bigint` VND, số nguyên, `CHECK (>= 0)` hoặc `> 0` theo quy tắc. Không dùng `numeric`/float (BR-CAT-04, BR-VCH-10).
+- **Thời gian**: `timestamptz`, lưu UTC; ngày nghiệp vụ (doanh thu) quy đổi sang giờ Việt Nam khi truy vấn (BR-REV-01). Mọi bảng ghi có `created_at`, `updated_at`.
+- **Enum**: PostgreSQL enum (Prisma `enum`) cho tập giá trị đóng do code quyết định (trạng thái Đơn, Thanh toán…). Danh sách do Admin quản lý (size, màu) là **bảng**, không phải enum.
+- **JSON**: `jsonb` chỉ cho dữ liệu thô từ bên ngoài (`raw_payload`), snapshot không truy vấn theo field, và cấu hình.
 
-```text
-Nike T-Shirt
-├── ảnh 1 (is_primary = true, sort_order = 0)
-├── ảnh 2 (sort_order = 1)
-└── ảnh 3 (sort_order = 2)
-```
+### 3.2. Xoá dữ liệu
 
-| Field        | Type gợi ý   | Ý nghĩa                                 |
-| ------------ | ------------ | --------------------------------------- |
-| `id`         | UUID         | ID image                                |
-| `product_id` | UUID         | Product cha                             |
-| `url`        | TEXT         | Đường dẫn ảnh (CDN)                     |
-| `alt_text`   | VARCHAR(255) | Mô tả ảnh (accessibility/SEO)           |
-| `sort_order` | INTEGER      | Thứ tự hiển thị                         |
-| `is_primary` | BOOLEAN      | Ảnh đại diện (dùng ở listing/thumbnail) |
-| `created_at` | TIMESTAMPTZ  | Ngày tạo                                |
+- Không xoá cứng dữ liệu đã xuất hiện trong đơn: Sản phẩm/Biến thể → `archived` (BR-CAT-09); size/màu → `is_hidden` (BR-CAT-11); Tài khoản Staff → `status = disabled`.
+- Xoá dữ liệu cá nhân = **ẩn danh** tại chỗ, không xoá dòng (CMP-05).
 
-### Khóa
+### 3.3. FK và `ON DELETE`
 
-```text
-PK:
-id
-
-FK:
-product_id
-    ↓
-products.id
-```
-
-### Quan hệ
-
-```text
-Product 1 : N ProductImage
-```
-
-### Giả định MVP
-
-- Chỉ 1 ảnh được đánh `is_primary = true` mỗi product — cần ép bằng partial unique index, tương tự cách làm ở `carts` (mục 4.6):
-  ```sql
-  CREATE UNIQUE INDEX ON product_images (product_id) WHERE is_primary = true;
-  ```
-- Ảnh gắn theo **product**, không gắn theo variant (màu) — mọi variant của cùng 1 product dùng chung 1 bộ ảnh. Nếu sau này cần ảnh khác nhau theo màu (VD: Black và White có ảnh riêng), thêm cột nullable `variant_id` (FK → `product_variants.id`) vào bảng này; `variant_id IS NULL` nghĩa là ảnh dùng chung cho cả product.
-
----
-
-## 4.4. `product_variants`
-
-Lưu phiên bản cụ thể của Product.
-
-Ví dụ:
-
-```text
-Nike T-Shirt
-├── Black / M
-├── Black / L
-├── White / M
-└── White / L
-```
-
-| Field        | Type gợi ý    | Ý nghĩa       |
-| ------------ | ------------- | ------------- |
-| `id`         | UUID          | ID variant    |
-| `product_id` | UUID          | Product cha   |
-| `sku`        | VARCHAR(100)  | Mã SKU        |
-| `color`      | VARCHAR(50)   | Màu           |
-| `size`       | VARCHAR(50)   | Size          |
-| `price`      | NUMERIC(12,2) | Giá           |
-| `status`     | VARCHAR(30)   | Trạng thái    |
-| `created_at` | TIMESTAMPTZ   | Ngày tạo      |
-| `updated_at` | TIMESTAMPTZ   | Ngày cập nhật |
-
-### Khóa
-
-```text
-PK:
-id
-
-FK:
-product_id
-    ↓
-products.id
-
-UNIQUE:
-sku
-```
-
-### Quan hệ
-
-```text
-Product 1 : N ProductVariant
-```
-
----
-
-## 4.5. `inventory`
-
-Lưu tồn kho của từng variant.
-
-| Field               | Type gợi ý  | Ý nghĩa                |
-| ------------------- | ----------- | ---------------------- |
-| `id`                | UUID        | ID inventory           |
-| `variant_id`        | UUID        | Variant                |
-| `quantity`          | INTEGER     | Tổng số lượng          |
-| `reserved_quantity` | INTEGER     | Số lượng đang được giữ |
-| `updated_at`        | TIMESTAMPTZ | Ngày cập nhật          |
-
-### Khóa
-
-```text
-PK:
-id
-
-FK:
-variant_id
-    ↓
-product_variants.id
-
-UNIQUE:
-variant_id
-```
-
-### Quan hệ
-
-```text
-ProductVariant 1 : 1 Inventory
-```
-
-### Công thức số lượng có thể bán
-
-```text
-available_quantity
-=
-quantity - reserved_quantity
-```
-
-### Giả định MVP
-
-`inventory` là tồn kho **toàn cục theo variant**, không có `warehouse_id`/location — giả định **1 kho hàng duy nhất**. Multi-warehouse là bước mở rộng sau (xem mục 8), khi đó `inventory` sẽ cần thêm `warehouse_id` và trở thành composite theo `(variant_id, warehouse_id)`.
-
-### Vòng đời `reserved_quantity`
-
-Khi nào giữ/nhả/trừ tồn kho là quy tắc nghiệp vụ — xem `BR-INV-*` trong [`business/04-business-rules.md`](./business/04-business-rules.md#3-tồn-kho) và [`business/05-order-lifecycle.md`](./business/05-order-lifecycle.md). Về mặt schema: `reserved_quantity` chỉ đổi theo chuyển trạng thái Order (cart không giữ chỗ); mọi thay đổi cập nhật `quantity`/`reserved_quantity` atomic trong cùng transaction với chuyển trạng thái.
-
----
-
-## 4.6. `carts`
-
-Lưu giỏ hàng của User.
-
-| Field        | Type gợi ý  | Ý nghĩa              |
-| ------------ | ----------- | -------------------- |
-| `id`         | UUID        | ID cart              |
-| `user_id`    | UUID        | User sở hữu cart     |
-| `status`     | VARCHAR(30) | ACTIVE / CHECKED_OUT |
-| `created_at` | TIMESTAMPTZ | Ngày tạo             |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật        |
-
-### Khóa
-
-```text
-PK:
-id
-
-FK:
-user_id
-    ↓
-users.id
-```
-
-### Quan hệ
-
-```text
-User 1 : N Cart
-```
-
-Thông thường một user chỉ nên có **1 ACTIVE cart** tại một thời điểm. Đây là ràng buộc nghiệp vụ, **không** tự động đảm bảo chỉ bằng PK/FK — cần ép bằng DB, ví dụ partial unique index:
-
-```sql
-CREATE UNIQUE INDEX ON carts (user_id) WHERE status = 'ACTIVE';
-```
-
-### Giả định MVP
-
-`user_id` là FK bắt buộc (NOT NULL) → **không hỗ trợ giỏ hàng cho khách chưa đăng nhập** (guest cart). Muốn hỗ trợ guest cart sau này thường cần thêm cơ chế theo session/cookie, nằm ngoài phạm vi 15 bảng này.
-
----
-
-## 4.7. `cart_items`
-
-Lưu những Variant đang nằm trong Cart.
-
-| Field        | Type gợi ý  | Ý nghĩa         |
-| ------------ | ----------- | --------------- |
-| `id`         | UUID        | ID cart item    |
-| `cart_id`    | UUID        | Cart            |
-| `variant_id` | UUID        | Product Variant |
-| `quantity`   | INTEGER     | Số lượng        |
-| `created_at` | TIMESTAMPTZ | Ngày tạo        |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật   |
-
-### Khóa
-
-```text
-PK:
-id
-
-FK:
-cart_id
-    ↓
-carts.id
-
-FK:
-variant_id
-    ↓
-product_variants.id
-```
-
-### Quan hệ
-
-```text
-Cart 1 : N CartItem
-
-ProductVariant 1 : N CartItem
-```
-
-### Giá trong cart là giá "sống", không snapshot
-
-`cart_items` **không** lưu `unit_price` — giá hiển thị trong giỏ hàng luôn lấy trực tiếp từ `product_variants.price` hiện tại, nên có thể đổi giữa lúc thêm vào giỏ và lúc checkout. Đây là điểm đối lập có chủ đích với `order_items` (mục 4.9), nơi giá được **đông cứng lại (snapshot)** ngay khi tạo Order — cart phản ánh giá thị trường hiện tại, order phản ánh giá tại thời điểm mua.
-
----
-
-## 4.8. `orders`
-
-Lưu đơn hàng sau khi checkout.
-
-| Field          | Type gợi ý    | Ý nghĩa                                              |
-| -------------- | ------------- | ---------------------------------------------------- |
-| `id`           | UUID          | ID order (khoá kỹ thuật, không hiển thị cho khách)   |
-| `order_number` | VARCHAR(30)   | Mã đơn hàng dễ đọc, hiển thị cho khách (VD: `#1001`) |
-| `user_id`      | UUID          | User đặt hàng                                        |
-| `status`       | VARCHAR(30)   | PENDING / PAID / CANCELLED                           |
-| `total_amount` | NUMERIC(12,2) | Tổng cuối                                            |
-| `created_at`   | TIMESTAMPTZ   | Ngày tạo                                             |
-| `updated_at`   | TIMESTAMPTZ   | Ngày cập nhật                                        |
-
-### Khóa
-
-```text
-PK:
-id
-
-FK:
-user_id
-    ↓
-users.id
-
-UNIQUE:
-order_number
-```
-
-### Quan hệ
-
-```text
-User 1 : N Order
-```
-
-### Giả định MVP
-
-- **`total_amount` là tổng cuối duy nhất** — MVP hiện tại chưa có discount/shipping/tax, nên không cần thêm `subtotal` (tránh gây hiểu lầm là đã hỗ trợ). Khi có discount/shipping/tax thật, mới bổ sung `subtotal`, `discount_amount`, `shipping_fee`, `tax_amount` và định nghĩa `total_amount = subtotal - discount_amount + shipping_fee + tax_amount`.
-- **`order_number` tách riêng khỏi `id`**: `id` (UUID) dùng làm khoá kỹ thuật/FK nội bộ, `order_number` là mã ngắn, dễ đọc, do hệ thống tự sinh (VD: sequence hoặc format theo ngày) — dùng để hiển thị cho khách hàng và tra cứu qua support. Không dùng UUID để hiển thị/nói miệng với khách.
-- **`status` chỉ có 3 giá trị tối giản cho MVP** (`PENDING / PAID / CANCELLED`). Khi cần theo dõi vận chuyển thật, nên mở rộng thêm `SHIPPED`, `DELIVERED`, `REFUNDED`.
-- Mọi giá trị `status` (ở tất cả các bảng trong tài liệu này) nên được ràng buộc bằng `CHECK (status IN (...))` hoặc Postgres `ENUM` type, không chỉ dựa vào tầng ứng dụng để tránh giá trị rác lọt vào DB.
-
----
-
-## 4.9. `order_items`
-
-Lưu các sản phẩm trong một Order.
-
-| Field          | Type gợi ý    | Ý nghĩa               |
-| -------------- | ------------- | --------------------- |
-| `id`           | UUID          | ID order item         |
-| `order_id`     | UUID          | Order                 |
-| `variant_id`   | UUID          | Product Variant       |
-| `product_name` | VARCHAR(255)  | Snapshot tên sản phẩm |
-| `sku`          | VARCHAR(100)  | Snapshot SKU          |
-| `quantity`     | INTEGER       | Số lượng              |
-| `unit_price`   | NUMERIC(12,2) | Giá tại thời điểm mua |
-| `total_price`  | NUMERIC(12,2) | quantity × unit_price |
-| `created_at`   | TIMESTAMPTZ   | Ngày tạo              |
-
-### Khóa
-
-```text
-PK:
-id
-
-FK:
-order_id
-    ↓
-orders.id
-
-FK:
-variant_id
-    ↓
-product_variants.id
-```
-
-### Quan hệ
-
-```text
-Order 1 : N OrderItem
-
-ProductVariant 1 : N OrderItem
-```
-
-### Lưu ý quan trọng
-
-`order_items` nên lưu snapshot:
-
-```text
-product_name
-sku
-unit_price
-```
-
-để Order cũ không bị thay đổi khi Product hoặc giá hiện tại thay đổi.
-
----
-
-## 4.10. `roles`
-
-Danh sách các vai trò (phân quyền).
-
-Ví dụ:
-
-```text
-CUSTOMER
-STAFF
-ADMIN
-```
-
-| Field        | Type gợi ý  | Ý nghĩa                          |
-| ------------ | ----------- | -------------------------------- |
-| `id`         | UUID        | ID role                          |
-| `name`       | VARCHAR(50) | Tên role                         |
-| `created_at` | TIMESTAMPTZ | Ngày tạo                         |
-| `updated_at` | TIMESTAMPTZ | Ngày cập nhật (khi đổi tên role) |
-
-### Khóa
-
-```text
-PK:
-id
-
-UNIQUE:
-name
-```
-
----
-
-## 4.11. `user_roles`
-
-Bảng nối (junction table) — gán role cho user, hỗ trợ **nhiều role / user**.
-
-| Field        | Type gợi ý  | Ý nghĩa       |
-| ------------ | ----------- | ------------- |
-| `user_id`    | UUID        | User          |
-| `role_id`    | UUID        | Role          |
-| `created_at` | TIMESTAMPTZ | Ngày gán role |
-
-### Khóa
-
-```text
-PK:
-(user_id, role_id)   ← composite PK, không có cột id riêng
-
-FK:
-user_id
-    ↓
-users.id
-
-FK:
-role_id
-    ↓
-roles.id
-```
-
-### Quan hệ
-
-```text
-User M : N Role
-```
-
-### Giả định MVP
-
-Đây là bảng **many-to-many thuần** (chỉ 2 FK, không có thuộc tính riêng nào khác ngoài `created_at`) nên dùng PK là cặp `(user_id, role_id)` — không cần thêm cột `id` UUID giả (surrogate key), vì cặp này đã tự nhiên unique.
-
----
-
-## 4.12. `refresh_tokens`
-
-Lưu refresh token đã phát cho user, dùng để cấp lại access token mới mà không cần đăng nhập lại.
-
-| Field        | Type gợi ý             | Ý nghĩa                                                                   |
-| ------------ | ---------------------- | ------------------------------------------------------------------------- |
-| `id`         | UUID                   | ID refresh token                                                          |
-| `user_id`    | UUID                   | User sở hữu token                                                         |
-| `token_hash` | TEXT                   | Hash của refresh token (không lưu token gốc)                              |
-| `expires_at` | TIMESTAMPTZ            | Hạn dùng                                                                  |
-| `revoked_at` | TIMESTAMPTZ (nullable) | NULL = còn hiệu lực; có giá trị = đã bị thu hồi (logout, đổi mật khẩu...) |
-| `created_at` | TIMESTAMPTZ            | Ngày phát hành                                                            |
-
-### Khóa
-
-```text
-PK:
-id
-
-FK:
-user_id
-    ↓
-users.id
-
-UNIQUE:
-token_hash
-```
-
-### Quan hệ
-
-```text
-User 1 : N RefreshToken
-```
-
-### Giả định MVP
-
-- **Chỉ lưu `token_hash`, không lưu token gốc** — giống nguyên tắc với `password_hash`, để lộ DB cũng không dùng lại được token. `UNIQUE (token_hash)` giúp tra cứu lúc verify (`WHERE token_hash = ?`) nhanh bằng index thay vì full table scan, đồng thời đảm bảo không có 2 token trùng hash.
-- `revoked_at` cho phép **thu hồi từng token riêng lẻ** (logout 1 thiết bị) mà không ảnh hưởng các refresh token khác của cùng user (logout tất cả thiết bị = revoke tất cả token của `user_id` đó).
-- 1 user có thể có nhiều dòng "còn sống" cùng lúc (1 dòng / thiết bị đang đăng nhập).
-
----
-
-## 4.13. `password_reset_tokens`
-
-Lưu token dùng 1 lần để đặt lại mật khẩu khi user quên mật khẩu.
-
-| Field        | Type gợi ý             | Ý nghĩa                                                    |
-| ------------ | ---------------------- | ---------------------------------------------------------- |
-| `id`         | UUID                   | ID token                                                   |
-| `user_id`    | UUID                   | User yêu cầu reset                                         |
-| `token_hash` | TEXT                   | Hash của token gửi qua email                               |
-| `expires_at` | TIMESTAMPTZ            | Hạn dùng (thường ngắn, VD: 15-30 phút)                     |
-| `used_at`    | TIMESTAMPTZ (nullable) | NULL = chưa dùng; có giá trị = đã dùng, không cho dùng lại |
-| `created_at` | TIMESTAMPTZ            | Ngày tạo                                                   |
-
-### Khóa
-
-```text
-PK:
-id
-
-FK:
-user_id
-    ↓
-users.id
-
-UNIQUE:
-token_hash
-```
-
-### Quan hệ
-
-```text
-User 1 : N PasswordResetToken
-```
-
-### Giả định MVP
-
-`UNIQUE (token_hash)` để tra cứu lúc verify nhanh bằng index, không phải full table scan.
-
-Là bảng riêng (không nhét vào `users`) vì **1:N theo thời gian** — user có thể bấm "quên mật khẩu" nhiều lần, mỗi lần tạo 1 token mới; các token cũ chưa hết hạn vẫn còn tồn tại cho tới khi hết hạn hoặc bị dùng (`used_at`).
-
----
-
-## 4.14. `email_verification_tokens`
-
-Lưu token xác thực email khi user đăng ký tài khoản.
-
-| Field         | Type gợi ý             | Ý nghĩa                                                       |
-| ------------- | ---------------------- | ------------------------------------------------------------- |
-| `id`          | UUID                   | ID token                                                      |
-| `user_id`     | UUID                   | User cần xác thực                                             |
-| `token_hash`  | TEXT                   | Hash của token gửi qua email                                  |
-| `expires_at`  | TIMESTAMPTZ            | Hạn dùng                                                      |
-| `verified_at` | TIMESTAMPTZ (nullable) | NULL = chưa xác thực; có giá trị = đã xác thực bằng token này |
-| `created_at`  | TIMESTAMPTZ            | Ngày tạo                                                      |
-
-### Khóa
-
-```text
-PK:
-id
-
-FK:
-user_id
-    ↓
-users.id
-
-UNIQUE:
-token_hash
-```
-
-### Quan hệ
-
-```text
-User 1 : N EmailVerificationToken
-```
-
-### Giả định MVP
-
-`UNIQUE (token_hash)` để tra cứu lúc verify nhanh bằng index, không phải full table scan.
-
-Khi user xác thực thành công qua token này → set `verified_at` ở đây **và** set `users.email_verified_at` (mục 4.1) cùng lúc. Giữ 2 chỗ vì lý do khác nhau: `users.email_verified_at` để **query nhanh** "user đã verify chưa" mà không cần JOIN, còn `verified_at` ở đây để giữ lịch sử token nào đã dùng.
-
----
-
-# 5. Tổng hợp Primary Key và Foreign Key
-
-| Table                       | Primary Key                    | Foreign Key                                                | Unique                                         |
-| --------------------------- | ------------------------------ | ---------------------------------------------------------- | ---------------------------------------------- |
-| `users`                     | `id`                           | —                                                          | `email`                                        |
-| `categories`                | `id`                           | —                                                          | `slug`                                         |
-| `products`                  | `id`                           | `category_id → categories.id`                              | `slug`                                         |
-| `product_images`            | `id`                           | `product_id → products.id`                                 | — (xem giả định `is_primary` ở mục 4.3.1)      |
-| `product_variants`          | `id`                           | `product_id → products.id`                                 | `sku`                                          |
-| `inventory`                 | `id`                           | `variant_id → product_variants.id`                         | `variant_id`                                   |
-| `carts`                     | `id`                           | `user_id → users.id`                                       | `user_id` (partial, `WHERE status = 'ACTIVE'`) |
-| `cart_items`                | `id`                           | `cart_id → carts.id`, `variant_id → product_variants.id`   | —                                              |
-| `orders`                    | `id`                           | `user_id → users.id`                                       | `order_number`                                 |
-| `order_items`               | `id`                           | `order_id → orders.id`, `variant_id → product_variants.id` | —                                              |
-| `roles`                     | `id`                           | —                                                          | `name`                                         |
-| `user_roles`                | `(user_id, role_id)` composite | `user_id → users.id`, `role_id → roles.id`                 | —                                              |
-| `refresh_tokens`            | `id`                           | `user_id → users.id`                                       | `token_hash`                                   |
-| `password_reset_tokens`     | `id`                           | `user_id → users.id`                                       | `token_hash`                                   |
-| `email_verification_tokens` | `id`                           | `user_id → users.id`                                       | `token_hash`                                   |
-
----
-
-# 6. Toàn bộ Foreign Key
-
-```text
-categories.id
-      ↑
-      |
-products.category_id
-
-
-products.id
-      ↑
-      |
-product_images.product_id
-
-
-products.id
-      ↑
-      |
-product_variants.product_id
-
-
-product_variants.id
-      ↑
-      |
-inventory.variant_id
-
-
-users.id
-      ↑
-      |
-carts.user_id
-
-
-carts.id
-      ↑
-      |
-cart_items.cart_id
-
-
-product_variants.id
-      ↑
-      |
-cart_items.variant_id
-
-
-users.id
-      ↑
-      |
-orders.user_id
-
-
-orders.id
-      ↑
-      |
-order_items.order_id
-
-
-product_variants.id
-      ↑
-      |
-order_items.variant_id
-
-
-users.id
-      ↑
-      |
-user_roles.user_id
-
-
-roles.id
-      ↑
-      |
-user_roles.role_id
-
-
-users.id
-      ↑
-      |
-refresh_tokens.user_id
-
-
-users.id
-      ↑
-      |
-password_reset_tokens.user_id
-
-
-users.id
-      ↑
-      |
-email_verification_tokens.user_id
-```
-
----
-
-## 6.1. Hành vi khi xoá (ON DELETE)
-
-Mặc định Postgres cho FK là `ON DELETE RESTRICT` (chặn xoá nếu còn con tham chiếu tới). Tài liệu trước đây chưa nói rõ dòng nào cần đổi — dưới đây là hành vi khuyến nghị cho các FK trỏ về `users.id`:
-
-| FK                                             | ON DELETE                 | Vì sao                                                              |
-| ---------------------------------------------- | ------------------------- | ------------------------------------------------------------------- |
-| `carts.user_id → users.id`                     | `CASCADE`                 | Giỏ hàng không còn ý nghĩa khi user không còn                       |
-| `user_roles.user_id → users.id`                | `CASCADE`                 | Gán quyền vô nghĩa khi user không còn                               |
-| `refresh_tokens.user_id → users.id`            | `CASCADE`                 | Token gắn chặt với user, xoá user thì token vô nghĩa                |
-| `password_reset_tokens.user_id → users.id`     | `CASCADE`                 | Tương tự                                                            |
-| `email_verification_tokens.user_id → users.id` | `CASCADE`                 | Tương tự                                                            |
-| `orders.user_id → users.id`                    | `RESTRICT` (giữ mặc định) | Đơn hàng là hồ sơ tài chính — **không được xoá** chỉ vì user bị xoá |
-
-### Hệ quả của dòng cuối cùng
-
-Vì `orders.user_id` là `RESTRICT`, **không thể xoá cứng (`DELETE`) một user đã từng đặt hàng** — Postgres sẽ chặn lại. Có 2 cách xử lý khi cần "xoá tài khoản":
-
-1. **Soft-delete `users`** (khuyến nghị): thêm cột `deleted_at` (TIMESTAMPTZ, nullable) vào `users`, không `DELETE` thật — chỉ set `deleted_at` + ẩn khỏi ứng dụng. Giữ nguyên được lịch sử đơn hàng, không đụng tới `RESTRICT`.
-2. Hoặc chấp nhận: xoá tài khoản = phải xử lý riêng đơn hàng cũ trước (ẩn danh hoá `user_id`, hoặc archive) — phức tạp hơn cách 1.
-
-`cart_items` và `order_items` không cần khai riêng — chúng tự động theo hành vi của `carts`/`orders` (`carts` bị xoá theo `CASCADE` thì `cart_items` cũng nên `CASCADE` theo `carts`; `orders` bị `RESTRICT` không cho xoá thì `order_items` không bao giờ rơi vào tình huống mồ côi).
-
-## 6.2. Dọn dẹp token hết hạn (cleanup job)
-
-3 bảng `refresh_tokens`, `password_reset_tokens`, `email_verification_tokens` **không tự xoá dòng cũ** — mỗi lần phát hành token là thêm 1 dòng mới, token hết hạn (`expires_at < now()`) hoặc đã dùng/thu hồi vẫn nằm nguyên trong bảng. Nếu không dọn, 3 bảng này phình to vô hạn theo thời gian dù dữ liệu đó không còn giá trị sử dụng.
-
-Cần 1 job chạy định kỳ (VD: cron mỗi ngày) xoá các dòng không còn cần giữ:
-
-```sql
--- Xoá refresh token đã hết hạn HOẶC đã bị thu hồi từ lâu
-DELETE FROM refresh_tokens
-WHERE expires_at < now() OR revoked_at < now() - INTERVAL '30 days';
-
--- Xoá password reset token đã hết hạn HOẶC đã dùng
-DELETE FROM password_reset_tokens
-WHERE expires_at < now() OR used_at IS NOT NULL;
-
--- Xoá email verification token đã hết hạn HOẶC đã dùng
-DELETE FROM email_verification_tokens
-WHERE expires_at < now() OR verified_at IS NOT NULL;
-```
-
-> Đây không phải thay đổi schema — chỉ là việc vận hành (ops) cần nhớ làm khi lên production, không thì bảng token sẽ âm thầm phình to mãi dù ứng dụng vẫn chạy đúng.
-
----
-
-# 7. Ràng buộc không thể hiện thành cột & migration đã chốt
-
-**Business rule không thể hiện thành cột:**
-
-- **Giá của Cart là giá sống (live), giá của Order là snapshot.** `cart_items` không có `unit_price` — nó luôn đọc `product_variants.price` hiện tại, nên có thể trôi giữa lúc "thêm vào cart" và "checkout". `order_items` đóng băng `product_name`/`sku`/`unit_price` tại thời điểm tạo order, nên một lượt sửa product/giá sau đó không bao giờ viết lại lịch sử.
-- **`available_quantity = inventory.quantity - inventory.reserved_quantity`.** `reserved_quantity` chỉ thay đổi theo chuyển trạng thái của `Order`, không bao giờ theo thay đổi của cart (một cart không bao giờ reserve stock): Order được tạo (PENDING) → `reserved_quantity += qty`; Order → PAID → `quantity -= qty` và `reserved_quantity -= qty`; Order → CANCELLED → `reserved_quantity -= qty` chỉ trong schema hiện tại. **Mục tiêu đã chốt (ADR 0003):** thêm một bảng `inventory_reservations` có thể kiểm chứng (auditable), hết hạn sau 15 phút. Trạng thái reservation và bộ đếm tổng thay đổi atomic trong PostgreSQL; một worker sẽ expire các lượt giữ hàng, và cuộc đua giữa thanh toán và hết hạn dùng một chuyển trạng thái atomic để chỉ một kết quả thắng.
-- **Các giá trị `orders.status` ở trên (`PENDING`/`PAID`/`CANCELLED`) là schema đã migrate, không phải state machine mục tiêu đầy đủ.** Vòng đời Đơn ở `business/05-order-lifecycle.md` thêm `PENDING_PAYMENT`/`CONFIRMED`/`COMPLETED`; việc ánh xạ 3 giá trị hiện tại sang mô hình 4+ trạng thái đó là một trong các "migration đã chốt trước Checkout/Payment" bên dưới, chưa phải điều gì đã được áp dụng.
-- **Hai partial unique index được quản lý bằng migration SQL viết tay, không phải qua Prisma schema**: một cart `ACTIVE` cho mỗi user (`carts.user_id WHERE status = 'ACTIVE'`), và một ảnh chính cho mỗi sản phẩm (`product_images.product_id WHERE is_primary = true`). Prisma đã thêm Preview feature `partialIndexes` từ **v7.4.0**, cho phép `@unique`/`@@unique`/`@@index` nhận một tham số `where` trên PostgreSQL, nên hai index này có thể chuyển vào `schema.prisma` nếu team quyết định bật Preview feature đó — **chỉ khi version Prisma đang cài của project thực sự ≥ 7.4.0** (kiểm tra `package.json`/lockfile; `prisma7.config.ts` chỉ chứng minh định dạng config là v7, không chứng minh đúng minor version). Không bắt buộc — đây là một lựa chọn để cân nhắc, không phải một điều cần sửa cho migration đã áp dụng.
-- **`ON DELETE` khác nhau theo từng bảng**, không phải "cascade khắp nơi": `carts`, `user_roles`, `refresh_tokens`, `password_reset_tokens`, `email_verification_tokens` đều `CASCADE` khi xóa user (vô nghĩa nếu không còn user); `orders` là `RESTRICT` (một bản ghi tài chính phải tồn tại qua cả khi user bị xóa — soft-delete `users` thay vì hard-delete một user còn có order).
-- **Composite index cho listing/pagination** được tạo trước khi cần, trên đúng những cột thực sự được filter/sort: `products(category_id, status, created_at DESC)`, `orders(user_id, created_at DESC)`, `orders(status, created_at DESC)`, `product_variants(product_id, created_at DESC)`. Postgres không tự động index FK — cột dẫn đầu trong một trong các composite này đồng thời đóng vai trò index cho FK đó, nên không cần thêm index FK đơn cột riêng.
-- **Không multi-warehouse, không guest cart, không category phân cấp** trong schema này — `inventory` là một số đếm toàn cục cho mỗi variant (không theo kho), `carts.user_id` là `NOT NULL` (không có cart ẩn danh), và `categories` phẳng (không có `parent_id`). Cả ba đều là điểm mở rộng đã được ghi nhận, không phải bỏ sót.
-
-**Migration đã chốt trước Checkout/Payment:**
-
-- Thêm `inventory_reservations`, bản ghi idempotency, outbox event, Payments, Payment Attempts, webhook event, Refunds, và bản ghi audit.
-- Thêm các cột snapshot tiền của Order: `subtotal`, `discount_amount`, `shipping_amount`, `tax_amount`, `total_amount`, và `currency`.
-- Thêm snapshot bất biến cho địa chỉ giao hàng và discount theo từng dòng.
-- Thêm check ở database cho số lượng cart/order dương, Inventory không âm, và `reserved_quantity <= quantity`; ngăn dòng `(cart_id, variant_id)` trùng và reservation active `(order_id, variant_id)` trùng.
-- Dùng một kho duy nhất và số tiền nguyên chỉ tính bằng VND cho MVP, trong khi vẫn giữ một mã tiền tệ ISO tường minh trên mỗi Order, Payment, và Refund.
-
----
-
-# 8. Bảng cần thêm theo business (chưa thiết kế chi tiết)
-
-`business/` là nguồn ưu tiên. Schema hiện tại chưa đáp ứng các yêu cầu sau — cần thiết kế cột trong plan của từng module:
-
-| Nhu cầu | Bảng/thay đổi dự kiến | Quy tắc |
+| Loại quan hệ | Hành vi | Ví dụ |
 |---|---|---|
-| Danh mục nhiều cấp | `categories.parent_id` (hiện schema phẳng) | BR-CAT-* , `01-vision-scope` §5.1 |
-| Giỏ của Khách vãng lai (cookie, hết hạn 30 ngày), gộp giỏ | `carts.user_id` nullable + guest token, `expires_at` (hiện `NOT NULL`) | BR-CRT-01..05 |
-| Đơn của Khách vãng lai, tra cứu bằng mã đơn + SĐT, gắn vào Tài khoản | `orders.user_id` nullable, thông tin liên hệ trên Order | BR-ORD-08, US-401 |
-| Sổ địa chỉ, địa chỉ 2 cấp tỉnh/phường | `addresses`, bảng đơn vị hành chính + ánh xạ GHN | US-504, US-1004 |
-| Voucher | `vouchers`, `voucher_usages` | BR-VCH-01..10 |
-| Giá khuyến mãi | cột/bảng sale price theo Biến thể | BR-PRC-01..05 |
-| Size/màu, ảnh theo màu | danh mục size, bảng màu; `product_images` gắn màu | BR-CAT-*, US-805 |
-| Thanh toán VNPay/VNPay/MoMo/COD | `payments`, `payment_attempts`, webhook event | BR-PAY-01..06 |
-| Vận đơn GHN | `shipments` + lịch sử trạng thái | BR-SHP-01..08 |
-| Hoàn tiền thủ công | `refunds` | BR-REF-01..06 |
-| Đổi trả | `returns`, `return_items` | BR-RET-01..09 |
-| Nhập kho, điều chỉnh, Kiểm kê | sổ biến động tồn kho, phiếu kiểm kê | BR-INV-*, US-701..703 |
-| Doanh thu | (dẫn xuất từ order/payment/refund) | BR-REV-01..02 |
-| Ngôn ngữ vi/en | `users.locale`, locale trên Order | BR-NTF-02, US-505 |
-| Đồng ý & xoá/ẩn danh dữ liệu, lịch sử truy cập | consent, yêu cầu xoá dữ liệu, access log | `06-compliance`, US-1101..1102 |
-| Cấu hình vận hành | settings | US-1002 |
+| Dữ liệu tài chính / lịch sử | `RESTRICT` | `orders.user_id`, `order_items.variant_id`, `payments.order_id`, `refunds.*` |
+| Cây và danh mục | `RESTRICT` (ADR 0001) | `products.category_id`, `categories.parent_id` |
+| Con thuần tuý, vô nghĩa khi cha mất | `CASCADE` | `cart_items.cart_id`, `refresh_tokens.user_id`, `customer_addresses.user_id` |
+| Bảng log tham chiếu mềm | không FK, lưu `aggregate_id` | `outbox_events`, `audit_logs.entity_id` |
+
+PostgreSQL **không** tự tạo index cho FK. Mọi FK đều có index, riêng hoặc là cột dẫn đầu của một composite index.
+
+### 3.4. Index và ràng buộc
+
+- **Composite index cho listing**: đặt theo đúng cột filter + sort, ví dụ `orders(status, created_at DESC)`, `orders(user_id, created_at DESC)`, `products(category_id, status, created_at DESC)`.
+- **Partial unique**: viết bằng migration SQL tay nếu Prisma đang dùng chưa hỗ trợ `where` (Preview `partialIndexes` từ v7.4.0). Danh sách ở mục 5.2.
+- **CHECK** cho bất biến cục bộ một dòng (số lượng > 0, tồn kho ≥ 0, giá KM < giá bán…). Bất biến **liên dòng** nằm ở service trong transaction có khoá ([04-data-consistency.md](./architecture/04-data-consistency.md)).
+- **Tìm kiếm tên không dấu** (BR-CAT-13): cột sinh `products.search_name` = `lower(unaccent(name))` + index `pg_trgm` GIN.
+
+---
+
+## 4. Chi tiết từng bảng
+
+Ký hiệu: **PK**, **FK**, **UK** (unique), **NN** (not null), **IX** (index).
+
+### 4.1. Identity
+
+#### `users`
+
+Một dòng cho mỗi Tài khoản: Khách hàng, Staff hoặc Admin (`business/02` §1). Mỗi email chỉ thuộc một Tài khoản.
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| role | enum `customer`/`staff`/`admin` | NN | ADR 0005. `guest` không có dòng |
+| email | citext | UK, NN | so khớp không phân biệt hoa thường (BR-ORD-08) |
+| email_verified_at | timestamptz | | |
+| password_hash | text | | null nếu chỉ đăng nhập Google |
+| full_name | text | NN | |
+| phone | text | | |
+| locale | enum `vi`/`en` | NN, default `vi` | BR-NTF-02, US-505 |
+| status | enum `active`/`disabled` | NN | |
+| session_version | int | NN, default 0 | tăng khi vô hiệu hoá/đổi mật khẩu → mọi phiên mất hiệu lực ngay (`business/02` §4, ADR 0005) |
+| marketing_opt_in | boolean | NN, default false | CMP-03 (bằng chứng ở `consents`) |
+| anonymized_at | timestamptz | | CMP-05 |
+| created_at, updated_at | timestamptz | NN | |
+
+#### `user_auth_providers`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| user_id | uuid | FK → users CASCADE, NN, IX | |
+| provider | enum `google` | NN | US-502 |
+| provider_subject | text | NN | `sub` của Google |
+| created_at | timestamptz | NN | |
+
+UK `(provider, provider_subject)`. Tài khoản nội bộ không được liên kết Google (`business/02` §1).
+
+#### `customer_addresses`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| user_id | uuid | FK → users CASCADE, NN, IX | US-504 |
+| recipient_name, phone | text | NN | |
+| province_code | text | FK → provinces, NN | BR-ORD-04 (2 cấp) |
+| ward_code | text | FK → wards, NN | |
+| street_address | text | NN | |
+| is_default | boolean | NN | partial UK `(user_id) WHERE is_default` |
+| created_at, updated_at | timestamptz | NN | |
+
+#### `refresh_tokens`, `password_reset_tokens`, `email_verification_tokens`
+
+Cùng khuôn: chỉ lưu **hash** token, không lưu token thô.
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| user_id | uuid | FK → users CASCADE, NN, IX | |
+| token_hash | text | UK, NN | |
+| expires_at | timestamptz | NN | |
+| session_version | int | NN | *(chỉ `refresh_tokens`)* khác `users.session_version` → token vô hiệu |
+| revoked_at / used_at / verified_at | timestamptz | | tương ứng từng bảng |
+| user_agent, ip_hmac | text | | *(chỉ `refresh_tokens`)* IP dạng HMAC ([05-auth-security.md](./architecture/05-auth-security.md) §8) |
+| created_at | timestamptz | NN | |
+
+#### `guest_order_sessions`
+
+Quyền thao tác 30 phút của Khách vãng lai với **một** đơn (`business/02` §2, ADR 0011).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders CASCADE, NN, IX | |
+| token_hash | text | UK, NN | |
+| origin | enum `checkout`/`lookup` | NN | tạo ngay sau đặt đơn hoặc sau tra cứu đúng (US-401) |
+| expires_at | timestamptz | NN | +30 phút |
+| created_at | timestamptz | NN | |
+
+#### `audit_logs`
+
+Mọi thao tác ghi trên back-office (`business/02` §4).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| actor_user_id | uuid | FK → users RESTRICT, IX | null nếu là hệ thống |
+| action | text | NN | ví dụ `order.cancel`, `inventory.adjust` |
+| entity_type, entity_id | text, uuid | NN | IX `(entity_type, entity_id)`, không FK |
+| before, after | jsonb | | giá trị trước/sau |
+| reason | text | | bắt buộc với huỷ đơn của Staff, điều chỉnh tồn kho |
+| request_id | text | | truy vết log |
+| created_at | timestamptz | NN, IX | |
+
+### 4.2. Catalog
+
+#### `categories`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| parent_id | uuid | FK → categories RESTRICT, IX | cây nhiều cấp; ADR 0001 |
+| name | text | NN | chỉ tiếng Việt (BR-CAT-10) |
+| slug | text | UK, NN | |
+| sort_order | int | NN | |
+| is_visible | boolean | NN | |
+| created_at, updated_at | timestamptz | NN | |
+
+Chống vòng lặp cây (A là cha của B là cha của A) ở service.
+
+#### `products`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| category_id | uuid | FK → categories RESTRICT, NN | |
+| name | text | NN | BR-CAT-10 |
+| search_name | text | generated, IX GIN trgm | BR-CAT-13 |
+| slug | text | UK, NN | |
+| description | text | | |
+| weight_grams | int | NN, CHECK > 0 | BR-CAT-06 |
+| status | enum `draft`/`active`/`archived` | NN | BR-CAT-07, BR-CAT-09 |
+| published_at | timestamptz | | sắp xếp "mới nhất" |
+| created_at, updated_at | timestamptz | NN | |
+
+IX `(category_id, status, published_at DESC)`.
+
+#### `sizes`, `colors`
+
+Danh sách dùng chung do Admin quản lý (BR-CAT-11, US-805).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| code | text | UK, NN | lọc storefront theo mã; size có `FREESIZE` (BR-CAT-02) |
+| name | text | NN | |
+| hex | char(7) | NN | *(chỉ `colors`)* |
+| sort_order | int | NN | *(chỉ `sizes`)* |
+| is_hidden | boolean | NN | đã có Biến thể dùng thì chỉ ẩn |
+
+#### `product_variants`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| product_id | uuid | FK → products RESTRICT, NN | |
+| size_id | uuid | FK → sizes RESTRICT, NN | |
+| color_id | uuid | FK → colors RESTRICT, NN | |
+| sku | text | UK, NN, CHECK `^[A-Z0-9-]+$` | BR-CAT-03; không đổi sau khi đã có đơn |
+| price | bigint | NN, CHECK > 0 | Giá bán, BR-CAT-04 |
+| status | enum `active`/`archived` | NN | |
+| created_at, updated_at | timestamptz | NN | |
+
+UK `(product_id, size_id, color_id)` (BR-CAT-02).
+
+#### `product_images`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| product_id | uuid | FK → products CASCADE, NN | |
+| color_id | uuid | FK → colors RESTRICT, NN | ảnh theo màu (BR-CAT-05) |
+| storage_key | text | NN | key object storage, không lưu URL tuyệt đối |
+| sort_order | int | NN | |
+| is_primary | boolean | NN | partial UK `(product_id, color_id) WHERE is_primary` |
+
+IX `(product_id, color_id, sort_order)`.
+
+#### `product_sales_stats`
+
+Số liệu "bán chạy" cập nhật mỗi đêm (BR-CAT-12).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| product_id | uuid | PK, FK → products CASCADE | |
+| sold_qty_30d | int | NN | |
+| computed_at | timestamptz | NN | |
+
+### 4.3. Pricing-promotions
+
+#### `sale_prices`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| variant_id | uuid | FK → product_variants RESTRICT, NN | |
+| price | bigint | NN, CHECK > 0 | < Giá bán (BR-PRC-01, BR-PRC-05) kiểm tra ở service |
+| starts_at, ends_at | timestamptz | NN, CHECK ends_at > starts_at | |
+| created_by | uuid | FK → users | |
+
+Tối đa một Giá khuyến mãi hiệu lực mỗi thời điểm (BR-PRC-02): exclusion constraint `EXCLUDE USING gist (variant_id WITH =, tstzrange(starts_at, ends_at) WITH &&)` (extension `btree_gist`).
+
+#### `vouchers`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| code | text | UK, NN, CHECK = upper(code) | BR-VCH-09 |
+| type | enum `percent`/`fixed` | NN | BR-VCH-03 |
+| value | bigint | NN, CHECK > 0 | % (1–100) hoặc số tiền |
+| max_discount | bigint | | chỉ `percent` |
+| min_subtotal | bigint | NN, default 0 | BR-VCH-04 |
+| total_limit | int | | null = không giới hạn |
+| per_buyer_limit | int | | BR-VCH-07 |
+| used_count | int | NN, default 0, CHECK ≥ 0 | đếm có khoá dòng ([04-data-consistency.md](./architecture/04-data-consistency.md)) |
+| starts_at, ends_at | timestamptz | NN | |
+| is_active | boolean | NN | |
+
+#### `voucher_usages`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| voucher_id | uuid | FK → vouchers RESTRICT, NN | |
+| order_id | uuid | FK → orders RESTRICT, UK, NN | tối đa một Voucher mỗi đơn (BR-VCH-01) |
+| user_id | uuid | FK → users, IX | |
+| phone | text | NN, IX | đếm theo Tài khoản **hoặc** SĐT (BR-VCH-07) |
+| discount_amount | bigint | NN | |
+| released_at | timestamptz | | trả lượt khi huỷ trước Đang giao (BR-VCH-08) |
+| created_at | timestamptz | NN | |
+
+IX `(voucher_id, user_id) WHERE released_at IS NULL`, `(voucher_id, phone) WHERE released_at IS NULL`.
+
+### 4.4. Cart
+
+#### `carts`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| user_id | uuid | FK → users CASCADE | null với Khách vãng lai (BR-CRT-01, ADR 0011) |
+| guest_token_hash | text | UK | cookie Khách vãng lai |
+| status | enum `active`/`merged`/`checked_out`/`expired` | NN | |
+| last_activity_at | timestamptz | NN, IX | hết hạn 30 ngày (BR-CRT-02) |
+| created_at, updated_at | timestamptz | NN | |
+
+CHECK `(user_id IS NOT NULL) <> (guest_token_hash IS NOT NULL)`. Partial UK `(user_id) WHERE status = 'active'`. Khoá dòng khi checkout và gộp giỏ (ADR 0009).
+
+#### `cart_items`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| cart_id | uuid | FK → carts CASCADE, NN | |
+| variant_id | uuid | FK → product_variants RESTRICT, NN | |
+| quantity | int | NN, CHECK 1..10 | BR-CRT-05 |
+| price_seen | bigint | NN | Giá áp dụng lúc thêm, chỉ để báo giá đổi (BR-CRT-04); **không** dùng để tính tiền |
+| created_at, updated_at | timestamptz | NN | |
+
+UK `(cart_id, variant_id)`.
+
+### 4.5. Inventory
+
+#### `warehouses`
+
+MVP có một Kho (BR-INV-01).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| code | text | UK, NN | |
+| name | text | NN | |
+| ghn_shop_id | text | | dùng khi tạo Vận đơn |
+
+#### `inventory_levels`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| variant_id | uuid | FK → product_variants RESTRICT, NN | |
+| warehouse_id | uuid | FK → warehouses RESTRICT, NN | |
+| on_hand | int | NN, CHECK ≥ 0 | Tồn kho (đã trừ hàng đã bán, ADR 0010) |
+| reserved | int | NN, CHECK ≥ 0 | tổng Giữ hàng còn hiệu lực (bộ đếm, đồng bộ với `inventory_reservations`) |
+| updated_at | timestamptz | NN | |
+
+UK `(variant_id, warehouse_id)`. CHECK `reserved <= on_hand` → Số lượng bán được = `on_hand − reserved` ≥ 0 (BR-INV-02).
+
+#### `inventory_reservations`
+
+Giữ hàng 15 phút của đơn online (BR-INV-05, ADR 0003).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders RESTRICT, NN | |
+| variant_id | uuid | FK → product_variants, NN | |
+| warehouse_id | uuid | FK → warehouses, NN | |
+| quantity | int | NN, CHECK > 0 | |
+| status | enum `active`/`converted`/`released`/`expired` | NN | |
+| expires_at | timestamptz | NN | |
+| resolved_at | timestamptz | | |
+
+Partial UK `(order_id, variant_id) WHERE status = 'active'`. IX `(status, expires_at)` cho job hết hạn.
+
+#### `awaiting_dispatch_items`
+
+Hàng chờ xuất theo Mã đơn (BR-INV-10, ADR 0010).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders RESTRICT, NN | |
+| variant_id | uuid | FK → product_variants, NN | |
+| warehouse_id | uuid | FK → warehouses, NN | |
+| quantity | int | NN, CHECK > 0 | |
+| created_at | timestamptz | NN | |
+
+UK `(order_id, variant_id)`. Dòng bị **xoá** khi Vận đơn tạo xong hoặc trả về Tồn kho khi huỷ (BR-INV-07). Hàng trên kệ = `on_hand` + tổng dòng ở đây.
+
+#### `inventory_movements`
+
+Sổ biến động, chỉ thêm không sửa (BR-INV-09).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| inventory_level_id | uuid | FK → inventory_levels RESTRICT, NN | |
+| type | enum `receipt`/`adjustment`/`stock_count`/`sale`/`cancel_restock`/`return_restock` | NN | |
+| quantity_delta | int | NN, CHECK ≠ 0 | |
+| order_id | uuid | FK → orders | |
+| return_id | uuid | FK → returns | |
+| reason | text | | bắt buộc với điều chỉnh thủ công (`business/02` §4) |
+| actor_user_id | uuid | FK → users | |
+| created_at | timestamptz | NN | |
+
+IX `(inventory_level_id, created_at DESC)`.
+
+#### `stock_counts`
+
+Kiểm kê (BR-INV-12, US-703).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| inventory_level_id | uuid | FK → inventory_levels RESTRICT, NN | |
+| counted_qty | int | NN, CHECK ≥ 0 | |
+| expected_qty | int | NN | Tồn kho + Hàng chờ xuất lúc xác nhận |
+| difference | int | NN | |
+| movement_id | uuid | FK → inventory_movements | |
+| actor_user_id | uuid | FK → users, NN | |
+| confirmed_at | timestamptz | NN | |
+
+### 4.6. Ordering
+
+#### `checkout_quotes`
+
+Tính thử có hạn (BR-ORD-07, ADR 0013).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| cart_id | uuid | FK → carts CASCADE, NN | |
+| lines | jsonb | NN | snapshot dòng, giá, Voucher phân bổ |
+| subtotal, discount_amount, shipping_fee, total | bigint | NN | |
+| voucher_code | text | | |
+| shipping_fee_fallback | boolean | NN | BR-SHP-02 |
+| fingerprint | text | NN | hash nội dung để so khớp khi đặt đơn |
+| expires_at | timestamptz | NN | |
+| created_at | timestamptz | NN | |
+
+#### `orders`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| code | text | UK, NN | `FS<YYMM>-XXXXXX` ngẫu nhiên (BR-ORD-03) |
+| user_id | uuid | FK → users RESTRICT, IX | null với Khách vãng lai; gắn sau theo BR-ORD-08 |
+| quote_id | uuid | FK → checkout_quotes, UK | |
+| status | enum `PENDING_PAYMENT`/`PLACED`/`CONFIRMED`/`PACKING`/`SHIPPING`/`DELIVERED`/`COMPLETED`/`CANCELLED`/`RETURNED_TO_SENDER` | NN | `business/05` §1 |
+| payment_method | enum `cod`/`online` | NN | BR-PAY-01 |
+| contact_name, contact_phone | text | NN | IX `contact_phone` (tra cứu US-401) |
+| contact_email | citext | IX | tuỳ chọn với Khách vãng lai |
+| locale | enum `vi`/`en` | NN | BR-NTF-02 |
+| shipping_province_code, shipping_ward_code | text | FK → provinces / wards, NN | BR-ORD-04 |
+| shipping_street, shipping_recipient, shipping_phone | text | NN | snapshot, không tham chiếu sổ địa chỉ |
+| subtotal | bigint | NN | |
+| discount_amount | bigint | NN, default 0 | |
+| shipping_fee | bigint | NN | 0 nếu miễn phí ship (BR-SHP-03) |
+| total | bigint | NN, CHECK > 0 | BR-ORD-01, BR-ORD-09 |
+| total_weight_grams | int | NN | |
+| invoice_info | jsonb | | tên công ty, MST, địa chỉ, email (`business/06` §3) |
+| placed_at, confirmed_at, delivered_at, completed_at, cancelled_at | timestamptz | | |
+| cancel_reason | text | | bắt buộc nếu Staff huỷ |
+| cancelled_by | enum `buyer`/`staff`/`system` | | |
+| anonymized_at | timestamptz | | CMP-05 |
+| created_at, updated_at | timestamptz | NN | |
+
+CHECK `total = subtotal - discount_amount + shipping_fee`. IX `(status, created_at DESC)`, `(user_id, created_at DESC)`, `(status, delivered_at)` cho job T13, `(status, created_at) WHERE status = 'PENDING_PAYMENT'` cho job T4.
+
+#### `order_items`
+
+Bản chụp lúc đặt (BR-ORD-02, ADR 0012).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders RESTRICT, NN | |
+| variant_id | uuid | FK → product_variants RESTRICT, NN | |
+| product_name, sku, size_name, color_name | text | NN | snapshot |
+| list_price | bigint | NN | Giá bán lúc đặt |
+| unit_price | bigint | NN | Giá áp dụng lúc đặt (BR-PRC-03) |
+| quantity | int | NN, CHECK > 0 | |
+| line_total | bigint | NN | `unit_price × quantity` |
+| voucher_discount | bigint | NN, CHECK 0..line_total | phân bổ một lần (BR-ORD-02) |
+
+UK `(order_id, variant_id)`. Mức giảm KM (BR-PRC-04) tính từ `list_price` và `unit_price`, không lưu số đã làm tròn.
+
+#### `order_status_history`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders RESTRICT, NN, IX | |
+| from_status, to_status | enum trạng thái Đơn | to NN | |
+| transition | text | NN | mã T1–T14 (`business/05` §3) |
+| actor_type | enum `buyer`/`staff`/`system` | NN | |
+| actor_user_id | uuid | FK → users | |
+| reason | text | | |
+| created_at | timestamptz | NN | |
+
+#### `order_flags`
+
+Cờ cần xử lý cho Staff.
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders RESTRICT, NN | |
+| type | enum `shipping_fee_fallback`/`amount_mismatch`/`unexpected_payment`/`shipment_creation_failed`/`shipment_exception`/`out_of_order_event` | NN | BR-SHP-02, BR-PAY-04, BR-PAY-05, BR-SHP-05, BR-SHP-08 |
+| details | jsonb | | |
+| resolved_at | timestamptz | | |
+| resolved_by | uuid | FK → users | |
+| created_at | timestamptz | NN | |
+
+Partial IX `(created_at) WHERE resolved_at IS NULL` cho danh sách cần xử lý.
+
+#### `idempotency_keys`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| scope | text | NN | ví dụ `checkout.place-order`, `payments.create-link` |
+| key | text | NN | header `Idempotency-Key` ([03-api.md](./architecture/03-api.md)) |
+| request_hash | text | NN | cùng key khác body → `409` |
+| response_status | int | | |
+| response_body | jsonb | | |
+| expires_at | timestamptz | NN | |
+| created_at | timestamptz | NN | |
+
+UK `(scope, key)`.
+
+### 4.7. Payments
+
+#### `payments`
+
+Một dòng cho **mỗi lần thử** thanh toán online (ADR 0004).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders RESTRICT, NN, IX | |
+| gateway | enum `vnpay`/`momo` | NN | BR-PAY-01 |
+| gateway_txn_ref | text | UK, NN | mã gửi Cổng |
+| gateway_txn_id | text | | mã giao dịch Cổng trả về |
+| amount_requested | bigint | NN | |
+| amount_captured | bigint | | BR-PAY-04 |
+| status | enum `pending`/`succeeded`/`failed`/`expired` | NN | |
+| payment_url_expires_at | timestamptz | NN | phút thứ 10 (BR-INV-05) |
+| confirmed_via | enum `ipn`/`reconciliation` | | không bao giờ Return URL (BR-PAY-02) |
+| succeeded_at | timestamptz | | |
+| created_at, updated_at | timestamptz | NN | |
+
+IX `(status, created_at)` cho job Đối soát 5 phút.
+
+#### `payment_notifications`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| payment_id | uuid | FK → payments RESTRICT | null nếu không khớp được |
+| gateway | enum `vnpay`/`momo` | NN | |
+| dedup_key | text | NN | UK `(gateway, dedup_key)` → xử lý một lần (BR-PAY-03) |
+| signature_valid | boolean | NN | |
+| raw_payload | jsonb | NN | thời hạn lưu chờ chốt (`business/06` §5) |
+| processed_at | timestamptz | | |
+| received_at | timestamptz | NN | |
+
+#### `cod_collections`
+
+Khoản thu COD (`business/05` T2, T7, T11).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders RESTRICT, UK, NN | |
+| amount | bigint | NN | = Tổng tiền đơn (BR-SHP-07) |
+| status | enum `pending`/`collected`/`cancelled` | NN | |
+| collected_at | timestamptz | | |
+
+### 4.8. Refunds-returns
+
+#### `refunds`
+
+ADR 0006. Gắn với đúng **một** nguồn tiền đã nhận (BR-REF-01).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders RESTRICT, NN, IX | |
+| payment_id | uuid | FK → payments RESTRICT | đơn online |
+| cod_collection_id | uuid | FK → cod_collections RESTRICT | đơn COD Đổi trả (BR-REF-04) |
+| return_id | uuid | FK → returns RESTRICT | |
+| reason | enum `order_cancelled`/`returned_to_sender`/`return_accepted`/`amount_mismatch`/`unexpected_payment` | NN | BR-REF-02 |
+| amount | bigint | NN, CHECK > 0 | BR-REF-05, BR-RET-07 |
+| status | enum `requested`/`refunded` | NN | |
+| gateway_refund_ref | text | | mã giao dịch hoàn, bắt buộc khi `refunded` (BR-REF-03) |
+| recorded_by | uuid | FK → users | |
+| refunded_at | timestamptz | | |
+| created_at | timestamptz | NN | |
+
+CHECK đúng một trong `payment_id`/`cod_collection_id`. UK `(payment_id, reason, return_id)` (NULLS NOT DISTINCT) → một thao tác một yêu cầu (BR-REF-06). Tổng ≤ số thực nhận: kiểm tra ở service ([04-data-consistency.md](./architecture/04-data-consistency.md)).
+
+#### `returns`
+
+Đổi trả do Staff ghi nhận (BR-RET-04).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders RESTRICT, NN, IX | |
+| status | enum `open`/`accepted`/`rejected` | NN | BR-RET-08 |
+| requested_at | timestamptz | NN | trong 7 ngày từ `delivered_at` (BR-RET-01) |
+| channel | enum `hotline`/`zalo` | NN | |
+| return_shipping_paid_by | enum `store`/`buyer` | | BR-RET-06 |
+| notes | text | | gửi lại hàng không chấp nhận (BR-RET-09) |
+| created_by, decided_by | uuid | FK → users | |
+| decided_at | timestamptz | | |
+
+Partial IX `(order_id) WHERE status = 'open'` để chặn T13.
+
+#### `return_items`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| return_id | uuid | FK → returns CASCADE, NN | |
+| order_item_id | uuid | FK → order_items RESTRICT, NN | |
+| quantity_returned | int | NN, CHECK > 0 | |
+| quantity_accepted | int | CHECK 0..quantity_returned | BR-RET-08 |
+| restock | boolean | | hàng lỗi = false (BR-INV-08) |
+| refund_amount | bigint | | BR-RET-07 |
+
+UK `(return_id, order_item_id)`. Tổng `quantity_accepted` qua mọi lần Đổi trả ≤ `order_items.quantity` (service).
+
+### 4.9. Fulfillment
+
+#### `provinces`, `wards`
+
+Đơn vị hành chính 2 cấp sau 07/2025 (BR-ORD-04).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| code | text | PK | mã hành chính |
+| province_code | text | FK → provinces, NN, IX | *(chỉ `wards`)* |
+| name | text | NN | |
+| is_active | boolean | NN | |
+
+#### `ghn_ward_mappings`
+
+US-1004, [06-integrations.md](./architecture/06-integrations.md) §4.2.
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| ward_code | text | PK, FK → wards | |
+| ghn_province_id, ghn_district_id | int | NN | |
+| ghn_ward_code | text | NN | |
+| verified_by | uuid | FK → users | |
+| updated_at | timestamptz | NN | |
+
+#### `shipments`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| order_id | uuid | FK → orders RESTRICT, UK, NN | bàn giao lại dùng lại Vận đơn (BR-SHP-05) |
+| ghn_order_code | text | UK | null tới khi GHN tạo xong |
+| status | enum `creating`/`created`/`creation_failed`/`picked`/`delivering`/`delivered`/`returning`/`returned`/`exception`/`cancelled` | NN | |
+| cod_amount | bigint | NN | BR-SHP-07 |
+| carrier_fee | bigint | | Cước vận chuyển cửa hàng trả (BR-SHP-03) |
+| creation_input | jsonb | | thời hạn lưu chờ chốt (`business/06` §5) |
+| last_event_at | timestamptz | | sắp thứ tự sự kiện ([07-async-events-jobs.md](./architecture/07-async-events-jobs.md) §1.3) |
+| handed_over_by | uuid | FK → users | |
+| created_at, updated_at | timestamptz | NN | |
+
+IX `(status, updated_at)` cho Đối soát 15 phút.
+
+#### `shipment_events`
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| shipment_id | uuid | FK → shipments RESTRICT, NN | |
+| source | enum `webhook`/`reconciliation` | NN | BR-SHP-06 |
+| dedup_key | text | NN | UK `(shipment_id, dedup_key)` |
+| ghn_status | text | NN | |
+| occurred_at | timestamptz | NN | |
+| raw_payload | jsonb | NN | |
+| applied_at | timestamptz | | null = đang giữ chờ áp dụng (`business/05` §4.2) |
+| attempts | int | NN, default 0 | |
+
+### 4.10. Notifications
+
+#### `outbox_events`
+
+ADR 0003, ADR 0007, [07-async-events-jobs.md](./architecture/07-async-events-jobs.md) §2.
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| type | text | NN | ví dụ `ordering.unexpected-payment-received` |
+| aggregate_type, aggregate_id | text, uuid | NN | không FK |
+| payload | jsonb | NN | không chứa PII |
+| status | enum `pending`/`enqueued`/`done`/`failed` | NN | `done` = downstream ack |
+| attempts | int | NN | |
+| next_attempt_at | timestamptz | | |
+| processed_at | timestamptz | | |
+| created_at | timestamptz | NN | |
+
+Partial IX `(next_attempt_at) WHERE status IN ('pending','enqueued')`.
+
+#### `email_logs`
+
+[07-async-events-jobs.md](./architecture/07-async-events-jobs.md) §3.2.
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| outbox_event_id | uuid | FK → outbox_events | |
+| order_id | uuid | FK → orders | |
+| template | text | NN | |
+| locale | enum `vi`/`en` | NN | BR-NTF-02 |
+| recipient | citext | | xoá sau 90 ngày |
+| amount | bigint | | xoá sau 90 ngày |
+| status | enum `sent`/`failed`/`cancelled` | NN | |
+| provider_message_id | text | | |
+| created_at | timestamptz | NN, IX | |
+
+### 4.11. Compliance
+
+#### `consents`
+
+CMP-01..03.
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| user_id | uuid | FK → users RESTRICT | |
+| order_id | uuid | FK → orders RESTRICT | đồng ý lúc checkout của Khách vãng lai |
+| purpose | enum `data_processing`/`marketing_email` | NN | |
+| granted | boolean | NN | |
+| policy_version | text | NN | |
+| channel | enum `signup`/`checkout`/`account` | NN | |
+| ip_hmac | text | | |
+| created_at | timestamptz | NN | |
+
+CHECK ít nhất một trong `user_id`/`order_id`.
+
+#### `data_erasure_requests`
+
+CMP-05, CMP-06, US-1101.
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| user_id | uuid | FK → users RESTRICT | null với đơn vãng lai |
+| guest_phone, guest_order_code | text | | yêu cầu riêng cho đơn vãng lai |
+| status | enum `received`/`verified`/`processing`/`completed`/`rejected` | NN | |
+| steps | jsonb | NN | trạng thái từng bước ẩn danh |
+| verified_by | uuid | FK → users | |
+| received_at | timestamptz | NN | |
+| completed_at | timestamptz | | chỉ khi mọi bước thành công |
+
+#### `data_access_logs`
+
+CMP-07, US-1102.
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| id | uuid | PK | |
+| staff_user_id | uuid | FK → users RESTRICT, NN | |
+| action | enum `view_customer`/`view_order`/`search_by_phone` | NN | |
+| subject_user_id | uuid | FK → users | |
+| order_id | uuid | FK → orders | |
+| query_hmac | text | | SĐT tìm kiếm, không lưu thô |
+| created_at | timestamptz | NN, IX | |
+
+### 4.12. Admin-config
+
+#### `settings`
+
+US-1002. Giá trị cấu hình được: hạn mức COD (BR-PAY-06), Phí ship dự phòng, ngưỡng miễn phí ship (BR-SHP-04), kích thước gói mặc định (BR-SHP-01). Các thời hạn cố định (15/10/7 phút, 7 ngày) **không** nằm ở đây (BR-INV-05).
+
+| Cột | Kiểu | Ràng buộc | Ghi chú |
+|---|---|---|---|
+| key | text | PK | ví dụ `cod.max_order_total` |
+| value | jsonb | NN | |
+| updated_by | uuid | FK → users | |
+| updated_at | timestamptz | NN | thay đổi ghi `audit_logs` |
+
+---
+
+## 5. Ràng buộc toàn vẹn & concurrency
+
+Chi tiết cơ chế (transaction, khoá, thứ tự khoá, cuộc đua thanh toán–hết hạn) ở [`architecture/04-data-consistency.md`](./architecture/04-data-consistency.md). Tóm tắt những gì database tự đảm bảo:
+
+### 5.1. CHECK
+
+- `inventory_levels`: `on_hand >= 0`, `reserved >= 0`, `reserved <= on_hand`.
+- `cart_items.quantity BETWEEN 1 AND 10`; số lượng ở mọi bảng dòng `> 0`.
+- `orders.total > 0` và `total = subtotal - discount_amount + shipping_fee`.
+- `order_items.voucher_discount BETWEEN 0 AND line_total`.
+- `carts`: đúng một trong `user_id`/`guest_token_hash`; `refunds`: đúng một nguồn tiền.
+
+### 5.2. Unique một phần và exclusion
+
+| Ràng buộc | Mục đích |
+|---|---|
+| `carts(user_id) WHERE status = 'active'` | một giỏ active mỗi Tài khoản |
+| `product_images(product_id, color_id) WHERE is_primary` | một ảnh chính mỗi màu |
+| `customer_addresses(user_id) WHERE is_default` | một địa chỉ mặc định |
+| `inventory_reservations(order_id, variant_id) WHERE status = 'active'` | không giữ trùng |
+| `sale_prices` EXCLUDE theo khoảng thời gian | BR-PRC-02 |
+| `payment_notifications(gateway, dedup_key)`, `shipment_events(shipment_id, dedup_key)` | xử lý thông báo một lần (BR-PAY-03) |
+| `idempotency_keys(scope, key)` | retry không tạo đơn/link trùng |
+
+### 5.3. Bất biến kiểm tra ở service (trong transaction có khoá)
+
+Tổng Hoàn tiền ≤ số thực nhận (BR-REF-06); lượt Voucher (BR-VCH-04, BR-VCH-07); Giá khuyến mãi < Giá bán (BR-PRC-05); chuyển trạng thái Đơn hợp lệ (`business/05` §3); điều chỉnh giảm Tồn kho ≤ Số lượng bán được (BR-INV-11); chống vòng lặp cây Danh mục.
+
+---
+
+## 6. Retention & cleanup
+
+Thời hạn theo [`business/06-compliance.md`](./business/06-compliance.md) §5; job ở [`architecture/07-async-events-jobs.md`](./architecture/07-async-events-jobs.md) §4.
+
+| Bảng | Xử lý |
+|---|---|
+| `outbox_events` | xoá dòng `done` sau 90 ngày |
+| `email_logs` | sau 90 ngày đặt `recipient`, `amount` = null, giữ dòng |
+| `refresh_tokens`, `password_reset_tokens`, `email_verification_tokens`, `guest_order_sessions` | xoá dòng hết hạn/đã dùng (job định kỳ) |
+| `checkout_quotes` | xoá dòng hết hạn không gắn đơn |
+| `idempotency_keys` | xoá sau `expires_at` |
+| `carts` | `expired` sau 30 ngày không hoạt động (BR-CRT-02), xoá sau đó |
+| `payment_notifications.raw_payload`, `shipments.creation_input`, địa chỉ trên `orders` | **[Cần xác minh trước go-live]**, chỉ ẩn danh khi có Yêu cầu xoá dữ liệu |
+| `users`, `orders`, `customer_addresses`, `consents` | ẩn danh theo CMP-05, không xoá dòng |

@@ -16,7 +16,7 @@
 | GHN | Phí ship, Vận đơn, trạng thái giao | `fulfillment` |
 | Email provider (SMTP/API) | Email giao dịch | `notifications` |
 | Object storage (S3-compatible) | Ảnh Sản phẩm | `catalog` |
-| Google OAuth | Đăng nhập Google | `auth` |
+| Google OAuth | Đăng nhập Google | `identity` |
 
 ## 2. Thanh toán: VNPay và MoMo
 

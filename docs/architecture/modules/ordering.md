@@ -5,8 +5,8 @@
 ## 1. Trách nhiệm
 
 - Sở hữu: Tính thử (quote), Order, Dòng đơn hàng (bản chụp), lượt dùng Voucher gắn với đơn, quyền truy cập đơn của Khách vãng lai, Cờ cần xử lý trên đơn.
-- Điều phối checkout: gọi `catalog` (giá áp dụng), `cart`, `inventory` (giữ/trừ), `promotions` (Voucher), `shipping` (phí GHN), `payments` (tạo Thanh toán) — **qua interface của module đó, trong cùng transaction DB**, không truy cập bảng của module khác trực tiếp ([../02-modules.md](../02-modules.md)).
-- Không sở hữu: Thanh toán/Hoàn tiền (`payments`), Vận đơn (`shipping`), Đổi trả (`returns`), Tồn kho (`inventory`). Các module đó báo kết quả về bằng lệnh chuyển trạng thái của `ordering`.
+- Điều phối checkout: gọi `catalog` (giá áp dụng), `cart`, `inventory` (giữ/trừ), `pricing` (Voucher), `fulfillment` (phí GHN), `payments` (tạo Thanh toán) — **qua interface của module đó, trong cùng transaction DB**, không truy cập bảng của module khác trực tiếp ([../02-modules.md](../02-modules.md)).
+- Không sở hữu: Thanh toán/Hoàn tiền (`payments`), Vận đơn (`fulfillment`), Đổi trả (`refunds-returns`), Tồn kho (`inventory`). Các module đó báo kết quả về bằng lệnh chuyển trạng thái của `ordering`.
 
 ## 2. Mô hình
 
@@ -134,10 +134,10 @@ Thuật toán ở `business/04-business-rules.md` §5 ("Phân bổ Voucher về 
 | `business/05` | Cài đặt |
 |---|---|
 | §4.1 Tiền về cho đơn không còn chờ thanh toán | `payments` gọi `ordering.onPaymentSucceeded`; xử lý theo [04-data-consistency](../04-data-consistency.md) §3; phát `ordering.unexpected-payment-received` |
-| §4.2 Thông báo không theo thứ tự | `ordering` chỉ áp dụng chuyển hợp lệ từ trạng thái hiện tại; trùng/đã qua → bỏ qua; tới sớm → `shipping` giữ lại và retry ([../07-async-events-jobs.md](../07-async-events-jobs.md) mục 1.3); mâu thuẫn → log |
+| §4.2 Thông báo không theo thứ tự | `ordering` chỉ áp dụng chuyển hợp lệ từ trạng thái hiện tại; trùng/đã qua → bỏ qua; tới sớm → `fulfillment` giữ lại và retry ([../07-async-events-jobs.md](../07-async-events-jobs.md) mục 1.3); mâu thuẫn → log |
 | §4.3 Huỷ khi Đang giao | Bảng chuyển chỉ cho T14 từ `SHIPPING` |
 | §4.4 Đổi trả | Không đổi `orders.status`; guard T13 hỏi `returns.hasOpen(orderId)` |
-| §4.5 Huỷ khi Vận đơn đang tạo | Guard T9; Vận đơn tạo xong cho đơn `CANCELLED` → `shipping` tự huỷ Vận đơn + Cờ |
+| §4.5 Huỷ khi Vận đơn đang tạo | Guard T9; Vận đơn tạo xong cho đơn `CANCELLED` → `fulfillment` tự huỷ Vận đơn + Cờ |
 | §4.6 Sai số tiền | `payments` không gọi T3; tạo Hoàn tiền + Cờ `payment_amount_mismatch` trên đơn |
 | §4.7 Vận đơn gặp sự cố | Cờ `shipment_exception`; Staff gỡ cờ hoặc T14 |
 
