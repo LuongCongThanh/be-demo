@@ -13,4 +13,4 @@ Thư mục này chứa các convention **chung, generic** cho toàn bộ ecommer
 | 5   | [ecommerce-prisma-schema-guide.md](ecommerce-prisma-schema-guide.md)   | Viết `schema.prisma` cho 15 bảng ecommerce từng bước, và cách dùng Prisma Client (CRUD, transaction, phân trang, N+1) trong NestJS                                                           | Khi cần model/quan hệ DB mới, hoặc tham chiếu từ `api-conventions.md` §B1 |
 | 6   | [git-workflow.md](git-workflow.md)                                     | Branching strategy (`main`/`dev`/`feature`/`fix`/`chore`/`docs`/`hotfix`), commit convention, PR & merge strategy                                                                            | Trước khi tạo branch/PR mới, hoặc khi cần tra quy tắc commit/merge        |
 
-Glossary thuật ngữ kỹ thuật (HTTP, NestJS, Auth, Prisma, testing...) nằm ở [`../auth-playbook/GLOSSARY.md`](../auth-playbook/GLOSSARY.md) — không phải ở thư mục này, vì nội dung viết riêng cho playbook Auth.
+Glossary thuật ngữ kỹ thuật (HTTP, NestJS, Auth, Prisma, testing...) nằm ở [`../../GLOSSARY.md`](../../GLOSSARY.md) — không phải ở thư mục này, vì nội dung viết riêng cho playbook Auth.

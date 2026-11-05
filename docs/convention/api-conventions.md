@@ -40,7 +40,7 @@ CRUD chỉ là **một trường hợp riêng** của flow API tổng quát — 
 
 > Tài liệu này là **convention chung, generic** — mô tả _cách_ tạo 1 API/module, không phải bản ghi chi tiết business rule của 1 resource cụ thể. Khi 1 resource thật (vd. `categories`) được lên kế hoạch/implement, business rule cụ thể + code thật của nó sống ở tài liệu/PR riêng của resource đó (vd. `../categories-module-plan.md`), tài liệu đó tham chiếu ngược lại các mục dưới đây cho phần convention dùng chung.
 >
-> ⚠️ `../../CONTEXT.md` ở root hiện vẫn mô tả domain "Todo List" cũ, chưa khớp schema ecommerce thật (`docs/agents/domain.md` yêu cầu đọc `CONTEXT.md` trước khi code) — gap đã biết, cần task riêng để cập nhật, không xử lý trong convention này.
+> ⚠️ `../../GLOSSARY.md` ở root hiện vẫn mô tả domain "Todo List" cũ, chưa khớp schema ecommerce thật (`docs/agents/domain.md` yêu cầu đọc `GLOSSARY.md` trước khi code) — gap đã biết, cần task riêng để cập nhật, không xử lý trong convention này.
 
 ## A. Flow tổng quát — áp dụng cho MỌI API
 
@@ -901,7 +901,7 @@ Checklist chi tiết bên dưới là cách để đạt Definition of Done này
 
 | Gap                                                                   | Mức độ                                                                   |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `../../CONTEXT.md` mô tả domain "Todo" cũ, chưa khớp schema ecommerce | Non-blocking cho việc code, nhưng gây nhầm domain nếu không đọc kỹ trước |
+| `../../GLOSSARY.md` mô tả domain "Todo" cũ, chưa khớp schema ecommerce | Non-blocking cho việc code, nhưng gây nhầm domain nếu không đọc kỹ trước |
 
 > Gap đã fix (`../../src/bootstrap/configure-app.ts` dùng chung giữa `main.ts`/e2e, `AuthModule` + guard) đã được xoá khỏi bảng này — không giữ lại lịch sử "đã từng là gap" ở đây để tránh đọc nhầm thành "chưa xong". Nếu cần biết trạng thái implement thật của 1 resource cụ thể (vd. `categories` đã đi qua bao nhiêu bước), xem tài liệu kế hoạch riêng của resource đó (vd. `../categories-module-plan.md`), không suy luận từ convention doc này.
 

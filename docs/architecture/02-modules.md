@@ -1,0 +1,119 @@
+# 02. Module và ranh giới
+
+> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../README.md#trạng-thái-tài-liệu)). Quy ước đặt tên và cấu trúc file theo [`../convention/`](../convention/).
+
+## 1. Danh sách module
+
+| Module | Trách nhiệm | Nghiệp vụ |
+|---|---|---|
+| `identity` | Đăng ký, đăng nhập email/Google, xác thực email, quên mật khẩu, phiên, Tài khoản Staff/Admin, vai trò | E5, US-1001, ADR 0005 |
+| `catalog` | Danh mục nhiều cấp, Sản phẩm, Biến thể size×màu, danh sách size, bảng màu, ảnh theo màu, tìm kiếm/lọc | BR-CAT-*, E1, E8, ADR 0001 |
+| `pricing` | Giá khuyến mãi, Voucher, lượt dùng Voucher, phân bổ Voucher | BR-PRC-*, BR-VCH-*, E9 |
+| `cart` | Giỏ Khách hàng và Khách vãng lai, gộp giỏ | BR-CRT-*, E2, ADR 0009 |
+| `inventory` | Tồn kho theo Biến thể × Kho, Giữ hàng, Hàng chờ xuất, nhập/điều chỉnh, Kiểm kê, sổ biến động | BR-INV-*, E7, ADR 0003, ADR 0010 |
+| `ordering` | Tính thử, checkout, Đơn hàng, state machine, huỷ, tra cứu đơn Khách vãng lai | BR-ORD-*, E3, E4, E6, ADR 0011–0013 — [modules/ordering.md](./modules/ordering.md) |
+| `payments` | Thanh toán COD/online, adapter VNPay/MoMo, IPN, Đối soát | BR-PAY-*, ADR 0004 |
+| `refunds-returns` | Yêu cầu Hoàn tiền, ghi nhận Hoàn tiền thủ công, Đổi trả | BR-REF-*, BR-RET-*, ADR 0006 |
+| `fulfillment` | Phí ship, Vận đơn GHN, webhook và đối soát trạng thái giao, ánh xạ địa chỉ | BR-SHP-*, US-1004 |
+| `notifications` | Email theo ngôn ngữ người nhận, EmailLog | BR-NTF-* |
+| `reporting` | Doanh thu, bán chạy, xuất đơn đã thu tiền | BR-REV-*, BR-CAT-12, US-1003 |
+| `compliance` | Đồng ý xử lý dữ liệu, yêu cầu xoá/ẩn danh, lịch sử truy cập dữ liệu, thời hạn lưu | [06-compliance.md](../business/06-compliance.md), E11 |
+| `admin-config` | Cấu hình vận hành (hạn mức COD, …), audit log back-office | US-1002, BR-PAY-06 |
+
+Hạ tầng dùng chung (không phải module nghiệp vụ): `config`, `database` (Prisma), `outbox`, `queue`, `storage`, `logging`, `common` (filter, guard, pipe, decorator).
+
+## 2. Quyền sở hữu dữ liệu
+
+Chỉ module sở hữu được **ghi** vào bảng của nó; module khác gọi service public của module đó. Đọc chéo cho mục đích hiển thị được phép qua service, không truy vấn thẳng bảng của module khác.
+
+| Module | Sở hữu |
+|---|---|
+| `identity` | users, roles, sessions/refresh tokens, email verification, password reset |
+| `catalog` | categories, products, product_variants, product_images, sizes, colors |
+| `pricing` | sale prices, vouchers, voucher_usages |
+| `cart` | carts, cart_items |
+| `inventory` | inventory, inventory_reservations, awaiting_dispatch, inventory_movements, stock counts |
+| `ordering` | quotes, orders, order_items, order status history, guest order access |
+| `payments` | payments, payment webhook events |
+| `refunds-returns` | refunds, returns, return_items |
+| `fulfillment` | shipments, shipment events, administrative units + GHN mapping |
+| `notifications` | email_logs |
+| `compliance` | consents, data deletion requests, data access logs |
+| `admin-config` | settings, audit_logs |
+| hạ tầng `outbox` | outbox_events, idempotency_keys |
+
+Chi tiết bảng: [../database-design.md](../database-design.md) (§8 liệt kê bảng còn phải thiết kế).
+
+Một use case cần ghi nhiều module (ví dụ checkout: `ordering` + `inventory` + `pricing` + `payments`) chạy trong **một transaction** do module điều phối (`ordering`) mở; transaction client được truyền vào service của module khác ([04-data-consistency.md](./04-data-consistency.md)).
+
+## 3. Quy tắc phụ thuộc
+
+```mermaid
+flowchart TB
+    ordering --> cart
+    ordering --> pricing
+    ordering --> inventory
+    ordering --> payments
+    ordering --> fulfillment
+    cart --> catalog
+    cart --> inventory
+    cart --> pricing
+    pricing --> catalog
+    inventory --> catalog
+    refunds-returns --> payments
+    refunds-returns --> ordering
+    refunds-returns --> inventory
+    reporting --> ordering
+```
+
+- Phụ thuộc một chiều, không vòng. Khi module dưới cần báo ngược lên (ví dụ `payments` báo thanh toán thành công cho `ordering`, `fulfillment` báo đã giao), dùng **domain event** qua outbox hoặc interface do module trên khai báo — không import ngược ([07-async-events-jobs.md](./07-async-events-jobs.md)).
+- `notifications`, `compliance`, `admin-config` chỉ được gọi tới hoặc lắng nghe event; không module nghiệp vụ nào phụ thuộc vào chúng để hoàn thành transaction.
+- Trong một module: Controller → Service → Prisma. Controller không truy cập DB; không thêm lớp repository mặc định (`../convention/`).
+
+## 4. Cấu trúc thư mục mục tiêu
+
+```text
+src/
+├── main.ts                  # bootstrap API
+├── worker.ts                # bootstrap Worker
+├── app.module.ts
+├── config/                  # env.validation.ts, config theo nhóm
+├── common/                  # filters/, guards/, pipes/, decorators/, dto/
+├── infrastructure/
+│   ├── database/            # prisma.service.ts
+│   ├── outbox/
+│   ├── queue/
+│   ├── storage/
+│   └── logging/
+└── modules/
+    ├── identity/
+    ├── catalog/
+    ├── pricing/
+    ├── cart/
+    ├── inventory/
+    ├── ordering/
+    ├── payments/
+    │   └── gateways/        # vnpay/, momo/ — adapter sau PaymentGateway (ADR 0004)
+    ├── refunds-returns/
+    ├── fulfillment/
+    │   └── ghn/
+    ├── notifications/
+    ├── reporting/
+    ├── compliance/
+    └── admin-config/
+```
+
+Mỗi module:
+
+```text
+modules/<module>/
+├── <module>.module.ts
+├── storefront/              # controller cho /api/v1/... của Người mua
+├── back-office/             # controller cho /api/v1/admin/...
+├── <module>.service.ts      # có thể tách theo use case khi file lớn
+├── dto/
+├── events/                  # tên và payload event module phát ra
+└── <module>.service.spec.ts
+```
+
+Không dùng barrel file (`index.ts`); alias `@src/*` chỉ dùng trong test (`../convention/`).

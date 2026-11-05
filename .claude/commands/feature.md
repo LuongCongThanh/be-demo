@@ -52,7 +52,7 @@ Với Medium/Large, thực hiện tuần tự, dừng lại xin xác nhận user
 
 ### 1. Discover — `mattpocock-skills:grill-with-docs`
 
-Mục tiêu: hiểu, chưa code. Thách thức business rule, API contract, validation, ràng buộc DB, race condition, test seam, error handling — dựa trên `CONTEXT.md`, `docs/adr/`, mục liên quan trong `docs/convention`, và `docs/<resource>-module-plan.md` nếu resource đã có.
+Mục tiêu: hiểu, chưa code. Thách thức business rule, API contract, validation, ràng buộc DB, race condition, test seam, error handling — dựa trên `GLOSSARY.md`, `docs/adr/`, mục liên quan trong `docs/convention`, và `docs/<resource>-module-plan.md` nếu resource đã có.
 
 Khảo sát rộng code hiện có → dùng agent `Explore` thay vì tự đọc tràn lan.
 

@@ -2,7 +2,7 @@
 
 > 📖 Xem [README.md](README.md) để biết vị trí file này trong toàn bộ convention và thứ tự đọc.
 >
-> Đọc kèm `../ecommerce-postgresql-database-summary.md` (thiết kế: bảng, PK/FK/UK, giả định nghiệp vụ). File này là **quy trình từng bước** để gõ thiết kế đó thành code Prisma thật, theo đúng quy ước Prisma v7 project đang dùng (⚠️ tham chiếu `doc/PLAN.md` bước 14-22 — file này không còn tồn tại, dead link có từ trước, chưa rõ nên trỏ về đâu).
+> Đọc kèm `../database-design.md` (thiết kế: bảng, PK/FK/UK, giả định nghiệp vụ). File này là **quy trình từng bước** để gõ thiết kế đó thành code Prisma thật, theo đúng quy ước Prisma v7 project đang dùng (⚠️ tham chiếu `doc/PLAN.md` bước 14-22 — file này không còn tồn tại, dead link có từ trước, chưa rõ nên trỏ về đâu).
 >
 > Không có bước nào tôi chạy hộ — bạn tự gõ/copy và tự chạy lệnh.
 
