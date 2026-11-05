@@ -36,6 +36,15 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-swagger-completeness.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/after-pr-create.sh"
+          }
+        ]
       }
     ]
   }

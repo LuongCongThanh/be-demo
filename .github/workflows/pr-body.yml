@@ -14,7 +14,15 @@ jobs:
       - name: Check body follows .github/pull_request_template.md
         env:
           BODY: ${{ github.event.pull_request.body }}
+          HEAD_REF: ${{ github.head_ref }}
+          AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
         run: |
+          # Release PRs (dev -> main) and bot PRs (Dependabot/Renovate) are exempt
+          if [[ "$HEAD_REF" == "dev" || "$AUTHOR_TYPE" == "Bot" ]]; then
+            echo "Exempt: head=$HEAD_REF author=$AUTHOR_TYPE"
+            exit 0
+          fi
+          # Keep in sync with .claude/hooks/enforce-pr-template.sh
           required=(
             "# 🏷️ Type"
             "## 📌 Summary"
@@ -35,8 +43,13 @@ jobs:
               status=1
             fi
           done
-          if ! grep -Eq -- '- \[[xX]\] (✨|🐛|♻️|🧹|📚)' <<< "$BODY"; then
-            echo "::error::Tick one Type checkbox"
+          if grep -Eq '^\*\*(Làm gì|Vì sao|Giải pháp|Kết quả|Module):\*\*[[:space:]]*(<!--|$)' <<< "${BODY//$'\r'/}"; then
+            echo "::error::Summary fields still hold template placeholders"
+            status=1
+          fi
+          ticked=$(grep -Ec '^- \[[xX]\] (✨ Feature|🐛 Bug|♻️ Refactor|🧹 Chore|📚 Docs)[[:space:]]*$' <<< "${BODY//$'\r'/}" || true)
+          if [[ "$ticked" != 1 ]]; then
+            echo "::error::Tick exactly one Type checkbox (found $ticked)"
             status=1
           fi
           exit $status
