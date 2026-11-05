@@ -5,7 +5,12 @@ import { IsStrongPassword } from '../auth/decorators/is-strong-password.decorato
 // class-validator's `@IsOptional()` only skips null/undefined, not an empty
 // string — an optional numeric env var left blank (as .env.example does)
 // would otherwise fail `@IsInt()`/`@Min()` instead of being treated as unset.
-const emptyStringToUndefined = () => Transform(({ value }: { value: unknown }) => (value === '' ? undefined : value));
+// Check the raw `obj[key]`: with `enableImplicitConversion`, `value` has
+// already been coerced ('' → 0) before this transform runs.
+const emptyStringToUndefined = () =>
+  Transform(({ value, obj, key }: { value: unknown; obj: Record<string, unknown>; key: string }) =>
+    obj[key] === '' ? undefined : value,
+  );
 
 // Biến bắt buộc: thiếu là app không chạy đúng được, nên không có `@IsOptional()`.
 // Biến optional: nơi gọi `ConfigService.get(key, default)` đã tự lo default,
