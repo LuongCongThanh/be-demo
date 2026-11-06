@@ -1,5 +1,0 @@
-blank_issues_enabled: false
-contact_links:
-  - name: Tài liệu dự án
-    url: https://github.com/LuongCongThanh/be-demo/tree/dev/docs
-    about: Đọc docs/business và docs/architecture trước khi tạo issue.

@@ -176,7 +176,7 @@
 - AC1: Đăng nhập Google lần đầu bằng email chưa có Tài khoản thì tạo Tài khoản mới.
 - AC2: Đăng nhập Google bằng email đã có Tài khoản email + mật khẩu thì liên kết vào Tài khoản đó. Nếu Tài khoản đó chưa xác thực email, mật khẩu cũ bị xoá và mọi phiên đăng nhập cũ mất hiệu lực, để người đã đăng ký trước bằng email của người khác không giữ được quyền truy cập.
 - AC3: Đăng nhập sai nhiều lần liên tiếp thì tạm khoá đăng nhập trong một khoảng thời gian.
-- AC4: Email thuộc Tài khoản Staff hoặc Admin thì không đăng nhập storefront được, kể cả bằng Google; báo lỗi chung.
+- AC4: Email thuộc Tài khoản Staff hoặc Admin thì không đăng nhập storefront được, kể cả bằng Google; báo lỗi chung. Với email/mật khẩu, storefront từ chối theo vai trò trả về khi đăng nhập; mọi thao tác mua hàng vẫn bị hệ thống chặn theo vai trò (xem [02-actors-permissions.md](./02-actors-permissions.md) mục 1).
 
 ### US-503 · Quên mật khẩu · P1
 

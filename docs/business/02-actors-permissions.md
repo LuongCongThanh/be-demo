@@ -15,7 +15,7 @@ Các quy tắc chung:
 
 - Mỗi Tài khoản nội bộ có đúng một vai trò `staff` hoặc `admin`. `admin` có toàn bộ quyền của `staff`.
 - Mỗi email chỉ thuộc **một** Tài khoản, dù là Khách hàng, Staff hay Admin.
-- Tài khoản nội bộ **không** dùng để mua hàng. Nhân viên muốn mua hàng thì đăng ký một Tài khoản Khách hàng riêng bằng **email khác**. Đăng nhập storefront (kể cả bằng Google) với email của Tài khoản nội bộ bị từ chối với thông báo lỗi chung.
+- Tài khoản nội bộ **không** dùng để mua hàng. Nhân viên muốn mua hàng thì đăng ký một Tài khoản Khách hàng riêng bằng **email khác**. Đăng nhập storefront (kể cả bằng Google) với email của Tài khoản nội bộ bị từ chối với thông báo lỗi chung. Với đăng nhập email/mật khẩu, việc từ chối do storefront thực hiện dựa trên vai trò trả về khi đăng nhập; hệ thống vẫn chặn Tài khoản nội bộ ở mọi thao tác mua hàng (Giỏ hàng, đặt đơn) theo vai trò. Đăng nhập Google chỉ dành cho storefront nên hệ thống từ chối trực tiếp email của Tài khoản nội bộ.
 - Tài khoản Admin chỉ được tạo bằng lệnh CLI `npm run cli -- create-admin`. Trên back-office, Admin chỉ quản lý Tài khoản Staff.
 - Kế toán **không** phải vai trò của hệ thống ở MVP: Admin xuất danh sách đơn đã thu tiền (US-1003) rồi gửi cho kế toán.
 

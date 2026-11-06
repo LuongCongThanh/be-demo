@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues live as GitHub Issues on this repo (`gh` CLI). See `docs/agents/issue-tracker.md`.
+Work is tracked as local Markdown tasks in `docs/plan/` (not GitHub Issues). See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 

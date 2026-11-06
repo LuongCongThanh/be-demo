@@ -5,7 +5,7 @@
 ## 1. Trách nhiệm
 
 - Sở hữu: Tài khoản (Khách hàng, Staff, Admin), vai trò, liên kết Google, sổ địa chỉ, phiên (refresh token, `session_version`), token xác thực email và đặt lại mật khẩu, phiên truy cập đơn của Khách vãng lai.
-- Quy tắc: mỗi email thuộc **một** Tài khoản (không phân biệt hoa thường); Tài khoản nội bộ có đúng một vai trò `staff` hoặc `admin` và không đăng nhập được storefront ([ADR 0005](../../adr/0005-four-actor-authorization-model.md)).
+- Quy tắc: mỗi email thuộc **một** Tài khoản (không phân biệt hoa thường); Tài khoản nội bộ có đúng một vai trò `staff` hoặc `admin` và không dùng được storefront: một endpoint `/auth/login` chung trả `role`, FE từ chối sai kênh, server chặn mua hàng bằng `@Roles` ([ADR 0005](../../adr/0005-four-actor-authorization-model.md)).
 - Không sở hữu: đơn của Khách vãng lai (`ordering` gắn `user_id` khi nghe `identity.email-verified`), audit log (`admin-config`).
 
 ## 2. Mô hình
@@ -32,16 +32,15 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.1](../11-database
 
 ## 4. API
 
-| Method                  | Path                                                              | Actor           | Ghi chú                                                            |
-| ----------------------- | ----------------------------------------------------------------- | --------------- | ------------------------------------------------------------------ |
-| `POST`                  | `/auth/register`                                                  | guest           | US-501; gửi email xác thực                                         |
-| `POST`                  | `/auth/verify-email` · `/auth/resend-verification`                | guest, customer |                                                                    |
-| `POST`                  | `/auth/login` · `/auth/google` · `/auth/refresh` · `/auth/logout` | —               | US-502; từ chối email Tài khoản nội bộ ở storefront bằng lỗi chung |
-| `POST`                  | `/auth/forgot-password` · `/auth/reset-password`                  | guest           | US-503; luôn trả cùng một phản hồi                                 |
-| `GET/PATCH`             | `/me`                                                             | customer        | Hồ sơ, ngôn ngữ (US-505, US-506)                                   |
-| `GET/POST/PATCH/DELETE` | `/me/addresses`                                                   | customer        | US-504                                                             |
-| `POST`                  | `/admin/auth/login`                                               | staff, admin    | Back-office, tách khỏi storefront                                  |
-| `GET/POST`              | `/admin/staff` · `POST /admin/staff/:id/disable`                  | admin           | US-1001; không tạo được `admin`                                    |
+| Method                  | Path                                                                                   | Actor           | Ghi chú                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| `POST`                  | `/auth/register`                                                                       | guest           | US-501; gửi email xác thực                                                                                |
+| `POST`                  | `/auth/verify-email` · `/auth/resend-verification`                                     | guest, customer |                                                                                                           |
+| `POST`                  | `/auth/login` · `/auth/google` · `/auth/refresh` · `/auth/logout`                      | —               | US-502; login chung mọi vai trò, trả `role`; `/auth/google` từ chối email Tài khoản nội bộ bằng lỗi chung |
+| `POST`                  | `/auth/forgot-password` · `/auth/reset-password`                                       | guest           | US-503; luôn trả cùng một phản hồi                                                                        |
+| `GET/PATCH`             | `/me`                                                                                  | customer        | Hồ sơ, ngôn ngữ (US-505, US-506)                                                                          |
+| `GET/POST/PATCH/DELETE` | `/me/addresses`                                                                        | customer        | US-504                                                                                                    |
+| `GET/POST`              | `/admin/staff` · `PATCH /admin/staff/:id` · `POST /admin/staff/:id/disable`, `/enable` | admin           | US-1001; không tạo được `admin`                                                                           |
 
 ## 5. Luồng
 

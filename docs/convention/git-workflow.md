@@ -331,7 +331,7 @@ Node theo `.nvmrc` (`nvm use`).
 - `ci.yml` — chạy trên mọi PR và push vào `dev`/`main`: lint, typecheck, unit test + ngưỡng coverage (`vitest.config.ts`), e2e trên Postgres kèm kiểm tra schema ↔ migration drift, kiểm tra link markdown (lychee), build + Docker build.
 - `pr-title.yml` — tiêu đề PR phải theo Conventional Commits, vì Squash and Merge dùng nó làm commit message.
 
-Template: `.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/`.
+Template: `.github/pull_request_template.md`. Không dùng GitHub Issues — task theo dõi ở `docs/plan/`.
 
 ### Branch Protection (thiết lập thủ công trên GitHub)
 

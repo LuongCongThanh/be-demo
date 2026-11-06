@@ -20,7 +20,7 @@
 
 **Module:** <!-- identity, catalog, pricing, cart, inventory, ordering, payments, refunds-returns, fulfillment, notifications, compliance, admin-config, common, ci, docs -->
 
-**🔗 Closes:** #NN · **User story:** US-XXX · **Quy tắc:** BR-XXX · **ADR:** XXXX
+**📋 Task:** docs/plan/tasks/NN-xxx · **User story:** US-XXX · **Quy tắc:** BR-XXX · **ADR:** XXXX
 
 ---
 

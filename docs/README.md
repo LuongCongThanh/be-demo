@@ -8,6 +8,7 @@
 4. [`architecture/11-database.md`](./architecture/11-database.md) — thiết kế database (schema mục tiêu).
 5. [`adr/`](./adr/) — các quyết định khó đảo ngược.
 6. [`convention/`](./convention/) — quy ước code, API, config, lỗi/log, Prisma, git.
+7. [`plan/`](./plan/README.md) — plan & task (spec, plan, hướng dẫn tự code, metric, report); nơi theo dõi công việc.
 
 ## Trạng thái tài liệu
 
@@ -21,4 +22,4 @@ Mỗi tài liệu ghi trạng thái ở dòng đầu:
 
 Trong nội dung, **[Giả định · kiểm chứng: …]** đánh dấu điều chưa được xác minh, kèm cách xác minh; **[Cần xác minh trước go-live]** là điều không chặn việc code nhưng phải xong trước khi mở bán thật.
 
-Trạng thái implement thực tế theo dõi trên GitHub Issues, không ghi trong tài liệu.
+Trạng thái implement thực tế theo dõi trong [`plan/`](./plan/README.md), không ghi trong các tài liệu khác.
