@@ -11,6 +11,7 @@ import { createTestApp } from './support/create-test-app.js';
 // cleanup ở afterAll (startsWith), tránh dữ liệu test cộng dồn qua các lần chạy.
 const TEST_NAME_PREFIX = 'ProductsE2E';
 const TEST_EMAIL_DOMAIN = '@products.e2e-test.local';
+const CODE_PREFIX = 'E2EPR';
 const VALID_PASSWORD = 'Abc@1234';
 const MISSING_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -22,6 +23,7 @@ describe('Products + Variants (e2e)', () => {
   let staffToken: string;
   let customerToken: string;
   let categoryId: string;
+  let colorId: string;
 
   beforeAll(async () => {
     const created = await createTestApp();
@@ -40,6 +42,7 @@ describe('Products + Variants (e2e)', () => {
       },
     });
     categoryId = category.id;
+    colorId = (await createOption('color')).id;
   });
 
   afterAll(async () => {
@@ -47,6 +50,8 @@ describe('Products + Variants (e2e)', () => {
     await prisma.inventory.deleteMany({ where: { variant: where } });
     await prisma.productVariant.deleteMany({ where });
     await prisma.product.deleteMany({ where: { name: { startsWith: TEST_NAME_PREFIX } } });
+    await prisma.size.deleteMany({ where: { code: { startsWith: CODE_PREFIX } } });
+    await prisma.color.deleteMany({ where: { code: { startsWith: CODE_PREFIX } } });
     await prisma.category.deleteMany({ where: { name: { startsWith: TEST_NAME_PREFIX } } });
     await prisma.user.deleteMany({ where: { email: { endsWith: TEST_EMAIL_DOMAIN } } });
     await app.close();
@@ -76,7 +81,7 @@ describe('Products + Variants (e2e)', () => {
     const res = await request(server())
       .post('/api/v1/admin/products')
       .set(auth(adminToken))
-      .send({ name: unique('Product'), categoryId, ...extra })
+      .send({ name: unique('Product'), categoryId, weightGrams: 250, ...extra })
       .expect(201);
     return res.body as { id: string; status: string; publishedAt: string | null };
   }
@@ -85,9 +90,22 @@ describe('Products + Variants (e2e)', () => {
     const res = await request(server())
       .post(`/api/v1/admin/products/${productId}/variants`)
       .set(auth(adminToken))
-      .send({ sku: `SKU-${Date.now()}-${seq++}`, price: 150000, ...extra })
+      .send(await variantBody(extra))
       .expect(201);
     return res.body as { id: string; sku: string; status: string };
+  }
+
+  /** Mỗi lần gọi dùng một size mới để tổ hợp size × màu không bao giờ trùng. */
+  async function variantBody(extra: Record<string, unknown> = {}) {
+    const sizeId = extra.sizeId ?? (await createOption('size')).id;
+    return { sku: `SKU-${Date.now()}-${seq++}`, price: 150000, sizeId, colorId, ...extra };
+  }
+
+  async function createOption(kind: 'size' | 'color', extra: { isHidden?: boolean } = {}) {
+    const code = `${CODE_PREFIX}${Date.now().toString(36).toUpperCase()}${seq++}`;
+    return kind === 'size'
+      ? prisma.size.create({ data: { code, name: code, sortOrder: seq, ...extra } })
+      : prisma.color.create({ data: { code, name: code, hex: '#112233', ...extra } });
   }
 
   const setStatus = (id: string, status: string) =>
@@ -293,7 +311,7 @@ describe('Products + Variants (e2e)', () => {
       await request(server())
         .post('/api/v1/admin/products')
         .set(auth(adminToken))
-        .send({ name: unique('NoCat'), categoryId: MISSING_ID })
+        .send({ name: unique('NoCat'), categoryId: MISSING_ID, weightGrams: 250 })
         .expect(404);
     });
 
@@ -303,7 +321,7 @@ describe('Products + Variants (e2e)', () => {
       await request(server())
         .post('/api/v1/admin/products')
         .set(auth(adminToken))
-        .send({ name, categoryId })
+        .send({ name, categoryId, weightGrams: 250 })
         .expect(409);
     });
 
@@ -331,7 +349,7 @@ describe('Products + Variants (e2e)', () => {
       await request(server())
         .post(`/api/v1/admin/products/${product.id}/variants`)
         .set(auth(adminToken))
-        .send({ sku, price: 100000 })
+        .send(await variantBody({ sku }))
         .expect(409);
     });
 
@@ -349,6 +367,210 @@ describe('Products + Variants (e2e)', () => {
         .post(`/api/v1/admin/products/${other.id}/variants/${variant.id}/archive`)
         .set(auth(adminToken))
         .expect(404);
+    });
+  });
+
+  describe('variant rules (BR-CAT-02..06)', () => {
+    it.each([0, -1, 100.5])('price %s is rejected with 400', async (price) => {
+      const product = await createProduct();
+      await request(server())
+        .post(`/api/v1/admin/products/${product.id}/variants`)
+        .set(auth(adminToken))
+        .send(await variantBody({ price }))
+        .expect(400);
+    });
+
+    it.each(['abc', 'TSHIRT_M', 'TSHIRT M'])('SKU %s is rejected with 400', async (sku) => {
+      const product = await createProduct();
+      await request(server())
+        .post(`/api/v1/admin/products/${product.id}/variants`)
+        .set(auth(adminToken))
+        .send(await variantBody({ sku }))
+        .expect(400);
+    });
+
+    it('a SKU already used on another product returns 409', async () => {
+      const { sku } = await createVariant((await createProduct()).id);
+      const other = await createProduct();
+      await request(server())
+        .post(`/api/v1/admin/products/${other.id}/variants`)
+        .set(auth(adminToken))
+        .send(await variantBody({ sku }))
+        .expect(409);
+    });
+
+    it('a duplicate size × color on the same product returns 409', async () => {
+      const product = await createProduct();
+      const size = await createOption('size');
+      await createVariant(product.id, { sizeId: size.id });
+      await request(server())
+        .post(`/api/v1/admin/products/${product.id}/variants`)
+        .set(auth(adminToken))
+        .send(await variantBody({ sizeId: size.id }))
+        .expect(409);
+    });
+
+    it('an unknown or hidden size/color is rejected for a new variant', async () => {
+      const product = await createProduct();
+      const hiddenSize = await createOption('size', { isHidden: true });
+      const hiddenColor = await createOption('color', { isHidden: true });
+
+      for (const extra of [
+        { sizeId: MISSING_ID },
+        { colorId: MISSING_ID },
+        { sizeId: hiddenSize.id },
+        { colorId: hiddenColor.id },
+      ]) {
+        await request(server())
+          .post(`/api/v1/admin/products/${product.id}/variants`)
+          .set(auth(adminToken))
+          .send(await variantBody(extra))
+          .expect(400);
+      }
+    });
+
+    it('SKU cannot be changed after creation', async () => {
+      const product = await createProduct();
+      const variant = await createVariant(product.id);
+      await request(server())
+        .patch(`/api/v1/admin/products/${product.id}/variants/${variant.id}`)
+        .set(auth(adminToken))
+        .send({ sku: 'NEW-SKU-123' })
+        .expect(400);
+    });
+
+    it('price is returned as an integer number', async () => {
+      const product = await createProduct();
+      const variant = await createVariant(product.id, { price: 199000 });
+      expect(variant).toMatchObject({ price: 199000 });
+
+      const updated = await request(server())
+        .patch(`/api/v1/admin/products/${product.id}/variants/${variant.id}`)
+        .set(auth(adminToken))
+        .send({ price: 249000 })
+        .expect(200);
+      expect(updated.body.price).toBe(249000);
+    });
+
+    it('weightGrams is required and must be > 0', async () => {
+      for (const weightGrams of [undefined, 0, 1.5]) {
+        await request(server())
+          .post('/api/v1/admin/products')
+          .set(auth(adminToken))
+          .send({ name: unique('Weight'), categoryId, weightGrams })
+          .expect(400);
+      }
+    });
+  });
+
+  describe('images per color', () => {
+    const addImage = (productId: string, body: Record<string, unknown>) =>
+      request(server()).post(`/api/v1/admin/products/${productId}/images`).set(auth(adminToken)).send(body);
+
+    it('keeps at most one primary image per product color', async () => {
+      const product = await createProduct();
+      const first = await addImage(product.id, { colorId, storageKey: 'products/a.jpg', isPrimary: true }).expect(201);
+      const second = await addImage(product.id, { colorId, storageKey: 'products/b.jpg', isPrimary: true }).expect(201);
+
+      const res = await request(server()).get(`/api/v1/admin/products/${product.id}`).set(auth(adminToken)).expect(200);
+      const primary = res.body.images.filter((i: { isPrimary: boolean }) => i.isPrimary);
+      expect(primary.map((i: { id: string }) => i.id)).toEqual([second.body.id]);
+      expect(res.body.images.map((i: { id: string }) => i.id)).toContain(first.body.id);
+    });
+
+    it('promoting an existing image via PATCH demotes the previous primary', async () => {
+      const product = await createProduct();
+      const a = await addImage(product.id, { colorId, storageKey: 'products/a.jpg', isPrimary: true }).expect(201);
+      const b = await addImage(product.id, { colorId, storageKey: 'products/b.jpg' }).expect(201);
+
+      await request(server())
+        .patch(`/api/v1/admin/products/${product.id}/images/${b.body.id}`)
+        .set(auth(adminToken))
+        .send({ isPrimary: true })
+        .expect(200);
+
+      const images = await prisma.productImage.findMany({ where: { productId: product.id } });
+      expect(images.find((i) => i.id === a.body.id)?.isPrimary).toBe(false);
+      expect(images.find((i) => i.id === b.body.id)?.isPrimary).toBe(true);
+    });
+
+    it('an unknown color is rejected with 400', async () => {
+      const product = await createProduct();
+      await addImage(product.id, { colorId: MISSING_ID, storageKey: 'products/x.jpg' }).expect(400);
+    });
+
+    it('STAFF gets 403 on image writes', async () => {
+      const product = await createProduct();
+      await request(server())
+        .post(`/api/v1/admin/products/${product.id}/images`)
+        .set(auth(staffToken))
+        .send({ colorId, storageKey: 'products/x.jpg' })
+        .expect(403);
+    });
+  });
+
+  describe('storefront detail and filters', () => {
+    it('detail shows each variant size/color names and images per color', async () => {
+      const product = await publishedProduct();
+      await createVariant(product.id);
+      await request(server())
+        .post(`/api/v1/admin/products/${product.id}/images`)
+        .set(auth(adminToken))
+        .send({ colorId, storageKey: 'products/p.jpg', isPrimary: true })
+        .expect(201);
+
+      const res = await request(server()).get(`/api/v1/products/${product.id}`).expect(200);
+      expect(res.body.variants[0]).toMatchObject({
+        size: { code: expect.any(String), name: expect.any(String) },
+        color: { code: expect.any(String), name: expect.any(String), hex: '#112233' },
+      });
+      expect(res.body.images).toEqual([
+        expect.objectContaining({ colorId, storageKey: 'products/p.jpg', isPrimary: true }),
+      ]);
+    });
+
+    it('filters by size and color codes; a product matches when one ACTIVE variant satisfies both', async () => {
+      const sizeA = await createOption('size');
+      const sizeB = await createOption('size');
+      const red = await createOption('color');
+      const blue = await createOption('color');
+
+      const redA = await publishedProduct();
+      await createVariant(redA.id, { sizeId: sizeA.id, colorId: red.id });
+      const blueB = await publishedProduct();
+      await createVariant(blueB.id, { sizeId: sizeB.id, colorId: blue.id });
+      // Có size A và màu xanh nhưng ở hai biến thể khác nhau → không khớp A + xanh.
+      const split = await publishedProduct();
+      await createVariant(split.id, { sizeId: sizeA.id, colorId: red.id });
+      await createVariant(split.id, { sizeId: sizeB.id, colorId: blue.id });
+      // Biến thể đã archive không được tính.
+      const archivedVariant = await publishedProduct();
+      const v = await createVariant(archivedVariant.id, { sizeId: sizeA.id, colorId: blue.id });
+      await request(server())
+        .post(`/api/v1/admin/products/${archivedVariant.id}/variants/${v.id}/archive`)
+        .set(auth(adminToken))
+        .expect(200);
+
+      const ids = async (query: string) => {
+        const res = await request(server())
+          .get(`/api/v1/products?categoryId=${categoryId}&limit=100&${query}`)
+          .expect(200);
+        return res.body.data.map((p: { id: string }) => p.id).sort();
+      };
+
+      expect(await ids(`size=${sizeA.code}`)).toEqual([redA.id, split.id].sort());
+      expect(await ids(`size=${sizeA.code}&color=${blue.code}`)).toEqual([]);
+      expect(await ids(`color=${blue.code}`)).toEqual([blueB.id, split.id].sort());
+      expect(await ids(`size=${sizeA.code}&size=${sizeB.code}&color=${red.code}`)).toEqual([redA.id, split.id].sort());
+    });
+
+    it('public option lists only contain visible sizes and colors', async () => {
+      const visible = await createOption('color');
+      const hidden = await createOption('color', { isHidden: true });
+      const res = await request(server()).get('/api/v1/colors').expect(200);
+      const codes = res.body.map((c: { code: string }) => c.code);
+      expect(codes).toContain(visible.code);
+      expect(codes).not.toContain(hidden.code);
     });
   });
 });

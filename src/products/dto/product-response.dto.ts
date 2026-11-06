@@ -17,6 +17,9 @@ export class ProductResponseDto {
   @ApiPropertyOptional({ nullable: true })
   description: string | null;
 
+  @ApiProperty({ description: 'Shipping weight in grams' })
+  weightGrams: number;
+
   @ApiProperty({ enum: ProductStatus, enumName: 'ProductStatus' })
   status: ProductStatus;
 

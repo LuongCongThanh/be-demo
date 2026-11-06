@@ -1,7 +1,14 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import slugify from 'slugify';
-import type { Prisma, Product, ProductStatus, ProductVariant, VariantStatus } from '#src/generated/prisma/client.js';
-import { writeUnique } from '#src/common/prisma-error.util.js';
+import { Prisma } from '#src/generated/prisma/client.js';
+import type {
+  Product,
+  ProductImage,
+  ProductStatus,
+  ProductVariant,
+  VariantStatus,
+} from '#src/generated/prisma/client.js';
+import { getUniqueConstraintTarget, writeUnique } from '#src/common/prisma-error.util.js';
 import { PrismaService } from '#src/prisma/prisma.service.js';
 import { CreateProductDto } from '#src/products/dto/create-product.dto.js';
 import { UpdateProductDto } from '#src/products/dto/update-product.dto.js';
@@ -9,8 +16,10 @@ import { AdminListProductsQueryDto } from '#src/products/dto/admin-list-products
 import { CreateVariantDto } from '#src/products/dto/create-variant.dto.js';
 import { UpdateVariantDto } from '#src/products/dto/update-variant.dto.js';
 import { paginate, Paginated } from '#src/products/paginate.js';
+import { VariantResponseDto } from '#src/products/dto/variant-response.dto.js';
+import { toVariantResponse, VARIANT_INCLUDE } from '#src/products/variant-response.mapper.js';
 
-export type ProductWithVariants = Product & { variants: ProductVariant[] };
+export type ProductDetail = Product & { variants: VariantResponseDto[]; images: ProductImage[] };
 
 /**
  * Back-office catalog (STAFF đọc, ADMIN ghi). Không có xoá cứng: "xoá" là
@@ -44,15 +53,18 @@ export class AdminProductsService {
     );
   }
 
-  async findOne(id: string): Promise<ProductWithVariants> {
+  async findOne(id: string): Promise<ProductDetail> {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: { variants: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] } },
+      include: {
+        variants: { include: VARIANT_INCLUDE, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
+        images: { orderBy: [{ colorId: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }] },
+      },
     });
     if (!product) {
       throw new NotFoundException(`Product #${id} not found`);
     }
-    return product;
+    return { ...product, variants: product.variants.map(toVariantResponse) };
   }
 
   async update(id: string, dto: UpdateProductDto): Promise<Product> {
@@ -89,50 +101,76 @@ export class AdminProductsService {
     return this.transition(id, 'ACTIVE');
   }
 
-  async createVariant(productId: string, dto: CreateVariantDto): Promise<ProductVariant> {
+  async createVariant(productId: string, dto: CreateVariantDto): Promise<VariantResponseDto> {
     await this.findProductOrThrow(productId);
+    await this.assertSelectable(dto.sizeId, dto.colorId);
 
-    const existing = await this.prisma.productVariant.findUnique({ where: { sku: dto.sku } });
-    if (existing) {
-      throw new ConflictException(`SKU "${dto.sku}" already exists`);
+    // Pre-check cho message rõ ràng; UK sku và UK (product, size, color) ở DB
+    // vẫn là chốt chặn thật khi 2 request chạy đồng thời.
+    const [skuTaken, comboTaken] = await Promise.all([
+      this.prisma.productVariant.findUnique({ where: { sku: dto.sku }, select: { id: true } }),
+      this.prisma.productVariant.findUnique({
+        where: { productId_sizeId_colorId: { productId, sizeId: dto.sizeId, colorId: dto.colorId } },
+        select: { id: true },
+      }),
+    ]);
+    if (skuTaken) throw new ConflictException(`SKU "${dto.sku}" already exists`);
+    if (comboTaken) throw new ConflictException('This product already has a variant with this size and color');
+
+    try {
+      // Variant và inventory (quantity=0) phải cùng tồn tại hoặc cùng không.
+      const variant = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.productVariant.create({ data: { ...dto, productId }, include: VARIANT_INCLUDE });
+        await tx.inventory.create({ data: { variantId: created.id, quantity: 0, reservedQuantity: 0 } });
+        return created;
+      });
+      return toVariantResponse(variant);
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const target = getUniqueConstraintTarget(err) ?? [];
+        throw new ConflictException(
+          target.includes('sku')
+            ? `SKU "${dto.sku}" already exists`
+            : 'This product already has a variant with this size and color',
+        );
+      }
+      throw err;
     }
-
-    // Variant và inventory (quantity=0) phải cùng tồn tại hoặc cùng không.
-    return writeUnique(
-      () =>
-        this.prisma.$transaction(async (tx) => {
-          const variant = await tx.productVariant.create({ data: { ...dto, productId } });
-          await tx.inventory.create({ data: { variantId: variant.id, quantity: 0, reservedQuantity: 0 } });
-          return variant;
-        }),
-      'sku',
-      `SKU "${dto.sku}" already exists`,
-    );
   }
 
-  async updateVariant(productId: string, variantId: string, dto: UpdateVariantDto): Promise<ProductVariant> {
+  async updateVariant(productId: string, variantId: string, dto: UpdateVariantDto): Promise<VariantResponseDto> {
     await this.findVariantOrThrow(productId, variantId);
-
-    if (dto.sku) {
-      const existing = await this.prisma.productVariant.findUnique({ where: { sku: dto.sku } });
-      if (existing && existing.id !== variantId) {
-        throw new ConflictException(`SKU "${dto.sku}" already exists`);
-      }
-    }
-
     // where chỉ theo variantId: findVariantOrThrow() đã xác nhận đúng cặp
     // (variantId, productId) và không route nào đổi được productId của variant.
-    return writeUnique(
-      () => this.prisma.productVariant.update({ where: { id: variantId }, data: dto }),
-      'sku',
-      `SKU "${dto.sku}" already exists`,
-    );
+    const variant = await this.prisma.productVariant.update({
+      where: { id: variantId },
+      data: dto,
+      include: VARIANT_INCLUDE,
+    });
+    return toVariantResponse(variant);
   }
 
-  async setVariantStatus(productId: string, variantId: string, status: VariantStatus): Promise<ProductVariant> {
+  async setVariantStatus(productId: string, variantId: string, status: VariantStatus): Promise<VariantResponseDto> {
     const variant = await this.findVariantOrThrow(productId, variantId);
-    if (variant.status === status) return variant;
-    return this.prisma.productVariant.update({ where: { id: variantId }, data: { status } });
+    const updated =
+      variant.status === status
+        ? await this.prisma.productVariant.findUniqueOrThrow({ where: { id: variantId }, include: VARIANT_INCLUDE })
+        : await this.prisma.productVariant.update({
+            where: { id: variantId },
+            data: { status },
+            include: VARIANT_INCLUDE,
+          });
+    return toVariantResponse(updated);
+  }
+
+  /** Biến thể mới chỉ được chọn size/màu đang hiển thị; biến thể cũ dùng mục đã ẩn vẫn chạy bình thường. */
+  private async assertSelectable(sizeId: string, colorId: string): Promise<void> {
+    const [size, color] = await Promise.all([
+      this.prisma.size.findUnique({ where: { id: sizeId }, select: { isHidden: true } }),
+      this.prisma.color.findUnique({ where: { id: colorId }, select: { isHidden: true } }),
+    ]);
+    if (!size || size.isHidden) throw new BadRequestException(`Size #${sizeId} does not exist or is hidden`);
+    if (!color || color.isHidden) throw new BadRequestException(`Color #${colorId} does not exist or is hidden`);
   }
 
   private async transition(id: string, status: ProductStatus): Promise<Product> {

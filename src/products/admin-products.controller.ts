@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -11,13 +12,24 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '#src/auth/guards/roles.guard.js';
 import { Roles } from '#src/auth/decorators/roles.decorator.js';
 import { AdminProductsService } from '#src/products/admin-products.service.js';
+import { AdminProductImagesService } from '#src/products/admin-product-images.service.js';
+import { CreateImageDto } from '#src/products/dto/create-image.dto.js';
+import { UpdateImageDto } from '#src/products/dto/update-image.dto.js';
+import { ImageResponseDto } from '#src/products/dto/image-response.dto.js';
 import { CreateProductDto } from '#src/products/dto/create-product.dto.js';
 import { UpdateProductDto } from '#src/products/dto/update-product.dto.js';
 import { AdminListProductsQueryDto } from '#src/products/dto/admin-list-products-query.dto.js';
@@ -41,7 +53,10 @@ const VARIANT_NOT_FOUND: [404, string] = [404, 'Variant not found on this produc
 @Roles('STAFF', 'ADMIN')
 @Controller('admin/products')
 export class AdminProductsController {
-  constructor(private readonly service: AdminProductsService) {}
+  constructor(
+    private readonly service: AdminProductsService,
+    private readonly images: AdminProductImagesService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List products of any status (paginated, filterable by category/status, STAFF/ADMIN)' })
@@ -148,5 +163,39 @@ export class AdminProductsController {
     @Param('variantId', ParseUUIDPipe) variantId: string,
   ) {
     return this.service.setVariantStatus(productId, variantId, 'ACTIVE');
+  }
+
+  @Post(':id/images')
+  @Roles('ADMIN')
+  @ApiOperation({
+    summary: 'Attach image metadata to a product color; isPrimary replaces that color primary (ADMIN only)',
+  })
+  @ApiCreatedResponse({ type: ImageResponseDto })
+  @ApiErrorResponses([400, 'Invalid body or unknown color'], 401, 403, PRODUCT_NOT_FOUND)
+  createImage(@Param('id', ParseUUIDPipe) productId: string, @Body() dto: CreateImageDto) {
+    return this.images.create(productId, dto);
+  }
+
+  @Patch(':id/images/:imageId')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Update image metadata or make it the primary image of its color (ADMIN only)' })
+  @ApiOkResponse({ type: ImageResponseDto })
+  @ApiErrorResponses(400, 401, 403, [404, 'Image not found on this product'])
+  updateImage(
+    @Param('id', ParseUUIDPipe) productId: string,
+    @Param('imageId', ParseUUIDPipe) imageId: string,
+    @Body() dto: UpdateImageDto,
+  ) {
+    return this.images.update(productId, imageId, dto);
+  }
+
+  @Delete(':id/images/:imageId')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove image metadata from a product (ADMIN only)' })
+  @ApiNoContentResponse({ description: 'Image removed' })
+  @ApiErrorResponses(400, 401, 403, [404, 'Image not found on this product'])
+  removeImage(@Param('id', ParseUUIDPipe) productId: string, @Param('imageId', ParseUUIDPipe) imageId: string) {
+    return this.images.remove(productId, imageId);
   }
 }

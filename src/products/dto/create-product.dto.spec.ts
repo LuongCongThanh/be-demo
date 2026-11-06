@@ -37,16 +37,18 @@ describe('CreateProductDto', () => {
     const dto = plainToInstance(CreateProductDto, {
       name: '  Wireless Headphones  ',
       categoryId: '550e8400-e29b-41d4-a716-446655440000',
+      weightGrams: 250,
     });
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
     expect(dto.name).toBe('Wireless Headphones');
   });
 
-  it('passes validation with valid name and categoryId', async () => {
+  it('passes validation with valid name, categoryId and weightGrams', async () => {
     const dto = plainToInstance(CreateProductDto, {
       name: 'Wireless Headphones',
       categoryId: '550e8400-e29b-41d4-a716-446655440000',
+      weightGrams: 250,
     });
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);

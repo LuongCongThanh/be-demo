@@ -1,32 +1,19 @@
-import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength, Min, ValidateIf } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
 import { VariantStatus } from '#src/generated/prisma/enums.js';
-import { CreateVariantDto } from '#src/products/dto/create-variant.dto.js';
 
-export class UpdateVariantDto extends PartialType(CreateVariantDto) {
-  // Override `sku`/`price` thay vì để nguyên field @IsOptional() PartialType tự
-  // sinh — cùng lý do đã áp dụng ở UpdateCategoryDto: @IsOptional() coi `null`
-  // như "absent" nên { "sku": null } / { "price": null } lọt qua validation rồi
-  // Prisma từ chối `null` cho cột NOT NULL bằng PrismaClientValidationError,
-  // rơi xuống 500 thay vì 400 vì AllExceptionsFilter chỉ map được
-  // PrismaClientKnownRequestError.
-  @ApiPropertyOptional({
-    maxLength: 100,
-    description: 'Client tự đặt theo quy ước riêng của store — không tự sinh',
-    example: 'TSHIRT-BLK-M',
-  })
-  @ValidateIf((_, value) => value !== undefined)
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(100)
-  declare sku?: string;
-
-  @ApiPropertyOptional({ example: 199000 })
-  @ValidateIf((_, value) => value !== undefined)
-  @IsNotEmpty()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  declare price?: number;
+/**
+ * Chỉ giá và trạng thái đổi được. `sku` bất biến (chặt hơn BR-CAT-03 cho tới
+ * khi có module ordering); size/màu là danh tính của biến thể — đổi thì tạo
+ * biến thể mới. Field lạ (kể cả `sku`) → 400 nhờ forbidNonWhitelisted.
+ */
+export class UpdateVariantDto {
+  @ApiPropertyOptional({ description: 'Integer VND, > 0', example: 249000 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(Number.MAX_SAFE_INTEGER)
+  price?: number;
 
   @ApiPropertyOptional({ enum: VariantStatus, enumName: 'VariantStatus', example: VariantStatus.ARCHIVED })
   @IsOptional()

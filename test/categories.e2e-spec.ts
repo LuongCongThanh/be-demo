@@ -184,6 +184,7 @@ describe('Categories (e2e)', () => {
         categoryId,
         name: `${TEST_NAME_PREFIX} Product ${Date.now()}`,
         slug: `${TEST_NAME_PREFIX.toLowerCase()}-product-${Date.now()}`,
+        weightGrams: 100,
       },
     });
 
@@ -210,6 +211,7 @@ describe('Categories (e2e)', () => {
         categoryId,
         name: `${TEST_NAME_PREFIX} Product ${Date.now()}`,
         slug: `${TEST_NAME_PREFIX.toLowerCase()}-product-db-fk-${Date.now()}`,
+        weightGrams: 100,
       },
     });
 

@@ -17,6 +17,10 @@ export const API_TAGS = {
     description:
       'Product + variant CRUD (variants nested under products, inventory created atomically) — writes gated to ADMIN, reads public',
   },
+  PRODUCT_OPTIONS: {
+    name: 'Sizes & Colors',
+    description: 'Shared size list and color palette for variants — no delete, hide instead; writes gated to ADMIN',
+  },
   STAFF: {
     name: 'Staff Management',
     description: 'Back-office staff accounts — create, rename, disable/enable (ADMIN only, every change audited)',
