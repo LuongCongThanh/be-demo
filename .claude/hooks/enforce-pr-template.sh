@@ -74,6 +74,8 @@ grep -Eqi "co-authored-by:[[:space:]]*(claude|chatgpt|gpt|ai)|generated (by|with
 # /code-review must have been run on the diff: record its outcome under Notes
 grep -qi 'code-review' <<< "${BODY#*## 💬 Notes}" \
   || fail "run /code-review on the diff first and record its outcome under '## 💬 Notes' (e.g. 'code-review: 3 findings, all fixed')"
+grep -Eqi 'code-review.*(chưa|không chạy|bỏ qua|skip|not run)|(chưa|không) chạy.*code-review' <<< "${BODY#*## 💬 Notes}" \
+  && fail "Notes say /code-review was not run — run it on the diff and record the real outcome"
 
 # Build must be green (SKIP_PR_VERIFY=1 is only for testing this hook)
 if [[ "$SKIP_PR_VERIFY" != 1 ]]; then
