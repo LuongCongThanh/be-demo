@@ -1,16 +1,23 @@
+enum Role {
+  CUSTOMER
+  STAFF
+  ADMIN
+}
+
 enum UserStatus {
   ACTIVE
-  BLOCKED
+  DISABLED
 }
 
 enum ProductStatus {
+  DRAFT
   ACTIVE
-  INACTIVE
+  ARCHIVED
 }
 
 enum VariantStatus {
   ACTIVE
-  INACTIVE
+  ARCHIVED
 }
 
 enum CartStatus {

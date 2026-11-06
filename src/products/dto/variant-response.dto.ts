@@ -1,5 +1,6 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { VariantStatus } from '#src/generated/prisma/enums.js';
+import { ColorSummaryDto, SizeSummaryDto } from '#src/products/dto/option-summary.dto.js';
 
 export class VariantResponseDto {
   @ApiProperty()
@@ -11,18 +12,16 @@ export class VariantResponseDto {
   @ApiProperty()
   sku: string;
 
-  @ApiPropertyOptional({ nullable: true })
-  color: string | null;
+  @ApiProperty({ type: SizeSummaryDto })
+  size: SizeSummaryDto;
 
-  @ApiPropertyOptional({ nullable: true })
-  size: string | null;
+  @ApiProperty({ type: ColorSummaryDto })
+  color: ColorSummaryDto;
 
-  // Serialize thành string (Prisma Decimal.toJSON()) chứ không phải number —
-  // giữ đúng độ chính xác thập phân, không qua vòng float trung gian.
-  @ApiProperty({ example: '199000.00' })
-  price: string;
+  @ApiProperty({ description: 'Integer VND', example: 199000 })
+  price: number;
 
-  @ApiProperty({ enum: VariantStatus })
+  @ApiProperty({ enum: VariantStatus, enumName: 'VariantStatus' })
   status: VariantStatus;
 
   @ApiProperty()

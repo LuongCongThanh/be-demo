@@ -49,12 +49,6 @@ describe('Auth — full register flow (e2e)', () => {
     await app.init();
 
     prisma = moduleFixture.get(PrismaService);
-
-    await prisma.role.upsert({
-      where: { name: 'CUSTOMER' },
-      update: {},
-      create: { name: 'CUSTOMER' },
-    });
   });
 
   afterAll(async () => {

@@ -20,12 +20,6 @@ describe('Auth — GET /auth/me (e2e)', () => {
 
     prisma = moduleFixture.get(PrismaService);
     passwordService = moduleFixture.get(PasswordService);
-
-    await prisma.role.upsert({
-      where: { name: 'CUSTOMER' },
-      update: {},
-      create: { name: 'CUSTOMER' },
-    });
   });
 
   afterAll(async () => {
@@ -75,7 +69,7 @@ describe('Auth — GET /auth/me (e2e)', () => {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      roles: ['CUSTOMER'],
+      role: 'CUSTOMER',
       emailVerified: true,
     });
     expect(res.body).not.toHaveProperty('passwordHash');

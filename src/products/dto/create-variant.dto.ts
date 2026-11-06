@@ -1,36 +1,40 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min, MaxLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsString, IsUUID, Matches, Max, MaxLength, Min } from 'class-validator';
+
+export const SKU_PATTERN = /^[A-Z0-9-]+$/;
 
 export class CreateVariantDto {
   @ApiProperty({
     maxLength: 100,
-    description: 'Client tự đặt theo quy ước riêng của store — không tự sinh',
-    example: 'TSHIRT-BLK-M',
+    pattern: SKU_PATTERN.source,
+    description: 'Uppercase letters, digits and hyphens; globally unique and immutable after creation',
+    example: 'TSHIRT-BASIC-WHT-M',
   })
-  @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  sku: string;
+  // Cùng regex với CHECK trong DB (BR-CAT-03).
+  @Matches(SKU_PATTERN, { message: 'sku must contain only uppercase letters, digits and hyphens' })
+  sku!: string;
 
-  @ApiPropertyOptional({ maxLength: 50, example: 'Black' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  color?: string;
+  @ApiProperty({
+    description: 'A size from the shared size list (not hidden)',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsUUID()
+  sizeId!: string;
 
-  @ApiPropertyOptional({ maxLength: 50, example: 'M' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  size?: string;
+  @ApiProperty({
+    description: 'A color from the shared palette (not hidden)',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+  })
+  @IsUUID()
+  colorId!: string;
 
-  @ApiProperty({ example: 199000 })
-  @IsNotEmpty()
-  // Map tới cột Decimal(12,2) — chặn client gửi quá 2 số thập phân thay vì
-  // để Postgres tự làm tròn âm thầm.
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  price: number;
+  @ApiProperty({ description: 'Integer VND, > 0 (BR-CAT-04)', example: 199000 })
+  @IsInt()
+  @Min(1)
+  @Max(Number.MAX_SAFE_INTEGER)
+  price!: number;
 
-  // Không có field `productId` — lấy từ path param `:id` (Task 9), không từ body.
+  // Không có `productId` — lấy từ path param `:id`.
 }

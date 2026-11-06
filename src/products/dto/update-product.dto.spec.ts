@@ -6,7 +6,7 @@ import { UpdateProductDto } from '#src/products/dto/update-product.dto.js';
 
 describe('UpdateProductDto', () => {
   it('passes validation when name is omitted (all fields optional via PartialType)', async () => {
-    const dto = plainToInstance(UpdateProductDto, { status: ProductStatus.INACTIVE });
+    const dto = plainToInstance(UpdateProductDto, { status: ProductStatus.ARCHIVED });
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
   });

@@ -1,6 +1,6 @@
 # Module `identity`
 
-> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../11-database.md`](../11-database.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/02](../../business/02-actors-permissions.md), [business/03](../../business/03-user-stories.md) E5, US-1001. Bảo mật: [../05-auth-security.md](../05-auth-security.md).
+> Trạng thái: **Đã chốt cho MVP** ([quy ước](../../README.md#trạng-thái-tài-liệu)). Bảng: [`../11-database.md`](../11-database.md). Ranh giới: [`../02-modules.md`](../02-modules.md). Nguồn nghiệp vụ: [business/02](../../business/02-actors-permissions.md), [business/03](../../business/03-user-stories.md) E5, US-1001. Bảo mật: [../05-auth-security.md](../05-auth-security.md).
 
 ## 1. Trách nhiệm
 

@@ -18,7 +18,12 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @MaxLength(255)
   declare name?: string;
 
-  @ApiPropertyOptional({ enum: ProductStatus, example: ProductStatus.INACTIVE })
+  @ApiPropertyOptional({
+    enum: ProductStatus,
+    enumName: 'ProductStatus',
+    example: ProductStatus.ACTIVE,
+    description: 'DRAFT → ACTIVE, ACTIVE ↔ ARCHIVED, DRAFT → ARCHIVED; never back to DRAFT',
+  })
   @IsOptional()
   @IsEnum(ProductStatus)
   status?: ProductStatus;

@@ -9,20 +9,6 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  // Idempotent — upsert instead of create, so re-running this script (every
-  // fresh dev machine, every CI run, every deploy) never creates duplicate
-  // roles.
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'MASTER_ADMIN' },
-    update: {},
-    create: { name: 'MASTER_ADMIN' },
-  });
-  await prisma.role.upsert({
-    where: { name: 'CUSTOMER' },
-    update: {},
-    create: { name: 'CUSTOMER' },
-  });
-
   // Deliberate exception: this script runs standalone, outside the Nest DI
   // container (no ConfigService to inject), so it's allowed to read
   // process.env directly — the one exception to "config only via
@@ -33,27 +19,26 @@ async function main() {
     throw new Error('Missing ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD in .env');
   }
 
-  const existingAdmin = await prisma.user.findUnique({ where: { email } });
-  if (existingAdmin) {
-    console.log(`Admin ${email} already exists, skipping.`);
-  } else {
-    const passwordHash = await argon2.hash(password);
-    await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        // fullName/phone không có ý nghĩa thật với tài khoản bootstrap này
-        // (không phải khách hàng đăng ký qua form) — điền placeholder cố định
-        // để thoả field bắt buộc của model User.
-        fullName: 'Admin',
-        phone: '0000000000',
-        status: 'ACTIVE',
-        emailVerifiedAt: new Date(), // admin bootstrap doesn't need email verification
-        userRoles: { create: [{ roleId: adminRole.id }] },
-      },
-    });
-    console.log(`Created admin ${email}.`);
-  }
+  // Upsert theo email: user đã tồn tại chỉ được đảm bảo role = ADMIN, KHÔNG
+  // ghi đè mật khẩu (người dùng có thể đã đổi mật khẩu sau lần seed đầu).
+  const passwordHash = await argon2.hash(password);
+  await prisma.user.upsert({
+    where: { email },
+    update: { role: 'ADMIN' },
+    create: {
+      email,
+      passwordHash,
+      // fullName/phone không có ý nghĩa thật với tài khoản bootstrap này
+      // (không phải khách hàng đăng ký qua form) — điền placeholder cố định
+      // để thoả field bắt buộc của model User.
+      fullName: 'Admin',
+      phone: '0000000000',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      emailVerifiedAt: new Date(), // admin bootstrap doesn't need email verification
+    },
+  });
+  console.log(`Ensured admin ${email}.`);
 
   // Luôn chạy dù admin đã tồn tại hay chưa — catalog tự idempotent qua
   // upsert riêng, không phụ thuộc vào nhánh admin ở trên.
@@ -65,6 +50,33 @@ async function main() {
 // bằng upsert theo slug/sku, giống cách seed admin ở trên — chạy lại
 // script không tạo trùng.
 async function seedCatalog(): Promise<void> {
+  // Danh sách size/màu dùng chung (BR-CAT-11). FREESIZE cho sản phẩm không có size.
+  const sizes = [
+    { code: 'FREESIZE', name: 'Free size', sortOrder: 0 },
+    { code: 'M', name: 'M', sortOrder: 20 },
+    { code: 'L', name: 'L', sortOrder: 30 },
+    { code: '32', name: '32', sortOrder: 132 },
+    { code: '41', name: '41', sortOrder: 241 },
+    { code: '42', name: '42', sortOrder: 242 },
+  ];
+  const colors = [
+    { code: 'BLK', name: 'Đen', hex: '#000000' },
+    { code: 'WHT', name: 'Trắng', hex: '#FFFFFF' },
+    { code: 'BLU', name: 'Xanh dương', hex: '#1E40AF' },
+    { code: 'KHK', name: 'Kaki', hex: '#C3B091' },
+    { code: 'BRN', name: 'Nâu', hex: '#6B4226' },
+  ];
+  const sizeIds = new Map<string, string>();
+  const colorIds = new Map<string, string>();
+  for (const size of sizes) {
+    const row = await prisma.size.upsert({ where: { code: size.code }, update: {}, create: size });
+    sizeIds.set(size.code, row.id);
+  }
+  for (const color of colors) {
+    const row = await prisma.color.upsert({ where: { code: color.code }, update: {}, create: color });
+    colorIds.set(color.code, row.id);
+  }
+
   const catalog = [
     {
       name: 'Shirts',
@@ -72,13 +84,13 @@ async function seedCatalog(): Promise<void> {
         {
           name: 'Classic Cotton T-Shirt',
           variants: [
-            { sku: 'SHIRT-TSHIRT-BLK-M', color: 'Black', size: 'M', price: 199000, quantity: 50 },
-            { sku: 'SHIRT-TSHIRT-WHT-L', color: 'White', size: 'L', price: 199000, quantity: 30 },
+            { sku: 'SHIRT-TSHIRT-BLK-M', color: 'BLK', size: 'M', price: 199000, quantity: 50 },
+            { sku: 'SHIRT-TSHIRT-WHT-L', color: 'WHT', size: 'L', price: 199000, quantity: 30 },
           ],
         },
         {
           name: 'Slim Fit Dress Shirt',
-          variants: [{ sku: 'SHIRT-DRESS-BLU-M', color: 'Blue', size: 'M', price: 450000, quantity: 20 }],
+          variants: [{ sku: 'SHIRT-DRESS-BLU-M', color: 'BLU', size: 'M', price: 450000, quantity: 20 }],
         },
       ],
     },
@@ -87,11 +99,11 @@ async function seedCatalog(): Promise<void> {
       products: [
         {
           name: 'Straight Leg Jeans',
-          variants: [{ sku: 'PANTS-JEANS-BLU-32', color: 'Blue', size: '32', price: 550000, quantity: 40 }],
+          variants: [{ sku: 'PANTS-JEANS-BLU-32', color: 'BLU', size: '32', price: 550000, quantity: 40 }],
         },
         {
           name: 'Chino Trousers',
-          variants: [{ sku: 'PANTS-CHINO-KHK-32', color: 'Khaki', size: '32', price: 480000, quantity: 25 }],
+          variants: [{ sku: 'PANTS-CHINO-KHK-32', color: 'KHK', size: '32', price: 480000, quantity: 25 }],
         },
       ],
     },
@@ -100,11 +112,11 @@ async function seedCatalog(): Promise<void> {
       products: [
         {
           name: 'Running Sneakers',
-          variants: [{ sku: 'SHOES-SNEAKER-BLK-42', color: 'Black', size: '42', price: 890000, quantity: 15 }],
+          variants: [{ sku: 'SHOES-SNEAKER-BLK-42', color: 'BLK', size: '42', price: 890000, quantity: 15 }],
         },
         {
           name: 'Leather Loafers',
-          variants: [{ sku: 'SHOES-LOAFER-BRN-41', color: 'Brown', size: '41', price: 1200000, quantity: 10 }],
+          variants: [{ sku: 'SHOES-LOAFER-BRN-41', color: 'BRN', size: '41', price: 1200000, quantity: 10 }],
         },
       ],
     },
@@ -123,7 +135,15 @@ async function seedCatalog(): Promise<void> {
       const product = await prisma.product.upsert({
         where: { slug: productSlug },
         update: {},
-        create: { name: productSeed.name, slug: productSlug, categoryId: category.id },
+        create: {
+          name: productSeed.name,
+          slug: productSlug,
+          categoryId: category.id,
+          weightGrams: 400,
+          // Dữ liệu mẫu cho storefront: publish luôn thay vì để DRAFT mặc định.
+          status: 'ACTIVE',
+          publishedAt: new Date(),
+        },
       });
 
       for (const variantSeed of productSeed.variants) {
@@ -133,8 +153,8 @@ async function seedCatalog(): Promise<void> {
           create: {
             productId: product.id,
             sku: variantSeed.sku,
-            color: variantSeed.color,
-            size: variantSeed.size,
+            colorId: colorIds.get(variantSeed.color)!,
+            sizeId: sizeIds.get(variantSeed.size)!,
             price: variantSeed.price,
           },
         });

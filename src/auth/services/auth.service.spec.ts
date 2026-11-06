@@ -7,11 +7,9 @@ import { TokenService } from '#src/auth/services/token.service.js';
 import { MailService } from '#src/mail/mail.service.js';
 
 function createHarness() {
-  const customerRole = { id: 'role-customer', name: 'CUSTOMER' };
   const createdUser = { id: 'user-1', email: 'new@example.com' };
 
   const tx = {
-    role: { findUniqueOrThrow: vi.fn().mockResolvedValue(customerRole) },
     user: {
       create: vi.fn().mockResolvedValue(createdUser),
       update: vi.fn().mockResolvedValue({}),
@@ -155,17 +153,14 @@ describe('AuthService.register', () => {
 
     const result = await service.register(validRegisterDto());
 
-    expect(tx.role.findUniqueOrThrow).toHaveBeenCalledWith({
-      where: { name: 'CUSTOMER' },
-    });
     expect(tx.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         email: 'new@example.com',
         passwordHash: 'hashed-password',
         fullName: 'Nguyen Van A',
         phone: '0912345678',
+        role: 'CUSTOMER',
         status: 'ACTIVE',
-        userRoles: { create: [{ roleId: 'role-customer' }] },
       }),
     });
     expect(result).toEqual({ id: 'user-1', email: 'new@example.com' });
@@ -185,7 +180,6 @@ describe('AuthService.register', () => {
     prisma.$transaction.mockImplementation(async (arg: unknown) => {
       const callback = arg as (tx: unknown) => unknown;
       const result = await callback({
-        role: { findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'r' }) },
         user: {
           create: vi.fn().mockResolvedValue({ id: 'user-1', email: 'new@example.com' }),
         },
@@ -434,8 +428,8 @@ describe('AuthService.login', () => {
       passwordHash: 'hashed',
       status: 'ACTIVE',
       emailVerifiedAt: new Date(),
-      authorizationVersion: 0,
-      userRoles: [{ role: { name: 'CUSTOMER' } }],
+      sessionVersion: 0,
+      role: 'CUSTOMER',
       ...overrides,
     };
   }
@@ -462,12 +456,12 @@ describe('AuthService.login', () => {
     );
   });
 
-  it('throws a distinct error, checked only after the password is confirmed correct, when the account is BLOCKED', async () => {
+  it('throws the generic credentials error, checked only after the password is confirmed correct, when the account is DISABLED', async () => {
     const { service, prisma, passwordService } = createHarness();
-    prisma.user.findUnique.mockResolvedValue(validLoginUser({ status: 'BLOCKED' }));
+    prisma.user.findUnique.mockResolvedValue(validLoginUser({ status: 'DISABLED' }));
 
     await expect(service.login({ email: 'user@example.com', password: 'Abc@1234' })).rejects.toThrow(
-      new UnauthorizedException('Account is locked'),
+      new UnauthorizedException('Invalid email or password'),
     );
     expect(passwordService.verify).toHaveBeenCalled();
   });
@@ -492,8 +486,8 @@ describe('AuthService.login', () => {
     expect(jwtService.sign).toHaveBeenCalledWith({
       sub: 'user-1',
       email: 'user@example.com',
-      roles: ['CUSTOMER'],
-      authorizationVersion: 0,
+      role: 'CUSTOMER',
+      sessionVersion: 0,
     });
     expect(tokenService.createRefreshToken).toHaveBeenCalledWith('user-1');
     // toEqual pins the exact shape below, so it also proves passwordHash is
@@ -505,7 +499,7 @@ describe('AuthService.login', () => {
         id: 'user-1',
         email: 'user@example.com',
         fullName: 'Nguyen Van A',
-        roles: ['CUSTOMER'],
+        role: 'CUSTOMER',
         emailVerified: true,
       },
     });
@@ -521,7 +515,7 @@ describe('AuthService.refreshToken', () => {
       userId: 'user-1',
       revokedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
-      user: { id: 'user-1', email: 'user@example.com', authorizationVersion: 0, userRoles: [] },
+      user: { id: 'user-1', email: 'user@example.com', sessionVersion: 0, role: 'CUSTOMER' },
       ...overrides,
     };
   }
@@ -542,7 +536,7 @@ describe('AuthService.refreshToken', () => {
     );
     expect(prisma.refreshToken.findUnique).toHaveBeenCalledWith({
       where: { tokenHash: 'hash-of-unknown-token' },
-      include: { user: { include: { userRoles: { include: { role: true } } } } },
+      include: { user: true },
     });
   });
 
@@ -608,8 +602,8 @@ describe('AuthService.refreshToken', () => {
         user: {
           id: 'user-1',
           email: 'user@example.com',
-          authorizationVersion: 0,
-          userRoles: [{ role: { name: 'CUSTOMER' } }],
+          sessionVersion: 0,
+          role: 'CUSTOMER',
         },
       }),
     );
@@ -626,8 +620,8 @@ describe('AuthService.refreshToken', () => {
     expect(jwtService.sign).toHaveBeenCalledWith({
       sub: 'user-1',
       email: 'user@example.com',
-      roles: ['CUSTOMER'],
-      authorizationVersion: 0,
+      role: 'CUSTOMER',
+      sessionVersion: 0,
     });
     expect(result).toEqual({
       accessToken: 'new-signed-access-token',
@@ -645,20 +639,19 @@ describe('AuthService.getMe', () => {
       fullName: 'Nguyen Van A',
       passwordHash: 'hashed',
       emailVerifiedAt: new Date(),
-      userRoles: [{ role: { name: 'CUSTOMER' } }],
+      role: 'CUSTOMER',
     });
 
     const result = await service.getMe('user-1');
 
     expect(prisma.user.findUniqueOrThrow).toHaveBeenCalledWith({
       where: { id: 'user-1' },
-      include: { userRoles: { include: { role: true } } },
     });
     expect(result).toEqual({
       id: 'user-1',
       email: 'user@example.com',
       fullName: 'Nguyen Van A',
-      roles: ['CUSTOMER'],
+      role: 'CUSTOMER',
       emailVerified: true,
     });
   });

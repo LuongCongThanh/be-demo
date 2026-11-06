@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
 export class CreateProductDto {
   @ApiProperty({ maxLength: 255, example: 'Wireless Headphones' })
@@ -20,6 +20,11 @@ export class CreateProductDto {
   @IsUUID()
   categoryId: string;
 
-  // Không có field `slug` — server tự sinh từ `name` (Task 3). Không có
-  // field `status` — mặc định ACTIVE ở DB, chỉ đổi được qua UpdateProductDto.
+  @ApiProperty({ minimum: 1, description: 'Shipping weight in grams (BR-CAT-06)', example: 250 })
+  @IsInt()
+  @Min(1)
+  weightGrams: number;
+
+  // Không có field `slug` — server tự sinh từ `name`. Không có field `status` —
+  // sản phẩm mới luôn là DRAFT (BR-CAT-07), chỉ đổi được qua UpdateProductDto.
 }

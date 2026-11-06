@@ -24,12 +24,6 @@ describe('Auth — POST /auth/logout, POST /auth/logout-all (e2e)', () => {
     prisma = moduleFixture.get(PrismaService);
     passwordService = moduleFixture.get(PasswordService);
     tokenService = moduleFixture.get(TokenService);
-
-    await prisma.role.upsert({
-      where: { name: 'CUSTOMER' },
-      update: {},
-      create: { name: 'CUSTOMER' },
-    });
   });
 
   afterAll(async () => {

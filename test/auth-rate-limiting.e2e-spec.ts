@@ -29,12 +29,6 @@ describe('Auth — rate limiting (e2e)', () => {
 
     prisma = moduleFixture.get(PrismaService);
     passwordService = moduleFixture.get(PasswordService);
-
-    await prisma.role.upsert({
-      where: { name: 'CUSTOMER' },
-      update: {},
-      create: { name: 'CUSTOMER' },
-    });
   });
 
   afterAll(async () => {

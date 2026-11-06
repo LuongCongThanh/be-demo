@@ -27,14 +27,6 @@ describe('Auth — POST /auth/register (e2e)', () => {
     const moduleFixture = created.moduleFixture;
 
     prisma = moduleFixture.get(PrismaService);
-
-    // The CUSTOMER role must exist for register() to succeed — idempotent
-    // upsert, same approach the future seed script will use.
-    await prisma.role.upsert({
-      where: { name: 'CUSTOMER' },
-      update: {},
-      create: { name: 'CUSTOMER' },
-    });
   });
 
   afterAll(async () => {
@@ -64,10 +56,7 @@ describe('Auth — POST /auth/register (e2e)', () => {
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
     expect(user.passwordHash).not.toBe('Abc@1234');
 
-    const roles = await prisma.userRole.findMany({
-      where: { userId: user.id },
-    });
-    expect(roles).toHaveLength(1);
+    expect(user.role).toBe('CUSTOMER');
 
     const verificationTokens = await prisma.emailVerificationToken.findMany({
       where: { userId: user.id },

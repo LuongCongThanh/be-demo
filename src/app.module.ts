@@ -11,6 +11,8 @@ import { validate } from '#src/config/env.validation.js';
 import { AllExceptionsFilter } from '#src/common/filters/all-exceptions.filter.js';
 import { RequestIdMiddleware } from '#src/common/request-id.middleware.js';
 import { ProductsModule } from '#src/products/products.module.js';
+import { StaffModule } from '#src/staff/staff.module.js';
+import { ProductOptionsModule } from '#src/product-options/product-options.module.js';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { ProductsModule } from '#src/products/products.module.js';
     MetricsModule,
     CategoriesModule,
     ProductsModule,
+    StaffModule,
+    ProductOptionsModule,
   ],
   providers: [
     // `useExisting` (not `useClass`) so `ThrottlerGuard` is also reachable as

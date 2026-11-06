@@ -10,12 +10,21 @@ export const API_TAGS = {
   },
   CATEGORIES: {
     name: 'Categories',
-    description: 'Product category CRUD — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public',
+    description:
+      'Nested category tree — public visible tree; back-office CRUD with cycle and delete guards (writes ADMIN)',
   },
   PRODUCTS: {
     name: 'Products',
     description:
-      'Product + variant CRUD (variants nested under products, inventory created atomically) — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public',
+      'Product + variant CRUD (variants nested under products, inventory created atomically) — writes gated to ADMIN, reads public',
+  },
+  PRODUCT_OPTIONS: {
+    name: 'Sizes & Colors',
+    description: 'Shared size list and color palette for variants — no delete, hide instead; writes gated to ADMIN',
+  },
+  STAFF: {
+    name: 'Staff Management',
+    description: 'Back-office staff accounts — create, rename, disable/enable (ADMIN only, every change audited)',
   },
   HEALTH: {
     name: 'Health',
