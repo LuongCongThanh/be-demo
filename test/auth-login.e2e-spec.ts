@@ -20,12 +20,6 @@ describe('Auth — POST /auth/login (e2e)', () => {
 
     prisma = moduleFixture.get(PrismaService);
     passwordService = moduleFixture.get(PasswordService);
-
-    await prisma.role.upsert({
-      where: { name: 'CUSTOMER' },
-      update: {},
-      create: { name: 'CUSTOMER' },
-    });
   });
 
   afterAll(async () => {
@@ -40,7 +34,7 @@ describe('Auth — POST /auth/login (e2e)', () => {
 
   async function createUser(
     emailSuffix: string,
-    overrides: { status?: 'ACTIVE' | 'BLOCKED'; emailVerifiedAt?: Date | null } = {},
+    overrides: { status?: 'ACTIVE' | 'DISABLED'; emailVerifiedAt?: Date | null } = {},
   ) {
     const passwordHash = await passwordService.hash(VALID_PASSWORD);
 
@@ -69,7 +63,7 @@ describe('Auth — POST /auth/login (e2e)', () => {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      roles: ['CUSTOMER'],
+      role: 'CUSTOMER',
       emailVerified: true,
     });
     expect(res.body).not.toHaveProperty('refreshToken');
@@ -99,8 +93,8 @@ describe('Auth — POST /auth/login (e2e)', () => {
     expect(nonExistent.body.message).toEqual(wrongPassword.body.message);
   });
 
-  it('rejects a BLOCKED account, even with the correct password', async () => {
-    const user = await createUser('blocked', { status: 'BLOCKED' });
+  it('rejects a DISABLED account, even with the correct password', async () => {
+    const user = await createUser('disabled', { status: 'DISABLED' });
 
     await request(app.getHttpServer())
       .post('/api/v1/auth/login')

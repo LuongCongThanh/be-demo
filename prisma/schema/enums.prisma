@@ -1,6 +1,12 @@
+enum Role {
+  CUSTOMER
+  STAFF
+  ADMIN
+}
+
 enum UserStatus {
   ACTIVE
-  BLOCKED
+  DISABLED
 }
 
 enum ProductStatus {

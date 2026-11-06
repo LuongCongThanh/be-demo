@@ -44,9 +44,9 @@ export class ProductsController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new product (STORE_MANAGER/MASTER_ADMIN only)' })
+  @ApiOperation({ summary: 'Create a new product (ADMIN only)' })
   @ApiCreatedResponse({ type: ProductResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Category not found'], [409, 'Product name already exists'])
   create(@Body() createProductDto: CreateProductDto) {
@@ -71,10 +71,10 @@ export class ProductsController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Update a product, regenerating its slug if the name changes (STORE_MANAGER/MASTER_ADMIN only)',
+    summary: 'Update a product, regenerating its slug if the name changes (ADMIN only)',
   })
   @ApiOkResponse({ type: ProductResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Product or category not found'], [409, 'Product name already exists'])
@@ -84,11 +84,11 @@ export class ProductsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Delete a product, cascading to its variants and inventory (STORE_MANAGER/MASTER_ADMIN only)',
+    summary: 'Delete a product, cascading to its variants and inventory (ADMIN only)',
   })
   @ApiNoContentResponse({ description: 'Product deleted' })
   @ApiErrorResponses(400, 401, 403, [404, 'Product not found'])
@@ -98,11 +98,10 @@ export class ProductsController {
 
   @Post(':id/variants')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({
-    summary:
-      'Create a variant under a product, atomically creating its inventory row (STORE_MANAGER/MASTER_ADMIN only)',
+    summary: 'Create a variant under a product, atomically creating its inventory row (ADMIN only)',
   })
   @ApiCreatedResponse({ type: VariantResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Product not found'], [409, 'SKU already exists'])
@@ -128,9 +127,9 @@ export class ProductsController {
 
   @Patch(':id/variants/:variantId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a variant (STORE_MANAGER/MASTER_ADMIN only)' })
+  @ApiOperation({ summary: 'Update a variant (ADMIN only)' })
   @ApiOkResponse({ type: VariantResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Variant not found on this product'], [409, 'SKU already exists'])
   updateVariant(
@@ -143,10 +142,10 @@ export class ProductsController {
 
   @Delete(':id/variants/:variantId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a variant, cascading to its inventory (STORE_MANAGER/MASTER_ADMIN only)' })
+  @ApiOperation({ summary: 'Delete a variant, cascading to its inventory (ADMIN only)' })
   @ApiNoContentResponse({ description: 'Variant deleted' })
   @ApiErrorResponses(400, 401, 403, [404, 'Variant not found on this product'])
   removeVariant(@Param('id', ParseUUIDPipe) productId: string, @Param('variantId', ParseUUIDPipe) variantId: string) {

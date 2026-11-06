@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '#src/generated/prisma/client.js';
+import type { Role } from '#src/generated/prisma/enums.js';
 import { getUniqueConstraintTarget } from '#src/common/prisma-error.util.js';
 import { PrismaService } from '#src/prisma/prisma.service.js';
 import { ResendVerificationDto } from '#src/auth/dto/resend-verification.dto.js';
@@ -42,7 +43,7 @@ export const GENERIC_FORGOT_PASSWORD_MESSAGE = 'If the email exists, a password 
 export interface LoginResult {
   accessToken: string;
   rawRefreshToken: string;
-  user: { id: string; email: string; fullName: string; roles: string[]; emailVerified: boolean };
+  user: { id: string; email: string; fullName: string; role: Role; emailVerified: boolean };
 }
 
 export interface RefreshTokenResult {
@@ -83,18 +84,14 @@ export class AuthService {
     let rawCode: string;
     try {
       ({ user, rawCode } = await this.prisma.$transaction(async (tx) => {
-        const customerRole = await tx.role.findUniqueOrThrow({
-          where: { name: 'CUSTOMER' },
-        });
-
         const createdUser = await tx.user.create({
           data: {
             email: dto.email,
             passwordHash,
             fullName: dto.fullName,
             phone: dto.phone,
+            role: 'CUSTOMER',
             status: 'ACTIVE',
-            userRoles: { create: [{ roleId: customerRole.id }] },
           },
         });
 
@@ -233,7 +230,6 @@ export class AuthService {
   async login(dto: LoginDto): Promise<LoginResult> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
-      include: { userRoles: { include: { role: true } } },
     });
 
     // Không tồn tại → lỗi generic, KHÔNG phân biệt với sai password (chống
@@ -249,14 +245,14 @@ export class AuthService {
 
     // Kiểm tra CẢ HAI trục trạng thái (quyết định #15) — SAU khi đã xác nhận
     // password đúng, để không lộ thêm thông tin cho kẻ đoán sai password.
-    if (user.status === 'BLOCKED') {
+    if (user.status === 'DISABLED') {
       throw new UnauthorizedException('Account is locked');
     }
     if (!user.emailVerifiedAt) {
       throw new UnauthorizedException('Email is not verified');
     }
 
-    const { accessToken, roles } = this.signAccessToken(user);
+    const accessToken = this.signAccessToken(user);
     const rawRefreshToken = await this.tokenService.createRefreshToken(user.id);
 
     return {
@@ -266,7 +262,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
-        roles,
+        role: user.role,
         // Derive từ dữ liệu thật (không hardcode `true`): tại điểm này chắc
         // chắn email đã verify (đã check ở trên), nhưng derive vẫn an toàn
         // hơn nếu logic check phía trên đổi mà quên sửa dòng này.
@@ -283,7 +279,7 @@ export class AuthService {
     const tokenHash = this.tokenService.hashRawToken(rawRefreshToken);
     const record = await this.prisma.refreshToken.findUnique({
       where: { tokenHash },
-      include: { user: { include: { userRoles: { include: { role: true } } } } },
+      include: { user: true },
     });
 
     if (!record) {
@@ -318,7 +314,7 @@ export class AuthService {
     }
 
     const newRawRefreshToken = await this.tokenService.createRefreshToken(record.userId);
-    const { accessToken } = this.signAccessToken(record.user);
+    const accessToken = this.signAccessToken(record.user);
 
     return { accessToken, newRawRefreshToken };
   }
@@ -434,7 +430,6 @@ export class AuthService {
   async getMe(userId: string): Promise<AuthUserResponseDto> {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      include: { userRoles: { include: { role: true } } },
     });
 
     // Map thủ công sang DTO allow-list — KHÔNG return thẳng `user` (có passwordHash).
@@ -442,38 +437,25 @@ export class AuthService {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      roles: user.userRoles.map((r) => r.role.name),
+      role: user.role,
       emailVerified: user.emailVerifiedAt !== null,
     };
   }
 
   /**
-   * Derive role names rồi sinh JWT access token trong 1 bước — dùng chung
-   * cho login() và refreshToken() (cả 2 đều có sẵn `user` kèm `userRoles`
-   * qua Prisma include), tránh lặp lại `.map()` + gọi sign() ở từng nơi.
+   * Sinh JWT access token — dùng chung cho login() và refreshToken().
    *
-   * Payload JWT chỉ chứa thông tin cần để nhận diện user (sub = userId,
-   * email, roles) — KHÔNG nhét passwordHash/refresh token/dữ liệu cá nhân
-   * không cần thiết (JWT payload không được mã hoá, ai cũng đọc được nếu có
-   * token).
+   * Payload chỉ chứa thông tin nhận diện + phân quyền (sub, email, role,
+   * sessionVersion) — KHÔNG nhét passwordHash/refresh token/dữ liệu cá nhân
+   * (JWT payload không được mã hoá, ai cũng đọc được nếu có token).
    */
-  private signAccessToken(user: {
-    id: string;
-    email: string;
-    authorizationVersion: number;
-    userRoles: { role: { name: string } }[];
-  }): {
-    accessToken: string;
-    roles: string[];
-  } {
-    const roles = user.userRoles.map((ur) => ur.role.name);
-    const accessToken = this.jwtService.sign({
+  private signAccessToken(user: { id: string; email: string; role: Role; sessionVersion: number }): string {
+    return this.jwtService.sign({
       sub: user.id,
       email: user.email,
-      roles,
-      authorizationVersion: user.authorizationVersion,
+      role: user.role,
+      sessionVersion: user.sessionVersion,
     });
-    return { accessToken, roles };
   }
 
   // Dùng chung cho mọi lần gửi mail "best effort": lỗi chỉ log lại, không

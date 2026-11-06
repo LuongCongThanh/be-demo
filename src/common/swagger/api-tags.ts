@@ -10,12 +10,12 @@ export const API_TAGS = {
   },
   CATEGORIES: {
     name: 'Categories',
-    description: 'Product category CRUD — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public',
+    description: 'Product category CRUD — writes gated to ADMIN, reads public',
   },
   PRODUCTS: {
     name: 'Products',
     description:
-      'Product + variant CRUD (variants nested under products, inventory created atomically) — writes gated to STORE_MANAGER/MASTER_ADMIN, reads public',
+      'Product + variant CRUD (variants nested under products, inventory created atomically) — writes gated to ADMIN, reads public',
   },
   HEALTH: {
     name: 'Health',

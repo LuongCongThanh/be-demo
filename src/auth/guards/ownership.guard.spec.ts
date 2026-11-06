@@ -22,7 +22,7 @@ describe('OwnershipGuard', () => {
   it('allows the request through when the route has no @OwnedResource() metadata', async () => {
     const { guard } = createGuard(undefined);
 
-    await expect(guard.canActivate(createContext({ sub: 'user-1', roles: [] }))).resolves.toBe(true);
+    await expect(guard.canActivate(createContext({ sub: 'user-1', role: 'CUSTOMER' }))).resolves.toBe(true);
   });
 
   it('denies when the route requires ownership but request.user is missing (guard ran before JwtAuthGuard)', async () => {
@@ -33,12 +33,12 @@ describe('OwnershipGuard', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('bypasses ownership check entirely for a user with the MASTER_ADMIN role, without calling fetch', async () => {
+  it('bypasses ownership check entirely for a user with the ADMIN role, without calling fetch', async () => {
     const fetch = vi.fn();
     const { guard } = createGuard({ paramIdKey: 'id', fetch });
 
     await expect(
-      guard.canActivate(createContext({ sub: 'admin-1', roles: ['MASTER_ADMIN'] }, { id: 'resource-1' })),
+      guard.canActivate(createContext({ sub: 'admin-1', role: 'ADMIN' }, { id: 'resource-1' })),
     ).resolves.toBe(true);
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -48,7 +48,7 @@ describe('OwnershipGuard', () => {
     const { guard } = createGuard({ paramIdKey: 'id', fetch });
 
     await expect(
-      guard.canActivate(createContext({ sub: 'user-1', roles: ['CUSTOMER'] }, { id: 'missing-resource' })),
+      guard.canActivate(createContext({ sub: 'user-1', role: 'CUSTOMER' }, { id: 'missing-resource' })),
     ).rejects.toThrow(NotFoundException);
     expect(fetch).toHaveBeenCalledWith('missing-resource', expect.anything());
   });
@@ -58,7 +58,7 @@ describe('OwnershipGuard', () => {
     const { guard } = createGuard({ paramIdKey: 'id', fetch });
 
     await expect(
-      guard.canActivate(createContext({ sub: 'user-1', roles: ['CUSTOMER'] }, { id: 'resource-1' })),
+      guard.canActivate(createContext({ sub: 'user-1', role: 'CUSTOMER' }, { id: 'resource-1' })),
     ).rejects.toThrow(ForbiddenException);
   });
 
@@ -67,7 +67,7 @@ describe('OwnershipGuard', () => {
     const { guard } = createGuard({ paramIdKey: 'id', fetch });
 
     await expect(
-      guard.canActivate(createContext({ sub: 'user-1', roles: ['CUSTOMER'] }, { id: 'resource-1' })),
+      guard.canActivate(createContext({ sub: 'user-1', role: 'CUSTOMER' }, { id: 'resource-1' })),
     ).resolves.toBe(true);
   });
 });

@@ -9,20 +9,6 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  // Idempotent — upsert instead of create, so re-running this script (every
-  // fresh dev machine, every CI run, every deploy) never creates duplicate
-  // roles.
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'MASTER_ADMIN' },
-    update: {},
-    create: { name: 'MASTER_ADMIN' },
-  });
-  await prisma.role.upsert({
-    where: { name: 'CUSTOMER' },
-    update: {},
-    create: { name: 'CUSTOMER' },
-  });
-
   // Deliberate exception: this script runs standalone, outside the Nest DI
   // container (no ConfigService to inject), so it's allowed to read
   // process.env directly — the one exception to "config only via
@@ -33,27 +19,26 @@ async function main() {
     throw new Error('Missing ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD in .env');
   }
 
-  const existingAdmin = await prisma.user.findUnique({ where: { email } });
-  if (existingAdmin) {
-    console.log(`Admin ${email} already exists, skipping.`);
-  } else {
-    const passwordHash = await argon2.hash(password);
-    await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        // fullName/phone không có ý nghĩa thật với tài khoản bootstrap này
-        // (không phải khách hàng đăng ký qua form) — điền placeholder cố định
-        // để thoả field bắt buộc của model User.
-        fullName: 'Admin',
-        phone: '0000000000',
-        status: 'ACTIVE',
-        emailVerifiedAt: new Date(), // admin bootstrap doesn't need email verification
-        userRoles: { create: [{ roleId: adminRole.id }] },
-      },
-    });
-    console.log(`Created admin ${email}.`);
-  }
+  // Upsert theo email: user đã tồn tại chỉ được đảm bảo role = ADMIN, KHÔNG
+  // ghi đè mật khẩu (người dùng có thể đã đổi mật khẩu sau lần seed đầu).
+  const passwordHash = await argon2.hash(password);
+  await prisma.user.upsert({
+    where: { email },
+    update: { role: 'ADMIN' },
+    create: {
+      email,
+      passwordHash,
+      // fullName/phone không có ý nghĩa thật với tài khoản bootstrap này
+      // (không phải khách hàng đăng ký qua form) — điền placeholder cố định
+      // để thoả field bắt buộc của model User.
+      fullName: 'Admin',
+      phone: '0000000000',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      emailVerifiedAt: new Date(), // admin bootstrap doesn't need email verification
+    },
+  });
+  console.log(`Ensured admin ${email}.`);
 
   // Luôn chạy dù admin đã tồn tại hay chưa — catalog tự idempotent qua
   // upsert riêng, không phụ thuộc vào nhánh admin ở trên.

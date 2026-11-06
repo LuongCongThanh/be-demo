@@ -16,19 +16,13 @@ describe('Categories (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let passwordService: PasswordService;
-  let masterAdminAccessToken: string;
+  let adminAccessToken: string;
 
   beforeAll(async () => {
     const created = await createTestApp();
     app = created.app;
     prisma = created.moduleFixture.get(PrismaService);
     passwordService = created.moduleFixture.get(PasswordService);
-
-    await prisma.role.upsert({
-      where: { name: 'CUSTOMER' },
-      update: {},
-      create: { name: 'CUSTOMER' },
-    });
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -38,7 +32,7 @@ describe('Categories (e2e)', () => {
       })
       .expect(200);
 
-    masterAdminAccessToken = loginRes.body.accessToken;
+    adminAccessToken = loginRes.body.accessToken;
   });
 
   afterAll(async () => {
@@ -83,10 +77,10 @@ describe('Categories (e2e)', () => {
       .expect(403);
   });
 
-  it('POST /api/v1/categories as MASTER_ADMIN creates a category and returns 201', async () => {
+  it('POST /api/v1/categories as ADMIN creates a category and returns 201', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/categories')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Shoes ${Date.now()}` })
       .expect(201);
 
@@ -97,7 +91,7 @@ describe('Categories (e2e)', () => {
   it('POST /api/v1/categories with a missing name returns 400', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/categories')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({})
       .expect(400);
   });
@@ -106,12 +100,12 @@ describe('Categories (e2e)', () => {
     const name = `${TEST_NAME_PREFIX} Duplicate ${Date.now()}`;
     await request(app.getHttpServer())
       .post('/api/v1/categories')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name })
       .expect(201);
     await request(app.getHttpServer())
       .post('/api/v1/categories')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name })
       .expect(409);
   });
@@ -136,17 +130,17 @@ describe('Categories (e2e)', () => {
     await request(app.getHttpServer()).delete('/api/v1/categories/00000000-0000-0000-0000-000000000000').expect(401);
   });
 
-  it('DELETE /api/v1/categories/:id as MASTER_ADMIN returns 404 when the category does not exist', async () => {
+  it('DELETE /api/v1/categories/:id as ADMIN returns 404 when the category does not exist', async () => {
     await request(app.getHttpServer())
       .delete('/api/v1/categories/00000000-0000-0000-0000-000000000000')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .expect(404);
   });
 
-  it('PATCH /api/v1/categories/:id as MASTER_ADMIN regenerates the slug from the new name', async () => {
+  it('PATCH /api/v1/categories/:id as ADMIN regenerates the slug from the new name', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/categories')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Before ${Date.now()}` })
       .expect(201);
 
@@ -155,7 +149,7 @@ describe('Categories (e2e)', () => {
 
     const patchRes = await request(app.getHttpServer())
       .patch(`/api/v1/categories/${createRes.body.id}`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: newName })
       .expect(200);
 
@@ -166,21 +160,21 @@ describe('Categories (e2e)', () => {
   it('PATCH /api/v1/categories/:id with an explicit null name returns 400, not 500', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/categories')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} NullName ${Date.now()}` })
       .expect(201);
 
     await request(app.getHttpServer())
       .patch(`/api/v1/categories/${createRes.body.id}`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: null })
       .expect(400);
   });
 
-  it('DELETE /api/v1/categories/:id as MASTER_ADMIN returns 409 via the service pre-check when a product still references it', async () => {
+  it('DELETE /api/v1/categories/:id as ADMIN returns 409 via the service pre-check when a product still references it', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/categories')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} HasProduct ${Date.now()}` })
       .expect(201);
 
@@ -199,14 +193,14 @@ describe('Categories (e2e)', () => {
     // giờ được kích hoạt ở test này. Test dưới mới verify tầng DB thật.
     await request(app.getHttpServer())
       .delete(`/api/v1/categories/${categoryId}`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .expect(409);
   });
 
   it('DB-level FK RESTRICT (ADR 0001) rejects deleting a category with a product, bypassing the service pre-check', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/categories')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} DbFkRestrict ${Date.now()}` })
       .expect(201);
 

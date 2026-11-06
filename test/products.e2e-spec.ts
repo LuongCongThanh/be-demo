@@ -17,7 +17,7 @@ describe('Products + Variants (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let passwordService: PasswordService;
-  let masterAdminAccessToken: string;
+  let adminAccessToken: string;
   let categoryId: string;
 
   beforeAll(async () => {
@@ -26,12 +26,6 @@ describe('Products + Variants (e2e)', () => {
     prisma = created.moduleFixture.get(PrismaService);
     passwordService = created.moduleFixture.get(PasswordService);
 
-    await prisma.role.upsert({
-      where: { name: 'CUSTOMER' },
-      update: {},
-      create: { name: 'CUSTOMER' },
-    });
-
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({
@@ -39,7 +33,7 @@ describe('Products + Variants (e2e)', () => {
         password: process.env.ADMIN_BOOTSTRAP_PASSWORD,
       })
       .expect(200);
-    masterAdminAccessToken = loginRes.body.accessToken;
+    adminAccessToken = loginRes.body.accessToken;
 
     const category = await prisma.category.create({
       data: {
@@ -89,7 +83,7 @@ describe('Products + Variants (e2e)', () => {
   it('POST /api/v1/products with a non-existent categoryId returns 404', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product ${Date.now()}`, categoryId: '00000000-0000-0000-0000-000000000000' })
       .expect(404);
   });
@@ -97,7 +91,7 @@ describe('Products + Variants (e2e)', () => {
   it('POST /api/v1/products creates a product and returns 201', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product ${Date.now()}`, categoryId })
       .expect(201);
 
@@ -108,13 +102,13 @@ describe('Products + Variants (e2e)', () => {
     const name = `${TEST_NAME_PREFIX} Duplicate product ${Date.now()}`;
     await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name, categoryId })
       .expect(201);
 
     await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name, categoryId })
       .expect(409);
   });
@@ -126,14 +120,14 @@ describe('Products + Variants (e2e)', () => {
   it('creating a variant atomically creates an inventory row (quantity=0) in the same transaction', async () => {
     const productRes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product with variant ${Date.now()}`, categoryId })
       .expect(201);
     const productId = productRes.body.id;
 
     const variantRes = await request(app.getHttpServer())
       .post(`/api/v1/products/${productId}/variants`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ sku: `SKU-${Date.now()}`, price: 150000 })
       .expect(201);
     const variantId = variantRes.body.id;
@@ -145,7 +139,7 @@ describe('Products + Variants (e2e)', () => {
   it('creating a variant with a duplicate sku returns 409', async () => {
     const productRes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product dup sku ${Date.now()}`, categoryId })
       .expect(201);
     const productId = productRes.body.id;
@@ -153,13 +147,13 @@ describe('Products + Variants (e2e)', () => {
 
     await request(app.getHttpServer())
       .post(`/api/v1/products/${productId}/variants`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ sku, price: 100000 })
       .expect(201);
 
     await request(app.getHttpServer())
       .post(`/api/v1/products/${productId}/variants`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ sku, price: 100000 })
       .expect(409);
   });
@@ -167,18 +161,18 @@ describe('Products + Variants (e2e)', () => {
   it('GET /api/v1/products/:id/variants/:variantId returns 404 when the variant belongs to a different product', async () => {
     const productARes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product A ${Date.now()}`, categoryId })
       .expect(201);
     const productBRes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product B ${Date.now()}`, categoryId })
       .expect(201);
 
     const variantOfARes = await request(app.getHttpServer())
       .post(`/api/v1/products/${productARes.body.id}/variants`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ sku: `SKU-A-${Date.now()}`, price: 100000 })
       .expect(201);
 
@@ -190,24 +184,24 @@ describe('Products + Variants (e2e)', () => {
   it('PATCH /api/v1/products/:id/variants/:variantId returns 404 when the variant belongs to a different product', async () => {
     const productARes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product A patch ${Date.now()}`, categoryId })
       .expect(201);
     const productBRes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product B patch ${Date.now()}`, categoryId })
       .expect(201);
 
     const variantOfARes = await request(app.getHttpServer())
       .post(`/api/v1/products/${productARes.body.id}/variants`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ sku: `SKU-PATCH-A-${Date.now()}`, price: 100000 })
       .expect(201);
 
     await request(app.getHttpServer())
       .patch(`/api/v1/products/${productBRes.body.id}/variants/${variantOfARes.body.id}`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ price: 999000 })
       .expect(404);
 
@@ -218,24 +212,24 @@ describe('Products + Variants (e2e)', () => {
   it('DELETE /api/v1/products/:id/variants/:variantId returns 404 when the variant belongs to a different product', async () => {
     const productARes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product A delete ${Date.now()}`, categoryId })
       .expect(201);
     const productBRes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product B delete ${Date.now()}`, categoryId })
       .expect(201);
 
     const variantOfARes = await request(app.getHttpServer())
       .post(`/api/v1/products/${productARes.body.id}/variants`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ sku: `SKU-DEL-A-${Date.now()}`, price: 100000 })
       .expect(201);
 
     await request(app.getHttpServer())
       .delete(`/api/v1/products/${productBRes.body.id}/variants/${variantOfARes.body.id}`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .expect(404);
 
     expect(await prisma.productVariant.findUnique({ where: { id: variantOfARes.body.id } })).not.toBeNull();
@@ -254,14 +248,14 @@ describe('Products + Variants (e2e)', () => {
   it('DELETE /api/v1/products/:id cascades to its variants and inventory rows (spec §4.5)', async () => {
     const productRes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Cascade delete ${Date.now()}`, categoryId })
       .expect(201);
     const productId = productRes.body.id;
 
     const variantRes = await request(app.getHttpServer())
       .post(`/api/v1/products/${productId}/variants`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ sku: `SKU-CASCADE-${Date.now()}`, price: 120000 })
       .expect(201);
     const variantId = variantRes.body.id;
@@ -273,7 +267,7 @@ describe('Products + Variants (e2e)', () => {
 
     await request(app.getHttpServer())
       .delete(`/api/v1/products/${productId}`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .expect(204);
 
     expect(await prisma.productVariant.findUnique({ where: { id: variantId } })).toBeNull();
@@ -283,13 +277,13 @@ describe('Products + Variants (e2e)', () => {
   it('PATCH /api/v1/products/:id with an explicit null name returns 400, not 500', async () => {
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} NullName ${Date.now()}`, categoryId })
       .expect(201);
 
     await request(app.getHttpServer())
       .patch(`/api/v1/products/${createRes.body.id}`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: null })
       .expect(400);
   });
@@ -297,19 +291,19 @@ describe('Products + Variants (e2e)', () => {
   it('PATCH /api/v1/products/:id/variants/:variantId with an explicit null sku returns 400, not 500', async () => {
     const productRes = await request(app.getHttpServer())
       .post('/api/v1/products')
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ name: `${TEST_NAME_PREFIX} Product for null sku ${Date.now()}`, categoryId })
       .expect(201);
 
     const variantRes = await request(app.getHttpServer())
       .post(`/api/v1/products/${productRes.body.id}/variants`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ sku: `SKU-NULL-${Date.now()}`, price: 100000 })
       .expect(201);
 
     await request(app.getHttpServer())
       .patch(`/api/v1/products/${productRes.body.id}/variants/${variantRes.body.id}`)
-      .set('Authorization', `Bearer ${masterAdminAccessToken}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({ sku: null })
       .expect(400);
   });

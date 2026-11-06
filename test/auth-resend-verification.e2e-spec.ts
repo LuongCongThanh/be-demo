@@ -16,12 +16,6 @@ describe('Auth — POST /auth/resend-verification (e2e)', () => {
     const moduleFixture = created.moduleFixture;
 
     prisma = moduleFixture.get(PrismaService);
-
-    await prisma.role.upsert({
-      where: { name: 'CUSTOMER' },
-      update: {},
-      create: { name: 'CUSTOMER' },
-    });
   });
 
   afterAll(async () => {

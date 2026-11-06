@@ -25,14 +25,6 @@ describe('Auth — POST /auth/verify-email (e2e)', () => {
 
     prisma = moduleFixture.get(PrismaService);
     tokenService = moduleFixture.get(TokenService);
-
-    // verifyEmail() doesn't touch roles, but the FK on User still requires
-    // CUSTOMER to exist for the createUser() helper below to succeed.
-    await prisma.role.upsert({
-      where: { name: 'CUSTOMER' },
-      update: {},
-      create: { name: 'CUSTOMER' },
-    });
   });
 
   afterAll(async () => {

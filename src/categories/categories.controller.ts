@@ -39,9 +39,9 @@ export class CategoriesController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new category (STORE_MANAGER/MASTER_ADMIN only)' })
+  @ApiOperation({ summary: 'Create a new category (ADMIN only)' })
   @ApiCreatedResponse({ type: CategoryResponseDto })
   @ApiErrorResponses(400, 401, 403, [409, 'Category name already exists'])
   create(@Body() createCategoryDto: CreateCategoryDto) {
@@ -66,10 +66,10 @@ export class CategoriesController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Update a category, regenerating its slug if the name changes (STORE_MANAGER/MASTER_ADMIN only)',
+    summary: 'Update a category, regenerating its slug if the name changes (ADMIN only)',
   })
   @ApiOkResponse({ type: CategoryResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Category not found'], [409, 'Category name already exists'])
@@ -79,12 +79,11 @@ export class CategoriesController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('STORE_MANAGER', 'MASTER_ADMIN')
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary:
-      'Delete a category (blocked with 409 while any product still references it, STORE_MANAGER/MASTER_ADMIN only)',
+    summary: 'Delete a category (blocked with 409 while any product still references it, ADMIN only)',
   })
   @ApiNoContentResponse({ description: 'Deleted' })
   @ApiErrorResponses(400, 401, 403, [404, 'Category not found'], [409, 'Category still has products'])

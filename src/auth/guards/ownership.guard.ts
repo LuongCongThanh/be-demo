@@ -19,8 +19,8 @@ export class OwnershipGuard implements CanActivate {
     const user: JwtPayload | undefined = request.user;
     if (!user) return false; // phải chạy sau JwtAuthGuard
 
-    // MASTER_ADMIN bypass — không cần kiểm tra ownership.
-    if (user.roles.includes('MASTER_ADMIN')) return true;
+    // ADMIN bypass — không cần kiểm tra ownership.
+    if (user.role === 'ADMIN') return true;
 
     const resourceId = request.params[options.paramIdKey];
     const resource = await options.fetch(resourceId, this.prisma);

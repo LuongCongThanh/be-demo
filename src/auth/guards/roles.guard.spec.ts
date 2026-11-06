@@ -22,12 +22,12 @@ describe('RolesGuard', () => {
   it('allows the request through when the route has no @Roles() metadata', () => {
     const { guard } = createGuard(undefined);
 
-    expect(guard.canActivate(createContext({ sub: 'user-1', roles: [] }))).toBe(true);
+    expect(guard.canActivate(createContext({ sub: 'user-1', role: 'CUSTOMER' }))).toBe(true);
   });
 
   it('reads required roles via the ROLES_KEY metadata key', () => {
     const { guard, reflector } = createGuard(['ADMIN']);
-    const context = createContext({ sub: 'user-1', roles: ['ADMIN'] });
+    const context = createContext({ sub: 'user-1', role: 'ADMIN' });
 
     guard.canActivate(context);
 
@@ -40,15 +40,15 @@ describe('RolesGuard', () => {
     expect(guard.canActivate(createContext(undefined))).toBe(false);
   });
 
-  it('denies when the user has roles but none of them are required', () => {
+  it('denies when the user role is not in the required list', () => {
     const { guard } = createGuard(['ADMIN']);
 
-    expect(guard.canActivate(createContext({ sub: 'user-1', roles: ['CUSTOMER'] }))).toBe(false);
+    expect(guard.canActivate(createContext({ sub: 'user-1', role: 'CUSTOMER' }))).toBe(false);
   });
 
-  it('allows when the user has at least one of the required roles', () => {
+  it('allows when the user role is in the required list', () => {
     const { guard } = createGuard(['ADMIN', 'STAFF']);
 
-    expect(guard.canActivate(createContext({ sub: 'user-1', roles: ['STAFF'] }))).toBe(true);
+    expect(guard.canActivate(createContext({ sub: 'user-1', role: 'STAFF' }))).toBe(true);
   });
 });

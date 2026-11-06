@@ -13,20 +13,20 @@ datasource db {
 }
 
 model User {
-  id                   String     @id @default(uuid()) @db.Uuid
-  email                String     @unique @db.VarChar(255)
-  passwordHash         String     @map("password_hash")
-  fullName             String     @map("full_name") @db.VarChar(255)
-  phone                String     @db.VarChar(30)
-  status               UserStatus @default(ACTIVE)
-  authorizationVersion Int        @default(0) @map("authorization_version")
-  emailVerifiedAt      DateTime?  @map("email_verified_at") @db.Timestamptz(6)
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique @db.VarChar(255)
+  passwordHash    String     @map("password_hash")
+  fullName        String     @map("full_name") @db.VarChar(255)
+  phone           String     @db.VarChar(30)
+  role            Role
+  status          UserStatus @default(ACTIVE)
+  sessionVersion  Int        @default(0) @map("session_version")
+  emailVerifiedAt DateTime?  @map("email_verified_at") @db.Timestamptz(6)
   createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   carts                   Cart[]
   orders                  Order[]
-  userRoles               UserRole[]
   refreshTokens           RefreshToken[]
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
@@ -45,17 +45,6 @@ model Category {
   products Product[]
 
   @@map("categories")
-}
-
-model Role {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique @db.VarChar(50)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  userRoles UserRole[]
-
-  @@map("roles")
 }
 
 model Product {
@@ -183,18 +172,6 @@ model OrderItem {
 
   @@index([orderId])
   @@map("order_items")
-}
-
-model UserRole {
-  userId    String   @map("user_id") @db.Uuid
-  roleId    String   @map("role_id") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@id([userId, roleId])
-  @@map("user_roles")
 }
 
 model RefreshToken {
