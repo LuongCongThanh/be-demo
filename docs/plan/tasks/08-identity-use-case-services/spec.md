@@ -1,7 +1,7 @@
 ---
 status: todo
 pr:
-blocked-by: [07-legacy-modules-layout]
+blocked-by: [07-identity-module]
 ---
 
 # Spec 08: Tách `AuthService` theo use case
@@ -28,14 +28,14 @@ Tách thành bốn service trong `modules/identity/services/auth/`. Mỗi servic
 ## Implementation Decisions
 
 1. Bốn service:
-   - `RegistrationService`: register, verifyEmail, resendVerification, cùng hằng số liên quan (`MAX_VERIFY_ATTEMPTS`…).
-   - `SessionService`: login, refreshToken, logout, logoutAll, phát hiện refresh token bị dùng lại.
-   - `PasswordResetService`: forgotPassword, resetPassword.
+   - `RegistrationService`: register, verifyEmail, resendVerification, cùng hằng số `MAX_VERIFY_ATTEMPTS`, `GENERIC_RESEND_MESSAGE`.
+   - `SessionService`: login, refreshToken, logout, logoutAll, phát hiện refresh token bị dùng lại, `signAccessToken` (private).
+   - `PasswordResetService`: forgotPassword, resetPassword, hằng số `GENERIC_FORGOT_PASSWORD_MESSAGE`.
    - `AccountProfileService`: getMe, getCustomerProfile.
 2. `AuthService` bị xoá; không giữ facade.
 3. `sendBestEffort` (gửi mail mà không làm hỏng request) trở thành một helper nội bộ của module, dùng chung cho registration và password-reset.
 4. `PasswordService` và `TokenService` giữ nguyên; đây là các module sâu dùng chung.
-5. `AuthController` inject ba service (registration, session, password-reset); `MeController` inject `AccountProfileService` (và `SessionService` nếu cần cho logout-all).
+5. `AuthController` (register, verify, resend, login, refresh, logout, logoutAll, forgot, reset, getMe) inject cả bốn service; `MeController` (chỉ `getCustomerProfile`) inject `AccountProfileService`.
 6. `IdentityModule` không đổi `exports`.
 
 ## Testing Decisions
@@ -51,7 +51,7 @@ Tách thành bốn service trong `modules/identity/services/auth/`. Mỗi servic
 - [ ] AC2: Không service nào inject dependency mà nó không dùng (kiểm bằng `lint` + đọc constructor).
 - [ ] AC3: Tổng số unit test ≥ trước. Các test cũ pass mà không sửa assertion.
 - [ ] AC4: `lint`, `typecheck`, `test`, `test:e2e` xanh; e2e chỉ được đổi đường import (`MAX_VERIFY_ATTEMPTS`).
-- [ ] AC5: Swagger `jq -S` diff rỗng.
+- [ ] AC5: Swagger `jq -S` diff rỗng (so với sau task 07).
 - [ ] AC6: Không file service nào trong `services/auth/` dài quá 250 dòng.
 
 ## Out of scope

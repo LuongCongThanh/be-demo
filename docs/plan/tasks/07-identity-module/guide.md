@@ -37,4 +37,5 @@ Catalog và mọi controller back-office đều import các guard này. #3 sẽ 
 
 - Không tạo barrel `index.ts` (coding-style §3).
 - `test/support/create-test-app.ts` import `email-throttler.guard`; quên file này thì e2e không boot được.
+- `roles.guard`, `ownership.guard`, `current-user.decorator` ở lại `src/auth/` nhưng import `JwtPayload` từ `jwt.strategy`: sửa riêng 3 dòng này.
 - Export `PassportModule`; nếu thiếu, `JwtAuthGuard` trong catalog sẽ không resolve được strategy.

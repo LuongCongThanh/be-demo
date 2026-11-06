@@ -28,10 +28,10 @@ Mọi `x.spec.ts` đi cùng `x.ts`.
 
 1. [ ] Trên `dev`, ghi metric "trước" vào [metric.md](./metric.md): số `*.spec.ts`, số unit test, số e2e test, Swagger `docs-json` (lưu vào scratchpad).
 2. [ ] `git mv` theo bảng. Đổi tên class `StaffController` thành `AdminStaffController`.
-3. [ ] Sửa import `#src/auth/...` và `#src/staff/...` trong `src/`, `test/`, kể cả `vi.mock(...)`.
+3. [ ] Sửa import `#src/auth/...` và `#src/staff/...` trong `src/`, `test/`, kể cả `vi.mock(...)`: 22 import vào `auth/services` (18 file, gồm `cli/create-admin.command(.spec)`, `staff.service(.spec)`, 14 e2e) + import `JwtPayload` trong `roles.guard`, `ownership.guard`, `current-user.decorator`.
 4. [ ] Tạo `identity.module.ts`. Trong `app.module.ts`, `catalog.module.ts`, `cli.module.ts`: đổi `AuthModule`/`StaffModule` thành `IdentityModule`.
 5. [ ] Chạy grep AC3; chạy `lint`, `typecheck`, `test`, `test:e2e`; so với metric "trước".
-6. [ ] Lấy Swagger "sau" và chạy `jq -S` diff.
+6. [ ] Lấy Swagger "sau" và chạy `jq -S` diff; chỉ được khác `operationId` `StaffController_*` → `AdminStaffController_*`.
 7. [ ] Cập nhật mục "Hiện tại" trong `02-modules §4`.
 8. [ ] Ghi metric "sau" (kể cả token: `npm run tokens -- <sessionId> --md`), chạy `/code-review`, rồi `/ship`.
 9. [ ] Sau khi merge: viết `report.md`, đặt `status: done`, ghi `pr: #NN`; mở khoá task 08.
@@ -41,4 +41,4 @@ Mọi `x.spec.ts` đi cùng `x.ts`.
 - **Thứ tự route** đổi khi gộp module: e2e và Swagger diff sẽ bắt.
 - **`vi.mock` sai đường dẫn** chỉ lỗi khi chạy test: bước 3 + AC3.
 - **DI**: catalog cần `PassportModule` từ `IdentityModule` để `JwtAuthGuard` chạy. Thiếu export thì e2e 401/500.
-- **Đổi tên class controller** ảnh hưởng tới `operationId` của Swagger nếu nó được sinh từ tên class. Kiểm tra bằng diff; nếu diff khác rỗng vì lý do này thì giữ tên class cũ và ghi vào report.
+- **Đổi tên class controller** đổi `operationId` của Swagger (Nest sinh `<Class>_<method>`, `setup-swagger.ts` không đặt `operationIdFactory`). Đây là thay đổi được chấp nhận (AC5); báo FE nếu client sinh code theo `operationId`.

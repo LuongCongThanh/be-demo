@@ -16,7 +16,7 @@
 
 ## Token (đo thật)
 
-Đo bằng `npm run tokens -- <sessionId> [--since <ISO>] --md`; cách chia loại xem [metric 07](../07-legacy-modules-layout/metric.md#token-đo-thật). Token viết spec của task này nằm trong phiên `9ceecdea`, đã ghi ở metric 07.
+Đo bằng `npm run tokens -- <sessionId> [--since <ISO>] --md`; cách chia loại xem [metric 07](../07-identity-module/metric.md#token-đo-thật). Token viết spec của task này nằm trong phiên `9ceecdea`, đã ghi ở metric 07.
 
 | Loại         | Messages | Input | Cache write | Cache read | Output |
 | ------------ | -------- | ----- | ----------- | ---------- | ------ |

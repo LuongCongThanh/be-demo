@@ -36,12 +36,13 @@ Tạo một `IdentityModule` ở `src/modules/identity/`, theo đúng khuôn cat
 4. `IdentityModule` chỉ export `PassportModule` và `InternalAccountService`.
 5. **Giữ ở `src/auth/`** (để #3 xử lý): `jwt-auth.guard`, `roles.guard`, `ownership.guard`, `roles.decorator`, `current-user.decorator`, `owned-resource.decorator`, `is-strong-password.decorator`.
 6. **Chuyển vào identity**: `email-throttler.guard` (chỉ auth controller dùng) và `jwt.strategy`.
-7. Catalog và CLI đổi `imports: [AuthModule]` thành `imports: [IdentityModule]`, không đổi gì khác.
-8. Không thêm mục "identity" vào `GLOSSARY.md`; đây là tên module, không phải khái niệm nghiệp vụ.
+7. `app.module.ts`, catalog và CLI đổi `AuthModule`/`StaffModule` thành `IdentityModule`. Mọi import từ ngoài vào ruột `auth/services` (22 import trong 18 file: CLI `create-admin.command(.spec)`, `staff.service(.spec)` và 14 e2e) đổi đường dẫn, không đổi gì khác.
+8. File dùng chung ở lại `src/auth/` (`roles.guard`, `ownership.guard`, `current-user.decorator`) chỉ đổi **một dòng import** `JwtPayload` sang `jwt.strategy` mới; logic không đụng.
+9. Không thêm mục "identity" vào `GLOSSARY.md`; đây là tên module, không phải khái niệm nghiệp vụ.
 
 ## Testing Decisions
 
-- Không thêm hay sửa assertion. Unit spec di chuyển cùng file nguồn. E2E chỉ đổi đường dẫn import (`email-throttler.guard`, `password.service`, `token.service`, `auth.service`).
+- Không thêm hay sửa assertion. Unit spec di chuyển cùng file nguồn. Unit spec ngoài module (`create-admin.command.spec`) và e2e chỉ đổi đường dẫn import (`email-throttler.guard`, `password.service`, `token.service`, `auth.service`, `internal-account.service`).
 - Bằng chứng không đổi hành vi: số file test và số test trước bằng sau; Swagger JSON đã sắp xếp khoá trước bằng sau.
 
 ## Acceptance Criteria
@@ -50,7 +51,7 @@ Tạo một `IdentityModule` ở `src/modules/identity/`, theo đúng khuôn cat
 - [ ] AC2: `app.module.ts` import `IdentityModule` và không còn `AuthModule`/`StaffModule`. `IdentityModule` chỉ export `PassportModule` và `InternalAccountService`.
 - [ ] AC3: `grep -rnE "#src/(staff/|auth/(services|dto|strategies|auth\.|me\.|guards/email))" src test --include=*.ts` cho kết quả rỗng, kể cả chuỗi trong `vi.mock`.
 - [ ] AC4: `npm run lint`, `typecheck`, `test`, `test:e2e` xanh và **không sửa assertion nào**. Số file test và số test bằng trước.
-- [ ] AC5: diff giữa `jq -S` của Swagger trước và sau là rỗng.
+- [ ] AC5: diff giữa `jq -S` của Swagger trước và sau chỉ khác `operationId` của các endpoint Staff (`StaffController_*` → `AdminStaffController_*`, vì Nest sinh `operationId` từ tên class); path, schema, response giống hệt.
 - [ ] AC6: mục "Hiện tại" trong `02-modules §4` được cập nhật, có `modules/identity/` và không còn `auth/ staff/`.
 
 ## Out of scope

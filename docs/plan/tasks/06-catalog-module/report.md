@@ -6,7 +6,7 @@ Trạng thái: **chờ PR** (branch `chore/catalog-module`). Điền số PR + `
 
 - 3 module `categories/`, `products/`, `product-options/` → 1 `CatalogModule` ở `src/modules/catalog/` (`ad5cc32`).
 - Controller gom dưới `controllers/{storefront,back-office}/`; convention `coding-style §2.2/§2.6` + `02-modules §4` cập nhật cho mọi module.
-- Task follow-up: [07-legacy-modules-layout](../07-legacy-modules-layout/spec.md) cho `auth`/`staff`.
+- Task follow-up: [07-identity-module](../07-identity-module/spec.md) cho `auth`/`staff`.
 
 ## Kết quả
 
