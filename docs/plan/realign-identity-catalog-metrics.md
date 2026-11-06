@@ -87,7 +87,7 @@ Kết quả review: Standards có 0 vi phạm cứng và 6 code smell; Spec có 
 
 - Filter storefront bỏ qua mã size/màu đã ẩn (task 04, viết test đỏ trước).
 - Đổi tên Staff thành đúng tên cũ không ghi audit (task 02, viết test đỏ trước).
-- Gom phân trang về `common/pagination/paginate.ts` và tạo slug về `common/slug.util.ts`.
+- Gom phân trang về `common/pagination/paginate.ts` và tạo slug về `common/slug.util.ts` (nay `common/utils/slug.util.ts`).
 - Xoá ảnh không đọc trước; va chạm partial unique index của ảnh primary trả 409.
 - Đổi `toResponse` → `toStaffResponse`.
 - Doc `identity.md`, `catalog.md` chuyển "Đã chốt cho MVP" (task 05).

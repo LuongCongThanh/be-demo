@@ -14,4 +14,6 @@ AC1–AC7 đạt. Unit 233/233, e2e 175 (+1 skip sẵn có), Swagger `jq -S` dif
 
 ## Quyết định lệch kế hoạch
 
+- Tách 2 hằng số ra `constants/` (không đổi giá trị): `SKU_PATTERN` (từ `create-variant.dto.ts` → `constants/product.constants.ts`) và `VARIANT_INCLUDE` (từ `variant-response.mapper.ts` → `constants/variant-include.constant.ts`) để khớp thư mục vai trò `constants/`. Lệch nhẹ khỏi "thuần di chuyển"; test + Swagger chứng minh không đổi hành vi.
+
 - Plan ban đầu để controller ở `storefront/`, `back-office/` ngay gốc module; đổi sang `controllers/` sau review (2026-11-06) để cấp đầu module đồng đều kiểu NestJS. Không cần ADR (di chuyển file, dễ đảo ngược).

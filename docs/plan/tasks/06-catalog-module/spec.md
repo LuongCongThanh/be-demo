@@ -14,7 +14,7 @@ Branch: `chore/catalog-module` · Nguồn: [architecture review 2026-11-06, đ�
 
 ## Solution
 
-Một `CatalogModule` duy nhất ở `src/modules/catalog/` — module đầu tiên dưới `src/modules/`. Bố cục theo 02-modules §4 và coding-style §2: gốc chỉ có `catalog.module.ts`; `storefront/`, `back-office/`, `services/<entity>/`, `dto/<entity>/`, `domain/`, `mappers/`, `constants/`, `decorators/`. **Thuần di chuyển**: không đổi logic, route, Swagger tag, response.
+Một `CatalogModule` duy nhất ở `src/modules/catalog/` — module đầu tiên dưới `src/modules/`. Bố cục theo 02-modules §4 và coding-style §2: gốc chỉ có `catalog.module.ts`; `controllers/{storefront,back-office}/`, `services/<entity>/`, `dto/<entity>/`, `domain/`, `mappers/`, `constants/`, `decorators/`. **Thuần di chuyển**: không đổi logic, route, Swagger tag, response.
 
 ## User Stories
 
@@ -43,11 +43,11 @@ Một `CatalogModule` duy nhất ở `src/modules/catalog/` — module đầu ti
 
 - [x] AC1: `src/categories/`, `src/products/`, `src/product-options/` không còn tồn tại.
 - [x] AC2: `app.module.ts` chỉ import `CatalogModule` cho phần catalog; `CatalogModule` không có `exports`.
-- [x] AC3: `grep -rnE "(categories|products|product-options)/" src test --include=*.ts | grep -v "src/modules/catalog\|src/generated"` không còn tham chiếu đường dẫn cũ (bao gồm chuỗi trong `vi.mock`).
+- [x] AC3: `grep -rnE "#src/(categories|products|product-options)/" src test --include=*.ts` rỗng — không còn import/`vi.mock` tới đường dẫn cũ (grep ban đầu không có `#src/` khớp cả URL `/api/v1/admin/products/...` trong e2e nên không dùng được làm tiêu chí).
 - [x] AC4: `npm run lint`, `typecheck`, `test`, `test:e2e` xanh **không sửa assertion nào**; số file test và số test bằng trước.
 - [x] AC5: `jq -S . swagger-before.json` và `jq -S . swagger-after.json` (từ `/docs-json`) diff rỗng.
-- [x] AC7: Controller nằm dưới `modules/catalog/controllers/{storefront,back-office}/`; `coding-style §2.2/§2.6` và `02-modules §4` cập nhật theo.
 - [x] AC6: 02-modules §4 mục "Hiện tại" cập nhật cả câu mô tả lẫn cây (có `modules/catalog/`, bỏ `categories/ products/`).
+- [x] AC7: Controller nằm dưới `modules/catalog/controllers/{storefront,back-office}/`; `coding-style §2.2/§2.6` và `02-modules §4` cập nhật theo.
 
 ## Out of scope
 
