@@ -74,21 +74,34 @@ flowchart TB
 
 Đây là nơi duy nhất mô tả cây `src/`. README chỉ giữ cây cấp repo; quy tắc đặt tên, thư mục con, barrel file và alias nằm ở [coding-style-conventions.md](../convention/coding-style-conventions.md).
 
-**Hiện tại** — module để phẳng dưới `src/`, chưa chuyển sang `modules/` + `infrastructure/`:
+**Hiện tại** — đang chuyển dần sang `modules/` + `infrastructure/`; `catalog` đã chuyển, phần còn lại vẫn phẳng dưới `src/`:
 
 ```text
 src/
 ├── main.ts                  # bootstrap API
+├── cli.ts                   # bootstrap CLI
 ├── app.module.ts
 ├── bootstrap/               # cấu hình app dùng chung cho main và e2e
+├── cli/                     # lệnh CLI (create-admin)
 ├── config/                  # validate env
-├── common/                  # filter, logger, request context
+├── common/                  # filters/ middleware/ logging/ utils/ pagination/ swagger/
 ├── generated/               # Prisma Client (sinh tự động, không commit)
 ├── prisma/                  # → infrastructure/database/
 ├── health/  metrics/        # chưa xếp chỗ trong cây mục tiêu
 ├── mail/                    # → modules/notifications/
-├── auth/                    # → modules/identity/
-└── categories/  products/   # → modules/catalog/
+├── audit/                   # → modules/admin-config/
+├── auth/  staff/            # → modules/identity/
+└── modules/
+    └── catalog/             # Danh mục, Sản phẩm, Biến thể, Size, Màu
+        ├── catalog.module.ts
+        ├── storefront/      # controller cho Người mua
+        ├── back-office/     # controller /admin/*
+        ├── services/        # categories/ products/ product-options/
+        ├── dto/             # categories/ products/ product-options/
+        ├── domain/          # category-tree.ts
+        ├── mappers/         # variant-response.mapper.ts
+        ├── constants/       # SKU_PATTERN, VARIANT_INCLUDE
+        └── decorators/      # option-code.decorator.ts
 ```
 
 **Mục tiêu:**
@@ -125,15 +138,19 @@ src/
     └── admin-config/
 ```
 
-Mỗi module:
+Mỗi module (gốc module chỉ có `<module>.module.ts`; thư mục vai trò chỉ tạo khi có file):
 
 ```text
 modules/<module>/
 ├── <module>.module.ts
 ├── storefront/              # controller cho /api/v1/... của Người mua
-├── back-office/             # controller cho /api/v1/admin/...
-├── <module>.service.ts      # có thể tách theo use case khi file lớn
-├── dto/
-├── events/                  # tên và payload event module phát ra
-└── <module>.service.spec.ts
+├── back-office/             # controller cho /api/v1/admin/... (tiền tố admin-)
+├── services/                # service + spec cạnh nhau; chia <entity>/ khi ≥2 thực thể và >~6 file
+├── dto/                     # cùng ngưỡng chia <entity>/ như services/
+├── domain/                  # logic nghiệp vụ thuần, không phụ thuộc Nest
+├── mappers/                 # entity → DTO response
+├── constants/  enums/  types/  decorators/  guards/
+└── events/                  # tên và payload event module phát ra
 ```
+
+Quy tắc chi tiết (bảng thư mục vai trò, ngưỡng chia theo thực thể, cách đặt tên): [coding-style-conventions.md §2](../convention/coding-style-conventions.md#2-cấu-trúc-thư-mục-theo-module).
