@@ -8,23 +8,129 @@ Tài liệu này dành cho **dev trong team tự đọc và tự viết code**. 
 
 Kebab-case, hậu tố theo vai trò — đúng pattern đã dùng xuyên suốt `src/`:
 
-| Vai trò    | Hậu tố           | Ví dụ                       |
-| ---------- | ---------------- | --------------------------- |
-| Module     | `.module.ts`     | `auth.module.ts`            |
-| Controller | `.controller.ts` | `auth.controller.ts`        |
-| Service    | `.service.ts`    | `token.service.ts`          |
-| DTO        | `.dto.ts`        | `create-resource.dto.ts`    |
-| Guard      | `.guard.ts`      | `ownership.guard.ts`        |
-| Decorator  | `.decorator.ts`  | `current-user.decorator.ts` |
-| Strategy   | `.strategy.ts`   | `jwt.strategy.ts`           |
-| Test       | `.spec.ts`       | `token.service.spec.ts`     |
-| E2E test   | `.e2e-spec.ts`   | `auth-login.e2e-spec.ts`    |
+| Vai trò    | Hậu tố                           | Ví dụ                        |
+| ---------- | -------------------------------- | ---------------------------- |
+| Module     | `.module.ts`                     | `auth.module.ts`             |
+| Controller | `.controller.ts`                 | `auth.controller.ts`         |
+| Service    | `.service.ts`                    | `token.service.ts`           |
+| DTO        | `.dto.ts`                        | `create-resource.dto.ts`     |
+| Guard      | `.guard.ts`                      | `ownership.guard.ts`         |
+| Decorator  | `.decorator.ts`                  | `current-user.decorator.ts`  |
+| Strategy   | `.strategy.ts`                   | `jwt.strategy.ts`            |
+| Test       | `.spec.ts`                       | `token.service.spec.ts`      |
+| E2E test   | `.e2e-spec.ts`                   | `auth-login.e2e-spec.ts`     |
+| Mapper     | `.mapper.ts`                     | `variant-response.mapper.ts` |
+| Hằng số    | `.constants.ts` / `.constant.ts` | `product.constants.ts`       |
+| Enum       | `.enum.ts`                       | `product-sort.enum.ts`       |
+| Middleware | `.middleware.ts`                 | `request-id.middleware.ts`   |
+| Tiện ích   | `.util.ts`                       | `slug.util.ts`               |
 
-Class bên trong file dùng PascalCase khớp tên file (`token.service.ts` → `TokenService`).
+Class bên trong file dùng PascalCase khớp tên file (`token.service.ts` → `TokenService`). Biến/instance dùng camelCase (`private readonly productsService: ProductsService`).
+
+**Vì sao kebab-case cho tên file và thư mục (không dùng `productService/`, `ProductService.ts`)?** Đây là quy ước được ghi lại ở đây, chưa có lint rule ép:
+
+- Theo NestJS: `nest g service product-options` sinh ra `product-options/product-options.service.ts`; style guide chính thức của Nest cũng dùng kebab-case. camelCase chỉ dành cho **tên biến**, PascalCase cho **tên class**.
+- Tránh bug phân biệt hoa/thường: Linux (CI, Docker) phân biệt hoa/thường trong đường dẫn còn macOS/Windows thì không — import `productService` vs `ProductService` chạy được ở máy dev nhưng vỡ trên CI. Toàn chữ thường thì không xảy ra.
 
 ## 2. Cấu trúc thư mục theo module
 
-Mỗi module nghiệp vụ (`auth/`, `mail/`...) tổ chức con theo vai trò khi có ≥ 2 file cùng vai trò: `dto/`, `guards/`, `decorators/`, `services/`, `strategies/`. Module nhỏ (1 service, 1 module file, không DTO) không cần tạo thư mục con rỗng — xem `prisma/`, `bootstrap/`, `config/` làm ví dụ module hạ tầng phẳng, không cần subfolder.
+Cây `src/` tổng thể nằm ở [02-modules.md §4](../architecture/02-modules.md#4-cấu-trúc-thư-mục). Phần này là **quy tắc** để biết 1 file mới phải đặt ở đâu.
+
+### 2.1 Không để file rời ở gốc module
+
+Gốc của module (`modules/<module>/`) chỉ chứa **đúng 1 file**: `<module>.module.ts`. Mọi file khác nằm trong 1 thư mục vai trò bên dưới. Lý do: nhìn vào gốc module là thấy ngay module có những lớp gì (controller, service, dto…), không phải lục giữa hàng chục file trộn lẫn.
+
+Ngoại lệ: module hạ tầng nhỏ chỉ có 1–2 file (`prisma/`, `bootstrap/`, `config/`, `health/`) được để phẳng.
+
+### 2.2 Danh sách thư mục vai trò
+
+Chỉ dùng các tên dưới đây. **Chỉ tạo thư mục khi có ít nhất 1 file** — không tạo sẵn thư mục rỗng "cho đủ bộ".
+
+| Thư mục        | Chứa gì                                                                                                                                                                                                              | Ví dụ                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `controllers/` | Controller, **luôn** chia 2 thư mục con theo vai trò: `storefront/` (route Người mua `/api/v1/...`) và `back-office/` (route `/api/v1/admin/...`, tiền tố `admin-`) — nhìn thư mục là biết route nào cần guard Staff | `controllers/back-office/admin-products.controller.ts` |
+| `services/`    | Service (Nest provider chứa logic nghiệp vụ) + `*.spec.ts` của nó                                                                                                                                                    | `services/products/products.service.ts`                |
+| `dto/`         | DTO request/response (class-validator + Swagger)                                                                                                                                                                     | `dto/products/create-product.dto.ts`                   |
+| `domain/`      | Logic nghiệp vụ thuần, **không** phụ thuộc Nest/Prisma client — dễ unit test                                                                                                                                         | `category-tree.ts`                                     |
+| `mappers/`     | Hàm chuyển entity Prisma → DTO response                                                                                                                                                                              | `variant-response.mapper.ts`                           |
+| `constants/`   | Hằng số, regex, Prisma `include`/`select` dùng chung                                                                                                                                                                 | `product.constants.ts`                                 |
+| `enums/`       | Enum riêng của module (**không** phải enum Prisma sinh ra — enum DB import từ `#src/generated/prisma`)                                                                                                               | `product-sort.enum.ts`                                 |
+| `decorators/`  | Decorator tự viết (param decorator, validator decorator)                                                                                                                                                             | `option-code.decorator.ts`                             |
+| `guards/`      | Guard                                                                                                                                                                                                                | `ownership.guard.ts`                                   |
+| `strategies/`  | Passport strategy                                                                                                                                                                                                    | `jwt.strategy.ts`                                      |
+| `events/`      | Tên + payload event module phát ra                                                                                                                                                                                   | `order-placed.event.ts`                                |
+| `types/`       | Type/interface dùng chung trong module, không phải DTO                                                                                                                                                               | `variant-with-options.type.ts`                         |
+
+Thứ tự ưu tiên khi phân vân: có decorator Nest (`@Injectable`) → `services/`; có decorator class-validator/Swagger → `dto/`; hàm thuần không I/O → `domain/` (nếu là luật nghiệp vụ) hoặc `mappers/` (nếu chỉ đổi hình dạng dữ liệu).
+
+### 2.3 Thư mục con theo thực thể
+
+Trong 1 thư mục vai trò, chia tiếp theo **thực thể** khi thỏa **cả hai**:
+
+- có từ **2 thực thể trở lên** (vd. categories, products), **và**
+- có **hơn ~6 file**.
+
+Không thỏa thì để phẳng. Quy tắc này áp dụng cho **mọi** thư mục vai trò (`services/`, `dto/`, `constants/`, `mappers/`…), không riêng `services/`.
+
+Tên thư mục thực thể: kebab-case, **số nhiều**, trùng tên resource trên URL — `categories/`, `products/`, `product-options/`. Không dùng `productService/`, `product/`, `ProductService/`.
+
+Tên file bên trong vẫn đầy đủ (không rút gọn vì đã có thư mục cha) để tìm file bằng tên (Ctrl+P) không bị trùng:
+
+```text
+services/products/
+├── products.service.ts               # storefront: ProductsService
+├── admin-products.service.ts         # back-office: AdminProductsService
+├── admin-product-images.service.ts   # back-office: ảnh sản phẩm
+└── *.spec.ts                         # spec nằm cạnh file được test
+```
+
+Phân biệt service storefront/back-office bằng **tiền tố `admin-`** trong tên file, không bằng thư mục.
+
+### 2.4 Test
+
+`*.spec.ts` nằm **cạnh** file được test (mặc định của Nest), không tạo `__tests__/`. E2E test nằm ở `test/` gốc repo.
+
+### 2.5 `common/`
+
+`common/` là code dùng chung toàn app, cũng chia theo vai trò, không để file rời:
+
+```text
+common/
+├── filters/      # all-exceptions.filter.ts
+├── middleware/   # request-id.middleware.ts
+├── logging/      # app-logger.ts, request-context.ts
+├── utils/        # slug.util.ts, prisma-error.util.ts
+├── pagination/   # paginate.ts, pagination.dto.ts, pagination-meta.dto.ts
+└── swagger/      # api-error-responses.decorator.ts, api-tags.ts, error-response.dto.ts
+```
+
+### 2.6 Ví dụ hoàn chỉnh: `modules/catalog/`
+
+```text
+catalog/
+├── catalog.module.ts
+├── controllers/
+│   ├── storefront/                  # 3 file → phẳng
+│   │   ├── categories.controller.ts
+│   │   ├── products.controller.ts
+│   │   └── product-options.controller.ts
+│   └── back-office/                 # 3 file → phẳng
+│       ├── admin-categories.controller.ts
+│       ├── admin-products.controller.ts
+│       └── admin-product-options.controller.ts
+├── services/                        # 3 thực thể, 13 file → chia
+│   ├── categories/
+│   ├── products/
+│   └── product-options/
+├── dto/                             # 3 thực thể, 30 file → chia
+│   ├── categories/
+│   ├── products/                    # product, variant, image
+│   └── product-options/             # size, color, option-summary
+├── domain/          category-tree.ts (+spec)
+├── mappers/         variant-response.mapper.ts
+├── constants/       product.constants.ts, variant-include.constant.ts
+└── decorators/      option-code.decorator.ts
+```
 
 ## 3. Barrel file (`index.ts`) — **cấm**
 
@@ -85,6 +191,8 @@ Không có ngưỡng dòng cứng, nhưng nếu 1 service/controller vượt qu�
 ## Checklist khi thêm file mới
 
 - [ ] Tên file kebab-case, đúng hậu tố theo vai trò ([§1](#1-đặt-tên-file))
+- [ ] File nằm trong đúng thư mục vai trò ([§2.2](#22-danh-sách-thư-mục-vai-trò)), không để rời ở gốc module
+- [ ] Nếu thư mục vai trò vượt ngưỡng ([§2.3](#23-thư-mục-con-theo-thực-thể)) → chia theo thực thể
 - [ ] Không tạo `index.ts` barrel file
 - [ ] Import tới file trong `src/` dùng `#src/...` — không dùng relative, kể cả trong cùng thư mục và trong test
 - [ ] Không thêm `any` mới trừ khi thực sự cần thiết (lint sẽ warn)

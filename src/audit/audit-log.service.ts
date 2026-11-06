@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#src/generated/prisma/client.js';
-import { RequestContext } from '#src/common/request-context.js';
+import { RequestContext } from '#src/common/logging/request-context.js';
 
 export interface AuditEntry {
   /** null = hệ thống (vd. CLI `create-admin`). */

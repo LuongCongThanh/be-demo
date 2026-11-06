@@ -6,13 +6,11 @@ import { PrismaModule } from '#src/prisma/prisma.module.js';
 import { AuthModule } from '#src/auth/auth.module.js';
 import { HealthModule } from '#src/health/health.module.js';
 import { MetricsModule } from '#src/metrics/metrics.module.js';
-import { CategoriesModule } from '#src/categories/categories.module.js';
+import { CatalogModule } from '#src/modules/catalog/catalog.module.js';
 import { validate } from '#src/config/env.validation.js';
 import { AllExceptionsFilter } from '#src/common/filters/all-exceptions.filter.js';
-import { RequestIdMiddleware } from '#src/common/request-id.middleware.js';
-import { ProductsModule } from '#src/products/products.module.js';
+import { RequestIdMiddleware } from '#src/common/middleware/request-id.middleware.js';
 import { StaffModule } from '#src/staff/staff.module.js';
-import { ProductOptionsModule } from '#src/product-options/product-options.module.js';
 
 @Module({
   imports: [
@@ -24,10 +22,8 @@ import { ProductOptionsModule } from '#src/product-options/product-options.modul
     AuthModule,
     HealthModule,
     MetricsModule,
-    CategoriesModule,
-    ProductsModule,
+    CatalogModule,
     StaffModule,
-    ProductOptionsModule,
   ],
   providers: [
     // `useExisting` (not `useClass`) so `ThrottlerGuard` is also reachable as
