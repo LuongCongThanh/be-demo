@@ -237,4 +237,50 @@ describe('AdminCategoriesService', () => {
       await expect(service.remove('1')).rejects.toThrow(ConflictException);
     });
   });
+
+  describe('tree rules (ADR 0001)', () => {
+    it('create rejects an unknown parent with 404', async () => {
+      prismaMock.category.findUnique.mockResolvedValueOnce(null);
+      await expect(service.create({ name: 'Ao', parentId: 'missing' })).rejects.toThrow(NotFoundException);
+      expect(prismaMock.category.create).not.toHaveBeenCalled();
+    });
+
+    it('update rejects making a category its own parent', async () => {
+      prismaMock.category.findUnique.mockResolvedValueOnce({ id: 'a' });
+      await expect(service.update('a', { parentId: 'a' })).rejects.toThrow(BadRequestException);
+    });
+
+    it('update rejects moving a category under its own descendant (a → b → c, move a under c)', async () => {
+      const parents: Record<string, string | null> = { c: 'b', b: 'a', a: null };
+      prismaMock.category.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
+        where.id in parents ? { id: where.id, parentId: parents[where.id] } : null,
+      );
+
+      await expect(service.update('a', { parentId: 'c' })).rejects.toThrow(BadRequestException);
+      expect(prismaMock.category.update).not.toHaveBeenCalled();
+    });
+
+    it('update allows moving to an unrelated parent and back to root', async () => {
+      const parents: Record<string, string | null> = { a: null, x: null };
+      prismaMock.category.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
+        where.id in parents ? { id: where.id, parentId: parents[where.id] } : null,
+      );
+      prismaMock.category.update.mockResolvedValue({ id: 'a' });
+
+      await service.update('a', { parentId: 'x' });
+      await service.update('a', { parentId: null });
+
+      expect(prismaMock.category.update).toHaveBeenCalledTimes(2);
+    });
+
+    it('update stops walking on already-corrupt cyclic data instead of looping forever', async () => {
+      const parents: Record<string, string | null> = { a: null, x: 'y', y: 'x' };
+      prismaMock.category.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
+        where.id in parents ? { id: where.id, parentId: parents[where.id] } : null,
+      );
+      prismaMock.category.update.mockResolvedValue({ id: 'a' });
+
+      await expect(service.update('a', { parentId: 'x' })).resolves.toEqual({ id: 'a' });
+    });
+  });
 });
