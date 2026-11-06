@@ -14,15 +14,19 @@ const METHOD_AUTHORIZE_KEY = 'authorize:method';
  * (`getAllAndOverride`). So khớp chính xác, không suy cây phân cấp (ADR 0005).
  */
 export function Authorize(...roles: Role[]): ClassDecorator & MethodDecorator {
-  const apply = applyDecorators(ApiBearerAuth(), UseGuards(JwtAuthGuard, RolesGuard), Roles(...roles));
+  const decorateWithGuardsAndRoles = applyDecorators(
+    ApiBearerAuth(),
+    UseGuards(JwtAuthGuard, RolesGuard),
+    Roles(...roles),
+  );
 
   return <T>(target: object, key?: string | symbol, descriptor?: TypedPropertyDescriptor<T>) => {
     if (descriptor) {
-      apply(target, key, descriptor);
+      decorateWithGuardsAndRoles(target, key, descriptor);
       Reflect.defineMetadata(METHOD_AUTHORIZE_KEY, true, descriptor.value as object);
       return;
     }
-    apply(target);
+    decorateWithGuardsAndRoles(target);
     dropMethodDuplicates(target as { prototype: object });
   };
 }
@@ -38,13 +42,20 @@ function dropMethodDuplicates(cls: { prototype: object }) {
     if (typeof method !== 'function' || !Reflect.getMetadata(METHOD_AUTHORIZE_KEY, method)) continue;
 
     const guards: unknown[] = Reflect.getMetadata(GUARDS_METADATA, method) ?? [];
-    const others = guards.filter((g) => g !== JwtAuthGuard && g !== RolesGuard);
-    if (others.length > 0) Reflect.defineMetadata(GUARDS_METADATA, others, method);
-    else Reflect.deleteMetadata(GUARDS_METADATA, method);
+    setOrDelete(
+      GUARDS_METADATA,
+      method,
+      guards.filter((g) => g !== JwtAuthGuard && g !== RolesGuard),
+    );
 
     const security: Record<string, unknown>[] = Reflect.getMetadata(DECORATORS.API_SECURITY, method) ?? [];
-    const i = security.findIndex((s) => Object.keys(s).length === 1 && 'bearer' in s);
-    if (i >= 0) security.splice(i, 1);
-    if (security.length === 0) Reflect.deleteMetadata(DECORATORS.API_SECURITY, method);
+    const bearerIndex = security.findIndex((s) => Object.keys(s).length === 1 && 'bearer' in s);
+    setOrDelete(DECORATORS.API_SECURITY, method, security.toSpliced(bearerIndex, bearerIndex >= 0 ? 1 : 0));
   }
+}
+
+/** Mảng rỗng phải xoá hẳn key: Swagger sẽ in `security: []` (route công khai) nếu để lại. */
+function setOrDelete(key: string, target: object, values: unknown[]) {
+  if (values.length > 0) Reflect.defineMetadata(key, values, target);
+  else Reflect.deleteMetadata(key, target);
 }
