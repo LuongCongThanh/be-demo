@@ -68,7 +68,7 @@ Hệ quả là vi phạm BR-CAT-02..06 và BR-CAT-11.
 - **product_images:** thêm `color_id` NOT NULL, `storage_key`, `sort_order`, `is_primary`. Thêm partial UK `(product_id, color_id) WHERE is_primary`.
 - **Migration:** SQL tay. Map text size/màu cũ sang bảng mới. Giá có phần lẻ → migration fail rõ ràng (dữ liệu dev). `weight_grams` backfill giá trị tạm cho dữ liệu dev.
 - **API sizes/colors:**
-  - `GET/POST/PATCH /api/v1/admin/sizes` và `/admin/colors`. Ghi chỉ `admin`, đọc cho `staff, admin`. Không có DELETE.
+  - `GET/POST/PATCH /api/v1/admin/sizes` và `/admin/colors`. Ghi chỉ `ADMIN`, đọc cho `STAFF`, `ADMIN`. Không có DELETE.
   - Mã trùng → 409.
 - **API variant:**
   - DTO nhận `sizeId`, `colorId`, `sku` (`@Matches` cùng regex với CHECK), `price` (số nguyên > 0).

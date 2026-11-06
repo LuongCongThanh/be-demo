@@ -14,7 +14,7 @@ _Tránh_: anonymous user, khách lẻ
 
 **Khách hàng** (`Customer`):
 Người mua có Tài khoản đã đăng ký.
-_Tránh_: member, thành viên, CUSTOMER
+_Tránh_: member, thành viên
 
 **Staff** (`Staff`):
 Nhân viên nội bộ xử lý đơn, tồn kho, Đổi trả và Hoàn tiền hằng ngày trên back-office.
@@ -23,6 +23,8 @@ _Tránh_: ORDER_STAFF, STORE_MANAGER, nhân viên kho, operator
 **Admin** (`Admin`):
 Người nội bộ quản lý cấu hình, danh mục hàng hoá, Voucher và Tài khoản Staff; có mọi quyền của Staff.
 _Tránh_: MASTER_ADMIN, superadmin, quản lý
+
+_Ghi chú_: giá trị vai trò trong hệ thống viết HOA (`CUSTOMER`, `STAFF`, `ADMIN`). Các mục "Tránh" ở trên nhắm vào tên vai trò cũ (`ORDER_STAFF`, `STORE_MANAGER`, `MASTER_ADMIN`), không nhắm vào cách viết hoa.
 
 **Tài khoản** (`Account`):
 Danh tính đăng nhập gắn với đúng một email, thuộc một trong ba loại: Khách hàng, Staff hoặc Admin.

@@ -53,10 +53,10 @@ Sau task 01 đã có ba vai trò, nhưng vẫn còn các lỗ hổng:
 
 ## Implementation Decisions
 
-- **Login:** `POST /api/v1/auth/login` dùng chung cho mọi vai trò. Response và JWT có `role`. Login của user `disabled` → lỗi chung (không phân biệt với sai mật khẩu).
-- **Phân quyền route:** `/admin/*` mặc định `@Roles('staff','admin')`. `/admin/staff` chỉ `@Roles('admin')`. Route mua hàng (cart, checkout khi có) dùng `@Roles('customer')`. Task này cần ít nhất một route customer-only có thật để kiểm chứng.
+- **Login:** `POST /api/v1/auth/login` dùng chung cho mọi vai trò. Response và JWT có `role`. Login của user `DISABLED` → lỗi chung (không phân biệt với sai mật khẩu).
+- **Phân quyền route:** `/admin/*` mặc định `@Roles('STAFF','ADMIN')`. `/admin/staff` chỉ `@Roles('ADMIN')`. Route mua hàng (cart, checkout khi có) dùng `@Roles('CUSTOMER')`. Task này cần ít nhất một route customer-only có thật để kiểm chứng.
 - **Staff API** (khớp `architecture/modules/identity.md` §4):
-  - `GET /admin/staff`: danh sách có phân trang, chỉ role `staff`.
+  - `GET /admin/staff`: danh sách có phân trang, chỉ role `STAFF`.
   - `POST /admin/staff` `{ email, name, password }` → 201. Email trùng → 409.
   - `PATCH /admin/staff/:id` `{ name }`.
   - `POST /admin/staff/:id/disable` và `/enable`. Hai lệnh này idempotent.
@@ -84,7 +84,7 @@ Tham chiếu: ADR 0005 · `business/02` §1, §4 · `architecture/modules/identi
 ## Acceptance criteria
 
 - AC1: Login trả `role` cho cả ba vai trò.
-- AC2: Staff gọi route `@Roles('customer')` → 403. Customer gọi `/admin/*` → 403. Staff gọi `/admin/staff` → 403.
+- AC2: Staff gọi route `@Roles('CUSTOMER')` → 403. Customer gọi `/admin/*` → 403. Staff gọi `/admin/staff` → 403.
 - AC3: Disable Staff đang đăng nhập → request kế tiếp 401, refresh 401.
 - AC4: `create-admin` tạo được Admin. Email trùng → lỗi, không ghi đè.
 - AC5: Mỗi thao tác Staff có đúng một dòng `audit_logs`.

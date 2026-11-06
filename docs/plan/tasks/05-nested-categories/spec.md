@@ -46,8 +46,8 @@ Danh mục hiện chỉ có một cấp, nên Admin không tổ chức được 
 - **Xoá:** còn con → 409, còn sản phẩm (bất kể trạng thái) → 409. Service kiểm tra trước, FK RESTRICT là lưới an toàn. DB violation được `AllExceptionsFilter` map sang 409.
 - **Routes:**
   - Storefront `GET /api/v1/categories` công khai, trả cây lồng nhau `{ id, name, slug?, children: [] }`. Chỉ gồm `is_visible`, và cha bị ẩn thì cả nhánh bị loại. Sắp xếp theo `sort_order`, rồi theo tên.
-  - Back-office `GET /api/v1/admin/categories` trả danh sách phẳng có `parentId`, `isVisible`, `sortOrder` cho `staff, admin`.
-  - Route ghi dùng `/admin/categories…`, chỉ `@Roles('admin')`.
+  - Back-office `GET /api/v1/admin/categories` trả danh sách phẳng có `parentId`, `isVisible`, `sortOrder` cho `STAFF`, `ADMIN`.
+  - Route ghi dùng `/admin/categories…`, chỉ `@Roles('ADMIN')`.
 - **Dựng cây:** đọc mọi danh mục trong một query rồi dựng cây trong bộ nhớ (danh mục ít), tránh N+1.
 - Không giới hạn cứng độ sâu ở DB. Nếu business cần giới hạn thì thêm ở service sau.
 

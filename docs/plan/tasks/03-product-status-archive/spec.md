@@ -53,8 +53,8 @@ Branch: `refactor/product-status-and-archive` · Plan tổng: [PR 3](../../reali
 - **Xoá:** bỏ hẳn DELETE product/variant. Luôn archive, không kiểm tra "đã có đơn", vì chưa có module ordering.
 - **Routes:**
   - Storefront `GET /api/v1/products` và `/products/:id` công khai, chỉ trả `active` cùng biến thể `active`. Không nhận param `status`.
-  - Back-office `GET /api/v1/admin/products` và `/admin/products/:id` cho `staff`, `admin`, lọc theo `status`.
-  - Các route ghi chuyển sang `/admin/products…`, chỉ `@Roles('admin')`.
+  - Back-office `GET /api/v1/admin/products` và `/admin/products/:id` cho `STAFF`, `ADMIN`, lọc theo `status`.
+  - Các route ghi chuyển sang `/admin/products…`, chỉ `@Roles('ADMIN')`.
 
 ## Testing Decisions
 
