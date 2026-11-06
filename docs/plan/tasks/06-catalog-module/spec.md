@@ -1,6 +1,6 @@
 ---
-status: review
-pr:
+status: done
+pr: #63
 blocked-by: []
 ---
 

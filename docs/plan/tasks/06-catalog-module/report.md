@@ -1,6 +1,6 @@
 # Report 06: Gộp catalog thành một module
 
-Trạng thái: **chờ PR** (branch `chore/catalog-module`). Điền số PR + `status: done` sau merge.
+Trạng thái: **done**, merged PR #63.
 
 ## Đã làm
 
