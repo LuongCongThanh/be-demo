@@ -1,8 +1,8 @@
-# Spec: Căn chỉnh identity & catalog theo docs business (91c255c)
+# Plan tổng: Căn chỉnh identity & catalog theo docs business
 
 > Trạng thái: **Nháp** ([quy ước](../README.md#trạng-thái-tài-liệu)).
 
-Nguồn chuẩn: `docs/business/*` > `docs/architecture/11-database.md` > `docs/adr/*`. Code hiện tại (auth/categories/products, schema Prisma) viết trước 91c255c nên lệch.
+Nguồn chuẩn: `docs/business/*` > `docs/architecture/11-database.md` > `docs/adr/*`. Code hiện tại (auth/categories/products, schema Prisma) viết trước khi docs business được viết lại (commit `91c255c`, #48) nên lệch.
 
 ## Quyết định đã chốt
 
@@ -10,22 +10,22 @@ Nguồn chuẩn: `docs/business/*` > `docs/architecture/11-database.md` > `docs/
 - Docs business là chuẩn cho mọi điểm lệch (giá = VND nguyên, ảnh theo màu…).
 - Role đổi tên bằng **migration SQL viết tay**, giữ dữ liệu.
 - **Một** endpoint `/api/v1/auth/login` cho mọi vai trò, response/token trả `role`; FE tự từ chối sai kênh; server chặn bằng `@Roles` trên từng route (ADR 0005).
-- 5 PR độc lập, theo thứ tự dưới. Google login + hồ sơ khách hàng để sau.
+- 5 PR, mỗi PR một branch riêng, **làm tuần tự** theo thứ tự dưới (PR sau dựa trên migration của PR trước). Google login + hồ sơ khách hàng để sau.
 
 ## Ngoài phạm vi
 
-Google login (US-502), hồ sơ khách hàng (name/phone/locale), guest cart/guest order session, tìm kiếm không dấu + sort bán chạy (BR-CAT-12/13), `product_sales_stats`, upload ảnh lên object storage thật, audit log đầy đủ cho mọi module.
+Google login (US-502), hồ sơ khách hàng (name/phone/locale), guest cart/guest order session, tìm kiếm không dấu + sort bán chạy (BR-CAT-12/13), `product_sales_stats`, upload ảnh lên object storage thật, audit log đầy đủ cho mọi module (PR 2 chỉ ghi tối thiểu cho thao tác Staff), BR-CAT-08 (nhãn/chặn "Hết hàng" — cần module inventory + cart), BR-CAT-10 (chỉ tiếng Việt — không cần code: không có cột đa ngôn ngữ).
 
 ---
 
-## PR 1 — `refactor/rename-roles-to-four-actor-model`
+## PR 1 — `refactor/four-actor-roles` ([task 01](./tasks/01-rename-roles/spec.md))
 
 **Mục tiêu:** role khớp ADR 0005; quyền ghi catalog chỉ cho `admin`.
 
 Schema / migration:
 
 - Enum `Role`: `customer`, `staff`, `admin` (guest không có dòng). Bỏ `STORE_MANAGER`, `MASTER_ADMIN`.
-- Migration SQL tay: `STORE_MANAGER → staff`, `MASTER_ADMIN → admin`, `CUSTOMER → customer` (map 1-1, không mất dữ liệu). Nếu role đang là bảng (auth.service.ts:86 lookup) thì đổi thành cột enum `users.role`.
+- Migration SQL tay: `STORE_MANAGER`/`ORDER_STAFF → staff`, `MASTER_ADMIN → admin`, `CUSTOMER → customer` (không mất dữ liệu; user nhiều role → role cao nhất). Nếu role đang là bảng (auth.service.ts:86 lookup) thì đổi thành cột enum `users.role`.
 - `UserStatus`: `ACTIVE/BLOCKED` → `active/disabled` (11-database §4.1).
 - Đổi `authorizationVersion` → `session_version` nếu tên khác docs (kiểm tra trước, chỉ đổi khi rẻ).
 - `prisma/seed.ts`: seed theo role mới.
@@ -34,16 +34,16 @@ Code:
 
 - Mọi `@Roles(...)` khai báo tường minh danh sách role (ADR 0005, không suy cây phân cấp).
 - Catalog write (category, product, variant create/update/archive): `@Roles('admin')` (02-actors §3.2).
-- GLOSSARY: không còn tên role cũ nào trong `src/`, `test/` (`grep -r "STORE_MANAGER\|MASTER_ADMIN"` rỗng).
 
 Acceptance:
 
-- Staff gọi POST `/admin/products` → 403; Admin → 201.
+- Staff gọi `POST /products` (route hiện tại; `/admin/products` đến PR 3 mới có) → 403; Admin → 201.
+- Không còn tên role cũ (GLOSSARY "Tránh"): `grep -rE "STORE_MANAGER|MASTER_ADMIN|ORDER_STAFF" src test` rỗng.
 - e2e auth/categories/products xanh với role mới.
 
 ---
 
-## PR 2 — `feature/backoffice-login-and-staff-management`
+## PR 2 — `feature/backoffice-login-and-staff-management` ([task 02](./tasks/02-login-role-staff-cli/spec.md))
 
 **Mục tiêu:** login trả `role`; Admin tạo bằng CLI; Admin quản lý Staff (02-actors §1, §4).
 
@@ -52,7 +52,7 @@ API:
 - `POST /api/v1/auth/login`: dùng chung mọi vai trò; response có `role` (và trong JWT). Storefront/back-office FE từ chối vai trò sai kênh bằng lỗi chung và huỷ token.
 - Route mua hàng (cart, checkout — khi có) `@Roles('customer')`; `/admin/*` `@Roles('staff','admin')`.
 - `POST /api/v1/auth/register`: email đã thuộc tài khoản nội bộ → lỗi chung (mỗi email một Tài khoản).
-- `GET/POST/PATCH /api/v1/admin/staff` (admin only): tạo Staff, đổi tên, `disable`/`enable`. Không tạo/sửa Admin qua API.
+- `GET/POST /api/v1/admin/staff`, `PATCH /admin/staff/:id` (đổi tên), `POST /admin/staff/:id/disable` và `/enable` (admin only) — khớp `identity.md` §4. Không tạo/sửa Admin qua API.
 - Disable Staff → tăng `session_version` → mọi phiên mất hiệu lực **ngay** (request kế tiếp với access token cũ → 401).
 
 CLI:
@@ -73,7 +73,7 @@ Acceptance:
 
 ---
 
-## PR 3 — `refactor/product-status-and-archive`
+## PR 3 — `refactor/product-status-and-archive` ([task 03](./tasks/03-product-status-archive/spec.md))
 
 **Mục tiêu:** BR-CAT-07, BR-CAT-09.
 
@@ -97,9 +97,9 @@ Acceptance:
 
 ---
 
-## PR 4 — `feature/sizes-colors-and-variant-rules`
+## PR 4 — `feature/sizes-colors-and-variant-rules` ([task 04](./tasks/04-sizes-colors-variants/spec.md))
 
-**Mục tiêu:** BR-CAT-02..06, BR-CAT-11.
+**Mục tiêu:** BR-CAT-02..06, BR-CAT-11. BR-CAT-03 chỉ cấm đổi SKU _sau khi có đơn_; PR này tạm chặn mọi lần đổi (chặt hơn) cho đến khi có ordering.
 
 Schema (theo 11-database §4.2):
 
@@ -125,7 +125,7 @@ Acceptance:
 
 ---
 
-## PR 5 — `feature/nested-categories`
+## PR 5 — `feature/nested-categories` ([task 05](./tasks/05-nested-categories/spec.md))
 
 **Mục tiêu:** danh mục nhiều cấp (02-modules, ADR 0001).
 

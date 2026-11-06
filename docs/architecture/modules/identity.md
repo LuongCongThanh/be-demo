@@ -32,15 +32,15 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.1](../11-database
 
 ## 4. API
 
-| Method                  | Path                                                              | Actor           | Ghi chú                                                                                                   |
-| ----------------------- | ----------------------------------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
-| `POST`                  | `/auth/register`                                                  | guest           | US-501; gửi email xác thực                                                                                |
-| `POST`                  | `/auth/verify-email` · `/auth/resend-verification`                | guest, customer |                                                                                                           |
-| `POST`                  | `/auth/login` · `/auth/google` · `/auth/refresh` · `/auth/logout` | —               | US-502; login chung mọi vai trò, trả `role`; `/auth/google` từ chối email Tài khoản nội bộ bằng lỗi chung |
-| `POST`                  | `/auth/forgot-password` · `/auth/reset-password`                  | guest           | US-503; luôn trả cùng một phản hồi                                                                        |
-| `GET/PATCH`             | `/me`                                                             | customer        | Hồ sơ, ngôn ngữ (US-505, US-506)                                                                          |
-| `GET/POST/PATCH/DELETE` | `/me/addresses`                                                   | customer        | US-504                                                                                                    |
-| `GET/POST`              | `/admin/staff` · `POST /admin/staff/:id/disable`                  | admin           | US-1001; không tạo được `admin`                                                                           |
+| Method                  | Path                                                                                   | Actor           | Ghi chú                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| `POST`                  | `/auth/register`                                                                       | guest           | US-501; gửi email xác thực                                                                                |
+| `POST`                  | `/auth/verify-email` · `/auth/resend-verification`                                     | guest, customer |                                                                                                           |
+| `POST`                  | `/auth/login` · `/auth/google` · `/auth/refresh` · `/auth/logout`                      | —               | US-502; login chung mọi vai trò, trả `role`; `/auth/google` từ chối email Tài khoản nội bộ bằng lỗi chung |
+| `POST`                  | `/auth/forgot-password` · `/auth/reset-password`                                       | guest           | US-503; luôn trả cùng một phản hồi                                                                        |
+| `GET/PATCH`             | `/me`                                                                                  | customer        | Hồ sơ, ngôn ngữ (US-505, US-506)                                                                          |
+| `GET/POST/PATCH/DELETE` | `/me/addresses`                                                                        | customer        | US-504                                                                                                    |
+| `GET/POST`              | `/admin/staff` · `PATCH /admin/staff/:id` · `POST /admin/staff/:id/disable`, `/enable` | admin           | US-1001; không tạo được `admin`                                                                           |
 
 ## 5. Luồng
 

@@ -1,7 +1,7 @@
 ---
 status: todo
 pr:
-blocked-by: []
+blocked-by: [03-product-status-archive]
 ---
 
 # Spec: 04-sizes-colors-variants

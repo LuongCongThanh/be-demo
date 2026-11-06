@@ -1,7 +1,7 @@
 ---
 status: todo
 pr:
-blocked-by: []
+blocked-by: [04-sizes-colors-variants]
 ---
 
 # Spec: 05-nested-categories

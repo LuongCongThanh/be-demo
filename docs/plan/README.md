@@ -27,10 +27,10 @@ Quy ước:
 
 Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 
-| #   | Task                                                                               | Status | Blocked by | PR  |
-| --- | ---------------------------------------------------------------------------------- | ------ | ---------- | --- |
-| 01  | [Mô hình bốn vai trò](./tasks/01-rename-roles/spec.md)                             | todo   | —          |     |
-| 02  | [Login trả role, Staff, CLI create-admin](./tasks/02-login-role-staff-cli/spec.md) | todo   | 01         |     |
-| 03  | [Trạng thái sản phẩm & archive](./tasks/03-product-status-archive/spec.md)         | todo   | —          |     |
-| 04  | [Size/màu & quy tắc biến thể](./tasks/04-sizes-colors-variants/spec.md)            | todo   | —          |     |
-| 05  | [Danh mục nhiều cấp](./tasks/05-nested-categories/spec.md)                         | todo   | —          |     |
+| #   | Task                                                                               | Status | Blocked by                | PR  |
+| --- | ---------------------------------------------------------------------------------- | ------ | ------------------------- | --- |
+| 01  | [Mô hình bốn vai trò](./tasks/01-rename-roles/spec.md)                             | todo   | —                         |     |
+| 02  | [Login trả role, Staff, CLI create-admin](./tasks/02-login-role-staff-cli/spec.md) | todo   | 01-rename-roles           |     |
+| 03  | [Trạng thái sản phẩm & archive](./tasks/03-product-status-archive/spec.md)         | todo   | 02-login-role-staff-cli   |     |
+| 04  | [Size/màu & quy tắc biến thể](./tasks/04-sizes-colors-variants/spec.md)            | todo   | 03-product-status-archive |     |
+| 05  | [Danh mục nhiều cấp](./tasks/05-nested-categories/spec.md)                         | todo   | 04-sizes-colors-variants  |     |

@@ -1,7 +1,7 @@
 ---
 status: todo
 pr:
-blocked-by: []
+blocked-by: [02-login-role-staff-cli]
 ---
 
 # Spec: 03-product-status-archive

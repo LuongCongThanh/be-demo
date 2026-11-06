@@ -58,7 +58,6 @@ be-demo/
 ├── .claude/               # cấu hình Claude Code: rules, hooks, commands, skills
 ├── .github/
 │   ├── workflows/         # ci.yml (lint, typecheck, test, e2e, docs-links, build), pr-title.yml
-│   ├── ISSUE_TEMPLATE/    # bug_report, feature_request, task
 │   ├── pull_request_template.md
 │   └── CODEOWNERS
 ├── .husky/                # pre-commit, commit-msg, pre-push
