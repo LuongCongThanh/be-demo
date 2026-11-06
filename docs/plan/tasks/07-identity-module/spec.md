@@ -1,6 +1,6 @@
 ---
-status: todo
-pr:
+status: done
+pr: #65
 blocked-by: [06-catalog-module]
 ---
 

@@ -28,13 +28,15 @@ Quy ước:
 
 Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 
-| #   | Task                                                                               | Status | Blocked by                | PR  |
-| --- | ---------------------------------------------------------------------------------- | ------ | ------------------------- | --- |
-| 01  | [Mô hình bốn vai trò](./tasks/01-rename-roles/spec.md)                             | todo   | —                         |     |
-| 02  | [Login trả role, Staff, CLI create-admin](./tasks/02-login-role-staff-cli/spec.md) | todo   | 01-rename-roles           |     |
-| 03  | [Trạng thái sản phẩm & archive](./tasks/03-product-status-archive/spec.md)         | todo   | 02-login-role-staff-cli   |     |
-| 04  | [Size/màu & quy tắc biến thể](./tasks/04-sizes-colors-variants/spec.md)            | todo   | 03-product-status-archive |     |
-| 05  | [Danh mục nhiều cấp](./tasks/05-nested-categories/spec.md)                         | todo   | 04-sizes-colors-variants  |     |
-| 06  | [Gộp catalog thành một module](./tasks/06-catalog-module/spec.md)                  | done   | —                         | #63 |
-| 07  | [Gộp `auth` + `staff` thành module identity](./tasks/07-identity-module/spec.md)   | todo   | 06                        |     |
-| 08  | [Tách `AuthService` theo use case](./tasks/08-identity-use-case-services/spec.md)  | todo   | 07                        |     |
+| #   | Task                                                                                    | Status | Blocked by                | PR  |
+| --- | --------------------------------------------------------------------------------------- | ------ | ------------------------- | --- |
+| 01  | [Mô hình bốn vai trò](./tasks/01-rename-roles/spec.md)                                  | todo   | —                         |     |
+| 02  | [Login trả role, Staff, CLI create-admin](./tasks/02-login-role-staff-cli/spec.md)      | todo   | 01-rename-roles           |     |
+| 03  | [Trạng thái sản phẩm & archive](./tasks/03-product-status-archive/spec.md)              | todo   | 02-login-role-staff-cli   |     |
+| 04  | [Size/màu & quy tắc biến thể](./tasks/04-sizes-colors-variants/spec.md)                 | todo   | 03-product-status-archive |     |
+| 05  | [Danh mục nhiều cấp](./tasks/05-nested-categories/spec.md)                              | todo   | 04-sizes-colors-variants  |     |
+| 06  | [Gộp catalog thành một module](./tasks/06-catalog-module/spec.md)                       | done   | —                         | #63 |
+| 07  | [Gộp `auth` + `staff` thành module identity](./tasks/07-identity-module/spec.md)        | done   | 06                        | #65 |
+| 08  | [Tách `AuthService` theo use case](./tasks/08-identity-use-case-services/spec.md)       | todo   | 07                        |     |
+| 09  | [Cổng phân quyền `@Authorize` ở `common/auth/`](./tasks/09-authorize-decorator/spec.md) | done   | —                         | #67 |
+| 10  | [Gom hạ tầng vào `infrastructure/`](./tasks/10-infrastructure-folder/spec.md)           | done   | 09                        | #68 |
