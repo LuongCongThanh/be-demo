@@ -29,6 +29,7 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "db:seed": "tsx prisma/seed.ts",
     "postman:sync": "tsx scripts/sync-postman-collection.ts",
+    "tokens": "tsx scripts/token-usage.ts",
     "prepare": "husky || exit 0",
     "prisma:generate": "prisma generate --config prisma7.config.ts",
     "format:check": "prettier --check ."
