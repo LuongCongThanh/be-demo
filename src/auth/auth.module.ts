@@ -8,11 +8,15 @@ import { AuthController } from '#src/auth/auth.controller.js';
 import { AuthService } from '#src/auth/services/auth.service.js';
 import { PasswordService } from '#src/auth/services/password.service.js';
 import { TokenService } from '#src/auth/services/token.service.js';
+import { AuditModule } from '#src/audit/audit.module.js';
+import { MeController } from '#src/auth/me.controller.js';
+import { InternalAccountService } from '#src/auth/services/internal-account.service.js';
 import { JwtStrategy } from '#src/auth/strategies/jwt.strategy.js';
 
 @Module({
   imports: [
     MailModule,
+    AuditModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -31,8 +35,8 @@ import { JwtStrategy } from '#src/auth/strategies/jwt.strategy.js';
       },
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, PasswordService, TokenService, JwtStrategy],
-  exports: [PassportModule],
+  controllers: [AuthController, MeController],
+  providers: [AuthService, PasswordService, TokenService, JwtStrategy, InternalAccountService],
+  exports: [PassportModule, InternalAccountService],
 })
 export class AuthModule {}

@@ -17,6 +17,10 @@ export const API_TAGS = {
     description:
       'Product + variant CRUD (variants nested under products, inventory created atomically) — writes gated to ADMIN, reads public',
   },
+  STAFF: {
+    name: 'Staff Management',
+    description: 'Back-office staff accounts — create, rename, disable/enable (ADMIN only, every change audited)',
+  },
   HEALTH: {
     name: 'Health',
     description: 'Liveness/readiness probes — public, readiness depends on Postgres only',

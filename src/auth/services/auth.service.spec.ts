@@ -456,12 +456,12 @@ describe('AuthService.login', () => {
     );
   });
 
-  it('throws a distinct error, checked only after the password is confirmed correct, when the account is DISABLED', async () => {
+  it('throws the generic credentials error, checked only after the password is confirmed correct, when the account is DISABLED', async () => {
     const { service, prisma, passwordService } = createHarness();
     prisma.user.findUnique.mockResolvedValue(validLoginUser({ status: 'DISABLED' }));
 
     await expect(service.login({ email: 'user@example.com', password: 'Abc@1234' })).rejects.toThrow(
-      new UnauthorizedException('Account is locked'),
+      new UnauthorizedException('Invalid email or password'),
     );
     expect(passwordService.verify).toHaveBeenCalled();
   });

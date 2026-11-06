@@ -16,6 +16,7 @@ import { ForgotPasswordDto } from '#src/auth/dto/forgot-password.dto.js';
 import { ResetPasswordDto } from '#src/auth/dto/reset-password.dto.js';
 import { VerifyEmailDto } from '#src/auth/dto/verify-email.dto.js';
 import { LoginDto } from '#src/auth/dto/login.dto.js';
+import { CustomerProfileResponseDto } from '#src/auth/dto/customer-profile-response.dto.js';
 import { AuthUserResponseDto } from '#src/auth/dto/auth-user-response.dto.js';
 import { MessageResponseDto } from '#src/auth/dto/message-response.dto.js';
 import { PasswordService } from '#src/auth/services/password.service.js';
@@ -245,8 +246,10 @@ export class AuthService {
 
     // Kiểm tra CẢ HAI trục trạng thái (quyết định #15) — SAU khi đã xác nhận
     // password đúng, để không lộ thêm thông tin cho kẻ đoán sai password.
+    // Lỗi chung, giống sai mật khẩu: không lộ việc tài khoản (vd. Staff đã
+    // nghỉ việc) tồn tại nhưng bị vô hiệu hoá.
     if (user.status === 'DISABLED') {
-      throw new UnauthorizedException('Account is locked');
+      throw new UnauthorizedException('Invalid email or password');
     }
     if (!user.emailVerifiedAt) {
       throw new UnauthorizedException('Email is not verified');
@@ -296,6 +299,12 @@ export class AuthService {
 
     if (record.expiresAt < new Date()) {
       throw new UnauthorizedException('Refresh token has expired');
+    }
+
+    // Disable đã thu hồi refresh token trong cùng transaction; check này là
+    // lưới an toàn nếu có token nào lọt (vd. tạo đồng thời với lúc disable).
+    if (record.user.status === 'DISABLED') {
+      throw new UnauthorizedException('Invalid refresh token');
     }
 
     // Rotation: "claim" quyền xoay vòng bằng conditional update, đóng race
@@ -440,6 +449,13 @@ export class AuthService {
       role: user.role,
       emailVerified: user.emailVerifiedAt !== null,
     };
+  }
+
+  async getCustomerProfile(userId: string): Promise<CustomerProfileResponseDto> {
+    return this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { id: true, email: true, fullName: true, phone: true },
+    });
   }
 
   /**
