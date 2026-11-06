@@ -2,7 +2,7 @@
 
 Branch: `chore/catalog-module` (từ `dev`). Một PR, commit `refactor: merge catalog folders into a single CatalogModule`.
 
-Không có `guide.md`: task thuần di chuyển file, bảng dưới là đủ hướng dẫn.
+Hướng dẫn thực hiện: [guide.md](./guide.md). Kết quả: [report.md](./report.md).
 
 ## Bảng di chuyển file (54 file, đã đối chiếu `find`)
 
@@ -52,13 +52,14 @@ export class CatalogModule {}
 
 ## Các bước
 
-1. [ ] Trên `dev`, ghi metric "trước" vào [metric.md](./metric.md): số file test (`find src -name '*.spec.ts' | wc -l`), số test (output `npm test`). Lưu Swagger: chạy app với env dev + `SWAGGER_ENABLED=true` (`docker compose up -d` cho DB), `curl localhost:$PORT/docs-json > <scratchpad>/swagger-before.json`.
-2. [ ] `git mv` theo bảng trên (giữ lịch sử).
-3. [ ] Viết lại import: thay `#src/categories/`, `#src/products/`, `#src/product-options/` → `#src/modules/catalog/` + `storefront/` / `back-office/` / `dto/` đúng chỗ. Gồm cả chuỗi trong `vi.mock(...)` (typecheck không bắt).
-4. [ ] Tạo `catalog.module.ts`; sửa `app.module.ts` như trên.
-5. [ ] Chạy AC3 grep; `lint`, `typecheck`, `test`, `test:e2e` — không sửa assertion; so số file test/số test với metric "trước".
-6. [ ] Swagger "sau" → `diff <(jq -S . before) <(jq -S . after)` rỗng.
-7. [ ] Docs: 02-modules §4 "Hiện tại" — sửa câu "module để phẳng dưới `src/`…", thêm `modules/catalog/`, bỏ dòng `categories/ products/`.
+1. [x] Trên `dev`, ghi metric "trước" vào [metric.md](./metric.md): số file test (`find src -name '*.spec.ts' | wc -l`), số test (output `npm test`). Lưu Swagger: chạy app với env dev + `SWAGGER_ENABLED=true` (`docker compose up -d` cho DB), `curl localhost:$PORT/docs-json > <scratchpad>/swagger-before.json`.
+2. [x] `git mv` theo bảng trên (giữ lịch sử).
+3. [x] Viết lại import: thay `#src/categories/`, `#src/products/`, `#src/product-options/` → `#src/modules/catalog/` + `storefront/` / `back-office/` / `dto/` đúng chỗ. Gồm cả chuỗi trong `vi.mock(...)` (typecheck không bắt).
+4. [x] Tạo `catalog.module.ts`; sửa `app.module.ts` như trên.
+5. [x] Chạy AC3 grep; `lint`, `typecheck`, `test`, `test:e2e` — không sửa assertion; so số file test/số test với metric "trước".
+6. [x] Swagger "sau" → `diff <(jq -S . before) <(jq -S . after)` rỗng.
+7. [x] Docs: 02-modules §4 "Hiện tại" — sửa câu "module để phẳng dưới `src/`…", thêm `modules/catalog/`, bỏ dòng `categories/ products/`.
+       7b. [x] Gom `storefront/` + `back-office/` vào `controllers/` (`git mv`, sửa import `#src/modules/catalog/controllers/...`); sửa `coding-style §2.2/§2.6`, `02-modules §4`; verify lại lint/typecheck/test/e2e + Swagger diff. Tạo task 07 cho `auth`/`staff`.
 8. [ ] Ghi metric "sau"; `/code-review`; `/ship`.
 9. [ ] Sau merge: `report.md`, `status: done`, `pr: #NN` trong spec + bảng tổng.
 

@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: review
 pr:
 blocked-by: []
 ---
@@ -27,7 +27,7 @@ Một `CatalogModule` duy nhất ở `src/modules/catalog/` — module đầu ti
 
 1. Một Nest module `CatalogModule`, thay 3 module cũ.
 2. PR chỉ đụng catalog (+ docs liên quan); `auth`, `staff`, hạ tầng giữ nguyên chỗ.
-3. Controller storefront → `storefront/`, controller `admin/*` → `back-office/`; service và DTO chia theo thực thể (`categories/`, `products/`, `product-options/`) trong `services/`, `dto/`; gốc chỉ có `catalog.module.ts`. Đồng thời gom file rời trong `common/` vào `middleware/`, `logging/`, `utils/`.
+3. Controller gom dưới `controllers/`: storefront → `controllers/storefront/`, `admin/*` → `controllers/back-office/` (bổ sung 2026-11-06 — cấp đầu module đồng đều `controllers/ services/ dto/` theo kiểu NestJS, vẫn giữ ranh giới phân quyền; áp dụng cho mọi module, xem `coding-style §2.2`); service và DTO chia theo thực thể (`categories/`, `products/`, `product-options/`) trong `services/`, `dto/`; gốc chỉ có `catalog.module.ts`. Đồng thời gom file rời trong `common/` vào `middleware/`, `logging/`, `utils/`.
 4. Giữ nguyên cách chia service; không gộp/tách logic, không đổi tên file.
 5. `CatalogModule` không `exports` gì — `CatalogReader` thiết kế khi làm `cart`/`pricing` (YAGNI).
 6. Làm trước đề xuất #3; tạm vẫn `imports: [AuthModule]`.
@@ -41,12 +41,13 @@ Một `CatalogModule` duy nhất ở `src/modules/catalog/` — module đầu ti
 
 ## Acceptance Criteria
 
-- [ ] AC1: `src/categories/`, `src/products/`, `src/product-options/` không còn tồn tại.
-- [ ] AC2: `app.module.ts` chỉ import `CatalogModule` cho phần catalog; `CatalogModule` không có `exports`.
-- [ ] AC3: `grep -rnE "(categories|products|product-options)/" src test --include=*.ts | grep -v "src/modules/catalog\|src/generated"` không còn tham chiếu đường dẫn cũ (bao gồm chuỗi trong `vi.mock`).
-- [ ] AC4: `npm run lint`, `typecheck`, `test`, `test:e2e` xanh **không sửa assertion nào**; số file test và số test bằng trước.
-- [ ] AC5: `jq -S . swagger-before.json` và `jq -S . swagger-after.json` (từ `/docs-json`) diff rỗng.
-- [ ] AC6: 02-modules §4 mục "Hiện tại" cập nhật cả câu mô tả lẫn cây (có `modules/catalog/`, bỏ `categories/ products/`).
+- [x] AC1: `src/categories/`, `src/products/`, `src/product-options/` không còn tồn tại.
+- [x] AC2: `app.module.ts` chỉ import `CatalogModule` cho phần catalog; `CatalogModule` không có `exports`.
+- [x] AC3: `grep -rnE "(categories|products|product-options)/" src test --include=*.ts | grep -v "src/modules/catalog\|src/generated"` không còn tham chiếu đường dẫn cũ (bao gồm chuỗi trong `vi.mock`).
+- [x] AC4: `npm run lint`, `typecheck`, `test`, `test:e2e` xanh **không sửa assertion nào**; số file test và số test bằng trước.
+- [x] AC5: `jq -S . swagger-before.json` và `jq -S . swagger-after.json` (từ `/docs-json`) diff rỗng.
+- [x] AC7: Controller nằm dưới `modules/catalog/controllers/{storefront,back-office}/`; `coding-style §2.2/§2.6` và `02-modules §4` cập nhật theo.
+- [x] AC6: 02-modules §4 mục "Hiện tại" cập nhật cả câu mô tả lẫn cây (có `modules/catalog/`, bỏ `categories/ products/`).
 
 ## Out of scope
 

@@ -94,8 +94,7 @@ src/
 └── modules/
     └── catalog/             # Danh mục, Sản phẩm, Biến thể, Size, Màu
         ├── catalog.module.ts
-        ├── storefront/      # controller cho Người mua
-        ├── back-office/     # controller /admin/*
+        ├── controllers/     # storefront/ (Người mua)  back-office/ (/admin/*)
         ├── services/        # categories/ products/ product-options/
         ├── dto/             # categories/ products/ product-options/
         ├── domain/          # category-tree.ts
@@ -143,8 +142,9 @@ Mỗi module (gốc module chỉ có `<module>.module.ts`; thư mục vai trò c
 ```text
 modules/<module>/
 ├── <module>.module.ts
-├── storefront/              # controller cho /api/v1/... của Người mua
-├── back-office/             # controller cho /api/v1/admin/... (tiền tố admin-)
+├── controllers/
+│   ├── storefront/          # controller cho /api/v1/... của Người mua
+│   └── back-office/         # controller cho /api/v1/admin/... (tiền tố admin-)
 ├── services/                # service + spec cạnh nhau; chia <entity>/ khi ≥2 thực thể và >~6 file
 ├── dto/                     # cùng ngưỡng chia <entity>/ như services/
 ├── domain/                  # logic nghiệp vụ thuần, không phụ thuộc Nest

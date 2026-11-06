@@ -46,21 +46,20 @@ Ngoại lệ: module hạ tầng nhỏ chỉ có 1–2 file (`prisma/`, `bootstr
 
 Chỉ dùng các tên dưới đây. **Chỉ tạo thư mục khi có ít nhất 1 file** — không tạo sẵn thư mục rỗng "cho đủ bộ".
 
-| Thư mục        | Chứa gì                                                                                                | Ví dụ                                   |
-| -------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------- |
-| `storefront/`  | Controller cho route của Người mua (`/api/v1/...`)                                                     | `products.controller.ts`                |
-| `back-office/` | Controller cho route quản trị (`/api/v1/admin/...`), tên có tiền tố `admin-`                           | `admin-products.controller.ts`          |
-| `services/`    | Service (Nest provider chứa logic nghiệp vụ) + `*.spec.ts` của nó                                      | `services/products/products.service.ts` |
-| `dto/`         | DTO request/response (class-validator + Swagger)                                                       | `dto/products/create-product.dto.ts`    |
-| `domain/`      | Logic nghiệp vụ thuần, **không** phụ thuộc Nest/Prisma client — dễ unit test                           | `category-tree.ts`                      |
-| `mappers/`     | Hàm chuyển entity Prisma → DTO response                                                                | `variant-response.mapper.ts`            |
-| `constants/`   | Hằng số, regex, Prisma `include`/`select` dùng chung                                                   | `product.constants.ts`                  |
-| `enums/`       | Enum riêng của module (**không** phải enum Prisma sinh ra — enum DB import từ `#src/generated/prisma`) | `product-sort.enum.ts`                  |
-| `decorators/`  | Decorator tự viết (param decorator, validator decorator)                                               | `option-code.decorator.ts`              |
-| `guards/`      | Guard                                                                                                  | `ownership.guard.ts`                    |
-| `strategies/`  | Passport strategy                                                                                      | `jwt.strategy.ts`                       |
-| `events/`      | Tên + payload event module phát ra                                                                     | `order-placed.event.ts`                 |
-| `types/`       | Type/interface dùng chung trong module, không phải DTO                                                 | `variant-with-options.type.ts`          |
+| Thư mục        | Chứa gì                                                                                                                                                                                                              | Ví dụ                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `controllers/` | Controller, **luôn** chia 2 thư mục con theo vai trò: `storefront/` (route Người mua `/api/v1/...`) và `back-office/` (route `/api/v1/admin/...`, tiền tố `admin-`) — nhìn thư mục là biết route nào cần guard Staff | `controllers/back-office/admin-products.controller.ts` |
+| `services/`    | Service (Nest provider chứa logic nghiệp vụ) + `*.spec.ts` của nó                                                                                                                                                    | `services/products/products.service.ts`                |
+| `dto/`         | DTO request/response (class-validator + Swagger)                                                                                                                                                                     | `dto/products/create-product.dto.ts`                   |
+| `domain/`      | Logic nghiệp vụ thuần, **không** phụ thuộc Nest/Prisma client — dễ unit test                                                                                                                                         | `category-tree.ts`                                     |
+| `mappers/`     | Hàm chuyển entity Prisma → DTO response                                                                                                                                                                              | `variant-response.mapper.ts`                           |
+| `constants/`   | Hằng số, regex, Prisma `include`/`select` dùng chung                                                                                                                                                                 | `product.constants.ts`                                 |
+| `enums/`       | Enum riêng của module (**không** phải enum Prisma sinh ra — enum DB import từ `#src/generated/prisma`)                                                                                                               | `product-sort.enum.ts`                                 |
+| `decorators/`  | Decorator tự viết (param decorator, validator decorator)                                                                                                                                                             | `option-code.decorator.ts`                             |
+| `guards/`      | Guard                                                                                                                                                                                                                | `ownership.guard.ts`                                   |
+| `strategies/`  | Passport strategy                                                                                                                                                                                                    | `jwt.strategy.ts`                                      |
+| `events/`      | Tên + payload event module phát ra                                                                                                                                                                                   | `order-placed.event.ts`                                |
+| `types/`       | Type/interface dùng chung trong module, không phải DTO                                                                                                                                                               | `variant-with-options.type.ts`                         |
 
 Thứ tự ưu tiên khi phân vân: có decorator Nest (`@Injectable`) → `services/`; có decorator class-validator/Swagger → `dto/`; hàm thuần không I/O → `domain/` (nếu là luật nghiệp vụ) hoặc `mappers/` (nếu chỉ đổi hình dạng dữ liệu).
 
@@ -110,14 +109,15 @@ common/
 ```text
 catalog/
 ├── catalog.module.ts
-├── storefront/                      # 3 file → phẳng
-│   ├── categories.controller.ts
-│   ├── products.controller.ts
-│   └── product-options.controller.ts
-├── back-office/                     # 3 file → phẳng
-│   ├── admin-categories.controller.ts
-│   ├── admin-products.controller.ts
-│   └── admin-product-options.controller.ts
+├── controllers/
+│   ├── storefront/                  # 3 file → phẳng
+│   │   ├── categories.controller.ts
+│   │   ├── products.controller.ts
+│   │   └── product-options.controller.ts
+│   └── back-office/                 # 3 file → phẳng
+│       ├── admin-categories.controller.ts
+│       ├── admin-products.controller.ts
+│       └── admin-product-options.controller.ts
 ├── services/                        # 3 thực thể, 13 file → chia
 │   ├── categories/
 │   ├── products/
