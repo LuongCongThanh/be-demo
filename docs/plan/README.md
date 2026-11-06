@@ -36,3 +36,5 @@ Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 | 05  | [Danh mục nhiều cấp](./tasks/05-nested-categories/spec.md)                                          | todo   | 04-sizes-colors-variants  |     |
 | 06  | [Gộp catalog thành một module](./tasks/06-catalog-module/spec.md)                                   | review | —                         |     |
 | 07  | [Đưa module cũ về layout `modules/<module>/controllers/`](./tasks/07-legacy-modules-layout/spec.md) | todo   | 06                        |     |
+| 08  | [Cổng phân quyền `@Authorize` ở `common/auth/`](./tasks/08-authorize-decorator/spec.md)             | todo   | —                         |     |
+| 09  | [Gom hạ tầng vào `infrastructure/`](./tasks/09-infrastructure-folder/spec.md)                       | todo   | 08                        |     |
