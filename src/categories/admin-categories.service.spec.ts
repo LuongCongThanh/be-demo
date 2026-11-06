@@ -3,10 +3,10 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { PrismaService } from '#src/prisma/prisma.service.js';
-import { CategoriesService } from '#src/categories/categories.service.js';
+import { AdminCategoriesService } from '#src/categories/admin-categories.service.js';
 
-describe('CategoriesService', () => {
-  let service: CategoriesService;
+describe('AdminCategoriesService', () => {
+  let service: AdminCategoriesService;
   const prismaMock = {
     category: {
       create: vi.fn(),
@@ -23,10 +23,10 @@ describe('CategoriesService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [CategoriesService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [AdminCategoriesService, { provide: PrismaService, useValue: prismaMock }],
     }).compile();
 
-    service = moduleRef.get(CategoriesService);
+    service = moduleRef.get(AdminCategoriesService);
     vi.clearAllMocks();
   });
 
@@ -37,7 +37,9 @@ describe('CategoriesService', () => {
 
       const result = await service.create({ name: 'Shoes' });
 
-      expect(prismaMock.category.findUnique).toHaveBeenCalledWith({ where: { slug: 'shoes' } });
+      expect(prismaMock.category.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { slug: 'shoes' } }),
+      );
       expect(prismaMock.category.create).toHaveBeenCalledWith({ data: { name: 'Shoes', slug: 'shoes' } });
       expect(result.slug).toBe('shoes');
     });
@@ -179,6 +181,18 @@ describe('CategoriesService', () => {
   });
 
   describe('remove', () => {
+    beforeEach(() => {
+      prismaMock.category.count.mockResolvedValue(0); // không có danh mục con
+    });
+
+    it('throws ConflictException when the category still has subcategories', async () => {
+      prismaMock.category.count.mockResolvedValue(2);
+      prismaMock.product.count.mockResolvedValue(0);
+
+      await expect(service.remove('1')).rejects.toThrow(ConflictException);
+      expect(prismaMock.category.delete).not.toHaveBeenCalled();
+    });
+
     it('deletes the category when no products reference it', async () => {
       prismaMock.product.count.mockResolvedValue(0);
       prismaMock.category.delete.mockResolvedValue(undefined);

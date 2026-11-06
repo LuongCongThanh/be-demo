@@ -84,9 +84,9 @@ describe('Four-actor roles (e2e)', () => {
     });
 
     const writes: [string, string][] = [
-      ['post', '/api/v1/categories'],
-      ['patch', `/api/v1/categories/${MISSING_ID}`],
-      ['delete', `/api/v1/categories/${MISSING_ID}`],
+      ['post', '/api/v1/admin/categories'],
+      ['patch', `/api/v1/admin/categories/${MISSING_ID}`],
+      ['delete', `/api/v1/admin/categories/${MISSING_ID}`],
       ['post', '/api/v1/admin/products'],
       ['patch', `/api/v1/admin/products/${MISSING_ID}`],
       ['post', `/api/v1/admin/products/${MISSING_ID}/archive`],
@@ -102,7 +102,7 @@ describe('Four-actor roles (e2e)', () => {
 
     it('ADMIN passes the role check (404/400 from the handler, not 403)', async () => {
       const res = await request(app.getHttpServer())
-        .delete(`/api/v1/categories/${MISSING_ID}`)
+        .delete(`/api/v1/admin/categories/${MISSING_ID}`)
         .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(404);
     });

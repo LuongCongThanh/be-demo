@@ -37,14 +37,21 @@ model User {
 
 model Category {
   id          String   @id @default(uuid()) @db.Uuid
+  // Cây nhiều cấp; null = gốc. Chặn vòng lặp ở service (ADR 0001).
+  parentId    String?  @map("parent_id") @db.Uuid
   name        String   @db.VarChar(150)
   slug        String   @unique @db.VarChar(150)
   description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isVisible   Boolean  @default(true) @map("is_visible")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children Category[] @relation("CategoryTree")
   products Product[]
 
+  @@index([parentId])
   @@map("categories")
 }
 

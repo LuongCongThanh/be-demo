@@ -10,7 +10,8 @@ export const API_TAGS = {
   },
   CATEGORIES: {
     name: 'Categories',
-    description: 'Product category CRUD — writes gated to ADMIN, reads public',
+    description:
+      'Nested category tree — public visible tree; back-office CRUD with cycle and delete guards (writes ADMIN)',
   },
   PRODUCTS: {
     name: 'Products',

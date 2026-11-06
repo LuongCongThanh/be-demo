@@ -1,6 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreateCategoryDto {
   @ApiProperty({ maxLength: 150, example: "Men's Clothing" })
@@ -20,4 +30,29 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Parent category; omit or null for a root category',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  // null hợp lệ (= gốc), nên chỉ validate khi có giá trị.
+  @ValidateIf((_, value) => value !== undefined && value !== null)
+  @IsUUID()
+  parentId?: string | null;
+
+  @ApiPropertyOptional({ default: 0, minimum: 0, description: 'Ascending order among siblings', example: 0 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
+
+  @ApiPropertyOptional({
+    default: true,
+    description: 'Hidden categories (and their subtree) leave the storefront',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isVisible?: boolean;
 }
