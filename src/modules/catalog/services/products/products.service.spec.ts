@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductsService } from '#src/modules/catalog/services/products/products.service.js';
-import type { PrismaService } from '#src/prisma/prisma.service.js';
+import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 const variant = {
   id: 'v1',

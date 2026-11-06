@@ -1,8 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StaffService } from '#src/modules/identity/services/internal-account/staff.service.js';
-import type { PrismaService } from '#src/prisma/prisma.service.js';
-import type { AuditLogService } from '#src/audit/audit-log.service.js';
+import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import type { AuditLogService } from '#src/infrastructure/audit/audit-log.service.js';
 import type { InternalAccountService } from '#src/modules/identity/services/internal-account/internal-account.service.js';
 
 const staff = (over: Record<string, unknown> = {}) => ({

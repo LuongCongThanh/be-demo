@@ -2,9 +2,9 @@ import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { InternalAccountService } from '#src/modules/identity/services/internal-account/internal-account.service.js';
-import type { PrismaService } from '#src/prisma/prisma.service.js';
+import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import type { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
-import type { AuditLogService } from '#src/audit/audit-log.service.js';
+import type { AuditLogService } from '#src/infrastructure/audit/audit-log.service.js';
 
 function setup() {
   const tx = { user: { create: vi.fn() } };

@@ -1,6 +1,6 @@
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
-import { AppLogger } from '#src/common/logging/app-logger.js';
+import { AppLogger } from '#src/infrastructure/observability/logging/app-logger.js';
 
 /**
  * Shared app configuration used by both `main.ts` and e2e test setup, so the

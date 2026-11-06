@@ -1,5 +1,5 @@
 import { TestingModule, Test } from '@nestjs/testing';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { CliModule } from '#src/cli/cli.module.js';
 import { CreateAdminCommand } from '#src/cli/create-admin.command.js';
 import { PasswordPrompt } from '#src/cli/password-prompt.js';

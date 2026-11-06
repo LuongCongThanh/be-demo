@@ -8,7 +8,7 @@ import type {
   VariantStatus,
 } from '#src/generated/prisma/client.js';
 import { getUniqueConstraintTarget, writeUnique } from '#src/common/utils/prisma-error.util.js';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { CreateProductDto } from '#src/modules/catalog/dto/products/create-product.dto.js';
 import { UpdateProductDto } from '#src/modules/catalog/dto/products/update-product.dto.js';
 import { AdminListProductsQueryDto } from '#src/modules/catalog/dto/products/admin-list-products-query.dto.js';

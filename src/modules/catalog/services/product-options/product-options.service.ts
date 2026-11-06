@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Color, Size } from '#src/generated/prisma/client.js';
 import { writeUnique } from '#src/common/utils/prisma-error.util.js';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { CreateSizeDto } from '#src/modules/catalog/dto/product-options/create-size.dto.js';
 import { UpdateSizeDto } from '#src/modules/catalog/dto/product-options/update-size.dto.js';
 import { CreateColorDto } from '#src/modules/catalog/dto/product-options/create-color.dto.js';
