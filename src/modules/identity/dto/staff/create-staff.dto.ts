@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
-import { IsStrongPassword } from '#src/auth/decorators/is-strong-password.decorator.js';
+import { IsStrongPassword } from '#src/common/validation/is-strong-password.decorator.js';
 
 export class CreateStaffDto {
   @ApiProperty({ example: 'staff@example.com' })

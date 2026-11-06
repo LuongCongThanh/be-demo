@@ -2,7 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { parseArgs } from 'node:util';
 import { plainToInstance } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, MaxLength, validate } from 'class-validator';
-import { IsStrongPassword } from '#src/auth/decorators/is-strong-password.decorator.js';
+import { IsStrongPassword } from '#src/common/validation/is-strong-password.decorator.js';
 import { InternalAccountService } from '#src/modules/identity/services/internal-account/internal-account.service.js';
 import { PasswordPrompt } from '#src/cli/password-prompt.js';
 

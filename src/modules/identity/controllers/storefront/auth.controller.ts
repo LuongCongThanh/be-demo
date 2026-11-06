@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Authorize } from '#src/common/auth/authorize.decorator.js';
 import type { Request, Response } from 'express';
 import ms from 'ms';
 import { Throttle } from '@nestjs/throttler';
@@ -19,9 +20,8 @@ import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { AuthService } from '#src/modules/identity/services/auth/auth.service.js';
 import { RegisterDto } from '#src/modules/identity/dto/auth/register.dto.js';
 import { RegisterResponseDto } from '#src/modules/identity/dto/auth/register-response.dto.js';
-import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
-import { CurrentUser } from '#src/auth/decorators/current-user.decorator.js';
-import type { JwtPayload } from '#src/modules/identity/strategies/jwt.strategy.js';
+import { CurrentUser } from '#src/common/auth/current-user.decorator.js';
+import type { JwtPayload } from '#src/common/auth/jwt-payload.js';
 
 // Phải khớp đúng path prefix route auth thực tế của app (với API versioning,
 // route thật là '/api/v1/auth'). Dùng chung cho mọi nơi set/clear cookie
@@ -128,8 +128,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Authorize()
   @ApiOperation({ summary: 'Get the currently authenticated user' })
   @ApiOkResponse({ type: AuthUserResponseDto })
   @ApiErrorResponses(401)
@@ -137,10 +136,9 @@ export class AuthController {
     return this.authService.getMe(user.sub);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Authorize()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Log out the current session (revokes its refresh token)' })
   @ApiOkResponse({ type: MessageResponseDto })
   @ApiErrorResponses(401)
@@ -156,10 +154,9 @@ export class AuthController {
     return { message: 'Logged out' };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Authorize()
   @Post('logout-all')
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Log out of all sessions (revokes every refresh token of the current user)' })
   @ApiOkResponse({ type: MessageResponseDto })
   @ApiErrorResponses(401)

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { IdentityModule } from '#src/modules/identity/identity.module.js';
+import { PassportModule } from '@nestjs/passport';
 import { CategoriesController } from '#src/modules/catalog/controllers/storefront/categories.controller.js';
 import { AdminCategoriesController } from '#src/modules/catalog/controllers/back-office/admin-categories.controller.js';
 import { ProductsController } from '#src/modules/catalog/controllers/storefront/products.controller.js';
@@ -14,7 +14,8 @@ import { AdminProductImagesService } from '#src/modules/catalog/services/product
 import { ProductOptionsService } from '#src/modules/catalog/services/product-options/product-options.service.js';
 
 @Module({
-  imports: [IdentityModule],
+  // PassportModule cấp AuthModuleOptions cho JwtAuthGuard (@Authorize); strategy 'jwt' do IdentityModule đăng ký.
+  imports: [PassportModule.register({})],
   controllers: [
     CategoriesController,
     AdminCategoriesController,

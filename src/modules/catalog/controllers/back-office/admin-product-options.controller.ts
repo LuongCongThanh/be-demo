@@ -1,10 +1,8 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Authorize } from '#src/common/auth/authorize.decorator.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
-import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '#src/auth/guards/roles.guard.js';
-import { Roles } from '#src/auth/decorators/roles.decorator.js';
 import { ProductOptionsService } from '#src/modules/catalog/services/product-options/product-options.service.js';
 import { CreateSizeDto } from '#src/modules/catalog/dto/product-options/create-size.dto.js';
 import { UpdateSizeDto } from '#src/modules/catalog/dto/product-options/update-size.dto.js';
@@ -15,9 +13,7 @@ import { ColorResponseDto } from '#src/modules/catalog/dto/product-options/color
 
 /** Back-office: đọc cho STAFF + ADMIN (kể cả mục ẩn), ghi chỉ ADMIN. Không có DELETE. */
 @ApiTags(API_TAGS.PRODUCT_OPTIONS.name)
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('STAFF', 'ADMIN')
+@Authorize('STAFF', 'ADMIN')
 @Controller('admin')
 export class AdminProductOptionsController {
   constructor(private readonly service: ProductOptionsService) {}
@@ -31,7 +27,7 @@ export class AdminProductOptionsController {
   }
 
   @Post('sizes')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Create a size (ADMIN only)' })
   @ApiCreatedResponse({ type: SizeResponseDto })
   @ApiErrorResponses(400, 401, 403, [409, 'Size code already exists'])
@@ -40,7 +36,7 @@ export class AdminProductOptionsController {
   }
 
   @Patch('sizes/:id')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Rename, reorder or hide a size; the code is immutable (ADMIN only)' })
   @ApiOkResponse({ type: SizeResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Size not found'])
@@ -57,7 +53,7 @@ export class AdminProductOptionsController {
   }
 
   @Post('colors')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Create a color with a #RRGGBB swatch (ADMIN only)' })
   @ApiCreatedResponse({ type: ColorResponseDto })
   @ApiErrorResponses(400, 401, 403, [409, 'Color code already exists'])
@@ -66,7 +62,7 @@ export class AdminProductOptionsController {
   }
 
   @Patch('colors/:id')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Rename, recolor or hide a color; the code is immutable (ADMIN only)' })
   @ApiOkResponse({ type: ColorResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Color not found'])

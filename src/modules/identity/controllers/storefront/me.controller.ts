@@ -1,12 +1,10 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get } from '@nestjs/common';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Authorize } from '#src/common/auth/authorize.decorator.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
-import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '#src/auth/guards/roles.guard.js';
-import { Roles } from '#src/auth/decorators/roles.decorator.js';
-import { CurrentUser } from '#src/auth/decorators/current-user.decorator.js';
-import type { JwtPayload } from '#src/modules/identity/strategies/jwt.strategy.js';
+import { CurrentUser } from '#src/common/auth/current-user.decorator.js';
+import type { JwtPayload } from '#src/common/auth/jwt-payload.js';
 import { AuthService } from '#src/modules/identity/services/auth/auth.service.js';
 import { CustomerProfileResponseDto } from '#src/modules/identity/dto/auth/customer-profile-response.dto.js';
 
@@ -20,9 +18,7 @@ export class MeController {
   constructor(private readonly authService: AuthService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CUSTOMER')
-  @ApiBearerAuth()
+  @Authorize('CUSTOMER')
   @ApiOperation({ summary: 'Get the signed-in customer profile (CUSTOMER only)' })
   @ApiOkResponse({ type: CustomerProfileResponseDto })
   @ApiErrorResponses(401, 403)
