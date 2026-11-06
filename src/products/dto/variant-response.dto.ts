@@ -22,7 +22,7 @@ export class VariantResponseDto {
   @ApiProperty({ example: '199000.00' })
   price: string;
 
-  @ApiProperty({ enum: VariantStatus })
+  @ApiProperty({ enum: VariantStatus, enumName: 'VariantStatus' })
   status: VariantStatus;
 
   @ApiProperty()

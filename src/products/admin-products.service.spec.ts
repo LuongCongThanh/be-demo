@@ -1,11 +1,11 @@
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProductsService } from '#src/products/products.service.js';
+import { AdminProductsService } from '#src/products/admin-products.service.js';
 import { PrismaService } from '#src/prisma/prisma.service.js';
 
-describe('ProductsService', () => {
-  let service: ProductsService;
+describe('AdminProductsService', () => {
+  let service: AdminProductsService;
   const prismaMock = {
     category: { findUnique: vi.fn() },
     product: {
@@ -30,10 +30,10 @@ describe('ProductsService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [ProductsService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [AdminProductsService, { provide: PrismaService, useValue: prismaMock }],
     }).compile();
 
-    service = moduleRef.get(ProductsService);
+    service = moduleRef.get(AdminProductsService);
     vi.clearAllMocks();
   });
 
@@ -117,14 +117,6 @@ describe('ProductsService', () => {
     });
   });
 
-  describe('remove', () => {
-    it('deletes the product after confirming it exists', async () => {
-      prismaMock.product.findUnique.mockResolvedValue({ id: 'p1' });
-      await service.remove('p1');
-      expect(prismaMock.product.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
-    });
-  });
-
   describe('createVariant', () => {
     it('throws NotFoundException when productId does not exist', async () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
@@ -164,16 +156,6 @@ describe('ProductsService', () => {
     });
   });
 
-  describe('findOneVariant', () => {
-    it('throws NotFoundException when the variant does not exist or does not belong to this product', async () => {
-      // findOneVariant() chỉ query productVariant.findFirst({ where: { id, productId } })
-      // — không cần product.findUnique riêng, vì where đã lọc theo cả 2 điều kiện cùng lúc.
-      prismaMock.productVariant.findFirst.mockResolvedValue(null);
-
-      await expect(service.findOneVariant('p1', 'missing-variant')).rejects.toThrow(NotFoundException);
-    });
-  });
-
   describe('updateVariant', () => {
     it('rejects a duplicate sku when changing sku, excluding the record being updated from the duplicate check', async () => {
       prismaMock.productVariant.findFirst.mockResolvedValueOnce({ id: 'v1', productId: 'p1', sku: 'SKU-OLD' });
@@ -187,16 +169,6 @@ describe('ProductsService', () => {
         data: { sku: 'SKU-NEW' },
       });
       expect(result.sku).toBe('SKU-NEW');
-    });
-  });
-
-  describe('removeVariant', () => {
-    it('deletes the variant after confirming it belongs to the right product', async () => {
-      prismaMock.productVariant.findFirst.mockResolvedValue({ id: 'v1', productId: 'p1' });
-
-      await service.removeVariant('p1', 'v1');
-
-      expect(prismaMock.productVariant.delete).toHaveBeenCalledWith({ where: { id: 'v1' } });
     });
   });
 });

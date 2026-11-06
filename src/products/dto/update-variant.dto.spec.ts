@@ -6,7 +6,7 @@ import { UpdateVariantDto } from '#src/products/dto/update-variant.dto.js';
 
 describe('UpdateVariantDto', () => {
   it('passes validation when sku/price are omitted (all fields optional via PartialType)', async () => {
-    const dto = plainToInstance(UpdateVariantDto, { status: VariantStatus.INACTIVE });
+    const dto = plainToInstance(UpdateVariantDto, { status: VariantStatus.ARCHIVED });
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
   });

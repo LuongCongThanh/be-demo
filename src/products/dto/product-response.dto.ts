@@ -17,8 +17,11 @@ export class ProductResponseDto {
   @ApiPropertyOptional({ nullable: true })
   description: string | null;
 
-  @ApiProperty({ enum: ProductStatus })
+  @ApiProperty({ enum: ProductStatus, enumName: 'ProductStatus' })
   status: ProductStatus;
+
+  @ApiPropertyOptional({ nullable: true, description: 'First time the product became ACTIVE' })
+  publishedAt: Date | null;
 
   @ApiProperty()
   createdAt: Date;

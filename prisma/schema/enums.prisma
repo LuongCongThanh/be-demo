@@ -10,13 +10,14 @@ enum UserStatus {
 }
 
 enum ProductStatus {
+  DRAFT
   ACTIVE
-  INACTIVE
+  ARCHIVED
 }
 
 enum VariantStatus {
   ACTIVE
-  INACTIVE
+  ARCHIVED
 }
 
 enum CartStatus {

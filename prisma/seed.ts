@@ -108,7 +108,14 @@ async function seedCatalog(): Promise<void> {
       const product = await prisma.product.upsert({
         where: { slug: productSlug },
         update: {},
-        create: { name: productSeed.name, slug: productSlug, categoryId: category.id },
+        create: {
+          name: productSeed.name,
+          slug: productSlug,
+          categoryId: category.id,
+          // Dữ liệu mẫu cho storefront: publish luôn thay vì để DRAFT mặc định.
+          status: 'ACTIVE',
+          publishedAt: new Date(),
+        },
       });
 
       for (const variantSeed of productSeed.variants) {

@@ -87,12 +87,12 @@ describe('Four-actor roles (e2e)', () => {
       ['post', '/api/v1/categories'],
       ['patch', `/api/v1/categories/${MISSING_ID}`],
       ['delete', `/api/v1/categories/${MISSING_ID}`],
-      ['post', '/api/v1/products'],
-      ['patch', `/api/v1/products/${MISSING_ID}`],
-      ['delete', `/api/v1/products/${MISSING_ID}`],
-      ['post', `/api/v1/products/${MISSING_ID}/variants`],
-      ['patch', `/api/v1/products/${MISSING_ID}/variants/${MISSING_ID}`],
-      ['delete', `/api/v1/products/${MISSING_ID}/variants/${MISSING_ID}`],
+      ['post', '/api/v1/admin/products'],
+      ['patch', `/api/v1/admin/products/${MISSING_ID}`],
+      ['post', `/api/v1/admin/products/${MISSING_ID}/archive`],
+      ['post', `/api/v1/admin/products/${MISSING_ID}/variants`],
+      ['patch', `/api/v1/admin/products/${MISSING_ID}/variants/${MISSING_ID}`],
+      ['post', `/api/v1/admin/products/${MISSING_ID}/variants/${MISSING_ID}/archive`],
     ];
 
     it.each(writes)('STAFF gets 403 on %s %s', async (method, path) => {

@@ -1,16 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsUUID } from 'class-validator';
-import { ProductStatus } from '#src/generated/prisma/enums.js';
+import { IsOptional, IsUUID } from 'class-validator';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 
+/**
+ * Storefront listing. Không có `status` — storefront luôn chỉ thấy ACTIVE;
+ * client gửi `status` sẽ bị 400 (forbidNonWhitelisted) thay vì bị bỏ qua.
+ */
 export class ListProductsQueryDto extends PaginationDto {
   @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000' })
   @IsOptional()
   @IsUUID()
   categoryId?: string;
-
-  @ApiPropertyOptional({ enum: ProductStatus, example: ProductStatus.ACTIVE })
-  @IsOptional()
-  @IsEnum(ProductStatus)
-  status?: ProductStatus;
 }

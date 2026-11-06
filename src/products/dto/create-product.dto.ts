@@ -20,6 +20,6 @@ export class CreateProductDto {
   @IsUUID()
   categoryId: string;
 
-  // Không có field `slug` — server tự sinh từ `name` (Task 3). Không có
-  // field `status` — mặc định ACTIVE ở DB, chỉ đổi được qua UpdateProductDto.
+  // Không có field `slug` — server tự sinh từ `name`. Không có field `status` —
+  // sản phẩm mới luôn là DRAFT (BR-CAT-07), chỉ đổi được qua UpdateProductDto.
 }

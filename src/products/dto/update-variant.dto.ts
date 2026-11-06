@@ -28,7 +28,7 @@ export class UpdateVariantDto extends PartialType(CreateVariantDto) {
   @Min(0)
   declare price?: number;
 
-  @ApiPropertyOptional({ enum: VariantStatus, example: VariantStatus.INACTIVE })
+  @ApiPropertyOptional({ enum: VariantStatus, enumName: 'VariantStatus', example: VariantStatus.ARCHIVED })
   @IsOptional()
   @IsEnum(VariantStatus)
   status?: VariantStatus;
