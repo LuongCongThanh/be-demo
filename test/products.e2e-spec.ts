@@ -564,6 +564,20 @@ describe('Products + Variants (e2e)', () => {
       expect(await ids(`size=${sizeA.code}&size=${sizeB.code}&color=${red.code}`)).toEqual([redA.id, split.id].sort());
     });
 
+    it('a hidden size or color code is ignored by the storefront filter', async () => {
+      const hiddenSize = await createOption('size');
+      const hiddenColor = await createOption('color');
+      const product = await publishedProduct();
+      await createVariant(product.id, { sizeId: hiddenSize.id, colorId: hiddenColor.id });
+      await prisma.size.update({ where: { id: hiddenSize.id }, data: { isHidden: true } });
+      await prisma.color.update({ where: { id: hiddenColor.id }, data: { isHidden: true } });
+
+      for (const query of [`size=${hiddenSize.code}`, `color=${hiddenColor.code}`]) {
+        const res = await request(server()).get(`/api/v1/products?categoryId=${categoryId}&${query}`).expect(200);
+        expect(res.body.data).toEqual([]);
+      }
+    });
+
     it('public option lists only contain visible sizes and colors', async () => {
       const visible = await createOption('color');
       const hidden = await createOption('color', { isHidden: true });

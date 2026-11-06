@@ -3,7 +3,7 @@ import type { Prisma, Product, ProductImage } from '#src/generated/prisma/client
 import { PrismaService } from '#src/prisma/prisma.service.js';
 import { ListProductsQueryDto } from '#src/products/dto/list-products-query.dto.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
-import { paginate, Paginated } from '#src/products/paginate.js';
+import { NEWEST_FIRST, paginate, Paginated } from '#src/common/pagination/paginate.js';
 import { toVariantResponse, VARIANT_INCLUDE } from '#src/products/variant-response.mapper.js';
 import { VariantResponseDto } from '#src/products/dto/variant-response.dto.js';
 
@@ -22,13 +22,13 @@ export class ProductsService {
   /**
    * Lọc size/màu: sản phẩm khớp khi có ít nhất MỘT biến thể ACTIVE thoả cả
    * hai điều kiện cùng lúc (không ghép size của biến thể này với màu của biến
-   * thể khác).
+   * thể khác). Mã size/màu đã ẩn không lọc ra gì — ẩn là rời khỏi bộ lọc.
    */
   async findAll({ page, limit, categoryId, size, color }: ListProductsQueryDto): Promise<Paginated<Product>> {
     const optionFilter: Prisma.ProductVariantWhereInput = {
       ...VISIBLE_VARIANT,
-      ...(size?.length && { size: { code: { in: size } } }),
-      ...(color?.length && { color: { code: { in: color } } }),
+      ...(size?.length && { size: { code: { in: size }, isHidden: false } }),
+      ...(color?.length && { color: { code: { in: color }, isHidden: false } }),
     };
     const where: Prisma.ProductWhereInput = {
       ...VISIBLE_PRODUCT,
@@ -38,7 +38,7 @@ export class ProductsService {
     return paginate(
       page,
       limit,
-      (args) => this.prisma.product.findMany({ where, ...args }),
+      (args) => this.prisma.product.findMany({ where, orderBy: [...NEWEST_FIRST], ...args }),
       () => this.prisma.product.count({ where }),
     );
   }
@@ -63,7 +63,8 @@ export class ProductsService {
     const result = await paginate(
       page,
       limit,
-      (args) => this.prisma.productVariant.findMany({ where, include: VARIANT_INCLUDE, ...args }),
+      (args) =>
+        this.prisma.productVariant.findMany({ where, include: VARIANT_INCLUDE, orderBy: [...NEWEST_FIRST], ...args }),
       () => this.prisma.productVariant.count({ where }),
     );
     return { ...result, data: result.data.map(toVariantResponse) };

@@ -1,5 +1,4 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import slugify from 'slugify';
 import { Prisma } from '#src/generated/prisma/client.js';
 import type {
   Product,
@@ -15,7 +14,8 @@ import { UpdateProductDto } from '#src/products/dto/update-product.dto.js';
 import { AdminListProductsQueryDto } from '#src/products/dto/admin-list-products-query.dto.js';
 import { CreateVariantDto } from '#src/products/dto/create-variant.dto.js';
 import { UpdateVariantDto } from '#src/products/dto/update-variant.dto.js';
-import { paginate, Paginated } from '#src/products/paginate.js';
+import { NEWEST_FIRST, paginate, Paginated } from '#src/common/pagination/paginate.js';
+import { toSlugOrThrow } from '#src/common/slug.util.js';
 import { VariantResponseDto } from '#src/products/dto/variant-response.dto.js';
 import { toVariantResponse, VARIANT_INCLUDE } from '#src/products/variant-response.mapper.js';
 
@@ -48,7 +48,7 @@ export class AdminProductsService {
     return paginate(
       page,
       limit,
-      (args) => this.prisma.product.findMany({ where, ...args }),
+      (args) => this.prisma.product.findMany({ where, orderBy: [...NEWEST_FIRST], ...args }),
       () => this.prisma.product.count({ where }),
     );
   }
@@ -215,12 +215,7 @@ export class AdminProductsService {
 
   /** Pre-check trùng tên cho message rõ ràng; unique constraint vẫn là chốt chặn thật. */
   private async uniqueSlug(name: string, selfId?: string): Promise<string> {
-    const slug = slugify(name, { lower: true, locale: 'vi', strict: true });
-    // Tên chỉ gồm ký tự đặc biệt (vd. "!!!") qua được @IsNotEmpty() nhưng sinh
-    // slug rỗng — chặn lại thay vì để mọi tên "vô nghĩa" sau đó báo trùng.
-    if (!slug) {
-      throw new BadRequestException(`Product name "${name}" does not produce a valid slug`);
-    }
+    const slug = toSlugOrThrow(name, 'Product');
     const existing = await this.prisma.product.findUnique({ where: { slug }, select: { id: true } });
     if (existing && existing.id !== selfId) {
       throw new ConflictException(`Product name "${name}" already exists`);

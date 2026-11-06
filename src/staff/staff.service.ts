@@ -4,6 +4,7 @@ import { PrismaService } from '#src/prisma/prisma.service.js';
 import { AuditLogService } from '#src/audit/audit-log.service.js';
 import { InternalAccountService } from '#src/auth/services/internal-account.service.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
+import { NEWEST_FIRST, paginate } from '#src/common/pagination/paginate.js';
 import { CreateStaffDto } from '#src/staff/dto/create-staff.dto.js';
 import { UpdateStaffDto } from '#src/staff/dto/update-staff.dto.js';
 import { StaffResponseDto } from '#src/staff/dto/staff-response.dto.js';
@@ -26,26 +27,25 @@ export class StaffService {
 
   async create(dto: CreateStaffDto, actorUserId: string): Promise<StaffResponseDto> {
     const user = await this.internalAccounts.create({ ...dto, role: 'STAFF', actorUserId });
-    return toResponse(user);
+    return toStaffResponse(user);
   }
 
   async findAll({ page, limit }: PaginationDto): Promise<PaginatedStaffResponseDto> {
     const where: Prisma.UserWhereInput = { role: 'STAFF' };
-    const [users, total] = await this.prisma.$transaction([
-      this.prisma.user.findMany({
-        where,
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.user.count({ where }),
-    ]);
-    return { data: users.map(toResponse), meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    const result = await paginate(
+      page,
+      limit,
+      (args) => this.prisma.user.findMany({ where, orderBy: [...NEWEST_FIRST], ...args }),
+      () => this.prisma.user.count({ where }),
+    );
+    return { ...result, data: result.data.map(toStaffResponse) };
   }
 
   async rename(id: string, dto: UpdateStaffDto, actorUserId: string): Promise<StaffResponseDto> {
     return this.prisma.$transaction(async (tx) => {
       const before = await findStaffOrThrow(tx, id);
+      // Tên không đổi → không ghi gì, không có dòng audit rỗng nghĩa.
+      if (before.fullName === dto.name) return toStaffResponse(before);
       const user = await tx.user.update({ where: { id }, data: { fullName: dto.name } });
       await this.auditLog.record(tx, {
         actorUserId,
@@ -55,7 +55,7 @@ export class StaffService {
         before: { name: before.fullName },
         after: { name: user.fullName },
       });
-      return toResponse(user);
+      return toStaffResponse(user);
     });
   }
 
@@ -79,7 +79,7 @@ export class StaffService {
       await tx.$queryRaw`SELECT id FROM users WHERE id = ${id}::uuid FOR UPDATE`;
       const current = await findStaffOrThrow(tx, id);
       if (current.status === status) {
-        return toResponse(current);
+        return toStaffResponse(current);
       }
 
       const disabling = status === 'DISABLED';
@@ -98,7 +98,7 @@ export class StaffService {
         before: { status: current.status },
         after: { status: user.status },
       });
-      return toResponse(user);
+      return toStaffResponse(user);
     });
   }
 }
@@ -111,7 +111,7 @@ async function findStaffOrThrow(tx: Prisma.TransactionClient, id: string): Promi
   return user;
 }
 
-function toResponse(user: User): StaffResponseDto {
+function toStaffResponse(user: User): StaffResponseDto {
   return {
     id: user.id,
     email: user.email,

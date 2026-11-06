@@ -148,6 +148,16 @@ describe('Admin — staff management (e2e)', () => {
       expect(await auditRows(id, 'staff.rename')).toHaveLength(1);
     });
 
+    it('renaming to the current name changes nothing and writes no audit row', async () => {
+      const { id } = await createStaff('Giu Nguyen');
+      await request(server())
+        .patch(`/api/v1/admin/staff/${id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Giu Nguyen' })
+        .expect(200);
+      expect(await auditRows(id, 'staff.rename')).toHaveLength(0);
+    });
+
     it('returns 404 when the target is not a staff account (admin, customer, missing)', async () => {
       for (const id of [adminId, MISSING_ID]) {
         await request(server())

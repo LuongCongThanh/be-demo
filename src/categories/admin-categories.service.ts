@@ -1,5 +1,4 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import slugify from 'slugify';
 import { Prisma } from '#src/generated/prisma/client.js';
 import type { Category } from '#src/generated/prisma/client.js';
 import { writeUnique } from '#src/common/prisma-error.util.js';
@@ -7,6 +6,8 @@ import { PrismaService } from '#src/prisma/prisma.service.js';
 import { CreateCategoryDto } from '#src/categories/dto/create-category.dto.js';
 import { UpdateCategoryDto } from '#src/categories/dto/update-category.dto.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
+import { NEWEST_FIRST, paginate, Paginated } from '#src/common/pagination/paginate.js';
+import { toSlugOrThrow } from '#src/common/slug.util.js';
 
 /**
  * Back-office danh mục (STAFF đọc, ADMIN ghi). Cây nhiều cấp với hai bất biến
@@ -29,18 +30,13 @@ export class AdminCategoriesService {
     );
   }
 
-  async findAll({ page, limit }: PaginationDto) {
-    const [data, total] = await Promise.all([
-      this.prisma.category.findMany({
-        skip: (page - 1) * limit,
-        take: limit,
-        // createdAt có thể trùng trong cùng 1ms — id làm tie-breaker để thứ tự
-        // phân trang ổn định.
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      }),
-      this.prisma.category.count(),
-    ]);
-    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  findAll({ page, limit }: PaginationDto): Promise<Paginated<Category>> {
+    return paginate(
+      page,
+      limit,
+      (args) => this.prisma.category.findMany({ orderBy: [...NEWEST_FIRST], ...args }),
+      () => this.prisma.category.count(),
+    );
   }
 
   async findOne(id: string): Promise<Category> {
@@ -131,12 +127,7 @@ export class AdminCategoriesService {
 
   /** Pre-check trùng tên cho message rõ ràng; unique constraint vẫn là chốt chặn thật. */
   private async uniqueSlug(name: string, selfId?: string): Promise<string> {
-    const slug = slugify(name, { lower: true, locale: 'vi', strict: true });
-    // Tên chỉ gồm ký tự đặc biệt (vd. "!!!") qua được @IsNotEmpty() nhưng
-    // sinh slug rỗng — chặn lại thay vì để mọi tên "vô nghĩa" sau đó báo trùng.
-    if (!slug) {
-      throw new BadRequestException(`Category name "${name}" does not produce a valid slug`);
-    }
+    const slug = toSlugOrThrow(name, 'Category');
     // Trùng tên (=> trùng slug) bị từ chối thẳng — không tự thêm hậu tố số.
     const existing = await this.prisma.category.findUnique({ where: { slug }, select: { id: true } });
     if (existing && existing.id !== selfId) {
