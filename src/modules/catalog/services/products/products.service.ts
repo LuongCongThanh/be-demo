@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma, Product, ProductImage } from '#src/generated/prisma/client.js';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { ListProductsQueryDto } from '#src/modules/catalog/dto/products/list-products-query.dto.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { NEWEST_FIRST, paginate, Paginated } from '#src/common/pagination/paginate.js';

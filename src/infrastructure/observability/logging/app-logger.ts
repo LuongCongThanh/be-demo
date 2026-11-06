@@ -1,5 +1,5 @@
 import { ConsoleLogger, type LogLevel } from '@nestjs/common';
-import { RequestContext } from '#src/common/logging/request-context.js';
+import { RequestContext } from '#src/infrastructure/observability/logging/request-context.js';
 
 // Đăng ký qua `app.useLogger(new AppLogger())` trong main.ts — mọi
 // `new Logger(ClassName.name)` sẵn có trong codebase tự động dùng logger này

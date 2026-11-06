@@ -2,7 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logge
 import type { Response } from 'express';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { getUniqueConstraintTarget } from '#src/common/utils/prisma-error.util.js';
-import { RequestContext } from '#src/common/logging/request-context.js';
+import { RequestContext } from '#src/infrastructure/observability/logging/request-context.js';
 
 interface ResolvedError {
   status: number;

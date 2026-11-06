@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { HealthIndicatorService } from '@nestjs/terminus';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 /**
  * ADR 0008: readiness chỉ phụ thuộc Postgres — Redis down không bao giờ

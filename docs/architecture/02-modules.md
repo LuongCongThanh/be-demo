@@ -74,7 +74,7 @@ flowchart TB
 
 Đây là nơi duy nhất mô tả cây `src/`. README chỉ giữ cây cấp repo; quy tắc đặt tên, thư mục con, barrel file và alias nằm ở [coding-style-conventions.md](../convention/coding-style-conventions.md).
 
-**Hiện tại** — đang chuyển dần sang `modules/` + `infrastructure/`; `catalog` và `identity` đã chuyển, phần còn lại vẫn phẳng dưới `src/`:
+**Hiện tại** — nghiệp vụ ở `modules/`, hạ tầng ở `infrastructure/`; `mail`/`audit` nằm tạm ở `infrastructure/` tới khi có module đích:
 
 ```text
 src/
@@ -84,12 +84,13 @@ src/
 ├── bootstrap/               # cấu hình app dùng chung cho main và e2e
 ├── cli/                     # lệnh CLI (create-admin)
 ├── config/                  # validate env
-├── common/                  # filters/ middleware/ logging/ utils/ pagination/ swagger/ auth/ validation/
+├── common/                  # filters/ middleware/ utils/ pagination/ swagger/ auth/ validation/
 ├── generated/               # Prisma Client (sinh tự động, không commit)
-├── prisma/                  # → infrastructure/database/
-├── health/  metrics/        # chưa xếp chỗ trong cây mục tiêu
-├── mail/                    # → modules/notifications/
-├── audit/                   # → modules/admin-config/
+├── infrastructure/
+│   ├── database/            # PrismaModule, PrismaService
+│   ├── observability/       # health/ metrics/ logging/ (AppLogger, request-context)
+│   ├── mail/                # TẠM — đích cuối: modules/notifications/ (khi làm module đó)
+│   └── audit/               # TẠM — đích cuối: modules/admin-config/ (khi làm module đó)
 └── modules/
     ├── identity/            # Tài khoản: đăng ký, phiên, quên mật khẩu, hồ sơ, Staff
     │   ├── identity.module.ts   # exports: PassportModule, InternalAccountService
@@ -124,7 +125,7 @@ src/
 │   ├── outbox/
 │   ├── queue/
 │   ├── storage/
-│   └── logging/
+│   └── observability/       # health/ metrics/ logging/
 └── modules/
     ├── identity/
     ├── catalog/

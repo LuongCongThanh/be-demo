@@ -98,11 +98,14 @@ Phân biệt service storefront/back-office bằng **tiền tố `admin-`** tron
 common/
 ├── filters/      # all-exceptions.filter.ts
 ├── middleware/   # request-id.middleware.ts
-├── logging/      # app-logger.ts, request-context.ts
 ├── utils/        # slug.util.ts, prisma-error.util.ts
 ├── pagination/   # paginate.ts, pagination.dto.ts, pagination-meta.dto.ts
-└── swagger/      # api-error-responses.decorator.ts, api-tags.ts, error-response.dto.ts
+├── swagger/      # api-error-responses.decorator.ts, api-tags.ts, error-response.dto.ts
+├── auth/         # authorize.decorator.ts, guard JWT/vai trò/sở hữu, current-user.decorator.ts
+└── validation/   # is-strong-password.decorator.ts
 ```
+
+Hạ tầng phụ thuộc runtime (Prisma, health, metrics, logging/AppLogger, mail, audit) nằm ở `src/infrastructure/`, không ở `common/`.
 
 ### 2.6 Ví dụ hoàn chỉnh: `modules/catalog/`
 
@@ -144,7 +147,7 @@ Mọi import trỏ vào `src/` dùng alias `#src/*`, kể cả trong cùng thư 
 
 ```ts
 // ✓ Đúng — ở bất kỳ đâu (src/, *.spec.ts, test/)
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 // ✗ Sai
 import { PrismaService } from '../../prisma/prisma.service.js';

@@ -25,7 +25,7 @@ const dbUrl = this.config.get<string>('DATABASE_URL');
 > **Không có ngoại lệ cho việc đọc `process.env` trực tiếp** — trường hợp dưới đây vẫn 100% dùng `ConfigService`, chỉ khác ở **cách gọi**: class extend 1 class khác (vd. `PrismaService extends PrismaClient`) cần giá trị config **trước khi gọi `super()`**, nên phải lấy qua **tham số constructor** (dùng được trước `super()`), không phải `this.config` (chỉ gán được sau `super()`, do TypeScript tự chèn `this.config = config` ngay sau lệnh `super()`):
 
 ```ts
-// src/prisma/prisma.service.ts
+// src/infrastructure/database/prisma.service.ts
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor(config: ConfigService) {

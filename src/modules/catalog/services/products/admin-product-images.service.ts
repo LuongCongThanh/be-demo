@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { ProductImage } from '#src/generated/prisma/client.js';
 import { Prisma } from '#src/generated/prisma/client.js';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { CreateImageDto } from '#src/modules/catalog/dto/products/create-image.dto.js';
 import { UpdateImageDto } from '#src/modules/catalog/dto/products/update-image.dto.js';
 

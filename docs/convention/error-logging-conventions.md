@@ -38,9 +38,9 @@ Mỗi request HTTP được gắn 1 `requestId` (UUID) ngay từ `RequestIdMiddl
 - Nếu request đã có header `X-Request-Id` (từ load balancer/gateway phía trước) → giữ nguyên, không tự sinh mới — để trace xuyên suốt nhiều service trong hệ thống lớn hơn.
 - Ngược lại tự sinh bằng `randomUUID()`.
 - Luôn trả lại trong response header `X-Request-Id` — client/QA có thể lấy giá trị này để báo lỗi kèm log.
-- Lưu vào `AsyncLocalStorage` qua `RequestContext` (`../../src/common/logging/request-context.ts`) — không cần truyền tay qua tham số hàm.
+- Lưu vào `AsyncLocalStorage` qua `RequestContext` (`../../src/infrastructure/observability/logging/request-context.ts`) — không cần truyền tay qua tham số hàm.
 
-**Không cần sửa gì ở code cũ để có request-id trong log.** `AppLogger` (`../../src/common/logging/app-logger.ts`, đăng ký qua `app.useLogger(new AppLogger())` trong `configureApp()`) tự động gắn `[requestId]` vào đầu message của **mọi** `Logger` instance sẵn có trong codebase — vì NestJS route mọi `new Logger(context)` qua logger đã đăng ký toàn cục. Ví dụ log thật:
+**Không cần sửa gì ở code cũ để có request-id trong log.** `AppLogger` (`../../src/infrastructure/observability/logging/app-logger.ts`, đăng ký qua `app.useLogger(new AppLogger())` trong `configureApp()`) tự động gắn `[requestId]` vào đầu message của **mọi** `Logger` instance sẵn có trong codebase — vì NestJS route mọi `new Logger(context)` qua logger đã đăng ký toàn cục. Ví dụ log thật:
 
 ```
 [Nest] 46792 - ... [MailService] [922cba7c-8aa7-4c51-9c5b-7316afbb6ace] [DEV] Would send verification email to ...

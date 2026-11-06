@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Category } from '#src/generated/prisma/client.js';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { buildVisibleTree, isEffectivelyVisible } from '#src/modules/catalog/domain/category-tree.js';
 import { CategoryTreeNodeDto } from '#src/modules/catalog/dto/categories/category-tree-node.dto.js';
 

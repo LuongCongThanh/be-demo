@@ -2,7 +2,7 @@ import { randomInt, randomBytes, createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import ms from 'ms';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 const EMAIL_VERIFICATION_TTL_MS = 10 * 60 * 1000; // 10 phút — ngắn vì là code 6 chữ số dễ đoán
 

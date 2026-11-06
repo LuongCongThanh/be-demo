@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma } from '#src/generated/prisma/client.js';
 import type { Category } from '#src/generated/prisma/client.js';
 import { writeUnique } from '#src/common/utils/prisma-error.util.js';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { CreateCategoryDto } from '#src/modules/catalog/dto/categories/create-category.dto.js';
 import { UpdateCategoryDto } from '#src/modules/catalog/dto/categories/update-category.dto.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';

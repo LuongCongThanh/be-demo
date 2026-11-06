@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma, User, UserStatus } from '#src/generated/prisma/client.js';
-import { PrismaService } from '#src/prisma/prisma.service.js';
-import { AuditLogService } from '#src/audit/audit-log.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import { AuditLogService } from '#src/infrastructure/audit/audit-log.service.js';
 import { InternalAccountService } from '#src/modules/identity/services/internal-account/internal-account.service.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { NEWEST_FIRST, paginate } from '#src/common/pagination/paginate.js';

@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { CategoriesService } from '#src/modules/catalog/services/categories/categories.service.js';
-import type { PrismaService } from '#src/prisma/prisma.service.js';
+import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 const base = { description: null, sortOrder: 0, createdAt: new Date(0), updatedAt: new Date(0) };
 

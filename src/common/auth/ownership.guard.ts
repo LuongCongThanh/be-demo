@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { OWNED_RESOURCE_KEY, OwnedResourceOptions } from '#src/common/auth/owned-resource.decorator.js';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import type { JwtPayload } from '#src/common/auth/jwt-payload.js';
 
 @Injectable()

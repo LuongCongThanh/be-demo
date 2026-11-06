@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { AdminProductImagesService } from '#src/modules/catalog/services/products/admin-product-images.service.js';
-import type { PrismaService } from '#src/prisma/prisma.service.js';
+import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 describe('AdminProductImagesService', () => {
   const tx = { productImage: { updateMany: vi.fn(), create: vi.fn(), update: vi.fn() } };

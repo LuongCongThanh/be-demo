@@ -3,8 +3,8 @@ import { INestApplication } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
 import { AppModule } from '#src/app.module.js';
-import { PrismaService } from '#src/prisma/prisma.service.js';
-import { MailService } from '#src/mail/mail.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import { MailService } from '#src/infrastructure/mail/mail.service.js';
 import { EmailThrottlerGuard } from '#src/modules/identity/guards/email-throttler.guard.js';
 import { configureApp } from '#src/bootstrap/configure-app.js';
 

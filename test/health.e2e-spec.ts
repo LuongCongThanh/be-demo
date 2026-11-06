@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { vi } from 'vitest';
-import { PrismaService } from '#src/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { createTestApp } from './support/create-test-app.js';
 
 describe('Health checks (e2e)', () => {

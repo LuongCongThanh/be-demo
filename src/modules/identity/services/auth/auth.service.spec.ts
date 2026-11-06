@@ -8,7 +8,7 @@ import {
 } from '#src/modules/identity/services/auth/auth.service.js';
 import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
 import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
-import { MailService } from '#src/mail/mail.service.js';
+import { MailService } from '#src/infrastructure/mail/mail.service.js';
 
 function createHarness() {
   const createdUser = { id: 'user-1', email: 'new@example.com' };

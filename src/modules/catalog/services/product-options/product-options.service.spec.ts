@@ -2,7 +2,7 @@ import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { ProductOptionsService } from '#src/modules/catalog/services/product-options/product-options.service.js';
-import type { PrismaService } from '#src/prisma/prisma.service.js';
+import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 describe('ProductOptionsService', () => {
   const prisma = {
