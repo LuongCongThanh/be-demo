@@ -14,7 +14,7 @@ Branch: `chore/catalog-module` · Nguồn: [architecture review 2026-11-06, đ�
 
 ## Solution
 
-Một `CatalogModule` duy nhất ở `src/modules/catalog/` — module đầu tiên dưới `src/modules/`. Bố cục theo 02-modules §4: `storefront/`, `back-office/`, service + `dto/` + `catalog.module.ts` ở gốc. **Thuần di chuyển**: không đổi logic, route, Swagger tag, response.
+Một `CatalogModule` duy nhất ở `src/modules/catalog/` — module đầu tiên dưới `src/modules/`. Bố cục theo 02-modules §4 và coding-style §2: gốc chỉ có `catalog.module.ts`; `storefront/`, `back-office/`, `services/<entity>/`, `dto/<entity>/`, `domain/`, `mappers/`, `constants/`, `decorators/`. **Thuần di chuyển**: không đổi logic, route, Swagger tag, response.
 
 ## User Stories
 
@@ -27,7 +27,7 @@ Một `CatalogModule` duy nhất ở `src/modules/catalog/` — module đầu ti
 
 1. Một Nest module `CatalogModule`, thay 3 module cũ.
 2. PR chỉ đụng catalog (+ docs liên quan); `auth`, `staff`, hạ tầng giữ nguyên chỗ.
-3. Controller storefront → `storefront/`, controller `admin/*` → `back-office/`; service, `dto/` (phẳng), `catalog.module.ts` ở gốc.
+3. Controller storefront → `storefront/`, controller `admin/*` → `back-office/`; service và DTO chia theo thực thể (`categories/`, `products/`, `product-options/`) trong `services/`, `dto/`; gốc chỉ có `catalog.module.ts`. Đồng thời gom file rời trong `common/` vào `middleware/`, `logging/`, `utils/`.
 4. Giữ nguyên cách chia service; không gộp/tách logic, không đổi tên file.
 5. `CatalogModule` không `exports` gì — `CatalogReader` thiết kế khi làm `cart`/`pricing` (YAGNI).
 6. Làm trước đề xuất #3; tạm vẫn `imports: [AuthModule]`.
