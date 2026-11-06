@@ -1,29 +1,37 @@
 import 'dotenv/config';
-import { convert } from 'openapi-to-postmanv2';
 
 /**
  * Đồng bộ Postman collection với OpenAPI spec hiện tại của app: fetch spec
  * từ app đang chạy (nguồn chuẩn duy nhất — Swagger decorator trong code),
- * convert sang Postman collection format, rồi PUT đè lên collection đã có
- * qua Postman API. Không tạo request thủ công trong Postman nữa — API mới
- * thêm vào code + Swagger decorator là tự động xuất hiện sau khi chạy script
- * này.
+ * để Postman API tự convert sang collection, rồi PUT đè lên collection đã có.
+ * Không tạo request thủ công trong Postman nữa — API mới thêm vào code +
+ * Swagger decorator là tự động xuất hiện sau khi chạy script này.
+ *
+ * Convert phía server Postman (`POST /import/openapi`) thay vì thư viện
+ * `openapi-to-postmanv2`: thư viện đó kéo theo `@faker-js/faker@5` có lỗ hổng
+ * (GHSA-qxc2-j82w-r537) mà upstream chưa vá. Endpoint import luôn tạo
+ * collection MỚI, nên script import vào một collection tạm, chép nội dung đè
+ * lên collection hiện có (giữ nguyên ID mà team đang dùng), rồi xoá bản tạm.
  */
+
+const POSTMAN_API = 'https://api.getpostman.com';
 
 // SWAGGER_PATH trong src/bootstrap/setup-swagger.ts quyết định path này — JSON
 // spec luôn nằm ở `{path}-json`, không phải `/api-json` mặc định của Nest.
 const OPENAPI_URL = process.env.OPENAPI_URL || 'http://localhost:3000/docs-json';
 const POSTMAN_API_KEY = process.env.POSTMAN_API_KEY;
 const POSTMAN_COLLECTION_ID = process.env.POSTMAN_COLLECTION_ID;
+// Tuỳ chọn: workspace chứa collection tạm. Bỏ trống → Postman dùng workspace
+// cá nhân cũ nhất của chủ API key.
+const POSTMAN_WORKSPACE_ID = process.env.POSTMAN_WORKSPACE_ID;
 
 if (!POSTMAN_API_KEY || !POSTMAN_COLLECTION_ID) {
   console.error('Missing POSTMAN_API_KEY / POSTMAN_COLLECTION_ID in .env — see .env.example.');
   process.exit(1);
 }
 
-// Gán lại vào biến đã narrow kiểu (khác scope với guard ở trên) để truyền
-// tường minh qua tham số cho các hàm bên dưới, thay vì đọc ngầm từ biến
-// module-level — tránh phải ép kiểu `as string` mất an toàn kiểu.
+// Gán lại vào biến đã narrow kiểu để truyền tường minh qua tham số, tránh ép
+// kiểu `as string` mất an toàn kiểu.
 const postmanApiKey: string = POSTMAN_API_KEY;
 const postmanCollectionId: string = POSTMAN_COLLECTION_ID;
 
@@ -37,51 +45,68 @@ async function fetchOpenApiSpec(): Promise<unknown> {
   return res.json();
 }
 
-function convertToPostmanCollection(openApiSpec: unknown): Promise<object> {
-  return new Promise((resolve, reject) => {
-    // requestParametersResolution mặc định là 'Schema' — tự sinh giá trị mẫu
-    // từ kiểu dữ liệu (vd. "<string>") thay vì dùng `example` khai trong
-    // @ApiProperty({ example: ... }), nên request body trên Postman sẽ khác
-    // hẳn giá trị hiển thị trên Swagger UI nếu không set option này.
-    convert({ type: 'json', data: openApiSpec as never }, { requestParametersResolution: 'Example' }, (err, result) => {
-      if (err || !result) {
-        reject(err ?? new Error('openapi-to-postmanv2 returned no result'));
-        return;
-      }
-      if (!result.result || !result.output?.[0]) {
-        reject(new Error(`openapi-to-postmanv2 conversion failed: ${result.reason}`));
-        return;
-      }
-      resolve(result.output[0].data);
-    });
+async function postman<T>(apiKey: string, method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${POSTMAN_API}${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
+  if (!res.ok) {
+    throw new Error(`Postman API ${method} ${path} failed (${res.status}): ${await res.text()}`);
+  }
+  return (await res.json()) as T;
 }
 
-async function pushToPostman(collection: object, apiKey: string, collectionId: string): Promise<void> {
-  const res = await fetch(`https://api.getpostman.com/collections/${collectionId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Api-Key': apiKey,
+/** Postman convert spec thành một collection mới; trả về uid của collection tạm đó. */
+async function importAsTemporaryCollection(apiKey: string, openApiSpec: unknown): Promise<string> {
+  const query = POSTMAN_WORKSPACE_ID ? `?workspace=${encodeURIComponent(POSTMAN_WORKSPACE_ID)}` : '';
+  const result = await postman<{ collections?: { uid?: string; id?: string }[] }>(
+    apiKey,
+    'POST',
+    `/import/openapi${query}`,
+    {
+      type: 'json',
+      input: openApiSpec,
+      // Mặc định là 'Schema' — sinh giá trị mẫu kiểu "<string>" thay vì dùng
+      // `example` khai trong @ApiProperty, làm body trên Postman khác hẳn
+      // Swagger UI. 'Example' giữ đúng giá trị mẫu của code.
+      options: { requestParametersResolution: 'Example' },
     },
-    body: JSON.stringify({ collection }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Postman API rejected the update (${res.status}): ${body}`);
+  );
+  const temp = result.collections?.[0];
+  const uid = temp?.uid ?? temp?.id;
+  if (!uid) {
+    throw new Error(`Postman import returned no collection: ${JSON.stringify(result)}`);
   }
+  return uid;
 }
 
 async function main() {
   console.log(`Fetching OpenAPI spec from ${OPENAPI_URL}...`);
   const openApiSpec = await fetchOpenApiSpec();
 
-  console.log('Converting to Postman collection format...');
-  const collection = await convertToPostmanCollection(openApiSpec);
+  console.log('Converting via Postman import API...');
+  const tempUid = await importAsTemporaryCollection(postmanApiKey, openApiSpec);
 
-  console.log(`Pushing to Postman collection ${postmanCollectionId}...`);
-  await pushToPostman(collection, postmanApiKey, postmanCollectionId);
+  try {
+    const { collection } = await postman<{ collection: { info: Record<string, unknown> } }>(
+      postmanApiKey,
+      'GET',
+      `/collections/${tempUid}`,
+    );
+    // Bỏ định danh của bản tạm để PUT không đổi ID/tên collection đích.
+    const { _postman_id: _id, uid: _uid, ...info } = collection.info;
+
+    console.log(`Pushing to Postman collection ${postmanCollectionId}...`);
+    await postman(postmanApiKey, 'PUT', `/collections/${postmanCollectionId}`, {
+      collection: { ...collection, info },
+    });
+  } finally {
+    // Luôn dọn bản tạm, kể cả khi PUT lỗi, để không rác collection trong workspace.
+    await postman(postmanApiKey, 'DELETE', `/collections/${tempUid}`).catch((err: unknown) =>
+      console.error(`Could not delete temporary collection ${tempUid}: ${err instanceof Error ? err.message : err}`),
+    );
+  }
 
   console.log('Done — Postman collection is in sync with the current API.');
 }
