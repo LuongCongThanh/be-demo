@@ -64,8 +64,40 @@ Unit test giảm vì đã xoá hoặc gộp các test gắn với chi tiết cà
 - Thêm route công khai `GET /sizes`, `GET /colors` để storefront dựng bộ lọc (spec chỉ nói "không xuất hiện trong filter").
 - Màu chuyển từ dữ liệu text cũ có hex tạm `#000000`; seed mới đã có hex thật.
 
-## 6. Chưa làm / chưa kiểm
+## 6. Vòng review (`/code-review`) và sửa
+
+Review hai trục chạy bằng hai sub-agent song song. Số token sub-agent dưới đây là **số thật**, lấy từ thông báo hoàn thành của harness; các số khác vẫn là ước tính như mục 1.
+
+| Hạng mục                                       | Token                      | Ghi chú                         |
+| ---------------------------------------------- | -------------------------- | ------------------------------- |
+| Sub-agent Standards                            | 66.232 (thật)              | 10 lần gọi tool, ~40 giây       |
+| Sub-agent Spec                                 | 109.894 (thật)             | 16 lần gọi tool, ~73 giây       |
+| Sửa sau review: nội dung đã commit (`42cdba9`) | ≈ 1.900 (ước tính)         | 6.595 ký tự thêm / 3,5          |
+| Sửa sau review: tổng output phiên chính        | ≈ 6.000 – 8.000 (ước tính) | gồm lệnh, test đỏ/xanh, trả lời |
+
+Commit sửa `42cdba9`:
+
+| Loại | Dòng thêm | Dòng xoá | Ký tự thêm | Token ước tính |
+| ---- | --------: | -------: | ---------: | -------------: |
+| Code |       103 |       81 |      4.727 |        ≈ 1.350 |
+| Test |        24 |        0 |      1.170 |          ≈ 330 |
+| Doc  |         2 |        2 |        698 |          ≈ 200 |
+
+Kết quả review: Standards có 0 vi phạm cứng và 6 code smell; Spec có khoảng 10 phát hiện. Đã sửa:
+
+- Filter storefront bỏ qua mã size/màu đã ẩn (task 04, viết test đỏ trước).
+- Đổi tên Staff thành đúng tên cũ không ghi audit (task 02, viết test đỏ trước).
+- Gom phân trang về `common/pagination/paginate.ts` và tạo slug về `common/slug.util.ts`.
+- Xoá ảnh không đọc trước; va chạm partial unique index của ảnh primary trả 409.
+- Đổi `toResponse` → `toStaffResponse`.
+- Doc `identity.md`, `catalog.md` chuyển "Đã chốt cho MVP" (task 05).
+
+Giữ nguyên vì là lệch có chủ đích hoặc chỉ là đánh giá chủ quan: audit `admin.create` cho CLI; `JwtStrategy` so cả role; unarchive DRAFT trả 400; `PATCH` biến thể nhận `status`; route `GET /categories/:id`; migration ảnh báo lỗi thay vì map; kiểm tra vòng lặp không khoá dòng; truyền `actorUserId` rời (data clump).
+
+Test sau vòng sửa: unit 161/161, e2e 175/175 (1 skip).
+
+## 7. Chưa làm / chưa kiểm
 
 - Nhánh "giá có phần lẻ → migration fail" của task 04 chưa chạy thử trên dữ liệu có giá lẻ (DB dev không có).
-- Chưa chạy `npm run postman:sync`, `/code-review`, `/ship`. Chưa push, chưa mở PR.
-- Chưa cập nhật `status` trong `spec.md` / bảng `docs/plan/README.md`, `report.md`, và `architecture/modules/*.md` ("Nháp" → "Đã chốt"). Các mục này làm sau khi merge.
+- `npm run postman:sync` cần `POSTMAN_API_KEY`, chạy khi có key.
+- Chưa cập nhật `status` trong `spec.md`, bảng `docs/plan/README.md` và `report.md`; các mục này làm sau khi merge.
