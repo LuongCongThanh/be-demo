@@ -75,7 +75,7 @@ Riêng phiên bản chính sách bảo mật mà Người mua đồng ý vẫn �
 
 ## 6. Điều kiện go-live
 
-Các mục **[Cần xác minh trước go-live]** ở trên được gom thành danh sách kiểm tra trước khi mở bán thật. Không mục nào chặn việc viết code ở các mốc M0–M7 (roadmap trên GitHub Issues).
+Các mục **[Cần xác minh trước go-live]** ở trên được gom thành danh sách kiểm tra trước khi mở bán thật. Không mục nào chặn việc viết code ở các mốc M0–M7 (roadmap trong [`docs/plan/`](../plan/README.md)).
 
 - [ ] Pháp chế xác nhận các yêu cầu ở mục 2 theo Luật Bảo vệ dữ liệu cá nhân 2025: thời hạn xử lý Yêu cầu xoá dữ liệu (CMP-06), thời hạn thông báo sự cố (CMP-09), hồ sơ chuyển dữ liệu ra nước ngoài (CMP-08).
 - [ ] Kế toán xác nhận cách xuất hoá đơn điện tử theo Nghị định 70/2025/NĐ-CP (mục 3).

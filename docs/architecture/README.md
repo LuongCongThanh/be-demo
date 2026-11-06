@@ -22,5 +22,5 @@
 ## 2. Quy ước viết
 
 - Không chép lại quy tắc nghiệp vụ: trích mã `BR-*`, `US-*`, `ADR xxxx`.
-- Tài liệu mô tả **kiến trúc mục tiêu** sau tái cấu trúc, không mô tả code cũ. Trạng thái implement theo dõi trên GitHub Issues.
+- Tài liệu mô tả **kiến trúc mục tiêu** sau tái cấu trúc, không mô tả code cũ. Trạng thái implement theo dõi trong [`docs/plan/`](../plan/README.md).
 - Quyết định khó đảo ngược ghi thành ADR ở [`../adr/`](../adr/), tài liệu ở đây chỉ link tới.
