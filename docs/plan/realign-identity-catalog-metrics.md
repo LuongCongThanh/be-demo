@@ -96,7 +96,39 @@ Giữ nguyên vì là lệch có chủ đích hoặc chỉ là đánh giá chủ
 
 Test sau vòng sửa: unit 161/161, e2e 175/175 (1 skip).
 
-## 7. Chưa làm / chưa kiểm
+## 7. Vòng `/ship`: CI chặn vì coverage unit
+
+Sau khi mở PR #60, check `unit-test` của CI (`npm run test:cov`, ngưỡng 50%) báo đỏ: coverage unit giảm từ khoảng 57% xuống 36%. Ở local chỉ chạy `npm run test`, không chạy `test:cov`, nên không bắt được. Nguyên nhân gốc: các service mới chỉ được test qua e2e, trong khi `api-conventions` ghi rõ "Service unit test bắt buộc nếu service có business logic". Cả hai sub-agent review đều bỏ sót điểm này.
+
+Xử lý: thêm unit test cho service (mock `PrismaService`), không hạ ngưỡng. Commit `test: unit tests for new identity & catalog services`:
+
+| Loại | Dòng thêm | Ký tự thêm | Token ước tính |
+| ---- | --------: | ---------: | -------------: |
+| Test |       890 |     35.381 |       ≈ 10.100 |
+
+Tổng output phiên chính cho vòng này (gồm đo coverage, sửa lỗi kiểu, trả lời) ước tính khoảng 15.000 – 18.000 token.
+
+| Chỉ số          | Trước  | Sau    |
+| --------------- | ------ | ------ |
+| Unit test       | 161    | 233    |
+| Coverage lines  | 36,13% | 60,64% |
+| Coverage branch | 37,52% | 67,64% |
+| Coverage funcs  | 31,31% | 57,65% |
+
+Bài học: chạy `npm run test:cov` ở bước Definition of Done thay vì `npm run test`, vì CI dùng lệnh đó.
+
+## 8. Tổng cộng cả đợt
+
+| Loại       | Dòng thêm | Token ước tính (nội dung commit) |
+| ---------- | --------: | -------------------------------: |
+| Code       |     2.442 |                         ≈ 26.900 |
+| Test       |     2.349 |                         ≈ 29.300 |
+| Schema/SQL |       326 |                          ≈ 4.000 |
+| Doc        |     ≈ 150 |                          ≈ 3.500 |
+
+Token của hai sub-agent review: 176.126 (số thật). Tổng output phiên chính cả đợt ước tính khoảng 120.000 – 140.000 token.
+
+## 9. Chưa làm / chưa kiểm
 
 - Nhánh "giá có phần lẻ → migration fail" của task 04 chưa chạy thử trên dữ liệu có giá lẻ (DB dev không có).
 - `npm run postman:sync` cần `POSTMAN_API_KEY`, chạy khi có key.
