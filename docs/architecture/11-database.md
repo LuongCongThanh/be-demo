@@ -126,7 +126,7 @@ erDiagram
 
 ### 3.2. Xoá dữ liệu
 
-- Không xoá cứng dữ liệu đã xuất hiện trong đơn: Sản phẩm/Biến thể → `archived` (BR-CAT-09); size/màu → `is_hidden` (BR-CAT-11); Tài khoản Staff → `status = disabled`.
+- Không xoá cứng dữ liệu đã xuất hiện trong đơn: Sản phẩm/Biến thể → `archived` (BR-CAT-09); size/màu → `is_hidden` (BR-CAT-11); Tài khoản Staff → `status = DISABLED`.
 - Xoá dữ liệu cá nhân = **ẩn danh** tại chỗ, không xoá dòng (CMP-05).
 
 ### 3.3. FK và `ON DELETE`
@@ -162,14 +162,14 @@ Một dòng cho mỗi Tài khoản: Khách hàng, Staff hoặc Admin (`business/
 | Cột                    | Kiểu                            | Ràng buộc         | Ghi chú                                                                                      |
 | ---------------------- | ------------------------------- | ----------------- | -------------------------------------------------------------------------------------------- |
 | id                     | uuid                            | PK                |                                                                                              |
-| role                   | enum `customer`/`staff`/`admin` | NN                | ADR 0005. `guest` không có dòng                                                              |
+| role                   | enum `CUSTOMER`/`STAFF`/`ADMIN` | NN                | ADR 0005. `GUEST` không có dòng                                                              |
 | email                  | citext                          | UK, NN            | so khớp không phân biệt hoa thường (BR-ORD-08)                                               |
 | email_verified_at      | timestamptz                     |                   |                                                                                              |
 | password_hash          | text                            |                   | null nếu chỉ đăng nhập Google                                                                |
 | full_name              | text                            | NN                |                                                                                              |
 | phone                  | text                            |                   |                                                                                              |
 | locale                 | enum `vi`/`en`                  | NN, default `vi`  | BR-NTF-02, US-505                                                                            |
-| status                 | enum `active`/`disabled`        | NN                |                                                                                              |
+| status                 | enum `ACTIVE`/`DISABLED`        | NN                |                                                                                              |
 | session_version        | int                             | NN, default 0     | tăng khi vô hiệu hoá/đổi mật khẩu → mọi phiên mất hiệu lực ngay (`business/02` §4, ADR 0005) |
 | marketing_opt_in       | boolean                         | NN, default false | CMP-03 (bằng chứng ở `consents`)                                                             |
 | anonymized_at          | timestamptz                     |                   | CMP-05                                                                                       |

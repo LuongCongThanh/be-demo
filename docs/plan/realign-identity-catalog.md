@@ -20,20 +20,20 @@ Google login (US-502), hồ sơ khách hàng (name/phone/locale), guest cart/gue
 
 ## PR 1 — `refactor/four-actor-roles` ([task 01](./tasks/01-rename-roles/spec.md))
 
-**Mục tiêu:** role khớp ADR 0005; quyền ghi catalog chỉ cho `admin`.
+**Mục tiêu:** role khớp ADR 0005; quyền ghi catalog chỉ cho `ADMIN`.
 
 Schema / migration:
 
-- Enum `Role`: `customer`, `staff`, `admin` (guest không có dòng). Bỏ `STORE_MANAGER`, `MASTER_ADMIN`.
+- Enum `Role`: `CUSTOMER`, `STAFF`, `ADMIN` (guest không có dòng). Bỏ `STORE_MANAGER`, `MASTER_ADMIN`.
 - Migration SQL tay: `STORE_MANAGER`/`ORDER_STAFF → staff`, `MASTER_ADMIN → admin`, `CUSTOMER → customer` (không mất dữ liệu; user nhiều role → role cao nhất). Nếu role đang là bảng (auth.service.ts:86 lookup) thì đổi thành cột enum `users.role`.
-- `UserStatus`: `ACTIVE/BLOCKED` → `active/disabled` (11-database §4.1).
+- `UserStatus`: `ACTIVE/BLOCKED` → `ACTIVE/DISABLED` (11-database §4.1).
 - Đổi `authorizationVersion` → `session_version` nếu tên khác docs (kiểm tra trước, chỉ đổi khi rẻ).
 - `prisma/seed.ts`: seed theo role mới.
 
 Code:
 
 - Mọi `@Roles(...)` khai báo tường minh danh sách role (ADR 0005, không suy cây phân cấp).
-- Catalog write (category, product, variant create/update/archive): `@Roles('admin')` (02-actors §3.2).
+- Catalog write (category, product, variant create/update/archive): `@Roles('ADMIN')` (02-actors §3.2).
 
 Acceptance:
 
@@ -50,7 +50,7 @@ Acceptance:
 API:
 
 - `POST /api/v1/auth/login`: dùng chung mọi vai trò; response có `role` (và trong JWT). Storefront/back-office FE từ chối vai trò sai kênh bằng lỗi chung và huỷ token.
-- Route mua hàng (cart, checkout — khi có) `@Roles('customer')`; `/admin/*` `@Roles('staff','admin')`.
+- Route mua hàng (cart, checkout — khi có) `@Roles('CUSTOMER')`; `/admin/*` `@Roles('STAFF','ADMIN')`.
 - `POST /api/v1/auth/register`: email đã thuộc tài khoản nội bộ → lỗi chung (mỗi email một Tài khoản).
 - `GET/POST /api/v1/admin/staff`, `PATCH /admin/staff/:id` (đổi tên), `POST /admin/staff/:id/disable` và `/enable` (admin only) — khớp `identity.md` §4. Không tạo/sửa Admin qua API.
 - Disable Staff → tăng `session_version` → mọi phiên mất hiệu lực **ngay** (request kế tiếp với access token cũ → 401).
@@ -66,7 +66,7 @@ Audit (tối thiểu, chỉ cho hành động trong PR này):
 
 Acceptance:
 
-- Token Staff gọi route `@Roles('customer')` (vd. `GET /auth/me` phía customer hoặc route test) → 403; token customer gọi `/admin/*` → 403.
+- Token Staff gọi route `@Roles('CUSTOMER')` (vd. `GET /auth/me` phía customer hoặc route test) → 403; token customer gọi `/admin/*` → 403.
 - Response login có `role`.
 - Disable Staff khi đang đăng nhập → request tiếp theo 401.
 - Có e2e cho mỗi rule trên.

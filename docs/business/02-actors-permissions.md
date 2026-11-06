@@ -6,14 +6,14 @@
 
 | Vai trò            | Mã (code)  | Mô tả                                                                                       | Kênh sử dụng |
 | ------------------ | ---------- | ------------------------------------------------------------------------------------------- | ------------ |
-| Khách vãng lai     | `guest`    | Người mua không có Tài khoản, được nhận diện bằng số điện thoại khi đặt hàng và tra cứu đơn | Storefront   |
-| Khách hàng         | `customer` | Người mua có Tài khoản                                                                      | Storefront   |
-| Nhân viên vận hành | `staff`    | Người của doanh nghiệp, xử lý công việc hằng ngày                                           | Back-office  |
-| Quản trị viên      | `admin`    | Người của doanh nghiệp, quản lý cấu hình và nhân sự                                         | Back-office  |
+| Khách vãng lai     | `GUEST`    | Người mua không có Tài khoản, được nhận diện bằng số điện thoại khi đặt hàng và tra cứu đơn | Storefront   |
+| Khách hàng         | `CUSTOMER` | Người mua có Tài khoản                                                                      | Storefront   |
+| Nhân viên vận hành | `STAFF`    | Người của doanh nghiệp, xử lý công việc hằng ngày                                           | Back-office  |
+| Quản trị viên      | `ADMIN`    | Người của doanh nghiệp, quản lý cấu hình và nhân sự                                         | Back-office  |
 
 Các quy tắc chung:
 
-- Mỗi Tài khoản nội bộ có đúng một vai trò `staff` hoặc `admin`. `admin` có toàn bộ quyền của `staff`.
+- Mỗi Tài khoản nội bộ có đúng một vai trò `STAFF` hoặc `ADMIN`. `ADMIN` có toàn bộ quyền của `STAFF`.
 - Mỗi email chỉ thuộc **một** Tài khoản, dù là Khách hàng, Staff hay Admin.
 - Tài khoản nội bộ **không** dùng để mua hàng. Nhân viên muốn mua hàng thì đăng ký một Tài khoản Khách hàng riêng bằng **email khác**. Đăng nhập storefront (kể cả bằng Google) với email của Tài khoản nội bộ bị từ chối với thông báo lỗi chung. Với đăng nhập email/mật khẩu, việc từ chối do storefront thực hiện dựa trên vai trò trả về khi đăng nhập; hệ thống vẫn chặn Tài khoản nội bộ ở mọi thao tác mua hàng (Giỏ hàng, đặt đơn) theo vai trò. Đăng nhập Google chỉ dành cho storefront nên hệ thống từ chối trực tiếp email của Tài khoản nội bộ.
 - Tài khoản Admin chỉ được tạo bằng lệnh CLI `npm run cli -- create-admin`. Trên back-office, Admin chỉ quản lý Tài khoản Staff.

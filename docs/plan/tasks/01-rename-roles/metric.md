@@ -9,5 +9,5 @@
 | Coverage `src/auth` (lines %)   | `npm run test:cov`                                                                     |       |     |
 | Chỗ dùng tên role cũ            | `grep -rE "STORE_MANAGER\|MASTER_ADMIN\|ORDER_STAFF" src test prisma/seed.ts \| wc -l` |       | 0   |
 | Bảng liên quan role             | đếm model `Role`, `UserRole`                                                           | 2     | 0   |
-| Route catalog write cho `staff` | đếm `@Roles` có staff trên catalog                                                     |       | 0   |
+| Route catalog write cho `STAFF` | đếm `@Roles` có staff trên catalog                                                     |       | 0   |
 | Thời gian làm (giờ)             | tự ghi                                                                                 | —     |     |
