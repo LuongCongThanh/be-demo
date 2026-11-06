@@ -18,20 +18,20 @@ import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '#src/auth/guards/roles.guard.js';
 import { Roles } from '#src/auth/decorators/roles.decorator.js';
 import { CurrentUser } from '#src/auth/decorators/current-user.decorator.js';
-import type { JwtPayload } from '#src/auth/strategies/jwt.strategy.js';
+import type { JwtPayload } from '#src/modules/identity/strategies/jwt.strategy.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
-import { StaffService } from '#src/staff/staff.service.js';
-import { CreateStaffDto } from '#src/staff/dto/create-staff.dto.js';
-import { UpdateStaffDto } from '#src/staff/dto/update-staff.dto.js';
-import { StaffResponseDto } from '#src/staff/dto/staff-response.dto.js';
-import { PaginatedStaffResponseDto } from '#src/staff/dto/paginated-staff-response.dto.js';
+import { StaffService } from '#src/modules/identity/services/internal-account/staff.service.js';
+import { CreateStaffDto } from '#src/modules/identity/dto/staff/create-staff.dto.js';
+import { UpdateStaffDto } from '#src/modules/identity/dto/staff/update-staff.dto.js';
+import { StaffResponseDto } from '#src/modules/identity/dto/staff/staff-response.dto.js';
+import { PaginatedStaffResponseDto } from '#src/modules/identity/dto/staff/paginated-staff-response.dto.js';
 
 @ApiTags(API_TAGS.STAFF.name)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin/staff')
-export class StaffController {
+export class AdminStaffController {
   constructor(private readonly staffService: StaffService) {}
 
   @Get()

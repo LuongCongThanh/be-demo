@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { PrismaService } from '#src/prisma/prisma.service.js';
-import { PasswordService } from '#src/auth/services/password.service.js';
+import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
 import type { Role, UserStatus } from '#src/generated/prisma/enums.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';

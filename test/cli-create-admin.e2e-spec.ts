@@ -3,7 +3,7 @@ import { PrismaService } from '#src/prisma/prisma.service.js';
 import { CliModule } from '#src/cli/cli.module.js';
 import { CreateAdminCommand } from '#src/cli/create-admin.command.js';
 import { PasswordPrompt } from '#src/cli/password-prompt.js';
-import { PasswordService } from '#src/auth/services/password.service.js';
+import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
 
 const TEST_EMAIL_DOMAIN = '@cli-create-admin.e2e-test.local';
 const VALID_PASSWORD = 'Abc@1234';

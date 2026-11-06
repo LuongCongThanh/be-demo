@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable, NotFound
 import { Reflector } from '@nestjs/core';
 import { OWNED_RESOURCE_KEY, OwnedResourceOptions } from '#src/auth/decorators/owned-resource.decorator.js';
 import { PrismaService } from '#src/prisma/prisma.service.js';
-import { JwtPayload } from '#src/auth/strategies/jwt.strategy.js';
+import { JwtPayload } from '#src/modules/identity/strategies/jwt.strategy.js';
 
 @Injectable()
 export class OwnershipGuard implements CanActivate {

@@ -6,9 +6,9 @@ import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '#src/auth/guards/roles.guard.js';
 import { Roles } from '#src/auth/decorators/roles.decorator.js';
 import { CurrentUser } from '#src/auth/decorators/current-user.decorator.js';
-import type { JwtPayload } from '#src/auth/strategies/jwt.strategy.js';
-import { AuthService } from '#src/auth/services/auth.service.js';
-import { CustomerProfileResponseDto } from '#src/auth/dto/customer-profile-response.dto.js';
+import type { JwtPayload } from '#src/modules/identity/strategies/jwt.strategy.js';
+import { AuthService } from '#src/modules/identity/services/auth/auth.service.js';
+import { CustomerProfileResponseDto } from '#src/modules/identity/dto/auth/customer-profile-response.dto.js';
 
 /**
  * Hồ sơ Khách hàng (identity.md §4, US-505) — route mua hàng đầu tiên, chỉ

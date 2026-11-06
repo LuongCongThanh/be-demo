@@ -2,13 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma, User, UserStatus } from '#src/generated/prisma/client.js';
 import { PrismaService } from '#src/prisma/prisma.service.js';
 import { AuditLogService } from '#src/audit/audit-log.service.js';
-import { InternalAccountService } from '#src/auth/services/internal-account.service.js';
+import { InternalAccountService } from '#src/modules/identity/services/internal-account/internal-account.service.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { NEWEST_FIRST, paginate } from '#src/common/pagination/paginate.js';
-import { CreateStaffDto } from '#src/staff/dto/create-staff.dto.js';
-import { UpdateStaffDto } from '#src/staff/dto/update-staff.dto.js';
-import { StaffResponseDto } from '#src/staff/dto/staff-response.dto.js';
-import { PaginatedStaffResponseDto } from '#src/staff/dto/paginated-staff-response.dto.js';
+import { CreateStaffDto } from '#src/modules/identity/dto/staff/create-staff.dto.js';
+import { UpdateStaffDto } from '#src/modules/identity/dto/staff/update-staff.dto.js';
+import { StaffResponseDto } from '#src/modules/identity/dto/staff/staff-response.dto.js';
+import { PaginatedStaffResponseDto } from '#src/modules/identity/dto/staff/paginated-staff-response.dto.js';
 
 const STAFF_NOT_FOUND = 'Staff account not found';
 
