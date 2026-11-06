@@ -20,7 +20,7 @@ Control bắt buộc: HTTPS, hash mật khẩu (argon2/bcrypt), access token ng�
 | Đăng nhập Google                 | Email mới → tạo Tài khoản (email coi như đã xác thực). Email đã có Tài khoản → liên kết; nếu Tài khoản đó chưa xác thực thì **xoá mật khẩu cũ và thu hồi mọi phiên**                                                            | US-502 AC1–2          |
 | Đăng nhập sai                    | Sai nhiều lần liên tiếp thì tạm khoá đăng nhập theo tài khoản                                                                                                                                                                   | US-502 AC3            |
 | Quên mật khẩu                    | Luôn trả "Nếu email tồn tại…". Link dùng một lần, hết hạn **1 giờ**. Đặt lại thành công thì thu hồi mọi phiên                                                                                                                   | US-503                |
-| Tài khoản nội bộ trên storefront | Bị từ chối, kể cả qua Google, với thông báo lỗi chung                                                                                                                                                                           | US-502 AC4            |
+| Tài khoản nội bộ trên storefront | Bị từ chối, kể cả qua Google, với thông báo lỗi chung; email/mật khẩu: storefront từ chối theo `role` trả về, server chặn thao tác mua hàng bằng `@Roles` (ADR 0005); Google: server từ chối                                    | US-502 AC4            |
 
 **Token:** access token JWT ngắn hạn (khoảng 15 phút); refresh token ngẫu nhiên, chỉ lưu hash, xoay vòng mỗi lần dùng; dùng lại một refresh token đã xoay thì thu hồi cả chuỗi (phát hiện token bị lộ). Mỗi thiết bị một phiên.
 

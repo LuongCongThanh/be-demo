@@ -8,6 +8,7 @@
 4. [`architecture/11-database.md`](./architecture/11-database.md) — thiết kế database (schema mục tiêu).
 5. [`adr/`](./adr/) — các quyết định khó đảo ngược.
 6. [`convention/`](./convention/) — quy ước code, API, config, lỗi/log, Prisma, git.
+7. [`plans/`](./plans/) — kế hoạch/spec triển khai nhiều PR (vd. căn chỉnh code theo docs business). Trạng thái thực tế vẫn theo dõi trên GitHub Issues.
 
 ## Trạng thái tài liệu
 
