@@ -74,7 +74,7 @@ flowchart TB
 
 Đây là nơi duy nhất mô tả cây `src/`. README chỉ giữ cây cấp repo; quy tắc đặt tên, thư mục con, barrel file và alias nằm ở [coding-style-conventions.md](../convention/coding-style-conventions.md).
 
-**Hiện tại** — đang chuyển dần sang `modules/` + `infrastructure/`; `catalog` đã chuyển, phần còn lại vẫn phẳng dưới `src/`:
+**Hiện tại** — đang chuyển dần sang `modules/` + `infrastructure/`; `catalog` và `identity` đã chuyển, phần còn lại vẫn phẳng dưới `src/`:
 
 ```text
 src/
@@ -90,8 +90,15 @@ src/
 ├── health/  metrics/        # chưa xếp chỗ trong cây mục tiêu
 ├── mail/                    # → modules/notifications/
 ├── audit/                   # → modules/admin-config/
-├── auth/  staff/            # → modules/identity/
+├── auth/                    # TẠM: guard/decorator phân quyền dùng chung (#3 sẽ chuyển sang common/auth/)
 └── modules/
+    ├── identity/            # Tài khoản: đăng ký, phiên, quên mật khẩu, hồ sơ, Staff
+    │   ├── identity.module.ts   # exports: PassportModule, InternalAccountService
+    │   ├── controllers/     # storefront/ (auth, me)  back-office/ (admin-staff)
+    │   ├── services/        # auth/ internal-account/
+    │   ├── dto/             # auth/ staff/
+    │   ├── strategies/      # jwt.strategy
+    │   └── guards/          # email-throttler (riêng identity)
     └── catalog/             # Danh mục, Sản phẩm, Biến thể, Size, Màu
         ├── catalog.module.ts
         ├── controllers/     # storefront/ (Người mua)  back-office/ (/admin/*)

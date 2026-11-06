@@ -1,9 +1,13 @@
 import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '#src/generated/prisma/client.js';
-import { AuthService, GENERIC_RESEND_MESSAGE, MAX_VERIFY_ATTEMPTS } from '#src/auth/services/auth.service.js';
-import { PasswordService } from '#src/auth/services/password.service.js';
-import { TokenService } from '#src/auth/services/token.service.js';
+import {
+  AuthService,
+  GENERIC_RESEND_MESSAGE,
+  MAX_VERIFY_ATTEMPTS,
+} from '#src/modules/identity/services/auth/auth.service.js';
+import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
+import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
 import { MailService } from '#src/mail/mail.service.js';
 
 function createHarness() {

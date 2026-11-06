@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from '#src/auth/auth.module.js';
+import { IdentityModule } from '#src/modules/identity/identity.module.js';
 import { CategoriesController } from '#src/modules/catalog/controllers/storefront/categories.controller.js';
 import { AdminCategoriesController } from '#src/modules/catalog/controllers/back-office/admin-categories.controller.js';
 import { ProductsController } from '#src/modules/catalog/controllers/storefront/products.controller.js';
@@ -14,7 +14,7 @@ import { AdminProductImagesService } from '#src/modules/catalog/services/product
 import { ProductOptionsService } from '#src/modules/catalog/services/product-options/product-options.service.js';
 
 @Module({
-  imports: [AuthModule],
+  imports: [IdentityModule],
   controllers: [
     CategoriesController,
     AdminCategoriesController,

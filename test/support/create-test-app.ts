@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppModule } from '#src/app.module.js';
-import { EmailThrottlerGuard } from '#src/auth/guards/email-throttler.guard.js';
+import { EmailThrottlerGuard } from '#src/modules/identity/guards/email-throttler.guard.js';
 import { configureApp } from '#src/bootstrap/configure-app.js';
 
 const ALWAYS_ALLOW = { canActivate: () => true };

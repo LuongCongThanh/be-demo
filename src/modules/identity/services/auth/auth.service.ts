@@ -11,19 +11,19 @@ import { Prisma } from '#src/generated/prisma/client.js';
 import type { Role } from '#src/generated/prisma/enums.js';
 import { getUniqueConstraintTarget } from '#src/common/utils/prisma-error.util.js';
 import { PrismaService } from '#src/prisma/prisma.service.js';
-import { ResendVerificationDto } from '#src/auth/dto/resend-verification.dto.js';
-import { ForgotPasswordDto } from '#src/auth/dto/forgot-password.dto.js';
-import { ResetPasswordDto } from '#src/auth/dto/reset-password.dto.js';
-import { VerifyEmailDto } from '#src/auth/dto/verify-email.dto.js';
-import { LoginDto } from '#src/auth/dto/login.dto.js';
-import { CustomerProfileResponseDto } from '#src/auth/dto/customer-profile-response.dto.js';
-import { AuthUserResponseDto } from '#src/auth/dto/auth-user-response.dto.js';
-import { MessageResponseDto } from '#src/auth/dto/message-response.dto.js';
-import { PasswordService } from '#src/auth/services/password.service.js';
-import { TokenService } from '#src/auth/services/token.service.js';
+import { ResendVerificationDto } from '#src/modules/identity/dto/auth/resend-verification.dto.js';
+import { ForgotPasswordDto } from '#src/modules/identity/dto/auth/forgot-password.dto.js';
+import { ResetPasswordDto } from '#src/modules/identity/dto/auth/reset-password.dto.js';
+import { VerifyEmailDto } from '#src/modules/identity/dto/auth/verify-email.dto.js';
+import { LoginDto } from '#src/modules/identity/dto/auth/login.dto.js';
+import { CustomerProfileResponseDto } from '#src/modules/identity/dto/auth/customer-profile-response.dto.js';
+import { AuthUserResponseDto } from '#src/modules/identity/dto/auth/auth-user-response.dto.js';
+import { MessageResponseDto } from '#src/modules/identity/dto/auth/message-response.dto.js';
+import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
+import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
 import { MailService } from '#src/mail/mail.service.js';
-import { RegisterDto } from '#src/auth/dto/register.dto.js';
-import { RegisterResponseDto } from '#src/auth/dto/register-response.dto.js';
+import { RegisterDto } from '#src/modules/identity/dto/auth/register.dto.js';
+import { RegisterResponseDto } from '#src/modules/identity/dto/auth/register-response.dto.js';
 
 // Code 6 chữ số chỉ có 1.000.000 khả năng, khác với raw token 32-byte cũ,
 // nên có thể bị brute-force trong thời gian hết hạn nếu không giới hạn số

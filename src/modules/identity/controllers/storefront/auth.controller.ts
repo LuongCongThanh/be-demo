@@ -4,24 +4,24 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags
 import type { Request, Response } from 'express';
 import ms from 'ms';
 import { Throttle } from '@nestjs/throttler';
-import { EmailThrottlerGuard } from '#src/auth/guards/email-throttler.guard.js';
-import { ResendVerificationDto } from '#src/auth/dto/resend-verification.dto.js';
-import { ForgotPasswordDto } from '#src/auth/dto/forgot-password.dto.js';
-import { ResetPasswordDto } from '#src/auth/dto/reset-password.dto.js';
-import { VerifyEmailDto } from '#src/auth/dto/verify-email.dto.js';
-import { LoginDto } from '#src/auth/dto/login.dto.js';
-import { LoginResponseDto } from '#src/auth/dto/login-response.dto.js';
-import { RefreshResponseDto } from '#src/auth/dto/refresh-response.dto.js';
-import { AuthUserResponseDto } from '#src/auth/dto/auth-user-response.dto.js';
-import { MessageResponseDto } from '#src/auth/dto/message-response.dto.js';
+import { EmailThrottlerGuard } from '#src/modules/identity/guards/email-throttler.guard.js';
+import { ResendVerificationDto } from '#src/modules/identity/dto/auth/resend-verification.dto.js';
+import { ForgotPasswordDto } from '#src/modules/identity/dto/auth/forgot-password.dto.js';
+import { ResetPasswordDto } from '#src/modules/identity/dto/auth/reset-password.dto.js';
+import { VerifyEmailDto } from '#src/modules/identity/dto/auth/verify-email.dto.js';
+import { LoginDto } from '#src/modules/identity/dto/auth/login.dto.js';
+import { LoginResponseDto } from '#src/modules/identity/dto/auth/login-response.dto.js';
+import { RefreshResponseDto } from '#src/modules/identity/dto/auth/refresh-response.dto.js';
+import { AuthUserResponseDto } from '#src/modules/identity/dto/auth/auth-user-response.dto.js';
+import { MessageResponseDto } from '#src/modules/identity/dto/auth/message-response.dto.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
-import { AuthService } from '#src/auth/services/auth.service.js';
-import { RegisterDto } from '#src/auth/dto/register.dto.js';
-import { RegisterResponseDto } from '#src/auth/dto/register-response.dto.js';
+import { AuthService } from '#src/modules/identity/services/auth/auth.service.js';
+import { RegisterDto } from '#src/modules/identity/dto/auth/register.dto.js';
+import { RegisterResponseDto } from '#src/modules/identity/dto/auth/register-response.dto.js';
 import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
 import { CurrentUser } from '#src/auth/decorators/current-user.decorator.js';
-import type { JwtPayload } from '#src/auth/strategies/jwt.strategy.js';
+import type { JwtPayload } from '#src/modules/identity/strategies/jwt.strategy.js';
 
 // Phải khớp đúng path prefix route auth thực tế của app (với API versioning,
 // route thật là '/api/v1/auth'). Dùng chung cho mọi nơi set/clear cookie

@@ -3,14 +3,13 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from '#src/prisma/prisma.module.js';
-import { AuthModule } from '#src/auth/auth.module.js';
+import { IdentityModule } from '#src/modules/identity/identity.module.js';
 import { HealthModule } from '#src/health/health.module.js';
 import { MetricsModule } from '#src/metrics/metrics.module.js';
 import { CatalogModule } from '#src/modules/catalog/catalog.module.js';
 import { validate } from '#src/config/env.validation.js';
 import { AllExceptionsFilter } from '#src/common/filters/all-exceptions.filter.js';
 import { RequestIdMiddleware } from '#src/common/middleware/request-id.middleware.js';
-import { StaffModule } from '#src/staff/staff.module.js';
 
 @Module({
   imports: [
@@ -19,11 +18,10 @@ import { StaffModule } from '#src/staff/staff.module.js';
     // (quyết định #11, docs/auth-playbook/00-overview.md).
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 20 }]),
     PrismaModule,
-    AuthModule,
+    IdentityModule,
     HealthModule,
     MetricsModule,
     CatalogModule,
-    StaffModule,
   ],
   providers: [
     // `useExisting` (not `useClass`) so `ThrottlerGuard` is also reachable as

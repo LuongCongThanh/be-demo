@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '#src/app.module.js';
 import { PrismaService } from '#src/prisma/prisma.service.js';
-import { PasswordService } from '#src/auth/services/password.service.js';
+import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
 import { configureApp } from '#src/bootstrap/configure-app.js';
 import { createTestUser } from './support/create-test-user.js';
 
