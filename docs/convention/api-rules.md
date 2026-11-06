@@ -74,12 +74,13 @@ CRUD đơn giản gọi Prisma thẳng từ service, **không** tạo `XxxReposi
 ### R5. Authorization checkpoint
 
 ```
-Cần authentication? → có → JwtAuthGuard
-Cần authorization (role/ownership)? → có → RolesGuard + @Roles() / OwnershipGuard + @OwnedResource()
+Cần authentication? → có → @Authorize()              (chỉ cần đăng nhập)
+Cần authorization theo vai trò? → có → @Authorize('STAFF', 'ADMIN')
+Cần kiểm chủ sở hữu? → có → thêm OwnershipGuard + @OwnedResource()
 ```
 
-- Tái dùng bộ guard có sẵn (`JwtAuthGuard`, `RolesGuard`, `OwnershipGuard`, `@Roles()`, `@CurrentUser()`), không tự viết cơ chế phân quyền riêng. Resource có chủ sở hữu (`Cart`, `Order`) dùng `OwnershipGuard`, không chỉ `RolesGuard`.
-- Endpoint public: bỏ hẳn `@UseGuards`/`@Roles`/`@ApiBearerAuth`. Kết luận "public" cũng phải là quyết định có chủ đích.
+- Dùng `@Authorize(...roles)` (`#src/common/auth/authorize.decorator.js`) — một decorator gộp JWT + kiểm vai trò + Swagger bearer, đặt ở class (mặc định) hoặc method (ghi đè class, vd. ghi chỉ `ADMIN`). **Không** import `RolesGuard`/`@Roles` trực tiếp (lint chặn). `@CurrentUser()`, `OwnershipGuard`, `@OwnedResource()` cũng ở `common/auth/`. Resource có chủ sở hữu (`Cart`, `Order`) dùng thêm `OwnershipGuard`, không chỉ kiểm vai trò.
+- Endpoint public: không gắn `@Authorize`. Kết luận "public" cũng phải là quyết định có chủ đích.
 - Endpoint public-facing cần auth mà **chưa có auth** → gap **blocking**, không ship.
 
 ### R6. Exception mapping

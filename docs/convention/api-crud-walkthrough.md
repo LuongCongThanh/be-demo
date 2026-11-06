@@ -85,7 +85,7 @@ import { CreateResourceDto } from './create-resource.dto.js';
 export class UpdateResourceDto extends PartialType(CreateResourceDto) {}
 ```
 
-Quy tắc (`example:`, `PartialType` từ `@nestjs/swagger`, field server tự sinh): [api-rules.md §R1](api-rules.md#r1-request-dto--validation). Tham khảo `src/auth/dto/register.dto.ts`.
+Quy tắc (`example:`, `PartialType` từ `@nestjs/swagger`, field server tự sinh): [api-rules.md §R1](api-rules.md#r1-request-dto--validation). Tham khảo `src/modules/identity/dto/auth/register.dto.ts`.
 
 ## B5. Service
 
@@ -167,19 +167,9 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiNoContentResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../auth/guards/roles.guard.js';
-import { Roles } from '../auth/decorators/roles.decorator.js';
+import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Authorize } from '#src/common/auth/authorize.decorator.js';
 import { ResourcesService } from './resources.service.js';
 import { CreateResourceDto } from './dto/create-resource.dto.js';
 import { UpdateResourceDto } from './dto/update-resource.dto.js';
@@ -190,12 +180,10 @@ import { PaginationDto } from '../common/pagination/pagination.dto.js';
 export class ResourcesController {
   constructor(private readonly resourcesService: ResourcesService) {}
 
-  // Write (create/update/remove) → tái sử dụng nguyên bộ guard đã build ở Auth
-  // module khi resource cần bảo vệ (không phải mọi resource là public).
+  // Write (create/update/remove) → @Authorize gộp JWT + kiểm vai trò + Swagger bearer
+  // khi resource cần bảo vệ (không phải mọi resource là public).
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  @ApiBearerAuth()
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Create a new resource' })
   @ApiCreatedResponse({ description: 'Tạo thành công' })
   create(@Body() createResourceDto: CreateResourceDto) {
@@ -218,9 +206,7 @@ export class ResourcesController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  @ApiBearerAuth()
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Update a resource' })
   @ApiOkResponse({ description: 'Cập nhật thành công' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateResourceDto: UpdateResourceDto) {
@@ -228,9 +214,7 @@ export class ResourcesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  @ApiBearerAuth()
+  @Authorize('ADMIN')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a resource' })
   @ApiNoContentResponse({ description: 'Xoá thành công' })
@@ -247,8 +231,8 @@ export class ResourcesController {
 | PATCH (hoặc PUT) | `update()`                | PATCH = cập nhật một phần, PUT = thay thế toàn bộ |
 | DELETE           | `remove()`                | Xoá (`204 No Content`, không body)                |
 
-- Đường dẫn guard giả định resource nằm ở `src/resources/` cạnh `src/auth/`.
-- Resource public: bỏ `@UseGuards`/`@Roles`/`@ApiBearerAuth` ([§R5](api-rules.md#r5-authorization-checkpoint)); resource có chủ sở hữu dùng `OwnershipGuard` + `@OwnedResource()`.
+- Cả controller cần bảo vệ → đặt `@Authorize('STAFF', 'ADMIN')` ở class, method nào siết hơn thì `@Authorize('ADMIN')` (method ghi đè class).
+- Resource public: không gắn `@Authorize` ([§R5](api-rules.md#r5-authorization-checkpoint)); resource có chủ sở hữu dùng `OwnershipGuard` + `@OwnedResource()`.
 - `id Int @default(autoincrement())` → đổi `ParseUUIDPipe` thành `ParseIntPipe`.
 - Lỗi Prisma đã được `AllExceptionsFilter` xử lý global — không viết filter riêng ([§R6](api-rules.md#r6-exception-mapping)).
 
@@ -305,7 +289,7 @@ verify(@Body() dto: VerifyEmailDto) { ... }
 findOne(@Param('id', ParseUUIDPipe) id: string) { ... }
 ```
 
-Tham khảo `src/auth/auth.controller.ts`. Sau khi xong: `npm run start:dev` → `npm run postman:sync`.
+Tham khảo `src/modules/identity/controllers/storefront/auth.controller.ts`. Sau khi xong: `npm run start:dev` → `npm run postman:sync`.
 
 ## B9. Pagination
 

@@ -2,9 +2,32 @@
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/src/rules.rs",
   "rules": {
     "@typescript-eslint/no-explicit-any": "warn",
-    "@typescript-eslint/no-floating-promises": "warn"
+    "@typescript-eslint/no-floating-promises": "warn",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "#src/common/auth/roles.guard.js",
+            "message": "Dùng @Authorize(...) từ #src/common/auth/authorize.decorator.js thay vì Roles/RolesGuard trực tiếp."
+          },
+          {
+            "name": "#src/common/auth/roles.decorator.js",
+            "message": "Dùng @Authorize(...) từ #src/common/auth/authorize.decorator.js thay vì Roles/RolesGuard trực tiếp."
+          }
+        ]
+      }
+    ]
   },
   "env": {
     "node": true
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/common/auth/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
 }

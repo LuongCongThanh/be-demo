@@ -1,24 +1,10 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  ParseUUIDPipe,
-  Patch,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Authorize } from '#src/common/auth/authorize.decorator.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
-import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '#src/auth/guards/roles.guard.js';
-import { Roles } from '#src/auth/decorators/roles.decorator.js';
-import { CurrentUser } from '#src/auth/decorators/current-user.decorator.js';
-import type { JwtPayload } from '#src/modules/identity/strategies/jwt.strategy.js';
+import { CurrentUser } from '#src/common/auth/current-user.decorator.js';
+import type { JwtPayload } from '#src/common/auth/jwt-payload.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { StaffService } from '#src/modules/identity/services/internal-account/staff.service.js';
 import { CreateStaffDto } from '#src/modules/identity/dto/staff/create-staff.dto.js';
@@ -27,9 +13,7 @@ import { StaffResponseDto } from '#src/modules/identity/dto/staff/staff-response
 import { PaginatedStaffResponseDto } from '#src/modules/identity/dto/staff/paginated-staff-response.dto.js';
 
 @ApiTags(API_TAGS.STAFF.name)
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Authorize('ADMIN')
 @Controller('admin/staff')
 export class AdminStaffController {
   constructor(private readonly staffService: StaffService) {}

@@ -10,21 +10,11 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiNoContentResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Authorize } from '#src/common/auth/authorize.decorator.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
-import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '#src/auth/guards/roles.guard.js';
-import { Roles } from '#src/auth/decorators/roles.decorator.js';
 import { AdminProductsService } from '#src/modules/catalog/services/products/admin-products.service.js';
 import { AdminProductImagesService } from '#src/modules/catalog/services/products/admin-product-images.service.js';
 import { CreateImageDto } from '#src/modules/catalog/dto/products/create-image.dto.js';
@@ -48,9 +38,7 @@ const VARIANT_NOT_FOUND: [404, string] = [404, 'Variant not found on this produc
  * ADMIN (business/02 §3.2). Không có DELETE — dùng archive (BR-CAT-09).
  */
 @ApiTags(API_TAGS.PRODUCTS.name)
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('STAFF', 'ADMIN')
+@Authorize('STAFF', 'ADMIN')
 @Controller('admin/products')
 export class AdminProductsController {
   constructor(
@@ -75,7 +63,7 @@ export class AdminProductsController {
   }
 
   @Post()
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Create a product; it starts as DRAFT (ADMIN only)' })
   @ApiCreatedResponse({ type: ProductResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Category not found'], [409, 'Product name already exists'])
@@ -84,7 +72,7 @@ export class AdminProductsController {
   }
 
   @Patch(':id')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({
     summary: 'Update a product; changing status follows DRAFT → ACTIVE ↔ ARCHIVED (ADMIN only)',
   })
@@ -101,7 +89,7 @@ export class AdminProductsController {
   }
 
   @Post(':id/archive')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Archive a product instead of deleting it; idempotent (ADMIN only)' })
   @ApiOkResponse({ type: ProductResponseDto })
@@ -111,7 +99,7 @@ export class AdminProductsController {
   }
 
   @Post(':id/unarchive')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Bring an archived product back to ACTIVE; idempotent (ADMIN only)' })
   @ApiOkResponse({ type: ProductResponseDto })
@@ -121,7 +109,7 @@ export class AdminProductsController {
   }
 
   @Post(':id/variants')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Create a variant, atomically creating its inventory row (ADMIN only)' })
   @ApiCreatedResponse({ type: VariantResponseDto })
   @ApiErrorResponses(400, 401, 403, PRODUCT_NOT_FOUND, [409, 'SKU already exists'])
@@ -130,7 +118,7 @@ export class AdminProductsController {
   }
 
   @Patch(':id/variants/:variantId')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Update a variant (ADMIN only)' })
   @ApiOkResponse({ type: VariantResponseDto })
   @ApiErrorResponses(400, 401, 403, VARIANT_NOT_FOUND, [409, 'SKU already exists'])
@@ -143,7 +131,7 @@ export class AdminProductsController {
   }
 
   @Post(':id/variants/:variantId/archive')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Archive a variant (stop selling it); idempotent (ADMIN only)' })
   @ApiOkResponse({ type: VariantResponseDto })
@@ -153,7 +141,7 @@ export class AdminProductsController {
   }
 
   @Post(':id/variants/:variantId/unarchive')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Bring an archived variant back to ACTIVE; idempotent (ADMIN only)' })
   @ApiOkResponse({ type: VariantResponseDto })
@@ -166,7 +154,7 @@ export class AdminProductsController {
   }
 
   @Post(':id/images')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({
     summary: 'Attach image metadata to a product color; isPrimary replaces that color primary (ADMIN only)',
   })
@@ -177,7 +165,7 @@ export class AdminProductsController {
   }
 
   @Patch(':id/images/:imageId')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Update image metadata or make it the primary image of its color (ADMIN only)' })
   @ApiOkResponse({ type: ImageResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Image not found on this product'])
@@ -190,7 +178,7 @@ export class AdminProductsController {
   }
 
   @Delete(':id/images/:imageId')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove image metadata from a product (ADMIN only)' })
   @ApiNoContentResponse({ description: 'Image removed' })

@@ -84,13 +84,12 @@ src/
 ├── bootstrap/               # cấu hình app dùng chung cho main và e2e
 ├── cli/                     # lệnh CLI (create-admin)
 ├── config/                  # validate env
-├── common/                  # filters/ middleware/ logging/ utils/ pagination/ swagger/
+├── common/                  # filters/ middleware/ logging/ utils/ pagination/ swagger/ auth/ validation/
 ├── generated/               # Prisma Client (sinh tự động, không commit)
 ├── prisma/                  # → infrastructure/database/
 ├── health/  metrics/        # chưa xếp chỗ trong cây mục tiêu
 ├── mail/                    # → modules/notifications/
 ├── audit/                   # → modules/admin-config/
-├── auth/                    # TẠM: guard/decorator phân quyền dùng chung (#3 sẽ chuyển sang common/auth/)
 └── modules/
     ├── identity/            # Tài khoản: đăng ký, phiên, quên mật khẩu, hồ sơ, Staff
     │   ├── identity.module.ts   # exports: PassportModule, InternalAccountService

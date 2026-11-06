@@ -2,15 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import type { Role } from '#src/generated/prisma/enums.js';
+import type { JwtPayload } from '#src/common/auth/jwt-payload.js';
 import { PrismaService } from '#src/prisma/prisma.service.js';
-
-export interface JwtPayload {
-  sub: string; // userId
-  email: string;
-  role: Role; // đúng 1 vai trò mỗi Tài khoản (ADR 0005)
-  sessionVersion: number; // phải khớp users.session_version hiện tại — Mục 13
-}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {

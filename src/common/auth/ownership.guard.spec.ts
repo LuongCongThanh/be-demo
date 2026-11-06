@@ -1,7 +1,7 @@
 import { ExecutionContext, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { OwnershipGuard } from '#src/auth/guards/ownership.guard.js';
-import { OwnedResourceOptions } from '#src/auth/decorators/owned-resource.decorator.js';
+import { OwnershipGuard } from '#src/common/auth/ownership.guard.js';
+import { OwnedResourceOptions } from '#src/common/auth/owned-resource.decorator.js';
 
 function createContext(user: unknown, params: Record<string, string> = {}): ExecutionContext {
   return {

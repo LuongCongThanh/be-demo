@@ -10,21 +10,11 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiNoContentResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Authorize } from '#src/common/auth/authorize.decorator.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
-import { JwtAuthGuard } from '#src/auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '#src/auth/guards/roles.guard.js';
-import { Roles } from '#src/auth/decorators/roles.decorator.js';
 import { AdminCategoriesService } from '#src/modules/catalog/services/categories/admin-categories.service.js';
 import { CreateCategoryDto } from '#src/modules/catalog/dto/categories/create-category.dto.js';
 import { UpdateCategoryDto } from '#src/modules/catalog/dto/categories/update-category.dto.js';
@@ -34,9 +24,7 @@ import { PaginatedCategoryResponseDto } from '#src/modules/catalog/dto/categorie
 
 /** Back-office: đọc cho STAFF + ADMIN (kể cả danh mục ẩn), ghi chỉ ADMIN. */
 @ApiTags(API_TAGS.CATEGORIES.name)
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('STAFF', 'ADMIN')
+@Authorize('STAFF', 'ADMIN')
 @Controller('admin/categories')
 export class AdminCategoriesController {
   constructor(private readonly service: AdminCategoriesService) {}
@@ -58,7 +46,7 @@ export class AdminCategoriesController {
   }
 
   @Post()
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({ summary: 'Create a category, optionally under a parent (ADMIN only)' })
   @ApiCreatedResponse({ type: CategoryResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Parent category not found'], [409, 'Category name already exists'])
@@ -67,7 +55,7 @@ export class AdminCategoriesController {
   }
 
   @Patch(':id')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @ApiOperation({
     summary: 'Update a category: rename (new slug), move to another parent or root, reorder, hide (ADMIN only)',
   })
@@ -84,7 +72,7 @@ export class AdminCategoriesController {
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
+  @Authorize('ADMIN')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an empty leaf category (409 while it has subcategories or products, ADMIN only)' })
   @ApiNoContentResponse({ description: 'Deleted' })
