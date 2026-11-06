@@ -150,7 +150,7 @@ Mọi import trỏ vào `src/` dùng alias `#src/*`, kể cả trong cùng thư 
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 // ✗ Sai
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 ```
 
 Alias là [Node subpath imports](https://nodejs.org/api/packages.html#subpath-imports), khai ở `package.json`:

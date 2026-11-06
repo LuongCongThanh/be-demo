@@ -93,7 +93,7 @@ Quy tắc (`example:`, `PartialType` từ `@nestjs/swagger`, field server tự s
 // resources.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Resource } from '../generated/prisma/client.js';
-import { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { CreateResourceDto } from './dto/create-resource.dto.js';
 import { UpdateResourceDto } from './dto/update-resource.dto.js';
 import { PaginationDto } from '../common/pagination/pagination.dto.js';
@@ -309,7 +309,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ResourcesService } from './resources.service.js';
-import { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 describe('ResourcesService', () => {
   let service: ResourcesService;

@@ -13,7 +13,7 @@ prisma/
   seed.ts           — dữ liệu khởi tạo
 prisma7.config.ts   — config CLI, trỏ schema: "prisma/schema"
 src/generated/prisma — Prisma Client sinh ra (không sửa tay)
-src/infrastructure/database/         — PrismaService + PrismaModule (@Global)
+src/infrastructure/database/ — PrismaService + PrismaModule (@Global)
 ```
 
 - Multi-file schema: Prisma tự merge mọi `.prisma` trong `prisma/schema/`, không cần import giữa các file.
