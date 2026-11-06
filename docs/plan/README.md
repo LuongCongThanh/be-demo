@@ -20,19 +20,21 @@ Quy ước:
 
 - `NN` là thứ tự làm. Tên thư mục kebab-case tiếng Anh.
 - `status` trong frontmatter của `spec.md`: `todo` | `in-progress` | `done`. Cập nhật bảng dưới cùng lúc.
-- Task chỉ viết đầy đủ khi bắt đầu (task trước đã merge); trước đó chỉ có khung `spec.md`.
+- Task chỉ viết đầy đủ khi bắt đầu (task trước đã merge); trước đó chỉ có khung `spec.md`. Ngoại lệ: chuỗi task sinh ra từ một lần grill/architecture review (vd. 07–08) được viết đủ cùng lúc để giữ quyết định; khi bắt đầu từng task phải đối chiếu lại với code.
 - Việc mới phát sinh: tạo thư mục task mới với `spec.md` khung, thêm dòng vào bảng.
+- `metric.md` ghi token **đo thật** (không ước lượng), chia theo code / test / docs / explore: `npm run tokens -- <sessionId|latest> [--since <ISO>] [--until <ISO>] --md` (`scripts/token-usage.ts`, đọc transcript Claude Code ở `~/.claude/projects/`; chỉ phân loại được file ghi qua Write/Edit — sửa bằng Bash bị tính vào `explore/chat`).
 
 ## Task
 
 Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 
-| #   | Task                                                                                                | Status | Blocked by                | PR  |
-| --- | --------------------------------------------------------------------------------------------------- | ------ | ------------------------- | --- |
-| 01  | [Mô hình bốn vai trò](./tasks/01-rename-roles/spec.md)                                              | todo   | —                         |     |
-| 02  | [Login trả role, Staff, CLI create-admin](./tasks/02-login-role-staff-cli/spec.md)                  | todo   | 01-rename-roles           |     |
-| 03  | [Trạng thái sản phẩm & archive](./tasks/03-product-status-archive/spec.md)                          | todo   | 02-login-role-staff-cli   |     |
-| 04  | [Size/màu & quy tắc biến thể](./tasks/04-sizes-colors-variants/spec.md)                             | todo   | 03-product-status-archive |     |
-| 05  | [Danh mục nhiều cấp](./tasks/05-nested-categories/spec.md)                                          | todo   | 04-sizes-colors-variants  |     |
-| 06  | [Gộp catalog thành một module](./tasks/06-catalog-module/spec.md)                                   | review | —                         |     |
-| 07  | [Đưa module cũ về layout `modules/<module>/controllers/`](./tasks/07-legacy-modules-layout/spec.md) | todo   | 06                        |     |
+| #   | Task                                                                               | Status | Blocked by                | PR  |
+| --- | ---------------------------------------------------------------------------------- | ------ | ------------------------- | --- |
+| 01  | [Mô hình bốn vai trò](./tasks/01-rename-roles/spec.md)                             | todo   | —                         |     |
+| 02  | [Login trả role, Staff, CLI create-admin](./tasks/02-login-role-staff-cli/spec.md) | todo   | 01-rename-roles           |     |
+| 03  | [Trạng thái sản phẩm & archive](./tasks/03-product-status-archive/spec.md)         | todo   | 02-login-role-staff-cli   |     |
+| 04  | [Size/màu & quy tắc biến thể](./tasks/04-sizes-colors-variants/spec.md)            | todo   | 03-product-status-archive |     |
+| 05  | [Danh mục nhiều cấp](./tasks/05-nested-categories/spec.md)                         | todo   | 04-sizes-colors-variants  |     |
+| 06  | [Gộp catalog thành một module](./tasks/06-catalog-module/spec.md)                  | done   | —                         | #63 |
+| 07  | [Gộp `auth` + `staff` thành module identity](./tasks/07-identity-module/spec.md)   | todo   | 06                        |     |
+| 08  | [Tách `AuthService` theo use case](./tasks/08-identity-use-case-services/spec.md)  | todo   | 07                        |     |
