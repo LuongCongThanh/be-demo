@@ -53,6 +53,7 @@ async function seedCatalog(): Promise<void> {
   // Danh sách size/màu dùng chung (BR-CAT-11). FREESIZE cho sản phẩm không có size.
   const sizes = [
     { code: 'FREESIZE', name: 'Free size', sortOrder: 0 },
+    { code: 'S', name: 'S', sortOrder: 10 },
     { code: 'M', name: 'M', sortOrder: 20 },
     { code: 'L', name: 'L', sortOrder: 30 },
     { code: '32', name: '32', sortOrder: 132 },
@@ -92,6 +93,22 @@ async function seedCatalog(): Promise<void> {
           name: 'Slim Fit Dress Shirt',
           variants: [{ sku: 'SHIRT-DRESS-BLU-M', color: 'BLU', size: 'M', price: 450000, quantity: 20 }],
         },
+        {
+          name: 'Oversized Polo Shirt',
+          variants: [
+            { sku: 'SHIRT-POLO-WHT-S', color: 'WHT', size: 'S', price: 320000, quantity: 18 },
+            { sku: 'SHIRT-POLO-WHT-M', color: 'WHT', size: 'M', price: 320000, quantity: 22 },
+            { sku: 'SHIRT-POLO-BLK-L', color: 'BLK', size: 'L', price: 320000, quantity: 12 },
+          ],
+        },
+        {
+          name: 'Linen Short Sleeve Shirt',
+          variants: [
+            { sku: 'SHIRT-LINEN-KHK-M', color: 'KHK', size: 'M', price: 390000, quantity: 15 },
+            // Hết hàng: để test tay hiển thị out-of-stock.
+            { sku: 'SHIRT-LINEN-KHK-L', color: 'KHK', size: 'L', price: 390000, quantity: 0 },
+          ],
+        },
       ],
     },
     {
@@ -117,6 +134,22 @@ async function seedCatalog(): Promise<void> {
         {
           name: 'Leather Loafers',
           variants: [{ sku: 'SHOES-LOAFER-BRN-41', color: 'BRN', size: '41', price: 1200000, quantity: 10 }],
+        },
+      ],
+    },
+    {
+      name: 'Accessories',
+      products: [
+        {
+          name: 'Leather Belt',
+          variants: [
+            { sku: 'ACC-BELT-BLK-FREE', color: 'BLK', size: 'FREESIZE', price: 290000, quantity: 35 },
+            { sku: 'ACC-BELT-BRN-FREE', color: 'BRN', size: 'FREESIZE', price: 290000, quantity: 20 },
+          ],
+        },
+        {
+          name: 'Canvas Tote Bag',
+          variants: [{ sku: 'ACC-TOTE-WHT-FREE', color: 'WHT', size: 'FREESIZE', price: 150000, quantity: 60 }],
         },
       ],
     },
@@ -169,7 +202,9 @@ async function seedCatalog(): Promise<void> {
     }
   }
 
-  console.log(`Seeded catalog: ${catalog.length} categories.`);
+  const productCount = catalog.reduce((n, c) => n + c.products.length, 0);
+  const variantCount = catalog.reduce((n, c) => n + c.products.reduce((m, p) => m + p.variants.length, 0), 0);
+  console.log(`Seeded catalog: ${catalog.length} categories, ${productCount} products, ${variantCount} variants.`);
 }
 
 main()
