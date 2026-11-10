@@ -1,0 +1,23 @@
+[mcp_servers.context7]
+command = "npx"
+args = [
+    "-y",
+    "@upstash/context7-mcp",
+]
+
+[mcp_servers.deepwiki]
+command = "npx"
+args = [
+    "-y",
+    "deepwiki-mcp",
+]
+
+[mcp_servers.excalidraw]
+url = "https://mcp.excalidraw.com"
+
+[mcp_servers.playwright]
+command = "npx"
+args = [
+    "-y",
+    "@playwright/mcp",
+]
