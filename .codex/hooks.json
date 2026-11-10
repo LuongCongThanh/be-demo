@@ -1,0 +1,48 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/home/thanhluongcong/Documents/be-demo/.codex/hooks/protect-files.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/home/thanhluongcong/Documents/be-demo/.codex/hooks/enforce-git-workflow.sh'"
+          },
+          {
+            "type": "command",
+            "command": "bash '/home/thanhluongcong/Documents/be-demo/.codex/hooks/enforce-pr-template.sh'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/home/thanhluongcong/Documents/be-demo/.codex/hooks/check-swagger-completeness.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/home/thanhluongcong/Documents/be-demo/.codex/hooks/after-pr-create.sh'"
+          }
+        ]
+      }
+    ]
+  }
+}
