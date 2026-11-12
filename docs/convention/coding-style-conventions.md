@@ -34,57 +34,45 @@ Class bên trong file dùng PascalCase khớp tên file (`token.service.ts` → 
 
 ## 2. Cấu trúc thư mục theo module
 
-Cây `src/` tổng thể nằm ở [02-modules.md §4](../architecture/02-modules.md#4-cấu-trúc-thư-mục). Phần này là **quy tắc** để biết 1 file mới phải đặt ở đâu.
+Cây `src/` tổng thể và danh sách module nằm ở [02-modules.md §4](../architecture/02-modules.md#4-cấu-trúc-thư-mục); cây đích đầy đủ với ký hiệu K/M/N/D ở `TARGET-REPOSITORY-TREE.md` (file kế hoạch liên repo ở thư mục workspace, ngoài repo này). Phần này là **quy tắc** để biết 1 file mới phải đặt ở đâu. (Sửa 2026-11-13: xếp theo thực thể thay cho thư mục vai trò.)
 
-### 2.1 Không để file rời ở gốc module
+### 2.1 Gốc module chỉ có `<module>.module.ts` — trừ module nhỏ
 
-Gốc của module (`modules/<module>/`) chỉ chứa **đúng 1 file**: `<module>.module.ts`. Mọi file khác nằm trong 1 thư mục vai trò bên dưới. Lý do: nhìn vào gốc module là thấy ngay module có những lớp gì (controller, service, dto…), không phải lục giữa hàng chục file trộn lẫn.
+Gốc `modules/<module>/` chứa `<module>.module.ts` và các **sub-module theo thực thể**. Ngoại lệ: module chỉ có một thực thể và ≤ ~8 file (`cart/`, `voucher/`, `media/`) để file phẳng ngay cạnh `<module>.module.ts`, không tạo sub-module.
 
-Ngoại lệ: module hạ tầng nhỏ chỉ có 1–2 file (`prisma/`, `bootstrap/`, `config/`, `health/`) được để phẳng.
+### 2.2 Sub-module theo thực thể, file phẳng bên trong
 
-### 2.2 Danh sách thư mục vai trò
-
-Chỉ dùng các tên dưới đây. **Chỉ tạo thư mục khi có ít nhất 1 file** — không tạo sẵn thư mục rỗng "cho đủ bộ".
-
-| Thư mục        | Chứa gì                                                                                                                                                                                                              | Ví dụ                                                  |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `controllers/` | Controller, **luôn** chia 2 thư mục con theo vai trò: `storefront/` (route Người mua `/api/v1/...`) và `back-office/` (route `/api/v1/admin/...`, tiền tố `admin-`) — nhìn thư mục là biết route nào cần guard Staff | `controllers/back-office/admin-products.controller.ts` |
-| `services/`    | Service (Nest provider chứa logic nghiệp vụ) + `*.spec.ts` của nó                                                                                                                                                    | `services/products/products.service.ts`                |
-| `dto/`         | DTO request/response (class-validator + Swagger)                                                                                                                                                                     | `dto/products/create-product.dto.ts`                   |
-| `domain/`      | Logic nghiệp vụ thuần, **không** phụ thuộc Nest/Prisma client — dễ unit test                                                                                                                                         | `category-tree.ts`                                     |
-| `mappers/`     | Hàm chuyển entity Prisma → DTO response                                                                                                                                                                              | `variant-response.mapper.ts`                           |
-| `constants/`   | Hằng số, regex, Prisma `include`/`select` dùng chung                                                                                                                                                                 | `product.constants.ts`                                 |
-| `enums/`       | Enum riêng của module (**không** phải enum Prisma sinh ra — enum DB import từ `#src/generated/prisma`)                                                                                                               | `product-sort.enum.ts`                                 |
-| `decorators/`  | Decorator tự viết (param decorator, validator decorator)                                                                                                                                                             | `option-code.decorator.ts`                             |
-| `guards/`      | Guard                                                                                                                                                                                                                | `ownership.guard.ts`                                   |
-| `strategies/`  | Passport strategy                                                                                                                                                                                                    | `jwt.strategy.ts`                                      |
-| `events/`      | Tên + payload event module phát ra                                                                                                                                                                                   | `order-placed.event.ts`                                |
-| `types/`       | Type/interface dùng chung trong module, không phải DTO                                                                                                                                                               | `variant-with-options.type.ts`                         |
-
-Thứ tự ưu tiên khi phân vân: có decorator Nest (`@Injectable`) → `services/`; có decorator class-validator/Swagger → `dto/`; hàm thuần không I/O → `domain/` (nếu là luật nghiệp vụ) hoặc `mappers/` (nếu chỉ đổi hình dạng dữ liệu).
-
-### 2.3 Thư mục con theo thực thể
-
-Trong 1 thư mục vai trò, chia tiếp theo **thực thể** khi thỏa **cả hai**:
-
-- có từ **2 thực thể trở lên** (vd. categories, products), **và**
-- có **hơn ~6 file**.
-
-Không thỏa thì để phẳng. Quy tắc này áp dụng cho **mọi** thư mục vai trò (`services/`, `dto/`, `constants/`, `mappers/`…), không riêng `services/`.
-
-Tên thư mục thực thể: kebab-case, **số nhiều**, trùng tên resource trên URL — `categories/`, `products/`, `product-options/`. Không dùng `productService/`, `product/`, `ProductService/`.
-
-Tên file bên trong vẫn đầy đủ (không rút gọn vì đã có thư mục cha) để tìm file bằng tên (Ctrl+P) không bị trùng:
+Trong module nhiều thực thể, mỗi thực thể là một thư mục kebab-case **số ít**, trùng tên resource trên URL ở dạng số ít: `product/`, `category/`, `product-option/`, `pricing/`. Bên trong, mọi file đặt **phẳng** (controller, service, mapper, constants, decorator, spec), chỉ có **một** thư mục con `dto/`:
 
 ```text
-services/products/
-├── products.service.ts               # storefront: ProductsService
-├── admin-products.service.ts         # back-office: AdminProductsService
-├── admin-product-images.service.ts   # back-office: ảnh sản phẩm
-└── *.spec.ts                         # spec nằm cạnh file được test
+modules/catalog/product/
+├── product.controller.ts              # storefront: /api/v1/products
+├── admin-product.controller.ts        # back-office: /api/v1/admin/products
+├── product.service.ts
+├── admin-product.service.ts
+├── admin-product-image.service.ts
+├── variant-response.mapper.ts
+├── product.constants.ts
+├── product.service.spec.ts
+└── dto/
+    ├── create-product.dto.ts
+    └── product-response.dto.ts
 ```
 
-Phân biệt service storefront/back-office bằng **tiền tố `admin-`** trong tên file, không bằng thư mục.
+Không còn các thư mục vai trò `controllers/`, `services/`, `mappers/`, `domain/`, `constants/`, `decorators/`, `guards/`, `strategies/`: vai trò đã nằm trong **hậu tố file** (§1). Lý do đổi: nhìn vào một thư mục là thấy trọn một thực thể từ controller tới DTO, thay vì phải mở 5 thư mục vai trò để ghép lại.
+
+Phân biệt storefront/back-office bằng **tiền tố `admin-`** trong tên file (`admin-product.controller.ts` → route `/api/v1/admin/...`, cần `@Authorize(Permission...)`), không bằng thư mục.
+
+Tên file bên trong vẫn đầy đủ (không rút gọn vì đã có thư mục cha) để tìm file bằng tên (Ctrl+P) không bị trùng: `product.service.ts`, không phải `service.ts`.
+
+Thứ tự ưu tiên khi phân vân hậu tố: có decorator Nest (`@Injectable`) → `.service.ts`; có decorator class-validator/Swagger → `dto/*.dto.ts`; hàm thuần không I/O → không hậu tố nếu là luật nghiệp vụ (`category-tree.ts`, `order-state-machine.ts`), `.mapper.ts` nếu chỉ đổi hình dạng dữ liệu.
+
+### 2.3 Ranh giới giữa module
+
+- Cửa ngõ của module là mảng `exports` trong `<module>.module.ts`. Mỗi module export **đúng một** service public; service ruột không export. Module khác `imports: [XModule]` và inject service đó; **không** import file ruột của module khác theo đường dẫn.
+- Interface + token DI chỉ khi có ≥ 2 implementation thật (`PaymentGateway`). Một adapter inject class trực tiếp.
+- Transaction xuyên module: module điều phối mở `prisma.$transaction` và truyền `Prisma.TransactionClient` xuống service module khác. Không có lớp bọc transaction riêng.
+- `common/` không import `modules/`.
 
 ### 2.4 Test
 
@@ -92,47 +80,43 @@ Phân biệt service storefront/back-office bằng **tiền tố `admin-`** tron
 
 ### 2.5 `common/`
 
-`common/` là code dùng chung toàn app, cũng chia theo vai trò, không để file rời:
+`common/` là code dùng chung toàn app, chia theo vai trò, không để file rời:
 
 ```text
 common/
 ├── filters/      # all-exceptions.filter.ts
 ├── middleware/   # request-id.middleware.ts
-├── utils/        # slug.util.ts, prisma-error.util.ts
+├── utils/        # slug.util.ts
 ├── pagination/   # paginate.ts, pagination.dto.ts, pagination-meta.dto.ts
 ├── swagger/      # api-error-responses.decorator.ts, api-tags.ts, error-response.dto.ts
-├── auth/         # authorize.decorator.ts, guard JWT/vai trò/sở hữu, current-user.decorator.ts
+├── auth/         # authorize.decorator.ts, permissions.guard.ts, permission.enum.ts, jwt-auth.guard.ts, ownership.guard.ts, current-user.decorator.ts
 └── validation/   # is-strong-password.decorator.ts
 ```
 
-Hạ tầng phụ thuộc runtime (Prisma, health, metrics, logging/AppLogger, mail, audit) nằm ở `src/infrastructure/`, không ở `common/`.
+Hạ tầng phụ thuộc runtime (Prisma + `prisma-error.util`, health, metrics, logging/AppLogger, mail, audit, storage, payment adapter, shipping, outbox, queue) nằm ở `src/infrastructure/`, không ở `common/`.
 
-### 2.6 Ví dụ hoàn chỉnh: `modules/catalog/`
+### 2.6 Ví dụ hoàn chỉnh: `modules/identity/`
 
 ```text
-catalog/
-├── catalog.module.ts
-├── controllers/
-│   ├── storefront/                  # 3 file → phẳng
-│   │   ├── categories.controller.ts
-│   │   ├── products.controller.ts
-│   │   └── product-options.controller.ts
-│   └── back-office/                 # 3 file → phẳng
-│       ├── admin-categories.controller.ts
-│       ├── admin-products.controller.ts
-│       └── admin-product-options.controller.ts
-├── services/                        # 3 thực thể, 13 file → chia
-│   ├── categories/
-│   ├── products/
-│   └── product-options/
-├── dto/                             # 3 thực thể, 30 file → chia
-│   ├── categories/
-│   ├── products/                    # product, variant, image
-│   └── product-options/             # size, color, option-summary
-├── domain/          category-tree.ts (+spec)
-├── mappers/         variant-response.mapper.ts
-├── constants/       product.constants.ts, variant-include.constant.ts
-└── decorators/      option-code.decorator.ts
+identity/
+├── identity.module.ts            # exports: PassportModule, InternalAccountService, AccessService
+├── auth/                         # đăng ký, đăng nhập, phiên, mật khẩu, me
+│   ├── auth.controller.ts
+│   ├── me.controller.ts
+│   ├── auth.service.ts
+│   ├── token.service.ts
+│   ├── password.service.ts
+│   ├── jwt.strategy.ts
+│   ├── email-throttler.guard.ts
+│   └── dto/
+├── internal-account/             # Staff/Admin; bất biến luôn còn ≥ 1 Admin active
+│   ├── admin-staff.controller.ts
+│   ├── internal-account.service.ts
+│   └── dto/
+└── access/                       # Role, Permission, gán role
+    ├── admin-role.controller.ts
+    ├── access.service.ts
+    └── dto/
 ```
 
 ## 3. Barrel file (`index.ts`) — **cấm**
@@ -194,8 +178,8 @@ Không có ngưỡng dòng cứng, nhưng nếu 1 service/controller vượt qu�
 ## Checklist khi thêm file mới
 
 - [ ] Tên file kebab-case, đúng hậu tố theo vai trò ([§1](#1-đặt-tên-file))
-- [ ] File nằm trong đúng thư mục vai trò ([§2.2](#22-danh-sách-thư-mục-vai-trò)), không để rời ở gốc module
-- [ ] Nếu thư mục vai trò vượt ngưỡng ([§2.3](#23-thư-mục-con-theo-thực-thể)) → chia theo thực thể
+- [ ] File nằm trong sub-module theo thực thể, phẳng, chỉ `dto/` là thư mục con ([§2.2](#22-sub-module-theo-thực-thể-file-phẳng-bên-trong)); module nhỏ để phẳng cạnh `<module>.module.ts` ([§2.1](#21-gốc-module-chỉ-có-modulemodulets--trừ-module-nhỏ))
+- [ ] Không import file ruột của module khác; chỉ dùng service được `exports` ([§2.3](#23-ranh-giới-giữa-module))
 - [ ] Không tạo `index.ts` barrel file
 - [ ] Import tới file trong `src/` dùng `#src/...` — không dùng relative, kể cả trong cùng thư mục và trong test
 - [ ] Không thêm `any` mới trừ khi thực sự cần thiết (lint sẽ warn)

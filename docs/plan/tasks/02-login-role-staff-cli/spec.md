@@ -1,6 +1,6 @@
 ---
-status: todo
-pr:
+status: done
+pr: #60
 blocked-by: [01-rename-roles]
 ---
 

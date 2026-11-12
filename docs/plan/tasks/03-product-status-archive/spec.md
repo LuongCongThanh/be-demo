@@ -1,6 +1,6 @@
 ---
-status: todo
-pr:
+status: done
+pr: #60
 blocked-by: [02-login-role-staff-cli]
 ---
 

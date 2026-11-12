@@ -1,6 +1,6 @@
 ---
-status: todo
-pr:
+status: done
+pr: #60
 blocked-by: [04-sizes-colors-variants]
 ---
 
