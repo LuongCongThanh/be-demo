@@ -24,7 +24,7 @@ _Tránh_: ORDER_STAFF, STORE_MANAGER, nhân viên kho, operator
 Người nội bộ quản lý cấu hình, danh mục hàng hoá, Voucher và Tài khoản Staff; có mọi quyền của Staff.
 _Tránh_: MASTER_ADMIN, superadmin, quản lý
 
-_Ghi chú_: giá trị vai trò trong hệ thống viết HOA (`CUSTOMER`, `STAFF`, `ADMIN`). Các mục "Tránh" ở trên nhắm vào tên vai trò cũ (`ORDER_STAFF`, `STORE_MANAGER`, `MASTER_ADMIN`), không nhắm vào cách viết hoa.
+_Ghi chú_: Khách hàng, Staff, Admin là ba loại Tài khoản. Staff và Admin đồng thời là hai Vai trò hệ thống; Khách hàng không phải Vai trò. Các mục "Tránh" ở trên nhắm vào tên vai trò cũ (`ORDER_STAFF`, `STORE_MANAGER`, `MASTER_ADMIN`).
 
 **Tài khoản** (`Account`):
 Danh tính đăng nhập gắn với đúng một email, thuộc một trong ba loại: Khách hàng, Staff hoặc Admin.
@@ -33,6 +33,14 @@ _Tránh_: user (khi nói về nghiệp vụ), profile
 **Tài khoản nội bộ** (`InternalAccount`):
 Tài khoản Staff hoặc Admin; không dùng để mua hàng.
 _Tránh_: tài khoản quản trị, back-office user
+
+**Quyền** (`Permission`):
+Một hành động cụ thể trên back-office mà hệ thống cho phép hoặc từ chối; danh sách Quyền cố định, chỉ thay đổi khi phát hành phiên bản mới.
+_Tránh_: scope, privilege, quyền hạn (chung chung)
+
+**Vai trò** (`Role`):
+Tập Quyền có tên, do Admin cấu hình và gán cho Tài khoản nội bộ; một Tài khoản nội bộ có thể có nhiều Vai trò. `Admin` và `Staff` là hai Vai trò hệ thống không xoá được.
+_Tránh_: role (khi nói về loại Tài khoản), nhóm quyền, user group
 
 ## Danh mục hàng hoá
 
@@ -63,6 +71,10 @@ _Tránh_: màu tự nhập
 **Đang bán / Nháp / Ngừng bán** (`active` / `draft` / `archived`):
 Trạng thái hiển thị của Sản phẩm; chỉ Đang bán hiển thị trên storefront.
 _Tránh_: xoá (khi ý là ngừng bán), inactive, hidden
+
+**Tệp ảnh** (`Media`):
+Ảnh đã tải lên kho lưu trữ, có thể chưa gắn hoặc đã gắn vào một Sản phẩm theo màu.
+_Tránh_: asset, file, upload (khi nói về bản ghi)
 
 ## Giá & khuyến mãi
 
@@ -248,9 +260,13 @@ _Tránh_: COD (khi ý là số tiền)
 
 ## Thông báo
 
+**Thông báo** (`Notification`):
+Tin hệ thống gửi cho Người mua về Đơn hàng hoặc Hoàn tiền của họ; MVP chỉ có một kênh là Email giao dịch.
+_Tránh_: alert (đó là Cờ cần xử lý cho Staff), push, tin nhắn marketing
+
 **Email giao dịch** (`TransactionalEmail`):
-Email gửi cho Người mua khi đơn đổi trạng thái hoặc Hoàn tiền được ghi nhận, theo ngôn ngữ đã chọn.
-_Tránh_: notification (chung chung), marketing email
+Thông báo gửi qua email khi đơn đổi trạng thái hoặc Hoàn tiền được ghi nhận, theo ngôn ngữ đã chọn.
+_Tránh_: marketing email, newsletter
 
 ## Doanh thu
 
