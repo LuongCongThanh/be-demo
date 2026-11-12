@@ -1,6 +1,6 @@
 # 02. Module và ranh giới
 
-> Trạng thái: **Đã chốt cho tái cấu trúc (2026-11-13)** ([quy ước](../README.md#trạng-thái-tài-liệu)). Cây thư mục đích đầy đủ, ký hiệu K/M/N/D và thứ tự chuyển: [`TARGET-REPOSITORY-TREE.md`](../../../TARGET-REPOSITORY-TREE.md). Quy ước đặt tên và cấu trúc file: [`../convention/`](../convention/).
+> Trạng thái: **Đã chốt cho tái cấu trúc (2026-11-13)** ([quy ước](../README.md#trạng-thái-tài-liệu)). Cây thư mục đích đầy đủ, ký hiệu K/M/N/D và thứ tự chuyển: `TARGET-REPOSITORY-TREE.md` (file kế hoạch liên repo ở thư mục workspace, ngoài repo này). Quy ước đặt tên và cấu trúc file: [`../convention/`](../convention/).
 
 ## 1. Danh sách module
 
@@ -79,7 +79,7 @@ flowchart TB
 
 ## 4. Cấu trúc thư mục
 
-Đây là nơi duy nhất mô tả cây `src/` của repo này; cây đầy đủ với ký hiệu K/M/N/D nằm ở [`TARGET-REPOSITORY-TREE.md`](../../../TARGET-REPOSITORY-TREE.md). Quy tắc đặt tên, thư mục con, barrel file và alias: [coding-style-conventions.md](../convention/coding-style-conventions.md).
+Đây là nơi duy nhất mô tả cây `src/` của repo này; cây đầy đủ với ký hiệu K/M/N/D nằm ở `TARGET-REPOSITORY-TREE.md` (file kế hoạch liên repo ở thư mục workspace, ngoài repo này). Quy tắc đặt tên, thư mục con, barrel file và alias: [coding-style-conventions.md](../convention/coding-style-conventions.md).
 
 ```text
 src/

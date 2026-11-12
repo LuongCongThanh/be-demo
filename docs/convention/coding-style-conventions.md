@@ -34,7 +34,7 @@ Class bên trong file dùng PascalCase khớp tên file (`token.service.ts` → 
 
 ## 2. Cấu trúc thư mục theo module
 
-Cây `src/` tổng thể và danh sách module nằm ở [02-modules.md §4](../architecture/02-modules.md#4-cấu-trúc-thư-mục); cây đích đầy đủ với ký hiệu K/M/N/D ở [`TARGET-REPOSITORY-TREE.md`](../../../TARGET-REPOSITORY-TREE.md). Phần này là **quy tắc** để biết 1 file mới phải đặt ở đâu. (Sửa 2026-11-13: xếp theo thực thể thay cho thư mục vai trò.)
+Cây `src/` tổng thể và danh sách module nằm ở [02-modules.md §4](../architecture/02-modules.md#4-cấu-trúc-thư-mục); cây đích đầy đủ với ký hiệu K/M/N/D ở `TARGET-REPOSITORY-TREE.md` (file kế hoạch liên repo ở thư mục workspace, ngoài repo này). Phần này là **quy tắc** để biết 1 file mới phải đặt ở đâu. (Sửa 2026-11-13: xếp theo thực thể thay cho thư mục vai trò.)
 
 ### 2.1 Gốc module chỉ có `<module>.module.ts` — trừ module nhỏ
 
