@@ -40,3 +40,4 @@ Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 | 08  | [Tách `AuthService` theo use case](./tasks/08-identity-use-case-services/spec.md)       | todo   | 07                        |     |
 | 09  | [Cổng phân quyền `@Authorize` ở `common/auth/`](./tasks/09-authorize-decorator/spec.md) | done   | —                         | #67 |
 | 10  | [Gom hạ tầng vào `infrastructure/`](./tasks/10-infrastructure-folder/spec.md)           | done   | 09                        | #68 |
+| 11  | [Deploy backend miễn phí (Render + Neon)](./tasks/11-deploy-render-free/spec.md)        | todo   | —                         |     |
