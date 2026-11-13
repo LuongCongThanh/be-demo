@@ -50,6 +50,7 @@
 | BR-VCH-08 | Lượt dùng Voucher được tính khi đơn được tạo. Nếu đơn bị huỷ trước khi Đang giao, lượt dùng được **trả lại**.                                                                                                                                                                                       |
 | BR-VCH-09 | Mã Voucher không phân biệt hoa thường, lưu dạng chữ in hoa, ví dụ `SALE10`.                                                                                                                                                                                                                         |
 | BR-VCH-10 | Tiền giảm theo % được **làm tròn xuống đến đồng** trước khi áp mức giảm tối đa và giới hạn bằng Tạm tính: `discount = min((subtotal * percent) // 100, max_discount nếu có, subtotal)`. Voucher số tiền cố định dùng `min(value, subtotal)`. Tính bằng số nguyên, không dùng số thực dấu phẩy động. |
+| BR-VCH-11 | Mã Voucher không đổi sau khi tạo. Voucher chưa có lượt dùng sửa và xoá được. Đã có lượt dùng thì chỉ đổi được thời gian kết thúc, tổng lượt (không dưới số đã dùng), lượt mỗi Người mua và bật/tắt; không xoá được, chỉ vô hiệu hoá.                                                                |
 
 ## 3. Tồn kho
 

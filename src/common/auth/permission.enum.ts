@@ -20,6 +20,9 @@ export enum Permission {
   // Pricing — Giá khuyến mãi (admin/products/:id/sale-prices, admin/sale-prices)
   PRICING_SALE_PRICE_VIEW = 'PRICING_SALE_PRICE_VIEW',
   PRICING_SALE_PRICE_MANAGE = 'PRICING_SALE_PRICE_MANAGE',
+  // Pricing — Voucher (admin/vouchers)
+  PRICING_VOUCHER_VIEW = 'PRICING_VOUCHER_VIEW',
+  PRICING_VOUCHER_MANAGE = 'PRICING_VOUCHER_MANAGE',
 
   // Administration — Vai trò (liệt kê Quyền, CRUD Vai trò)
   ADMINISTRATION_ROLE_VIEW = 'ADMINISTRATION_ROLE_VIEW',

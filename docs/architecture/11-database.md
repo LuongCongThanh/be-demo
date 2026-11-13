@@ -343,19 +343,21 @@ Tối đa một Giá khuyến mãi hiệu lực mỗi thời điểm (BR-PRC-02)
 
 #### `vouchers`
 
-| Cột                | Kiểu                   | Ràng buộc                   | Ghi chú                                                               |
-| ------------------ | ---------------------- | --------------------------- | --------------------------------------------------------------------- |
-| id                 | uuid                   | PK                          |                                                                       |
-| code               | text                   | UK, NN, CHECK = upper(code) | BR-VCH-09                                                             |
-| type               | enum `percent`/`fixed` | NN                          | BR-VCH-03                                                             |
-| value              | bigint                 | NN, CHECK > 0               | % (1–100) hoặc số tiền                                                |
-| max_discount       | bigint                 |                             | chỉ `percent`                                                         |
-| min_subtotal       | bigint                 | NN, default 0               | BR-VCH-04                                                             |
-| total_limit        | int                    |                             | null = không giới hạn                                                 |
-| per_buyer_limit    | int                    |                             | BR-VCH-07                                                             |
-| used_count         | int                    | NN, default 0, CHECK ≥ 0    | đếm có khoá dòng ([04-data-consistency.md](./04-data-consistency.md)) |
-| starts_at, ends_at | timestamptz            | NN                          |                                                                       |
-| is_active          | boolean                | NN                          |                                                                       |
+| Cột                    | Kiểu                   | Ràng buộc                            | Ghi chú                                                               |
+| ---------------------- | ---------------------- | ------------------------------------ | --------------------------------------------------------------------- |
+| id                     | uuid                   | PK                                   |                                                                       |
+| code                   | varchar(32)            | UK, NN, CHECK = upper(code)          | BR-VCH-09; không đổi sau khi tạo (BR-VCH-11)                          |
+| type                   | enum `PERCENT`/`FIXED` | NN                                   | BR-VCH-03                                                             |
+| value                  | bigint                 | NN, CHECK > 0 và ≤ 100 khi `PERCENT` | % hoặc số tiền                                                        |
+| max_discount           | bigint                 | CHECK null hoặc (`PERCENT` và > 0)   | chỉ `PERCENT`                                                         |
+| min_subtotal           | bigint                 | NN, default 0, CHECK ≥ 0             | BR-VCH-04                                                             |
+| total_limit            | int                    | CHECK null hoặc > 0                  | null = không giới hạn                                                 |
+| per_buyer_limit        | int                    | CHECK null hoặc > 0                  | BR-VCH-07                                                             |
+| used_count             | int                    | NN, default 0, CHECK ≥ 0             | đếm có khoá dòng ([04-data-consistency.md](./04-data-consistency.md)) |
+| starts_at, ends_at     | timestamptz            | NN, CHECK ends_at > starts_at        |                                                                       |
+| is_active              | boolean                | NN, default true                     |                                                                       |
+| created_by             | uuid                   | FK → users RESTRICT, NN              |                                                                       |
+| created_at, updated_at | timestamptz            | NN                                   |                                                                       |
 
 #### `voucher_usages`
 
