@@ -28,8 +28,8 @@ Control bắt buộc: HTTPS, hash mật khẩu (argon2/bcrypt), access token ng�
 
 Bốn vai trò `GUEST`, `CUSTOMER`, `STAFF`, `ADMIN` (ADR 0005). Tài khoản nội bộ có đúng một vai trò `STAFF` hoặc `ADMIN`; `ADMIN` có mọi quyền của `STAFF`. Tài khoản Admin chỉ tạo bằng CLI `npm run cli -- create-admin` (entrypoint riêng `src/cli.ts`, nest-commander, không mở qua HTTP — xem [modules/identity.md](./modules/identity.md) §5.4); trên back-office Admin chỉ quản lý Tài khoản Staff.
 
-- Mỗi route khai báo **tường minh** danh sách vai trò được phép (`@Authorize('STAFF', 'ADMIN')`, `src/common/auth/`); không có cây phân cấp ẩn.
-- Guard thứ tự: `AuthGuard` (401) → `RolesGuard` (403) → kiểm tra sở hữu tài nguyên trong service (đơn của chính mình).
+- Mỗi route back-office khai báo **tường minh** Quyền cần có (`@Authorize(Permission.CATALOG_PRODUCT_VIEW)`, `src/common/auth/`); Tài khoản phải có **mọi** Quyền khai báo. Quyền nằm trong access token (`roles[]`, `permissions[]`, tính lúc login/refresh từ `UserRole` → `RolePermission`; Vai trò `Admin` = toàn bộ enum trong code), không đọc DB mỗi request. Route chỉ cho một loại tài khoản (Khách hàng) dùng `@AuthorizeAccountType`.
+- Guard thứ tự: `AuthGuard` (401) → `PermissionsGuard` (403) → kiểm tra sở hữu tài nguyên trong service (đơn của chính mình).
 - Ma trận quyền chi tiết: [business/02 §3](../business/02-actors-permissions.md).
 
 ## 4. Phiên truy cập đơn của Khách vãng lai

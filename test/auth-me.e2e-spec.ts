@@ -71,6 +71,8 @@ describe('Auth — GET /auth/me (e2e)', () => {
       fullName: user.fullName,
       role: 'CUSTOMER',
       emailVerified: true,
+      roles: [],
+      permissions: [],
     });
     expect(res.body).not.toHaveProperty('passwordHash');
   });

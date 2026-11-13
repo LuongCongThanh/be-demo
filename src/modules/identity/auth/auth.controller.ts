@@ -13,7 +13,7 @@ import { VerifyEmailDto } from '#src/modules/identity/auth/dto/verify-email.dto.
 import { LoginDto } from '#src/modules/identity/auth/dto/login.dto.js';
 import { LoginResponseDto } from '#src/modules/identity/auth/dto/login-response.dto.js';
 import { RefreshResponseDto } from '#src/modules/identity/auth/dto/refresh-response.dto.js';
-import { AuthUserResponseDto } from '#src/modules/identity/auth/dto/auth-user-response.dto.js';
+import { MeResponseDto } from '#src/modules/identity/auth/dto/auth-user-response.dto.js';
 import { MessageResponseDto } from '#src/modules/identity/auth/dto/message-response.dto.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
@@ -136,10 +136,10 @@ export class AuthController {
   @Get('me')
   @Authorize()
   @ApiOperation({ summary: 'Get the currently authenticated user' })
-  @ApiOkResponse({ type: AuthUserResponseDto })
+  @ApiOkResponse({ type: MeResponseDto })
   @ApiErrorResponses(401)
-  getMe(@CurrentUser() user: JwtPayload): Promise<AuthUserResponseDto> {
-    return this.accountProfileService.getMe(user.sub);
+  getMe(@CurrentUser() user: JwtPayload): Promise<MeResponseDto> {
+    return this.accountProfileService.getMe(user.sub, user);
   }
 
   @Authorize()

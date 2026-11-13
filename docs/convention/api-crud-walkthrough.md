@@ -180,10 +180,10 @@ import { PaginationDto } from '../common/pagination/pagination.dto.js';
 export class ResourcesController {
   constructor(private readonly resourcesService: ResourcesService) {}
 
-  // Write (create/update/remove) → @Authorize gộp JWT + kiểm vai trò + Swagger bearer
+  // Write (create/update/remove) → @Authorize gộp JWT + kiểm Quyền + Swagger bearer
   // khi resource cần bảo vệ (không phải mọi resource là public).
   @Post()
-  @Authorize('ADMIN')
+  @Authorize(Permission.RESOURCE_MANAGE)
   @ApiOperation({ summary: 'Create a new resource' })
   @ApiCreatedResponse({ description: 'Tạo thành công' })
   create(@Body() createResourceDto: CreateResourceDto) {
@@ -206,7 +206,7 @@ export class ResourcesController {
   }
 
   @Patch(':id')
-  @Authorize('ADMIN')
+  @Authorize(Permission.RESOURCE_MANAGE)
   @ApiOperation({ summary: 'Update a resource' })
   @ApiOkResponse({ description: 'Cập nhật thành công' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateResourceDto: UpdateResourceDto) {
@@ -214,7 +214,7 @@ export class ResourcesController {
   }
 
   @Delete(':id')
-  @Authorize('ADMIN')
+  @Authorize(Permission.RESOURCE_MANAGE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a resource' })
   @ApiNoContentResponse({ description: 'Xoá thành công' })
@@ -231,7 +231,7 @@ export class ResourcesController {
 | PATCH (hoặc PUT) | `update()`                | PATCH = cập nhật một phần, PUT = thay thế toàn bộ |
 | DELETE           | `remove()`                | Xoá (`204 No Content`, không body)                |
 
-- Cả controller cần bảo vệ → đặt `@Authorize('STAFF', 'ADMIN')` ở class, method nào siết hơn thì `@Authorize('ADMIN')` (method ghi đè class).
+- Cả controller cần bảo vệ → đặt `@Authorize(Permission.RESOURCE_VIEW)` ở class, method ghi (create/update/remove) khai `@Authorize(Permission.RESOURCE_MANAGE)` (method ghi đè class). Quyền mới = thêm giá trị vào `permission.enum.ts` + migration cấp cho Vai trò `Admin`.
 - Resource public: không gắn `@Authorize` ([§R5](api-rules.md#r5-authorization-checkpoint)); resource có chủ sở hữu dùng `OwnershipGuard` + `@OwnedResource()`.
 - `id Int @default(autoincrement())` → đổi `ParseUUIDPipe` thành `ParseIntPipe`.
 - Lỗi Prisma đã được `AllExceptionsFilter` xử lý global — không viết filter riêng ([§R6](api-rules.md#r6-exception-mapping)).

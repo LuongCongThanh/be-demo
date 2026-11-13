@@ -9,6 +9,7 @@ import { AuthController } from '#src/modules/identity/auth/auth.controller.js';
 import { MeController } from '#src/modules/identity/auth/me.controller.js';
 import { AdminStaffController } from '#src/modules/identity/internal-account/admin-staff.controller.js';
 import { RegistrationService } from '#src/modules/identity/auth/registration.service.js';
+import { AccessClaimsService } from '#src/modules/identity/auth/access-claims.service.js';
 import { SessionService } from '#src/modules/identity/auth/session.service.js';
 import { PasswordResetService } from '#src/modules/identity/auth/password-reset.service.js';
 import { AccountProfileService } from '#src/modules/identity/auth/account-profile.service.js';
@@ -42,6 +43,7 @@ import { JwtStrategy } from '#src/modules/identity/auth/jwt.strategy.js';
   controllers: [AuthController, MeController, AdminStaffController],
   providers: [
     RegistrationService,
+    AccessClaimsService,
     SessionService,
     PasswordResetService,
     AccountProfileService,

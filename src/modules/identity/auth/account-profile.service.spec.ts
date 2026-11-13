@@ -24,7 +24,7 @@ describe('AccountProfileService.getMe', () => {
       role: 'CUSTOMER',
     });
 
-    const result = await service.getMe('user-1');
+    const result = await service.getMe('user-1', { roles: [], permissions: [] });
 
     expect(prisma.user.findUniqueOrThrow).toHaveBeenCalledWith({
       where: { id: 'user-1' },
@@ -35,6 +35,8 @@ describe('AccountProfileService.getMe', () => {
       fullName: 'Nguyen Van A',
       role: 'CUSTOMER',
       emailVerified: true,
+      roles: [],
+      permissions: [],
     });
   });
 });

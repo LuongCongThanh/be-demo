@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Authorize } from '#src/common/auth/authorize.decorator.js';
+import { AuthorizeAccountType } from '#src/common/auth/authorize-account-type.decorator.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { CurrentUser } from '#src/common/auth/current-user.decorator.js';
@@ -18,7 +18,7 @@ export class MeController {
   constructor(private readonly accountProfileService: AccountProfileService) {}
 
   @Get()
-  @Authorize('CUSTOMER')
+  @AuthorizeAccountType('CUSTOMER')
   @ApiOperation({ summary: 'Get the signed-in customer profile (CUSTOMER only)' })
   @ApiOkResponse({ type: CustomerProfileResponseDto })
   @ApiErrorResponses(401, 403)

@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { AccountType } from '#src/generated/prisma/enums.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { LoginDto } from '#src/modules/identity/auth/dto/login.dto.js';
+import { AccessClaimsService } from '#src/modules/identity/auth/access-claims.service.js';
 import { PasswordService } from '#src/modules/identity/auth/password.service.js';
 import { TokenService } from '#src/modules/identity/auth/token.service.js';
 
@@ -24,6 +25,7 @@ export class SessionService {
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly jwtService: JwtService,
+    private readonly accessClaims: AccessClaimsService,
   ) {}
 
   async login(dto: LoginDto): Promise<LoginResult> {
@@ -53,7 +55,7 @@ export class SessionService {
       throw new UnauthorizedException('Email is not verified');
     }
 
-    const accessToken = this.signAccessToken(user);
+    const accessToken = await this.signAccessToken(user);
     const rawRefreshToken = await this.tokenService.createRefreshToken(user.id);
 
     return {
@@ -121,7 +123,7 @@ export class SessionService {
     }
 
     const newRawRefreshToken = await this.tokenService.createRefreshToken(record.userId);
-    const accessToken = this.signAccessToken(record.user);
+    const accessToken = await this.signAccessToken(record.user);
 
     return { accessToken, newRawRefreshToken };
   }
@@ -160,15 +162,24 @@ export class SessionService {
   /**
    * Sinh JWT access token — dùng chung cho login() và refreshToken().
    *
-   * Payload chỉ chứa thông tin nhận diện + phân quyền (sub, email, role,
-   * sessionVersion) — KHÔNG nhét passwordHash/refresh token/dữ liệu cá nhân
+   * Payload chỉ chứa thông tin nhận diện + phân quyền (sub, email, role, roles[],
+   * permissions[], sessionVersion) — Quyền tính ở đây (login/refresh), request sau chỉ đọc từ
+   * token, không truy vấn DB. KHÔNG nhét passwordHash/refresh token/dữ liệu cá nhân
    * (JWT payload không được mã hoá, ai cũng đọc được nếu có token).
    */
-  private signAccessToken(user: { id: string; email: string; role: AccountType; sessionVersion: number }): string {
+  private async signAccessToken(user: {
+    id: string;
+    email: string;
+    role: AccountType;
+    sessionVersion: number;
+  }): Promise<string> {
+    const { roles, permissions } = await this.accessClaims.resolve(user);
     return this.jwtService.sign({
       sub: user.id,
       email: user.email,
       role: user.role,
+      roles,
+      permissions,
       sessionVersion: user.sessionVersion,
     });
   }

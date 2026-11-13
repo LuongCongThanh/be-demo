@@ -8,12 +8,12 @@
       {
         "paths": [
           {
-            "name": "#src/common/auth/roles.guard.js",
-            "message": "Dùng @Authorize(...) từ #src/common/auth/authorize.decorator.js thay vì Roles/RolesGuard trực tiếp."
+            "name": "#src/common/auth/permissions.guard.js",
+            "message": "Dùng @Authorize(...) từ #src/common/auth/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
           },
           {
-            "name": "#src/common/auth/roles.decorator.js",
-            "message": "Dùng @Authorize(...) từ #src/common/auth/authorize.decorator.js thay vì Roles/RolesGuard trực tiếp."
+            "name": "#src/common/auth/permissions.decorator.js",
+            "message": "Dùng @Authorize(...) từ #src/common/auth/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
           }
         ]
       }

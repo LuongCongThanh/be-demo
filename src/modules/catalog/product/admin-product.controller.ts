@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Authorize } from '#src/common/auth/authorize.decorator.js';
+import { Permission } from '#src/common/auth/permission.enum.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { AdminProductService } from '#src/modules/catalog/product/admin-product.service.js';
@@ -38,7 +39,7 @@ const VARIANT_NOT_FOUND: [404, string] = [404, 'Variant not found on this produc
  * ADMIN (business/02 §3.2). Không có DELETE — dùng archive (BR-CAT-09).
  */
 @ApiTags(API_TAGS.PRODUCTS.name)
-@Authorize('STAFF', 'ADMIN')
+@Authorize(Permission.CATALOG_PRODUCT_VIEW)
 @Controller('admin/products')
 export class AdminProductController {
   constructor(
@@ -63,7 +64,7 @@ export class AdminProductController {
   }
 
   @Post()
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @ApiOperation({ summary: 'Create a product; it starts as DRAFT (ADMIN only)' })
   @ApiCreatedResponse({ type: ProductResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Category not found'], [409, 'Product name already exists'])
@@ -72,7 +73,7 @@ export class AdminProductController {
   }
 
   @Patch(':id')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @ApiOperation({
     summary: 'Update a product; changing status follows DRAFT → ACTIVE ↔ ARCHIVED (ADMIN only)',
   })
@@ -89,7 +90,7 @@ export class AdminProductController {
   }
 
   @Post(':id/archive')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Archive a product instead of deleting it; idempotent (ADMIN only)' })
   @ApiOkResponse({ type: ProductResponseDto })
@@ -99,7 +100,7 @@ export class AdminProductController {
   }
 
   @Post(':id/unarchive')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Bring an archived product back to ACTIVE; idempotent (ADMIN only)' })
   @ApiOkResponse({ type: ProductResponseDto })
@@ -109,7 +110,7 @@ export class AdminProductController {
   }
 
   @Post(':id/variants')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @ApiOperation({ summary: 'Create a variant, atomically creating its inventory row (ADMIN only)' })
   @ApiCreatedResponse({ type: VariantResponseDto })
   @ApiErrorResponses(400, 401, 403, PRODUCT_NOT_FOUND, [409, 'SKU already exists'])
@@ -118,7 +119,7 @@ export class AdminProductController {
   }
 
   @Patch(':id/variants/:variantId')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @ApiOperation({ summary: 'Update a variant (ADMIN only)' })
   @ApiOkResponse({ type: VariantResponseDto })
   @ApiErrorResponses(400, 401, 403, VARIANT_NOT_FOUND, [409, 'SKU already exists'])
@@ -131,7 +132,7 @@ export class AdminProductController {
   }
 
   @Post(':id/variants/:variantId/archive')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Archive a variant (stop selling it); idempotent (ADMIN only)' })
   @ApiOkResponse({ type: VariantResponseDto })
@@ -141,7 +142,7 @@ export class AdminProductController {
   }
 
   @Post(':id/variants/:variantId/unarchive')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Bring an archived variant back to ACTIVE; idempotent (ADMIN only)' })
   @ApiOkResponse({ type: VariantResponseDto })
@@ -154,7 +155,7 @@ export class AdminProductController {
   }
 
   @Post(':id/images')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @ApiOperation({
     summary: 'Attach image metadata to a product color; isPrimary replaces that color primary (ADMIN only)',
   })
@@ -165,7 +166,7 @@ export class AdminProductController {
   }
 
   @Patch(':id/images/:imageId')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @ApiOperation({ summary: 'Update image metadata or make it the primary image of its color (ADMIN only)' })
   @ApiOkResponse({ type: ImageResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Image not found on this product'])
@@ -178,7 +179,7 @@ export class AdminProductController {
   }
 
   @Delete(':id/images/:imageId')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove image metadata from a product (ADMIN only)' })
   @ApiNoContentResponse({ description: 'Image removed' })

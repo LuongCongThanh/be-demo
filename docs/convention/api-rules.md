@@ -75,11 +75,12 @@ CRUD đơn giản gọi Prisma thẳng từ service, **không** tạo `XxxReposi
 
 ```
 Cần authentication? → có → @Authorize()              (chỉ cần đăng nhập)
-Cần authorization theo vai trò? → có → @Authorize('STAFF', 'ADMIN')
+Cần authorization theo Quyền? → có → @Authorize(Permission.CATALOG_PRODUCT_VIEW)
+Chỉ cho một loại tài khoản (vd. Khách hàng)? → @AuthorizeAccountType('CUSTOMER')
 Cần kiểm chủ sở hữu? → có → thêm OwnershipGuard + @OwnedResource()
 ```
 
-- Dùng `@Authorize(...roles)` (`#src/common/auth/authorize.decorator.js`) — một decorator gộp JWT + kiểm vai trò + Swagger bearer, đặt ở class (mặc định) hoặc method (ghi đè class, vd. ghi chỉ `ADMIN`). **Không** import `RolesGuard`/`@Roles` trực tiếp (lint chặn). `@CurrentUser()`, `OwnershipGuard`, `@OwnedResource()` cũng ở `common/auth/`. Resource có chủ sở hữu (`Cart`, `Order`) dùng thêm `OwnershipGuard`, không chỉ kiểm vai trò.
+- Dùng `@Authorize(...permissions)` (`#src/common/auth/authorize.decorator.js`, enum `Permission` ở `permission.enum.ts`) — một decorator gộp JWT + kiểm Quyền (phải có **mọi** Quyền khai báo) + Swagger bearer, đặt ở class (mặc định) hoặc method (ghi đè class, vd. Quyền `*_MANAGE`). Route chỉ dành cho một loại tài khoản (vd. `GET /me` của Khách hàng) dùng `@AuthorizeAccountType('CUSTOMER')`, không dùng Quyền. **Không** import `PermissionsGuard`/`RequirePermissions` trực tiếp (lint chặn). `@CurrentUser()`, `OwnershipGuard`, `@OwnedResource()` cũng ở `common/auth/`. Resource có chủ sở hữu (`Cart`, `Order`) dùng thêm `OwnershipGuard`, không chỉ kiểm vai trò.
 - Endpoint public: không gắn `@Authorize`. Kết luận "public" cũng phải là quyết định có chủ đích.
 - Endpoint public-facing cần auth mà **chưa có auth** → gap **blocking**, không ship.
 

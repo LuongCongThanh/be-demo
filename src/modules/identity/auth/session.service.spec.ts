@@ -1,6 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { SessionService } from '#src/modules/identity/auth/session.service.js';
+import { AccessClaimsService } from '#src/modules/identity/auth/access-claims.service.js';
 import { PasswordService } from '#src/modules/identity/auth/password.service.js';
 import { TokenService } from '#src/modules/identity/auth/token.service.js';
 
@@ -30,11 +31,16 @@ function createHarness() {
     sign: vi.fn().mockReturnValue('signed-access-token'),
   };
 
+  const accessClaims = {
+    resolve: vi.fn().mockResolvedValue({ roles: [], permissions: [] }),
+  };
+
   const service = new SessionService(
     prisma as never,
     passwordService as unknown as PasswordService,
     tokenService as unknown as TokenService,
     jwtService as unknown as JwtService,
+    accessClaims as unknown as AccessClaimsService,
   );
 
   return { service, prisma, passwordService, tokenService, jwtService };
@@ -111,6 +117,8 @@ describe('SessionService.login', () => {
       sub: 'user-1',
       email: 'user@example.com',
       role: 'CUSTOMER',
+      roles: [],
+      permissions: [],
       sessionVersion: 0,
     });
     expect(tokenService.createRefreshToken).toHaveBeenCalledWith('user-1');
@@ -245,6 +253,8 @@ describe('SessionService.refreshToken', () => {
       sub: 'user-1',
       email: 'user@example.com',
       role: 'CUSTOMER',
+      roles: [],
+      permissions: [],
       sessionVersion: 0,
     });
     expect(result).toEqual({
