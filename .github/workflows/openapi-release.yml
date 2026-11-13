@@ -1,0 +1,36 @@
+name: OpenAPI release
+
+# Push tag `openapi-v*` -> GitHub Release đính kèm đúng docs/openapi/openapi.json
+# của commit được tag. Frontend pin URL asset của tag qua OPENAPI_URL:
+#   https://github.com/<owner>/<repo>/releases/download/<tag>/openapi.json
+on:
+  push:
+    tags: ['openapi-v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag đã có để phát hành lại (vd. openapi-v1.0.0)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - name: Check the contract file exists
+        run: test -s docs/openapi/openapi.json
+      - name: Create or update the release
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" docs/openapi/openapi.json --clobber
+          else
+            gh release create "$TAG" docs/openapi/openapi.json --title "$TAG" --notes "OpenAPI contract at $(git rev-parse --short HEAD)"
+          fi

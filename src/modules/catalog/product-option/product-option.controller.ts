@@ -8,7 +8,7 @@ import { ColorResponseDto } from '#src/modules/catalog/product-option/dto/color-
 /** Storefront filter options — công khai, chỉ mục không ẩn. */
 @ApiTags(API_TAGS.PRODUCT_OPTIONS.name)
 @Controller()
-export class ProductOptionsController {
+export class ProductOptionController {
   constructor(private readonly service: ProductOptionService) {}
 
   @Get('sizes')

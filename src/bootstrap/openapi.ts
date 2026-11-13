@@ -9,7 +9,14 @@ export const SWAGGER_PATH = 'docs';
 
 export function setupSwagger(app: INestApplication) {
   if (!isSwaggerEnabled(app.get(ConfigService))) return;
+  SwaggerModule.setup(SWAGGER_PATH, app, buildOpenApiDocument(app));
+}
 
+/**
+ * Dựng document OpenAPI từ app. Dùng chung cho Swagger UI và
+ * `scripts/write-openapi.ts` (hợp đồng phát hành theo tag) để hai nơi không lệch nhau.
+ */
+export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const builder = new DocumentBuilder()
     .setTitle('Ecommerce API')
     .setDescription('API NestJS + PostgreSQL (Prisma)')
@@ -18,7 +25,7 @@ export function setupSwagger(app: INestApplication) {
   for (const tag of Object.values(API_TAGS)) builder.addTag(tag.name, tag.description);
 
   const document = SwaggerModule.createDocument(app, builder.build(), { extraModels: [ErrorResponseDto] });
-  SwaggerModule.setup(SWAGGER_PATH, app, addTooManyRequestsResponse(document));
+  return addTooManyRequestsResponse(document);
 }
 
 /**

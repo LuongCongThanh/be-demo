@@ -84,6 +84,21 @@ jobs:
       - run: npm run db:seed
       - run: npm run test:e2e
 
+  openapi-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      # docs/openapi/openapi.json phải khớp code: sinh lại rồi so với bản đã commit
+      - run: npm run openapi:write
+      - name: Check docs/openapi/openapi.json is up to date
+        run: git diff --exit-code -- docs/openapi/openapi.json
+
   docs-links:
     runs-on: ubuntu-latest
     steps:

@@ -15,7 +15,7 @@ import { ColorResponseDto } from '#src/modules/catalog/product-option/dto/color-
 @ApiTags(API_TAGS.PRODUCT_OPTIONS.name)
 @Authorize('STAFF', 'ADMIN')
 @Controller('admin')
-export class AdminProductOptionsController {
+export class AdminProductOptionController {
   constructor(private readonly service: ProductOptionService) {}
 
   @Get('sizes')
