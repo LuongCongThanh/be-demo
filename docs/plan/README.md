@@ -48,3 +48,4 @@ Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 | 16  | [`PermissionsGuard` và `auth/me`](./tasks/16-permissions-guard/spec.md)                 | done   | 15                        | #82 |
 | 17  | [API quản lý Vai trò và Quyền](./tasks/17-access-admin-api/spec.md)                     | done   | 16                        | #83 |
 | 18  | [Chi tiết Tài khoản nội bộ kèm Vai trò](./tasks/18-staff-detail-roles/spec.md)          | done   | 17                        | #85 |
+| 19  | [Tìm kiếm, sắp xếp, lọc giá Sản phẩm](./tasks/19-catalog-search-sort/spec.md)           | done   | —                         | #   |

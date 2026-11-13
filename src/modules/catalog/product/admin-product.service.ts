@@ -44,8 +44,17 @@ export class AdminProductService {
     );
   }
 
-  async findAll({ page, limit, categoryId, status }: AdminListProductsQueryDto): Promise<Paginated<Product>> {
-    const where: Prisma.ProductWhereInput = { ...(categoryId && { categoryId }), ...(status && { status }) };
+  async findAll({ page, limit, categoryId, status, q }: AdminListProductsQueryDto): Promise<Paginated<Product>> {
+    const where: Prisma.ProductWhereInput = {
+      ...(categoryId && { categoryId }),
+      ...(status && { status }),
+      ...(q && {
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { variants: { some: { sku: { contains: q, mode: 'insensitive' } } } },
+        ],
+      }),
+    };
     return paginate(
       page,
       limit,

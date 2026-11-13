@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma, Product, ProductImage } from '#src/generated/prisma/client.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { ListProductsQueryDto } from '#src/modules/catalog/product/dto/list-products-query.dto.js';
+import { ProductListItemResponseDto } from '#src/modules/catalog/product/dto/product-list-item-response.dto.js';
+import { productSearchSql } from '#src/modules/catalog/product/product-search.query.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { NEWEST_FIRST, paginate, Paginated } from '#src/common/pagination/paginate.js';
 import { VARIANT_INCLUDE } from '#src/modules/catalog/product/product.constants.js';
@@ -10,6 +12,12 @@ import { VariantResponseDto } from '#src/modules/catalog/product/dto/variant-res
 
 const VISIBLE_PRODUCT = { status: 'ACTIVE' } as const satisfies Prisma.ProductWhereInput;
 const VISIBLE_VARIANT = { status: 'ACTIVE' } as const satisfies Prisma.ProductVariantWhereInput;
+
+interface PricedRow {
+  id: string;
+  minPrice: bigint;
+  maxPrice: bigint;
+}
 
 /**
  * Storefront (công khai): chỉ thấy sản phẩm ACTIVE cùng biến thể ACTIVE.
@@ -20,27 +28,22 @@ const VISIBLE_VARIANT = { status: 'ACTIVE' } as const satisfies Prisma.ProductVa
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Lọc size/màu: sản phẩm khớp khi có ít nhất MỘT biến thể ACTIVE thoả cả
-   * hai điều kiện cùng lúc (không ghép size của biến thể này với màu của biến
-   * thể khác). Mã size/màu đã ẩn không lọc ra gì — ẩn là rời khỏi bộ lọc.
-   */
-  async findAll({ page, limit, categoryId, size, color }: ListProductsQueryDto): Promise<Paginated<Product>> {
-    const optionFilter: Prisma.ProductVariantWhereInput = {
-      ...VISIBLE_VARIANT,
-      ...(size?.length && { size: { code: { in: size }, isHidden: false } }),
-      ...(color?.length && { color: { code: { in: color }, isHidden: false } }),
-    };
-    const where: Prisma.ProductWhereInput = {
-      ...VISIBLE_PRODUCT,
-      ...(categoryId && { categoryId }),
-      ...((size?.length || color?.length) && { variants: { some: optionFilter } }),
-    };
+  /** Lọc, tìm kiếm, sắp xếp: xem `productSearchSql`. */
+  async findAll(query: ListProductsQueryDto): Promise<Paginated<ProductListItemResponseDto>> {
+    const sql = productSearchSql(query);
     return paginate(
-      page,
-      limit,
-      (args) => this.prisma.product.findMany({ where, orderBy: [...NEWEST_FIRST], ...args }),
-      () => this.prisma.product.count({ where }),
+      query.page,
+      query.limit,
+      async ({ skip, take }) => {
+        const rows = await this.prisma.$queryRaw<PricedRow[]>(sql.page(skip, take));
+        const products = await this.prisma.product.findMany({ where: { id: { in: rows.map((r) => r.id) } } });
+        const byId = new Map(products.map((product) => [product.id, product]));
+        return rows.flatMap(({ id, minPrice, maxPrice }) => {
+          const product = byId.get(id);
+          return product ? [{ ...product, minPrice: Number(minPrice), maxPrice: Number(maxPrice) }] : [];
+        });
+      },
+      async () => (await this.prisma.$queryRaw<{ total: number }[]>(sql.count))[0].total,
     );
   }
 

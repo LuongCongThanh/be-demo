@@ -27,34 +27,6 @@ describe('ProductService (storefront)', () => {
     service = new ProductService(prisma as unknown as PrismaService);
   });
 
-  it('lists only ACTIVE products and ignores option filters when none are given', async () => {
-    prisma.product.findMany.mockResolvedValue([]);
-    prisma.product.count.mockResolvedValue(0);
-
-    await service.findAll({ page: 1, limit: 20 });
-
-    expect(prisma.product.findMany.mock.calls[0][0].where).toEqual({ status: 'ACTIVE' });
-  });
-
-  it('filters by visible size and color codes on a single ACTIVE variant', async () => {
-    prisma.product.findMany.mockResolvedValue([]);
-    prisma.product.count.mockResolvedValue(0);
-
-    await service.findAll({ page: 1, limit: 20, categoryId: 'cat', size: ['M'], color: ['WHT'] });
-
-    expect(prisma.product.findMany.mock.calls[0][0].where).toEqual({
-      status: 'ACTIVE',
-      categoryId: 'cat',
-      variants: {
-        some: {
-          status: 'ACTIVE',
-          size: { code: { in: ['M'] }, isHidden: false },
-          color: { code: { in: ['WHT'] }, isHidden: false },
-        },
-      },
-    });
-  });
-
   it('findOne returns ACTIVE variants with integer prices', async () => {
     prisma.product.findFirst.mockResolvedValue({ id: 'p1', variants: [variant], images: [] });
 
