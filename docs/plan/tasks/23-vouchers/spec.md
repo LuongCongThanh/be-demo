@@ -1,6 +1,6 @@
 ---
 status: done
-pr:
+pr: #92
 blocked-by: [22-sale-prices]
 labels: [ready-for-agent]
 ---
