@@ -72,6 +72,19 @@ export class EnvironmentVariables {
   @IsString()
   SMTP_FROM?: string;
 
+  // Kho ảnh Sản phẩm. Thiếu thì upload/gắn ảnh trả 503, ảnh không có `url`.
+  @IsOptional()
+  @IsString()
+  CLOUDINARY_CLOUD_NAME?: string;
+
+  @IsOptional()
+  @IsString()
+  CLOUDINARY_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  CLOUDINARY_API_SECRET?: string;
+
   @IsOptional()
   @IsString()
   FRONTEND_URL?: string;

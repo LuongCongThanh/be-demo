@@ -10,13 +10,13 @@
 - Callback/webhook: xác minh chữ ký → lưu bản ghi sự kiện thô (khử trùng theo mã giao dịch của nhà cung cấp) → trả `200` nhanh → xử lý.
 - Sandbox của từng nhà cung cấp dùng cho môi trường dev/staging; go-live cần nghiệm thu sandbox.
 
-| Nhà cung cấp                   | Dùng cho                           | Module sở hữu   |
-| ------------------------------ | ---------------------------------- | --------------- |
-| VNPay, MoMo                    | Thanh toán online                  | `payments`      |
-| GHN                            | Phí ship, Vận đơn, trạng thái giao | `fulfillment`   |
-| Email provider (SMTP/API)      | Email giao dịch                    | `notifications` |
-| Object storage (S3-compatible) | Ảnh Sản phẩm                       | `catalog`       |
-| Google OAuth                   | Đăng nhập Google                   | `identity`      |
+| Nhà cung cấp                | Dùng cho                           | Module sở hữu   |
+| --------------------------- | ---------------------------------- | --------------- |
+| VNPay, MoMo                 | Thanh toán online                  | `payments`      |
+| GHN                         | Phí ship, Vận đơn, trạng thái giao | `fulfillment`   |
+| Email provider (SMTP/API)   | Email giao dịch                    | `notifications` |
+| Object storage (Cloudinary) | Ảnh Sản phẩm                       | `catalog`       |
+| Google OAuth                | Đăng nhập Google                   | `identity`      |
 
 ## 2. Thanh toán: VNPay và MoMo
 
@@ -93,9 +93,15 @@ Sự kiện đến sai thứ tự (ví dụ "đã giao" trước khi ghi nhận 
 ## 5. Object storage cho ảnh Sản phẩm
 
 - Ảnh gắn theo **màu** của Sản phẩm (BR-CAT-05).
-- Upload: back-office xin **presigned URL** → upload thẳng lên storage → gọi API xác nhận để ghi `product_images`. API không truyền byte ảnh.
-- Kiểm tra loại file và kích thước; ảnh phục vụ qua CDN; bucket không public-write.
-- Xoá ảnh: xoá bản ghi trước, xoá object bằng job dọn dẹp.
+- Kho ảnh hiện là **Cloudinary** (adapter `infrastructure/storage/cloudinary.client.ts`, biến `CLOUDINARY_*`). Thiếu biến thì upload/gắn ảnh trả 503 và ảnh không có `url`.
+- Upload hai bước, API không truyền byte ảnh:
+  1. Back-office gọi `POST /admin/products/:id/images/presign` (Quyền `CATALOG_PRODUCT_MANAGE`), nhận `uploadUrl`, `fields` đã ký và `storageKey` (`products/{productId}/{uuid}`).
+  2. Trình duyệt gửi form POST gồm `fields` và file (`file`) thẳng tới `uploadUrl`.
+  3. Back-office gọi `POST /admin/products/:id/images` với `storageKey` và `colorId`. API kiểm key đúng tiền tố của Sản phẩm, hỏi kho file có tồn tại, định dạng JPEG/PNG/WebP và không quá 5 MB; sai thì xoá file và trả 422.
+- Chữ ký có `overwrite=false`: không ghi đè được ảnh đã kiểm. Cloudinary nhận chữ ký trong 1 giờ (`expiresAt`), API không rút ngắn được.
+- Ảnh đọc công khai qua CDN của kho; chỉ ghi qua chữ ký do API cấp. API trả `url` dựng từ `storageKey`, DB chỉ lưu key.
+- Xoá ảnh: xoá bản ghi trước, rồi xoá file (best-effort, lỗi chỉ log). File đã upload mà không gắn vào Sản phẩm nằm lại trong kho, dọn sau.
+- Đổi sang kho chuẩn S3 (R2 khi chạy thật, MinIO trong docker khi dev, presigned POST) chỉ thay adapter: response `uploadUrl + fields` cùng dạng.
 
 ## 6. Google OAuth
 

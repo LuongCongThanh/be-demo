@@ -531,6 +531,11 @@
           },
           "storageKey": {
             "type": "string"
+          },
+          "url": {
+            "description": "Public image URL; null when image storage is not configured",
+            "nullable": true,
+            "type": "object"
           }
         },
         "required": [
@@ -813,6 +818,62 @@
         ],
         "type": "object"
       },
+      "PresignImageDto": {
+        "properties": {
+          "contentType": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "example": "image/webp",
+            "type": "string"
+          },
+          "size": {
+            "description": "File size in bytes",
+            "example": 524288,
+            "maximum": 5242880,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "contentType",
+          "size"
+        ],
+        "type": "object"
+      },
+      "PresignedImageUploadResponseDto": {
+        "properties": {
+          "expiresAt": {
+            "description": "The signature stops working after this time",
+            "format": "date-time",
+            "type": "string"
+          },
+          "fields": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Signed form fields",
+            "type": "object"
+          },
+          "storageKey": {
+            "description": "Send this to POST /admin/products/:id/images after the upload succeeds",
+            "type": "string"
+          },
+          "uploadUrl": {
+            "description": "POST a multipart form here: every `fields` entry, then the file as `file`",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uploadUrl",
+          "fields",
+          "storageKey",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
       "ProductDetailResponseDto": {
         "properties": {
           "categoryId": {
@@ -902,6 +963,11 @@
           },
           "id": {
             "type": "string"
+          },
+          "imageUrl": {
+            "description": "Card image: a primary image (any color) first, else the first image; null when none",
+            "nullable": true,
+            "type": "object"
           },
           "maxPrice": {
             "description": "Highest price among ACTIVE variants, integer VND",
@@ -3114,6 +3180,7 @@
     },
     "/api/v1/admin/products/{id}/images": {
       "post": {
+        "description": "The file under `storageKey` is checked in storage: missing, too large or wrong format → 422.",
         "operationId": "AdminProductController_createImage_v1",
         "parameters": [
           {
@@ -3154,7 +3221,124 @@
                 }
               }
             },
-            "description": "Invalid body or unknown color"
+            "description": "Invalid body, unknown color, or storageKey not issued for this product"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Product not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Image not uploaded, larger than 5 MB, or not JPEG/PNG/WebP"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Image storage is not configured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Attach an uploaded image to a product color; isPrimary replaces that color primary",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/admin/products/{id}/images/presign": {
+      "post": {
+        "description": "JPEG, PNG or WebP, at most 5 MB. POST `fields` and the file (`file`) as multipart form to `uploadUrl`, then attach it with POST /admin/products/:id/images and the returned `storageKey`.",
+        "operationId": "AdminProductController_presignImage_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignImageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresignedImageUploadResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
           },
           "401": {
             "content": {
@@ -3195,6 +3379,16 @@
               }
             },
             "description": "Rate limit exceeded — retry after the window resets"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Image storage is not configured or unavailable"
           }
         },
         "security": [
@@ -3202,7 +3396,7 @@
             "bearer": []
           }
         ],
-        "summary": "Attach image metadata to a product color; isPrimary replaces that color primary (ADMIN only)",
+        "summary": "Sign a direct upload of one product image to storage",
         "tags": [
           "Products"
         ]
@@ -3289,7 +3483,7 @@
             "bearer": []
           }
         ],
-        "summary": "Remove image metadata from a product (ADMIN only)",
+        "summary": "Remove an image from a product and, best effort, from storage",
         "tags": [
           "Products"
         ]
@@ -3391,7 +3585,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update image metadata or make it the primary image of its color (ADMIN only)",
+        "summary": "Update image metadata or make it the primary image of its color",
         "tags": [
           "Products"
         ]

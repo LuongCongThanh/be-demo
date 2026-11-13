@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Prisma, Product, ProductImage } from '#src/generated/prisma/client.js';
+import type { Prisma, Product } from '#src/generated/prisma/client.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
+import { toImageResponse } from '#src/modules/catalog/product/product-image.mapper.js';
+import { ImageResponseDto } from '#src/modules/catalog/product/dto/image-response.dto.js';
 import { ListProductsQueryDto } from '#src/modules/catalog/product/dto/list-products-query.dto.js';
 import { ProductListItemResponseDto } from '#src/modules/catalog/product/dto/product-list-item-response.dto.js';
 import { productSearchSql } from '#src/modules/catalog/product/product-search.query.js';
@@ -12,6 +15,13 @@ import { VariantResponseDto } from '#src/modules/catalog/product/dto/variant-res
 
 const VISIBLE_PRODUCT = { status: 'ACTIVE' } as const satisfies Prisma.ProductWhereInput;
 const VISIBLE_VARIANT = { status: 'ACTIVE' } as const satisfies Prisma.ProductVariantWhereInput;
+
+/** Ảnh thẻ sản phẩm: ảnh primary trước, rồi theo thứ tự hiển thị. */
+const CARD_IMAGE_FIRST = [
+  { isPrimary: 'desc' },
+  { sortOrder: 'asc' },
+  { createdAt: 'asc' },
+] as const satisfies Prisma.ProductImageOrderByWithRelationInput[];
 
 interface PricedRow {
   id: string;
@@ -26,7 +36,10 @@ interface PricedRow {
  */
 @Injectable()
 export class ProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: CloudinaryClient,
+  ) {}
 
   /** Lọc, tìm kiếm, sắp xếp: xem `productSearchSql`. */
   async findAll(query: ListProductsQueryDto): Promise<Paginated<ProductListItemResponseDto>> {
@@ -36,18 +49,24 @@ export class ProductService {
       query.limit,
       async ({ skip, take }) => {
         const rows = await this.prisma.$queryRaw<PricedRow[]>(sql.page(skip, take));
-        const products = await this.prisma.product.findMany({ where: { id: { in: rows.map((r) => r.id) } } });
+        const products = await this.prisma.product.findMany({
+          where: { id: { in: rows.map((r) => r.id) } },
+          include: { images: { orderBy: CARD_IMAGE_FIRST, take: 1 } },
+        });
         const byId = new Map(products.map((product) => [product.id, product]));
         return rows.flatMap(({ id, minPrice, maxPrice }) => {
-          const product = byId.get(id);
-          return product ? [{ ...product, minPrice: Number(minPrice), maxPrice: Number(maxPrice) }] : [];
+          const found = byId.get(id);
+          if (!found) return [];
+          const { images, ...product } = found;
+          const imageUrl = images[0] ? this.storage.publicUrl(images[0].storageKey) : null;
+          return [{ ...product, minPrice: Number(minPrice), maxPrice: Number(maxPrice), imageUrl }];
         });
       },
       async () => (await this.prisma.$queryRaw<{ total: number }[]>(sql.count))[0].total,
     );
   }
 
-  async findOne(id: string): Promise<Product & { variants: VariantResponseDto[]; images: ProductImage[] }> {
+  async findOne(id: string): Promise<Product & { variants: VariantResponseDto[]; images: ImageResponseDto[] }> {
     const product = await this.prisma.product.findFirst({
       where: { id, ...VISIBLE_PRODUCT },
       include: {
@@ -58,7 +77,11 @@ export class ProductService {
     if (!product) {
       throw new NotFoundException(`Product #${id} not found`);
     }
-    return { ...product, variants: product.variants.map(toVariantResponse) };
+    return {
+      ...product,
+      variants: product.variants.map(toVariantResponse),
+      images: product.images.map((image) => toImageResponse(image, this.storage)),
+    };
   }
 
   async findAllVariants(productId: string, { page, limit }: PaginationDto): Promise<Paginated<VariantResponseDto>> {

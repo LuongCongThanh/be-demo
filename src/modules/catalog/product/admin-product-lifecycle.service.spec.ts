@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { AdminProductService } from '#src/modules/catalog/product/admin-product.service.js';
 import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import type { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
 
 const product = (over: Record<string, unknown> = {}) => ({
   id: 'p1',
@@ -40,7 +41,14 @@ function setup() {
     category: { findUnique: vi.fn() },
     $transaction: vi.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
   };
-  return { prisma, tx, service: new AdminProductService(prisma as unknown as PrismaService) };
+  return {
+    prisma,
+    tx,
+    service: new AdminProductService(
+      prisma as unknown as PrismaService,
+      { publicUrl: () => null } as unknown as CloudinaryClient,
+    ),
+  };
 }
 
 describe('AdminProductService — lifecycle (BR-CAT-07, BR-CAT-09)', () => {

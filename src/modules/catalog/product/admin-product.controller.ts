@@ -21,6 +21,8 @@ import { AdminProductImageService } from '#src/modules/catalog/product/admin-pro
 import { CreateImageDto } from '#src/modules/catalog/product/dto/create-image.dto.js';
 import { UpdateImageDto } from '#src/modules/catalog/product/dto/update-image.dto.js';
 import { ImageResponseDto } from '#src/modules/catalog/product/dto/image-response.dto.js';
+import { PresignImageDto } from '#src/modules/catalog/product/dto/presign-image.dto.js';
+import { PresignedImageUploadResponseDto } from '#src/modules/catalog/product/dto/presigned-image-upload-response.dto.js';
 import { CreateProductDto } from '#src/modules/catalog/product/dto/create-product.dto.js';
 import { UpdateProductDto } from '#src/modules/catalog/product/dto/update-product.dto.js';
 import { AdminListProductsQueryDto } from '#src/modules/catalog/product/dto/admin-list-products-query.dto.js';
@@ -154,20 +156,41 @@ export class AdminProductController {
     return this.service.setVariantStatus(productId, variantId, 'ACTIVE');
   }
 
+  @Post(':id/images/presign')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
+  @ApiOperation({
+    summary: 'Sign a direct upload of one product image to storage',
+    description:
+      'JPEG, PNG or WebP, at most 5 MB. POST `fields` and the file (`file`) as multipart form to `uploadUrl`, then attach it with POST /admin/products/:id/images and the returned `storageKey`.',
+  })
+  @ApiCreatedResponse({ type: PresignedImageUploadResponseDto })
+  @ApiErrorResponses(400, 401, 403, PRODUCT_NOT_FOUND, [503, 'Image storage is not configured or unavailable'])
+  presignImage(@Param('id', ParseUUIDPipe) productId: string, @Body() dto: PresignImageDto) {
+    return this.images.presign(productId, dto);
+  }
+
   @Post(':id/images')
   @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @ApiOperation({
-    summary: 'Attach image metadata to a product color; isPrimary replaces that color primary (ADMIN only)',
+    summary: 'Attach an uploaded image to a product color; isPrimary replaces that color primary',
+    description: 'The file under `storageKey` is checked in storage: missing, too large or wrong format → 422.',
   })
   @ApiCreatedResponse({ type: ImageResponseDto })
-  @ApiErrorResponses([400, 'Invalid body or unknown color'], 401, 403, PRODUCT_NOT_FOUND)
+  @ApiErrorResponses(
+    [400, 'Invalid body, unknown color, or storageKey not issued for this product'],
+    401,
+    403,
+    PRODUCT_NOT_FOUND,
+    [422, 'Image not uploaded, larger than 5 MB, or not JPEG/PNG/WebP'],
+    [503, 'Image storage is not configured or unavailable'],
+  )
   createImage(@Param('id', ParseUUIDPipe) productId: string, @Body() dto: CreateImageDto) {
     return this.images.create(productId, dto);
   }
 
   @Patch(':id/images/:imageId')
   @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
-  @ApiOperation({ summary: 'Update image metadata or make it the primary image of its color (ADMIN only)' })
+  @ApiOperation({ summary: 'Update image metadata or make it the primary image of its color' })
   @ApiOkResponse({ type: ImageResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Image not found on this product'])
   updateImage(
@@ -181,7 +204,7 @@ export class AdminProductController {
   @Delete(':id/images/:imageId')
   @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove image metadata from a product (ADMIN only)' })
+  @ApiOperation({ summary: 'Remove an image from a product and, best effort, from storage' })
   @ApiNoContentResponse({ description: 'Image removed' })
   @ApiErrorResponses(400, 401, 403, [404, 'Image not found on this product'])
   removeImage(@Param('id', ParseUUIDPipe) productId: string, @Param('imageId', ParseUUIDPipe) imageId: string) {

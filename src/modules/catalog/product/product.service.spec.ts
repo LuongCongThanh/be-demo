@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductService } from '#src/modules/catalog/product/product.service.js';
 import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import type { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
 
 const variant = {
   id: 'v1',
@@ -24,7 +25,10 @@ describe('ProductService (storefront)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new ProductService(prisma as unknown as PrismaService);
+    service = new ProductService(
+      prisma as unknown as PrismaService,
+      { publicUrl: () => null } as unknown as CloudinaryClient,
+    );
   });
 
   it('findOne returns ACTIVE variants with integer prices', async () => {

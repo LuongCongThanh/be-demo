@@ -1,14 +1,11 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '#src/generated/prisma/client.js';
-import type {
-  Product,
-  ProductImage,
-  ProductStatus,
-  ProductVariant,
-  VariantStatus,
-} from '#src/generated/prisma/client.js';
+import type { Product, ProductStatus, ProductVariant, VariantStatus } from '#src/generated/prisma/client.js';
 import { getUniqueConstraintTarget, writeUnique } from '#src/infrastructure/database/prisma-error.util.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
+import { toImageResponse } from '#src/modules/catalog/product/product-image.mapper.js';
+import { ImageResponseDto } from '#src/modules/catalog/product/dto/image-response.dto.js';
 import { CreateProductDto } from '#src/modules/catalog/product/dto/create-product.dto.js';
 import { UpdateProductDto } from '#src/modules/catalog/product/dto/update-product.dto.js';
 import { AdminListProductsQueryDto } from '#src/modules/catalog/product/dto/admin-list-products-query.dto.js';
@@ -20,7 +17,7 @@ import { VariantResponseDto } from '#src/modules/catalog/product/dto/variant-res
 import { VARIANT_INCLUDE } from '#src/modules/catalog/product/product.constants.js';
 import { toVariantResponse } from '#src/modules/catalog/product/variant-response.mapper.js';
 
-export type ProductDetail = Product & { variants: VariantResponseDto[]; images: ProductImage[] };
+export type ProductDetail = Product & { variants: VariantResponseDto[]; images: ImageResponseDto[] };
 
 /**
  * Back-office catalog (STAFF đọc, ADMIN ghi). Không có xoá cứng: "xoá" là
@@ -31,7 +28,10 @@ export type ProductDetail = Product & { variants: VariantResponseDto[]; images: 
  */
 @Injectable()
 export class AdminProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: CloudinaryClient,
+  ) {}
 
   async create(dto: CreateProductDto): Promise<Product> {
     await this.assertCategoryExists(dto.categoryId);
@@ -74,7 +74,11 @@ export class AdminProductService {
     if (!product) {
       throw new NotFoundException(`Product #${id} not found`);
     }
-    return { ...product, variants: product.variants.map(toVariantResponse) };
+    return {
+      ...product,
+      variants: product.variants.map(toVariantResponse),
+      images: product.images.map((image) => toImageResponse(image, this.storage)),
+    };
   }
 
   async update(id: string, dto: UpdateProductDto): Promise<Product> {

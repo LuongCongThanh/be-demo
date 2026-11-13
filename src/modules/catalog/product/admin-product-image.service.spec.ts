@@ -3,9 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { AdminProductImageService } from '#src/modules/catalog/product/admin-product-image.service.js';
 import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import type { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
+
+const storage = {
+  publicUrl: vi.fn(() => null),
+  signUpload: vi.fn(),
+  findImage: vi.fn(async () => ({ bytes: 1024, format: 'jpg' })),
+  destroy: vi.fn(async () => undefined),
+};
 
 describe('AdminProductImageService', () => {
-  const tx = { productImage: { updateMany: vi.fn(), create: vi.fn(), update: vi.fn() } };
+  const saved = async () => ({ id: 'i1', storageKey: 'products/p1/k' });
+  const tx = { productImage: { updateMany: vi.fn(), create: vi.fn(saved), update: vi.fn(saved) } };
   const prisma = {
     product: { findUnique: vi.fn() },
     color: { findUnique: vi.fn() },
@@ -16,21 +25,21 @@ describe('AdminProductImageService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new AdminProductImageService(prisma as unknown as PrismaService);
+    service = new AdminProductImageService(prisma as unknown as PrismaService, storage as unknown as CloudinaryClient);
   });
 
   it('a new primary image demotes the current primary of the same color first', async () => {
     prisma.product.findUnique.mockResolvedValue({ id: 'p1' });
     prisma.color.findUnique.mockResolvedValue({ id: 'c1' });
 
-    await service.create('p1', { colorId: 'c1', storageKey: 'k', isPrimary: true });
+    await service.create('p1', { colorId: 'c1', storageKey: 'products/p1/k', isPrimary: true });
 
     expect(tx.productImage.updateMany).toHaveBeenCalledWith({
       where: { productId: 'p1', colorId: 'c1', isPrimary: true },
       data: { isPrimary: false },
     });
     expect(tx.productImage.create).toHaveBeenCalledWith({
-      data: { colorId: 'c1', storageKey: 'k', isPrimary: true, productId: 'p1' },
+      data: { colorId: 'c1', storageKey: 'products/p1/k', isPrimary: true, productId: 'p1' },
     });
   });
 
@@ -38,7 +47,7 @@ describe('AdminProductImageService', () => {
     prisma.product.findUnique.mockResolvedValue({ id: 'p1' });
     prisma.color.findUnique.mockResolvedValue({ id: 'c1' });
 
-    await service.create('p1', { colorId: 'c1', storageKey: 'k' });
+    await service.create('p1', { colorId: 'c1', storageKey: 'products/p1/k' });
 
     expect(tx.productImage.updateMany).not.toHaveBeenCalled();
   });
@@ -46,11 +55,15 @@ describe('AdminProductImageService', () => {
   it('rejects a missing product (404) or unknown color (400)', async () => {
     prisma.product.findUnique.mockResolvedValueOnce(null);
     prisma.color.findUnique.mockResolvedValueOnce({ id: 'c1' });
-    await expect(service.create('p1', { colorId: 'c1', storageKey: 'k' })).rejects.toThrow(NotFoundException);
+    await expect(service.create('p1', { colorId: 'c1', storageKey: 'products/p1/k' })).rejects.toThrow(
+      NotFoundException,
+    );
 
     prisma.product.findUnique.mockResolvedValueOnce({ id: 'p1' });
     prisma.color.findUnique.mockResolvedValueOnce(null);
-    await expect(service.create('p1', { colorId: 'c1', storageKey: 'k' })).rejects.toThrow(BadRequestException);
+    await expect(service.create('p1', { colorId: 'c1', storageKey: 'products/p1/k' })).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('maps a concurrent primary collision (P2002) to 409', async () => {
@@ -60,7 +73,7 @@ describe('AdminProductImageService', () => {
       new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x' }),
     );
 
-    await expect(service.create('p1', { colorId: 'c1', storageKey: 'k', isPrimary: true })).rejects.toThrow(
+    await expect(service.create('p1', { colorId: 'c1', storageKey: 'products/p1/k', isPrimary: true })).rejects.toThrow(
       ConflictException,
     );
   });
@@ -81,7 +94,10 @@ describe('AdminProductImageService', () => {
   });
 
   it('remove is scoped by product and 404s when nothing was deleted', async () => {
-    prisma.productImage.deleteMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
+    prisma.productImage.findFirst
+      .mockResolvedValueOnce({ id: 'i1', storageKey: 'products/p1/k' })
+      .mockResolvedValueOnce(null);
+    prisma.productImage.deleteMany.mockResolvedValueOnce({ count: 1 });
 
     await service.remove('p1', 'i1');
     expect(prisma.productImage.deleteMany).toHaveBeenCalledWith({ where: { id: 'i1', productId: 'p1' } });
