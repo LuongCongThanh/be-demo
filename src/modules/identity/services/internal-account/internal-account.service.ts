@@ -1,6 +1,6 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import type { User } from '#src/generated/prisma/client.js';
-import { writeUnique } from '#src/common/utils/prisma-error.util.js';
+import { writeUnique } from '#src/infrastructure/database/prisma-error.util.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { AuditLogService } from '#src/infrastructure/audit/audit-log.service.js';
 import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';

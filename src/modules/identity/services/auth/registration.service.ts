@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '#src/generated/prisma/client.js';
-import { getUniqueConstraintTarget } from '#src/common/utils/prisma-error.util.js';
+import { getUniqueConstraintTarget } from '#src/infrastructure/database/prisma-error.util.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { ResendVerificationDto } from '#src/modules/identity/dto/auth/resend-verification.dto.js';
 import { VerifyEmailDto } from '#src/modules/identity/dto/auth/verify-email.dto.js';

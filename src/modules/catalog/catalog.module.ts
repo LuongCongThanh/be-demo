@@ -1,17 +1,17 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
-import { CategoriesController } from '#src/modules/catalog/controllers/storefront/categories.controller.js';
-import { AdminCategoriesController } from '#src/modules/catalog/controllers/back-office/admin-categories.controller.js';
-import { ProductsController } from '#src/modules/catalog/controllers/storefront/products.controller.js';
-import { AdminProductsController } from '#src/modules/catalog/controllers/back-office/admin-products.controller.js';
-import { ProductOptionsController } from '#src/modules/catalog/controllers/storefront/product-options.controller.js';
-import { AdminProductOptionsController } from '#src/modules/catalog/controllers/back-office/admin-product-options.controller.js';
-import { CategoriesService } from '#src/modules/catalog/services/categories/categories.service.js';
-import { AdminCategoriesService } from '#src/modules/catalog/services/categories/admin-categories.service.js';
-import { ProductsService } from '#src/modules/catalog/services/products/products.service.js';
-import { AdminProductsService } from '#src/modules/catalog/services/products/admin-products.service.js';
-import { AdminProductImagesService } from '#src/modules/catalog/services/products/admin-product-images.service.js';
-import { ProductOptionsService } from '#src/modules/catalog/services/product-options/product-options.service.js';
+import { CategoriesController } from '#src/modules/catalog/category/category.controller.js';
+import { AdminCategoriesController } from '#src/modules/catalog/category/admin-category.controller.js';
+import { ProductsController } from '#src/modules/catalog/product/product.controller.js';
+import { AdminProductsController } from '#src/modules/catalog/product/admin-product.controller.js';
+import { ProductOptionsController } from '#src/modules/catalog/product-option/product-option.controller.js';
+import { AdminProductOptionsController } from '#src/modules/catalog/product-option/admin-product-option.controller.js';
+import { CategoryService } from '#src/modules/catalog/category/category.service.js';
+import { AdminCategoryService } from '#src/modules/catalog/category/admin-category.service.js';
+import { ProductService } from '#src/modules/catalog/product/product.service.js';
+import { AdminProductService } from '#src/modules/catalog/product/admin-product.service.js';
+import { AdminProductImageService } from '#src/modules/catalog/product/admin-product-image.service.js';
+import { ProductOptionService } from '#src/modules/catalog/product-option/product-option.service.js';
 
 @Module({
   // PassportModule cấp AuthModuleOptions cho JwtAuthGuard (@Authorize); strategy 'jwt' do IdentityModule đăng ký.
@@ -25,12 +25,12 @@ import { ProductOptionsService } from '#src/modules/catalog/services/product-opt
     AdminProductOptionsController,
   ],
   providers: [
-    CategoriesService,
-    AdminCategoriesService,
-    ProductsService,
-    AdminProductsService,
-    AdminProductImagesService,
-    ProductOptionsService,
+    CategoryService,
+    AdminCategoryService,
+    ProductService,
+    AdminProductService,
+    AdminProductImageService,
+    ProductOptionService,
   ],
 })
 export class CatalogModule {}

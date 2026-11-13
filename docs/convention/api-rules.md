@@ -98,13 +98,13 @@ Cần kiểm chủ sở hữu? → có → thêm OwnershipGuard + @OwnedResource
 
 ### R8. Swagger / OpenAPI
 
-Swagger UI: `http://localhost:3000/docs`; spec: `/docs-json` (ADR 0002). Cấu hình ở `src/bootstrap/setup-swagger.ts`; tắt bằng `SWAGGER_ENABLED=false` (mặc định tắt khi `NODE_ENV=production`).
+Swagger UI: `http://localhost:3000/docs`; spec: `/docs-json` (ADR 0002). Cấu hình ở `src/bootstrap/openapi.ts`; tắt bằng `SWAGGER_ENABLED=false` (mặc định tắt khi `NODE_ENV=production`).
 
 - **`@ApiOperation({ summary })` cho mọi route** — câu mệnh lệnh mô tả đúng hành vi, không lặp tên method (`"Create a new category"`, không phải `"Create"`).
 - **`@ApiTags()` đủ nghĩa** khi path là viết tắt (`@ApiTags('Authentication & Authorization')` cho `@Controller('auth')`); path số nhiều tự rõ (`'categories'`) thì giữ nguyên.
-- **Mọi module khai tag trong `src/common/swagger/api-tags.ts`** (`name` + `description` 1 câu: quản lý gì, ràng buộc quyền đáng chú ý); controller dùng `@ApiTags(API_TAGS.X.name)`, `setup-swagger.ts` tự `addTag` từ đó — không gõ chuỗi tag tay.
+- **Mọi module khai tag trong `src/common/swagger/api-tags.ts`** (`name` + `description` 1 câu: quản lý gì, ràng buộc quyền đáng chú ý); controller dùng `@ApiTags(API_TAGS.X.name)`, `openapi.ts` tự `addTag` từ đó — không gõ chuỗi tag tay.
 - **Ngoại lệ — endpoint hạ tầng** không dành cho client (vd. `/metrics` cho Prometheus): ẩn bằng `@ApiExcludeController()`, không cần tag.
-- **Response lỗi**: dùng `@ApiErrorResponses(...)` (`src/common/swagger/api-error-responses.decorator.ts`) — body `ErrorResponseDto` khớp `AllExceptionsFilter`. Khai đúng các status route thực sự trả (400 khi có body/query/`ParseUUIDPipe`; 401+403 khi có guard; 404/409 theo service), `[status, 'mô tả']` khi cần ghi rõ nguyên nhân. **Không khai 429** ở route — `setup-swagger.ts` tự thêm cho mọi route vì `ThrottlerGuard` là guard toàn cục.
+- **Response lỗi**: dùng `@ApiErrorResponses(...)` (`src/common/swagger/api-error-responses.decorator.ts`) — body `ErrorResponseDto` khớp `AllExceptionsFilter`. Khai đúng các status route thực sự trả (400 khi có body/query/`ParseUUIDPipe`; 401+403 khi có guard; 404/409 theo service), `[status, 'mô tả']` khi cần ghi rõ nguyên nhân. **Không khai 429** ở route — `openapi.ts` tự thêm cho mọi route vì `ThrottlerGuard` là guard toàn cục.
 - Khai **response `type:`** (`@ApiOkResponse({ type })`, `@ApiCreatedResponse({ type })`), không chỉ `description`. Nếu trả Prisma type, `type:` trỏ vào class khai lại field cho Swagger.
 - **Postman**: không sửa tay collection. Sau khi thêm/sửa API: `npm run start:dev` rồi `npm run postman:sync` (cần `POSTMAN_API_KEY`, `POSTMAN_COLLECTION_ID` trong `.env`). Script ghi đè toàn bộ collection.
 
