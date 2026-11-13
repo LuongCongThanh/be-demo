@@ -1,6 +1,6 @@
 ---
-status: todo
-pr:
+status: done
+pr: #75
 blocked-by: []
 labels: [ready-for-agent]
 ---

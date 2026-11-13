@@ -25,7 +25,7 @@ Kebab-case, hậu tố theo vai trò — đúng pattern đã dùng xuyên suốt
 | Middleware | `.middleware.ts`                 | `request-id.middleware.ts`   |
 | Tiện ích   | `.util.ts`                       | `slug.util.ts`               |
 
-Class bên trong file dùng PascalCase khớp tên file (`token.service.ts` → `TokenService`). Biến/instance dùng camelCase (`private readonly productsService: ProductsService`).
+Class bên trong file dùng PascalCase khớp tên file (`token.service.ts` → `TokenService`). Biến/instance dùng camelCase (`private readonly productService: ProductService`).
 
 **Vì sao kebab-case cho tên file và thư mục (không dùng `productService/`, `ProductService.ts`)?** Đây là quy ước được ghi lại ở đây, chưa có lint rule ép:
 

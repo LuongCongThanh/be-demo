@@ -9,7 +9,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '#src/generated/prisma/client.js';
 import type { Role } from '#src/generated/prisma/enums.js';
-import { getUniqueConstraintTarget } from '#src/common/utils/prisma-error.util.js';
+import { getUniqueConstraintTarget } from '#src/infrastructure/database/prisma-error.util.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { ResendVerificationDto } from '#src/modules/identity/dto/auth/resend-verification.dto.js';
 import { ForgotPasswordDto } from '#src/modules/identity/dto/auth/forgot-password.dto.js';
