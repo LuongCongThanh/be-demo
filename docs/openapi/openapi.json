@@ -67,7 +67,7 @@
           },
           "description": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "id": {
             "type": "string"
@@ -81,7 +81,7 @@
           "parentId": {
             "description": "null for a root category",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "slug": {
             "type": "string"
@@ -98,6 +98,8 @@
           "id",
           "name",
           "slug",
+          "description",
+          "parentId",
           "sortOrder",
           "isVisible",
           "createdAt",
@@ -209,7 +211,7 @@
             "description": "Parent category; omit or null for a root category",
             "example": "550e8400-e29b-41d4-a716-446655440000",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "sortOrder": {
             "default": 0,
@@ -506,7 +508,7 @@
         "properties": {
           "altText": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "colorId": {
             "type": "string"
@@ -536,6 +538,7 @@
           "productId",
           "colorId",
           "storageKey",
+          "altText",
           "sortOrder",
           "isPrimary",
           "createdAt"
@@ -821,7 +824,7 @@
           },
           "description": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "id": {
             "type": "string"
@@ -838,8 +841,9 @@
           },
           "publishedAt": {
             "description": "First time the product became ACTIVE",
+            "format": "date-time",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "slug": {
             "type": "string"
@@ -872,8 +876,10 @@
           "categoryId",
           "name",
           "slug",
+          "description",
           "weightGrams",
           "status",
+          "publishedAt",
           "createdAt",
           "updatedAt",
           "variants",
@@ -892,7 +898,7 @@
           },
           "description": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "id": {
             "type": "string"
@@ -912,8 +918,9 @@
           },
           "publishedAt": {
             "description": "First time the product became ACTIVE",
+            "format": "date-time",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "slug": {
             "type": "string"
@@ -939,8 +946,10 @@
           "categoryId",
           "name",
           "slug",
+          "description",
           "weightGrams",
           "status",
+          "publishedAt",
           "createdAt",
           "updatedAt",
           "minPrice",
@@ -959,7 +968,7 @@
           },
           "description": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "id": {
             "type": "string"
@@ -969,8 +978,9 @@
           },
           "publishedAt": {
             "description": "First time the product became ACTIVE",
+            "format": "date-time",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "slug": {
             "type": "string"
@@ -996,8 +1006,10 @@
           "categoryId",
           "name",
           "slug",
+          "description",
           "weightGrams",
           "status",
+          "publishedAt",
           "createdAt",
           "updatedAt"
         ],
@@ -1290,7 +1302,7 @@
             "description": "Parent category; omit or null for a root category",
             "example": "550e8400-e29b-41d4-a716-446655440000",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "sortOrder": {
             "default": 0,

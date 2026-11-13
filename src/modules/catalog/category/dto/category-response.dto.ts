@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CategoryResponseDto {
   @ApiProperty()
@@ -10,10 +10,10 @@ export class CategoryResponseDto {
   @ApiProperty()
   slug: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiProperty({ nullable: true, type: String })
   description: string | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'null for a root category' })
+  @ApiProperty({ nullable: true, type: String, description: 'null for a root category' })
   parentId: string | null;
 
   @ApiProperty()
