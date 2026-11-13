@@ -47,4 +47,4 @@ Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 | 15  | [Schema RBAC và migration `ADMIN`/`STAFF`](./tasks/15-rbac-schema/spec.md)              | done   | —                         | #81 |
 | 16  | [`PermissionsGuard` và `auth/me`](./tasks/16-permissions-guard/spec.md)                 | done   | 15                        | #82 |
 | 17  | [API quản lý Vai trò và Quyền](./tasks/17-access-admin-api/spec.md)                     | done   | 16                        | #83 |
-| 18  | [Chi tiết Tài khoản nội bộ kèm Vai trò](./tasks/18-staff-detail-roles/spec.md)          | done   | 17                        |     |
+| 18  | [Chi tiết Tài khoản nội bộ kèm Vai trò](./tasks/18-staff-detail-roles/spec.md)          | done   | 17                        | #85 |
