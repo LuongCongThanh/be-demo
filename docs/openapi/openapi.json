@@ -300,6 +300,12 @@
             "example": "550e8400-e29b-41d4-a716-446655440000",
             "type": "string"
           },
+          "description": {
+            "description": "Plain text, Vietnamese only (BR-CAT-10); empty string clears it",
+            "example": "Áo thun cotton 100%, form rộng.",
+            "maxLength": 5000,
+            "type": "string"
+          },
           "name": {
             "example": "Wireless Headphones",
             "maxLength": 255,
@@ -1434,6 +1440,12 @@
           "categoryId": {
             "description": "UUID của Category đã tồn tại",
             "example": "550e8400-e29b-41d4-a716-446655440000",
+            "type": "string"
+          },
+          "description": {
+            "description": "Plain text, Vietnamese only (BR-CAT-10); empty string clears it",
+            "example": "Áo thun cotton 100%, form rộng.",
+            "maxLength": 5000,
             "type": "string"
           },
           "name": {
