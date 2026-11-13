@@ -23,11 +23,13 @@
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/modules/catalog/product/product.service.spec.ts` | Xoá 2 test kiểm hình dạng `where` của Prisma trong `findAll` (hành vi đã thay bằng SQL). Phase 7 viết lại bằng test tích hợp trên DB thật cho `findAll`. |
 
+| `test/products.e2e-spec.ts` | Test "only ACTIVE products appear": thêm một Biến thể cho Sản phẩm ACTIVE trước khi đọc danh sách, vì danh sách giờ bỏ Sản phẩm không còn Biến thể ACTIVE. Assertion giữ nguyên. |
+
 Không có test mới.
 
 ## Kiểm tra
 
-- `npm run typecheck`, `npm run lint` (chỉ còn warning cũ `no-explicit-any`), `npm run test` (238 pass), `npm run build`, `npm run openapi:write` pass.
+- `npm run typecheck`, `npm run lint` (chỉ còn warning cũ `no-explicit-any`), `npm run test` (238 pass), `npm run build`, `npm run openapi:write`, `npm run test:e2e` (175 pass) pass.
 
 ## Acceptance criteria: chạy tay trên API local
 
