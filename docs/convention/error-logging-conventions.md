@@ -28,7 +28,7 @@ Lỗi không lường trước           →  AllExceptionsFilter bắt, trả 5
 
 - **`5xx` (không lường trước)**: `AllExceptionsFilter` tự động `.error()` kèm stack trace. Không cần tự log lại ở service.
 - **`4xx` (lỗi nghiệp vụ dự kiến — 400/401/403/404/409...)**: **không log** ở tầng filter — đây là luồng bình thường (user nhập sai, chưa đăng nhập, trùng dữ liệu...), log ra sẽ tạo noise, khó tìm lỗi thật giữa hàng nghìn dòng "login failed vì sai password".
-- **Business event quan trọng** (đăng ký thành công, huỷ đơn, thanh toán...) — tự log ở service bằng `Logger` (`new Logger(ClassName.name)`, pattern đã có ở `AuthService`/`MailService`) ở mức `.log()`; audit trail chi tiết hơn (ai làm gì, lúc nào) nằm ngoài phạm vi convention này — xem `api-rules.md` §A (§16) khi cần.
+- **Business event quan trọng** (đăng ký thành công, huỷ đơn, thanh toán...) — tự log ở service bằng `Logger` (`new Logger(ClassName.name)`, pattern đã có ở `RegistrationService`/`PasswordResetService`/`MailService`) ở mức `.log()`; audit trail chi tiết hơn (ai làm gì, lúc nào) nằm ngoài phạm vi convention này — xem `api-rules.md` §A (§16) khi cần.
 - **Không log secret**: password, token thô (JWT, refresh token, reset-password code), `Authorization` header — không bao giờ đưa vào message log, kể cả lúc debug tạm thời.
 
 ## 4. Request-id — trace 1 request qua nhiều dòng log

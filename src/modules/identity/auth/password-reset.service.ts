@@ -8,7 +8,7 @@ import { TokenService } from '#src/modules/identity/auth/token.service.js';
 import { MailService } from '#src/infrastructure/mail/mail.service.js';
 import { sendBestEffort } from '#src/modules/identity/auth/send-best-effort.js';
 
-// Cùng tinh thần GENERIC_RESEND_MESSAGE ở trên — message chung cho
+// Cùng tinh thần GENERIC_RESEND_MESSAGE ở `registration.service.ts` — message chung cho
 // forgotPassword() dù email tồn tại hay không, chống enumeration (quyết
 // định #10).
 export const GENERIC_FORGOT_PASSWORD_MESSAGE = 'If the email exists, a password reset link has been sent.';
