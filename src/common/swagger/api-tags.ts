@@ -1,6 +1,6 @@
 /**
  * Nguồn duy nhất cho tag Swagger: `@ApiTags(API_TAGS.X.name)` ở controller và
- * `addTag(name, description)` trong `setup-swagger.ts` đều đọc từ đây, nên
+ * `addTag(name, description)` trong `openapi.ts` đều đọc từ đây, nên
  * không thể lệch chuỗi (lệch thì Swagger mất mô tả mà không báo lỗi).
  */
 export const API_TAGS = {

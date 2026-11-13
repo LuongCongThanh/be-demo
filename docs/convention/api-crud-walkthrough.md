@@ -270,7 +270,7 @@ app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 Quy tắc: [§R8](api-rules.md#r8-swagger--openapi). Mẫu:
 
 ```ts
-// src/common/swagger/api-tags.ts — nguồn duy nhất, setup-swagger.ts tự addTag từ đây
+// src/common/swagger/api-tags.ts — nguồn duy nhất, openapi.ts tự addTag từ đây
 export const API_TAGS = {
   RESOURCES: { name: 'Resources', description: 'Resource CRUD — writes gated to MASTER_ADMIN, reads public' },
 } as const;
