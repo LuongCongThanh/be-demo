@@ -2,9 +2,9 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Role } from '#src/generated/prisma/enums.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
-import { LoginDto } from '#src/modules/identity/dto/auth/login.dto.js';
-import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
-import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
+import { LoginDto } from '#src/modules/identity/auth/dto/login.dto.js';
+import { PasswordService } from '#src/modules/identity/auth/password.service.js';
+import { TokenService } from '#src/modules/identity/auth/token.service.js';
 
 export interface LoginResult {
   accessToken: string;

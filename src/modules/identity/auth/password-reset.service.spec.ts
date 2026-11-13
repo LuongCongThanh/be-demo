@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
-import { PasswordResetService } from '#src/modules/identity/services/auth/password-reset.service.js';
-import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
-import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
+import { PasswordResetService } from '#src/modules/identity/auth/password-reset.service.js';
+import { PasswordService } from '#src/modules/identity/auth/password.service.js';
+import { TokenService } from '#src/modules/identity/auth/token.service.js';
 import { MailService } from '#src/infrastructure/mail/mail.service.js';
 
 function createHarness() {

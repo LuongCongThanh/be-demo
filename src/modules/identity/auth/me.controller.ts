@@ -5,8 +5,8 @@ import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decor
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { CurrentUser } from '#src/common/auth/current-user.decorator.js';
 import type { JwtPayload } from '#src/common/auth/jwt-payload.js';
-import { AccountProfileService } from '#src/modules/identity/services/auth/account-profile.service.js';
-import { CustomerProfileResponseDto } from '#src/modules/identity/dto/auth/customer-profile-response.dto.js';
+import { AccountProfileService } from '#src/modules/identity/auth/account-profile.service.js';
+import { CustomerProfileResponseDto } from '#src/modules/identity/auth/dto/customer-profile-response.dto.js';
 
 /**
  * Hồ sơ Khách hàng (identity.md §4, US-505) — route mua hàng đầu tiên, chỉ

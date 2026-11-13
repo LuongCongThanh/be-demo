@@ -2,15 +2,15 @@ import { BadRequestException, ConflictException, Injectable, Logger, NotFoundExc
 import { Prisma } from '#src/generated/prisma/client.js';
 import { getUniqueConstraintTarget } from '#src/infrastructure/database/prisma-error.util.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
-import { ResendVerificationDto } from '#src/modules/identity/dto/auth/resend-verification.dto.js';
-import { VerifyEmailDto } from '#src/modules/identity/dto/auth/verify-email.dto.js';
-import { RegisterDto } from '#src/modules/identity/dto/auth/register.dto.js';
-import { RegisterResponseDto } from '#src/modules/identity/dto/auth/register-response.dto.js';
-import { MessageResponseDto } from '#src/modules/identity/dto/auth/message-response.dto.js';
-import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
-import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
+import { ResendVerificationDto } from '#src/modules/identity/auth/dto/resend-verification.dto.js';
+import { VerifyEmailDto } from '#src/modules/identity/auth/dto/verify-email.dto.js';
+import { RegisterDto } from '#src/modules/identity/auth/dto/register.dto.js';
+import { RegisterResponseDto } from '#src/modules/identity/auth/dto/register-response.dto.js';
+import { MessageResponseDto } from '#src/modules/identity/auth/dto/message-response.dto.js';
+import { PasswordService } from '#src/modules/identity/auth/password.service.js';
+import { TokenService } from '#src/modules/identity/auth/token.service.js';
 import { MailService } from '#src/infrastructure/mail/mail.service.js';
-import { sendBestEffort } from '#src/modules/identity/services/auth/send-best-effort.js';
+import { sendBestEffort } from '#src/modules/identity/auth/send-best-effort.js';
 
 // Code 6 chữ số chỉ có 1.000.000 khả năng, khác với raw token 32-byte cũ,
 // nên có thể bị brute-force trong thời gian hết hạn nếu không giới hạn số

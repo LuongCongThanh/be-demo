@@ -41,5 +41,5 @@ Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 | 09  | [Cổng phân quyền `@Authorize` ở `common/auth/`](./tasks/09-authorize-decorator/spec.md) | done   | —                         | #67 |
 | 10  | [Gom hạ tầng vào `infrastructure/`](./tasks/10-infrastructure-folder/spec.md)           | done   | 09                        | #68 |
 | 11  | [Deploy backend miễn phí (Render + Neon)](./tasks/11-deploy-render-free/spec.md)        | todo   | —                         |     |
-| 12  | [`identity/` theo layout phẳng](./tasks/12-identity-subfolders/spec.md)                 | todo   | 08                        |     |
+| 12  | [`identity/` theo layout phẳng](./tasks/12-identity-subfolders/spec.md)                 | done   | 08                        | #77 |
 | 13  | [`catalog/` theo layout phẳng](./tasks/13-catalog-subfolders/spec.md)                   | done   | —                         | #75 |

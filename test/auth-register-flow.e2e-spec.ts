@@ -5,7 +5,7 @@ import request from 'supertest';
 import { AppModule } from '#src/app.module.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { MailService } from '#src/infrastructure/mail/mail.service.js';
-import { EmailThrottlerGuard } from '#src/modules/identity/guards/email-throttler.guard.js';
+import { EmailThrottlerGuard } from '#src/modules/identity/auth/email-throttler.guard.js';
 import { configureApp } from '#src/bootstrap/configure-app.js';
 
 const ALWAYS_ALLOW = { canActivate: () => true };

@@ -1,4 +1,4 @@
-import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
+import { TokenService } from '#src/modules/identity/auth/token.service.js';
 
 function createConfigMock() {
   return { get: vi.fn((_key: string, defaultValue?: unknown) => defaultValue) };

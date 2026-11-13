@@ -5,18 +5,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import type ms from 'ms';
 import { MailModule } from '#src/infrastructure/mail/mail.module.js';
 import { AuditModule } from '#src/infrastructure/audit/audit.module.js';
-import { AuthController } from '#src/modules/identity/controllers/storefront/auth.controller.js';
-import { MeController } from '#src/modules/identity/controllers/storefront/me.controller.js';
-import { AdminStaffController } from '#src/modules/identity/controllers/back-office/admin-staff.controller.js';
-import { RegistrationService } from '#src/modules/identity/services/auth/registration.service.js';
-import { SessionService } from '#src/modules/identity/services/auth/session.service.js';
-import { PasswordResetService } from '#src/modules/identity/services/auth/password-reset.service.js';
-import { AccountProfileService } from '#src/modules/identity/services/auth/account-profile.service.js';
-import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
-import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
-import { InternalAccountService } from '#src/modules/identity/services/internal-account/internal-account.service.js';
-import { StaffService } from '#src/modules/identity/services/internal-account/staff.service.js';
-import { JwtStrategy } from '#src/modules/identity/strategies/jwt.strategy.js';
+import { AuthController } from '#src/modules/identity/auth/auth.controller.js';
+import { MeController } from '#src/modules/identity/auth/me.controller.js';
+import { AdminStaffController } from '#src/modules/identity/internal-account/admin-staff.controller.js';
+import { RegistrationService } from '#src/modules/identity/auth/registration.service.js';
+import { SessionService } from '#src/modules/identity/auth/session.service.js';
+import { PasswordResetService } from '#src/modules/identity/auth/password-reset.service.js';
+import { AccountProfileService } from '#src/modules/identity/auth/account-profile.service.js';
+import { PasswordService } from '#src/modules/identity/auth/password.service.js';
+import { TokenService } from '#src/modules/identity/auth/token.service.js';
+import { InternalAccountService } from '#src/modules/identity/internal-account/internal-account.service.js';
+import { JwtStrategy } from '#src/modules/identity/auth/jwt.strategy.js';
 
 @Module({
   imports: [
@@ -50,7 +49,6 @@ import { JwtStrategy } from '#src/modules/identity/strategies/jwt.strategy.js';
     TokenService,
     JwtStrategy,
     InternalAccountService,
-    StaffService,
   ],
   exports: [PassportModule, InternalAccountService],
 })

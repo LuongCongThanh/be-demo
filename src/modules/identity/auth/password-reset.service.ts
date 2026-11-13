@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
-import { ForgotPasswordDto } from '#src/modules/identity/dto/auth/forgot-password.dto.js';
-import { ResetPasswordDto } from '#src/modules/identity/dto/auth/reset-password.dto.js';
-import { MessageResponseDto } from '#src/modules/identity/dto/auth/message-response.dto.js';
-import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
-import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
+import { ForgotPasswordDto } from '#src/modules/identity/auth/dto/forgot-password.dto.js';
+import { ResetPasswordDto } from '#src/modules/identity/auth/dto/reset-password.dto.js';
+import { MessageResponseDto } from '#src/modules/identity/auth/dto/message-response.dto.js';
+import { PasswordService } from '#src/modules/identity/auth/password.service.js';
+import { TokenService } from '#src/modules/identity/auth/token.service.js';
 import { MailService } from '#src/infrastructure/mail/mail.service.js';
-import { sendBestEffort } from '#src/modules/identity/services/auth/send-best-effort.js';
+import { sendBestEffort } from '#src/modules/identity/auth/send-best-effort.js';
 
 // Cùng tinh thần GENERIC_RESEND_MESSAGE ở trên — message chung cho
 // forgotPassword() dù email tồn tại hay không, chống enumeration (quyết
