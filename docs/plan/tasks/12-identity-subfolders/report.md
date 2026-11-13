@@ -1,6 +1,6 @@
 # Report 12: `identity/` theo layout phẳng
 
-Trạng thái: **done**, PR #PRNUM.
+Trạng thái: **done**, PR #77.
 
 ## Đã làm
 
