@@ -1,6 +1,6 @@
 ---
 status: done
-pr:
+pr: #91
 blocked-by: [21-product-slug-gender]
 labels: [ready-for-agent]
 ---
