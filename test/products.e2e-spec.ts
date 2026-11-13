@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -107,6 +108,9 @@ describe('Products + Variants (e2e)', () => {
       ? prisma.size.create({ data: { code, name: code, sortOrder: seq, ...extra } })
       : prisma.color.create({ data: { code, name: code, hex: '#112233', ...extra } });
   }
+
+  /** Key đúng dạng do presign cấp; kho ảnh được stub trong createTestApp. */
+  const imageKey = (productId: string) => `products/${productId}/${randomUUID()}`;
 
   const setStatus = (id: string, status: string) =>
     request(server()).patch(`/api/v1/admin/products/${id}`).set(auth(adminToken)).send({ status });
@@ -471,8 +475,12 @@ describe('Products + Variants (e2e)', () => {
 
     it('keeps at most one primary image per product color', async () => {
       const product = await createProduct();
-      const first = await addImage(product.id, { colorId, storageKey: 'products/a.jpg', isPrimary: true }).expect(201);
-      const second = await addImage(product.id, { colorId, storageKey: 'products/b.jpg', isPrimary: true }).expect(201);
+      const first = await addImage(product.id, { colorId, storageKey: imageKey(product.id), isPrimary: true }).expect(
+        201,
+      );
+      const second = await addImage(product.id, { colorId, storageKey: imageKey(product.id), isPrimary: true }).expect(
+        201,
+      );
 
       const res = await request(server()).get(`/api/v1/admin/products/${product.id}`).set(auth(adminToken)).expect(200);
       const primary = res.body.images.filter((i: { isPrimary: boolean }) => i.isPrimary);
@@ -482,8 +490,8 @@ describe('Products + Variants (e2e)', () => {
 
     it('promoting an existing image via PATCH demotes the previous primary', async () => {
       const product = await createProduct();
-      const a = await addImage(product.id, { colorId, storageKey: 'products/a.jpg', isPrimary: true }).expect(201);
-      const b = await addImage(product.id, { colorId, storageKey: 'products/b.jpg' }).expect(201);
+      const a = await addImage(product.id, { colorId, storageKey: imageKey(product.id), isPrimary: true }).expect(201);
+      const b = await addImage(product.id, { colorId, storageKey: imageKey(product.id) }).expect(201);
 
       await request(server())
         .patch(`/api/v1/admin/products/${product.id}/images/${b.body.id}`)
@@ -498,7 +506,7 @@ describe('Products + Variants (e2e)', () => {
 
     it('an unknown color is rejected with 400', async () => {
       const product = await createProduct();
-      await addImage(product.id, { colorId: MISSING_ID, storageKey: 'products/x.jpg' }).expect(400);
+      await addImage(product.id, { colorId: MISSING_ID, storageKey: imageKey(product.id) }).expect(400);
     });
 
     it('STAFF gets 403 on image writes', async () => {
@@ -506,7 +514,7 @@ describe('Products + Variants (e2e)', () => {
       await request(server())
         .post(`/api/v1/admin/products/${product.id}/images`)
         .set(auth(staffToken))
-        .send({ colorId, storageKey: 'products/x.jpg' })
+        .send({ colorId, storageKey: imageKey(product.id) })
         .expect(403);
     });
   });
@@ -515,10 +523,11 @@ describe('Products + Variants (e2e)', () => {
     it('detail shows each variant size/color names and images per color', async () => {
       const product = await publishedProduct();
       await createVariant(product.id);
+      const key = imageKey(product.id);
       await request(server())
         .post(`/api/v1/admin/products/${product.id}/images`)
         .set(auth(adminToken))
-        .send({ colorId, storageKey: 'products/p.jpg', isPrimary: true })
+        .send({ colorId, storageKey: key, isPrimary: true })
         .expect(201);
 
       const res = await request(server()).get(`/api/v1/products/${product.id}`).expect(200);
@@ -526,9 +535,7 @@ describe('Products + Variants (e2e)', () => {
         size: { code: expect.any(String), name: expect.any(String) },
         color: { code: expect.any(String), name: expect.any(String), hex: '#112233' },
       });
-      expect(res.body.images).toEqual([
-        expect.objectContaining({ colorId, storageKey: 'products/p.jpg', isPrimary: true }),
-      ]);
+      expect(res.body.images).toEqual([expect.objectContaining({ colorId, storageKey: key, isPrimary: true })]);
     });
 
     it('filters by size and color codes; a product matches when one ACTIVE variant satisfies both', async () => {

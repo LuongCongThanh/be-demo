@@ -25,11 +25,14 @@
 | `admin-product.service.spec.ts`                                      | Thêm provider stub `CloudinaryClient`.                                               |
 | `admin-product-lifecycle.service.spec.ts`, `product.service.spec.ts` | Truyền stub adapter vào constructor.                                                 |
 
+| `test/support/create-test-app.ts` | Stub `CloudinaryClient` (mọi key coi như đã upload JPEG 1 KB) để e2e không gọi kho ảnh thật. |
+| `test/products.e2e-spec.ts` | `storageKey` fixture đổi sang dạng `products/{productId}/{uuid}`; assertion giữ nguyên. |
+
 Không có test mới.
 
 ## Kiểm tra
 
-- `npm run typecheck`, `npm run lint` (chỉ còn warning cũ `no-explicit-any`), `npm run test` (238 pass), `npm run build`, `npm run openapi:write` pass.
+- `npm run typecheck`, `npm run lint` (chỉ còn warning cũ `no-explicit-any`), `npm run test` (238 pass), `npm run test:e2e` (175 pass), `npm run build`, `npm run openapi:write` pass.
 
 ## Acceptance criteria: chạy tay
 
