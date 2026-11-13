@@ -315,6 +315,7 @@
 
 - AC1: Nhập mã, kiểu giảm (% kèm mức tối đa, hoặc số tiền cố định), giá trị đơn tối thiểu, tổng lượt, lượt mỗi Người mua, thời gian hiệu lực (BR-VCH-03, BR-VCH-04).
 - AC2: Xem được số lượt đã dùng; vô hiệu hoá Voucher bất kỳ lúc nào.
+- AC3: Sửa và xoá theo BR-VCH-11.
 
 ---
 

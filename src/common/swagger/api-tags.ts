@@ -27,6 +27,11 @@ export const API_TAGS = {
     description:
       'Time-boxed sale prices per variant (no overlap per variant); upcoming editable, active only its end, ended read-only (needs PRICING_SALE_PRICE_*)',
   },
+  VOUCHERS: {
+    name: 'Vouchers',
+    description:
+      'Order discount codes (percent with optional cap, or fixed amount); code immutable, locked fields after first use, delete only unused (needs PRICING_VOUCHER_*)',
+  },
   STAFF: {
     name: 'Staff Management',
     description:

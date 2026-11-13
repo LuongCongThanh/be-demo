@@ -509,6 +509,72 @@
         ],
         "type": "object"
       },
+      "CreateVoucherDto": {
+        "properties": {
+          "code": {
+            "description": "3–32 letters, digits, - or _; stored upper case (BR-VCH-09)",
+            "example": "sale10",
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "Exclusive end, after startsAt",
+            "format": "date-time",
+            "type": "string"
+          },
+          "isActive": {
+            "default": true,
+            "type": "boolean"
+          },
+          "maxDiscount": {
+            "description": "PERCENT only; cap in VND",
+            "example": 50000,
+            "nullable": true,
+            "type": "number"
+          },
+          "minSubtotal": {
+            "default": 0,
+            "description": "Minimum Subtotal in VND",
+            "example": 300000,
+            "type": "number"
+          },
+          "perBuyerLimit": {
+            "description": "null = unlimited",
+            "example": 1,
+            "nullable": true,
+            "type": "number"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "totalLimit": {
+            "description": "null = unlimited",
+            "example": 100,
+            "nullable": true,
+            "type": "number"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VoucherType"
+              }
+            ]
+          },
+          "value": {
+            "description": "PERCENT: 1–100; FIXED: integer VND > 0",
+            "example": 10,
+            "type": "number"
+          }
+        },
+        "required": [
+          "code",
+          "type",
+          "value",
+          "startsAt",
+          "endsAt"
+        ],
+        "type": "object"
+      },
       "CustomerProfileResponseDto": {
         "properties": {
           "email": {
@@ -839,6 +905,24 @@
         ],
         "type": "object"
       },
+      "PaginatedVoucherResponseDto": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/VoucherResponseDto"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "PaginationMetaDto": {
         "properties": {
           "limit": {
@@ -877,6 +961,8 @@
           "CATALOG_PRODUCT_OPTION_MANAGE",
           "PRICING_SALE_PRICE_VIEW",
           "PRICING_SALE_PRICE_MANAGE",
+          "PRICING_VOUCHER_VIEW",
+          "PRICING_VOUCHER_MANAGE",
           "ADMINISTRATION_ROLE_VIEW",
           "ADMINISTRATION_ROLE_MANAGE",
           "ADMINISTRATION_INTERNAL_ACCOUNT_VIEW",
@@ -1902,6 +1988,60 @@
         },
         "type": "object"
       },
+      "UpdateVoucherDto": {
+        "properties": {
+          "endsAt": {
+            "description": "Exclusive end, after startsAt",
+            "format": "date-time",
+            "type": "string"
+          },
+          "isActive": {
+            "default": true,
+            "type": "boolean"
+          },
+          "maxDiscount": {
+            "description": "PERCENT only; cap in VND",
+            "example": 50000,
+            "nullable": true,
+            "type": "number"
+          },
+          "minSubtotal": {
+            "default": 0,
+            "description": "Minimum Subtotal in VND",
+            "example": 300000,
+            "type": "number"
+          },
+          "perBuyerLimit": {
+            "description": "null = unlimited",
+            "example": 1,
+            "nullable": true,
+            "type": "number"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "totalLimit": {
+            "description": "null = unlimited",
+            "example": 100,
+            "nullable": true,
+            "type": "number"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VoucherType"
+              }
+            ]
+          },
+          "value": {
+            "description": "PERCENT: 1–100; FIXED: integer VND > 0",
+            "example": 10,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
       "UserStatus": {
         "enum": [
           "ACTIVE",
@@ -1984,6 +2124,121 @@
           "code"
         ],
         "type": "object"
+      },
+      "VoucherResponseDto": {
+        "properties": {
+          "code": {
+            "description": "Upper case, immutable",
+            "example": "SALE10",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "Exclusive end",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "maxDiscount": {
+            "description": "PERCENT only; cap in VND, null = no cap",
+            "example": 50000,
+            "nullable": true,
+            "type": "number"
+          },
+          "minSubtotal": {
+            "description": "Minimum Subtotal in VND, 0 = none",
+            "example": 300000,
+            "type": "number"
+          },
+          "perBuyerLimit": {
+            "description": "Uses per Buyer (account or phone), null = unlimited",
+            "example": 1,
+            "nullable": true,
+            "type": "number"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VoucherStatus"
+              }
+            ],
+            "description": "At request time"
+          },
+          "totalLimit": {
+            "description": "Total uses, null = unlimited",
+            "example": 100,
+            "nullable": true,
+            "type": "number"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VoucherType"
+              }
+            ]
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "usedCount": {
+            "description": "Uses counted so far (orders arrive in slice C)",
+            "example": 0,
+            "type": "number"
+          },
+          "value": {
+            "description": "PERCENT: 1–100; FIXED: integer VND",
+            "example": 10,
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "type",
+          "value",
+          "maxDiscount",
+          "minSubtotal",
+          "totalLimit",
+          "perBuyerLimit",
+          "usedCount",
+          "startsAt",
+          "endsAt",
+          "isActive",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "VoucherStatus": {
+        "enum": [
+          "ACTIVE",
+          "UPCOMING",
+          "ENDED",
+          "EXHAUSTED",
+          "DISABLED"
+        ],
+        "type": "string"
+      },
+      "VoucherType": {
+        "enum": [
+          "PERCENT",
+          "FIXED"
+        ],
+        "type": "string"
       }
     },
     "securitySchemes": {
@@ -6163,6 +6418,478 @@
         ]
       }
     },
+    "/api/v1/admin/vouchers": {
+      "get": {
+        "operationId": "AdminVoucherController_findAll_v1",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "example": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "example": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Part of the code, case-insensitive",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "example": "SALE",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/VoucherStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedVoucherResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List vouchers, newest first; search by code, filter by status now",
+        "tags": [
+          "Vouchers"
+        ]
+      },
+      "post": {
+        "operationId": "AdminVoucherController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVoucherDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoucherResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Code already exists"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a voucher; the code is stored upper case and never changes",
+        "tags": [
+          "Vouchers"
+        ]
+      }
+    },
+    "/api/v1/admin/vouchers/{id}": {
+      "delete": {
+        "operationId": "AdminVoucherController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Voucher not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Already used"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an unused voucher; a used one can only be deactivated",
+        "tags": [
+          "Vouchers"
+        ]
+      },
+      "get": {
+        "operationId": "AdminVoucherController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoucherResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Voucher not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a voucher with its use count",
+        "tags": [
+          "Vouchers"
+        ]
+      },
+      "patch": {
+        "description": "Unused: any field but the code. Used: only endsAt, totalLimit (not below usedCount), perBuyerLimit, isActive.",
+        "operationId": "AdminVoucherController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVoucherDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoucherResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Voucher not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Field locked after first use"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a voucher",
+        "tags": [
+          "Vouchers"
+        ]
+      }
+    },
     "/api/v1/auth/forgot-password": {
       "post": {
         "operationId": "AuthController_forgotPassword_v1",
@@ -7458,6 +8185,10 @@
     {
       "description": "Time-boxed sale prices per variant (no overlap per variant); upcoming editable, active only its end, ended read-only (needs PRICING_SALE_PRICE_*)",
       "name": "Sale prices"
+    },
+    {
+      "description": "Order discount codes (percent with optional cap, or fixed amount); code immutable, locked fields after first use, delete only unused (needs PRICING_VOUCHER_*)",
+      "name": "Vouchers"
     },
     {
       "description": "Back-office staff accounts — create, rename, disable/enable (needs ADMINISTRATION_INTERNAL_ACCOUNT_* permissions, every change audited)",

@@ -34,6 +34,7 @@ model User {
   auditLogs               AuditLog[]
   userRoles               UserRole[]
   salePrices              SalePrice[]
+  vouchers                Voucher[]
 
   @@map("users")
 }

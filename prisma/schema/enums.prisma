@@ -12,6 +12,12 @@ enum Gender {
   UNISEX
 }
 
+// Kiểu giảm của Voucher (BR-VCH-03).
+enum VoucherType {
+  PERCENT
+  FIXED
+}
+
 enum VariantStatus {
   ACTIVE
   ARCHIVED

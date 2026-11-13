@@ -125,6 +125,35 @@ model SalePrice {
   @@map("sale_prices")
 }
 
+// Voucher (BR-VCH-03, BR-VCH-04, BR-VCH-09). Mã lưu chữ in hoa, không đổi sau khi tạo.
+// Lượt dùng (voucher_usages) đến ở slice C cùng Đơn hàng; `usedCount` đếm có khoá dòng khi đó.
+model Voucher {
+  id            String      @id @default(uuid()) @db.Uuid
+  // CHECK code = upper(code).
+  code          String      @unique @db.VarChar(32)
+  type          VoucherType
+  // PERCENT: 1–100; FIXED: VND > 0 (CHECK trong migration).
+  value         BigInt
+  // Chỉ PERCENT (CHECK); null = không giới hạn.
+  maxDiscount   BigInt?     @map("max_discount")
+  minSubtotal   BigInt      @default(0) @map("min_subtotal")
+  // null = không giới hạn.
+  totalLimit    Int?        @map("total_limit")
+  perBuyerLimit Int?        @map("per_buyer_limit")
+  usedCount     Int         @default(0) @map("used_count")
+  startsAt      DateTime    @map("starts_at") @db.Timestamptz(6)
+  endsAt        DateTime    @map("ends_at") @db.Timestamptz(6)
+  isActive      Boolean     @default(true) @map("is_active")
+  createdById   String      @map("created_by") @db.Uuid
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([createdAt(sort: Desc)])
+  @@map("vouchers")
+}
+
 // Danh sách size dùng chung do Admin quản lý (BR-CAT-11). Không xoá, chỉ ẩn.
 model Size {
   id        String   @id @default(uuid()) @db.Uuid
