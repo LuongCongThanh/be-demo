@@ -1,6 +1,6 @@
 ---
-status: todo
-pr:
+status: done
+pr: PR17
 blocked-by: [16-permissions-guard]
 labels: [ready-for-agent]
 ---

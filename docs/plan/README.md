@@ -28,22 +28,22 @@ Quy ước:
 
 Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 
-| #   | Task                                                                                    | Status | Blocked by                | PR  |
-| --- | --------------------------------------------------------------------------------------- | ------ | ------------------------- | --- |
-| 01  | [Mô hình bốn vai trò](./tasks/01-rename-roles/spec.md)                                  | done   | —                         | #60 |
-| 02  | [Login trả role, Staff, CLI create-admin](./tasks/02-login-role-staff-cli/spec.md)      | done   | 01-rename-roles           | #60 |
-| 03  | [Trạng thái sản phẩm & archive](./tasks/03-product-status-archive/spec.md)              | done   | 02-login-role-staff-cli   | #60 |
-| 04  | [Size/màu & quy tắc biến thể](./tasks/04-sizes-colors-variants/spec.md)                 | done   | 03-product-status-archive | #60 |
-| 05  | [Danh mục nhiều cấp](./tasks/05-nested-categories/spec.md)                              | done   | 04-sizes-colors-variants  | #60 |
-| 06  | [Gộp catalog thành một module](./tasks/06-catalog-module/spec.md)                       | done   | —                         | #63 |
-| 07  | [Gộp `auth` + `staff` thành module identity](./tasks/07-identity-module/spec.md)        | done   | 06                        | #65 |
-| 08  | [Tách `AuthService` theo use case](./tasks/08-identity-use-case-services/spec.md)       | done   | 07                        | #76 |
-| 09  | [Cổng phân quyền `@Authorize` ở `common/auth/`](./tasks/09-authorize-decorator/spec.md) | done   | —                         | #67 |
-| 10  | [Gom hạ tầng vào `infrastructure/`](./tasks/10-infrastructure-folder/spec.md)           | done   | 09                        | #68 |
-| 11  | [Deploy backend miễn phí (Render + Neon)](./tasks/11-deploy-render-free/spec.md)        | todo   | —                         |     |
-| 12  | [`identity/` theo layout phẳng](./tasks/12-identity-subfolders/spec.md)                 | done   | 08                        | #77 |
-| 13  | [`catalog/` theo layout phẳng](./tasks/13-catalog-subfolders/spec.md)                   | done   | —                         | #75 |
-| 14  | [Hợp đồng OpenAPI phát hành theo tag](./tasks/14-openapi-contract/spec.md)              | done   | —                         | #80 |
-| 15  | [Schema RBAC và migration `ADMIN`/`STAFF`](./tasks/15-rbac-schema/spec.md)              | done   | —                         | #81 |
-| 16  | [`PermissionsGuard` và `auth/me`](./tasks/16-permissions-guard/spec.md)                 | todo   | 15                        |     |
-| 17  | [API quản lý Vai trò và Quyền](./tasks/17-access-admin-api/spec.md)                     | todo   | 16                        |     |
+| #   | Task                                                                                    | Status | Blocked by                | PR   |
+| --- | --------------------------------------------------------------------------------------- | ------ | ------------------------- | ---- |
+| 01  | [Mô hình bốn vai trò](./tasks/01-rename-roles/spec.md)                                  | done   | —                         | #60  |
+| 02  | [Login trả role, Staff, CLI create-admin](./tasks/02-login-role-staff-cli/spec.md)      | done   | 01-rename-roles           | #60  |
+| 03  | [Trạng thái sản phẩm & archive](./tasks/03-product-status-archive/spec.md)              | done   | 02-login-role-staff-cli   | #60  |
+| 04  | [Size/màu & quy tắc biến thể](./tasks/04-sizes-colors-variants/spec.md)                 | done   | 03-product-status-archive | #60  |
+| 05  | [Danh mục nhiều cấp](./tasks/05-nested-categories/spec.md)                              | done   | 04-sizes-colors-variants  | #60  |
+| 06  | [Gộp catalog thành một module](./tasks/06-catalog-module/spec.md)                       | done   | —                         | #63  |
+| 07  | [Gộp `auth` + `staff` thành module identity](./tasks/07-identity-module/spec.md)        | done   | 06                        | #65  |
+| 08  | [Tách `AuthService` theo use case](./tasks/08-identity-use-case-services/spec.md)       | done   | 07                        | #76  |
+| 09  | [Cổng phân quyền `@Authorize` ở `common/auth/`](./tasks/09-authorize-decorator/spec.md) | done   | —                         | #67  |
+| 10  | [Gom hạ tầng vào `infrastructure/`](./tasks/10-infrastructure-folder/spec.md)           | done   | 09                        | #68  |
+| 11  | [Deploy backend miễn phí (Render + Neon)](./tasks/11-deploy-render-free/spec.md)        | todo   | —                         |      |
+| 12  | [`identity/` theo layout phẳng](./tasks/12-identity-subfolders/spec.md)                 | done   | 08                        | #77  |
+| 13  | [`catalog/` theo layout phẳng](./tasks/13-catalog-subfolders/spec.md)                   | done   | —                         | #75  |
+| 14  | [Hợp đồng OpenAPI phát hành theo tag](./tasks/14-openapi-contract/spec.md)              | done   | —                         | #80  |
+| 15  | [Schema RBAC và migration `ADMIN`/`STAFF`](./tasks/15-rbac-schema/spec.md)              | done   | —                         | #81  |
+| 16  | [`PermissionsGuard` và `auth/me`](./tasks/16-permissions-guard/spec.md)                 | todo   | 15                        |      |
+| 17  | [API quản lý Vai trò và Quyền](./tasks/17-access-admin-api/spec.md)                     | done   | 16                        | PR17 |

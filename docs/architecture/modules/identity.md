@@ -56,6 +56,12 @@ Email Google đã xác thực: có Tài khoản Khách hàng cùng email → li�
 
 Trong một transaction: `status=disabled`, `session_version += 1`, thu hồi mọi refresh token, ghi audit. Guard so `session_version` trong access token với giá trị hiện tại ở mỗi request ([05-auth-security](../05-auth-security.md) §5) → phiên cũ mất hiệu lực ngay (US-1001 AC1). Đổi/đặt lại mật khẩu cũng tăng `session_version`.
 
+### 5.3b. Vai trò, Quyền và gán Vai trò (`identity/access/`)
+
+`AccessService` (export từ `IdentityModule`): liệt kê Quyền theo nhóm, CRUD Vai trò, gán/gỡ Vai trò cho Tài khoản nội bộ (`/admin/permissions`, `/admin/roles`, `/admin/internal-accounts/:accountId/roles/:roleId`). Gán/gỡ Vai trò, đổi Quyền hoặc tên Vai trò đang được gán: một transaction gồm thay đổi + `session_version += 1` + thu hồi refresh token của mọi tài khoản bị ảnh hưởng + audit (`/auth/refresh` không so `session_version`, nên phải thu hồi token).
+
+Bất biến: Vai trò `Admin` read-only (luôn bằng toàn bộ enum), chỉ một tài khoản giữ, không xoá được; Vai trò hệ thống (`Admin`, `Staff`) không xoá, không đổi tên; Admin active duy nhất không bị vô hiệu hoá hay gỡ Vai trò `Admin`. Xoá Vai trò còn đang được gán bị từ chối (409), không cascade.
+
 ### 5.4. Tạo Admin bằng CLI
 
 ```bash
