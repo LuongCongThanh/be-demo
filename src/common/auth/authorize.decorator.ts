@@ -1,7 +1,7 @@
 import { applyDecorators, UseGuards } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants.js';
 import { ApiBearerAuth, DECORATORS } from '@nestjs/swagger';
-import type { Role } from '#src/generated/prisma/enums.js';
+import type { AccountType } from '#src/generated/prisma/enums.js';
 import { JwtAuthGuard } from '#src/common/auth/jwt-auth.guard.js';
 import { Roles } from '#src/common/auth/roles.decorator.js';
 import { RolesGuard } from '#src/common/auth/roles.guard.js';
@@ -13,7 +13,7 @@ const METHOD_AUTHORIZE_KEY = 'authorize:method';
  * Không truyền vai trò = chỉ cần đăng nhập. Gắn ở method ghi đè vai trò ở class
  * (`getAllAndOverride`). So khớp chính xác, không suy cây phân cấp (ADR 0005).
  */
-export function Authorize(...roles: Role[]): ClassDecorator & MethodDecorator {
+export function Authorize(...roles: AccountType[]): ClassDecorator & MethodDecorator {
   const decorateWithGuardsAndRoles = applyDecorators(
     ApiBearerAuth(),
     UseGuards(JwtAuthGuard, RolesGuard),

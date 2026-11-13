@@ -3,7 +3,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { PasswordService } from '#src/modules/identity/auth/password.service.js';
-import type { Role } from '#src/generated/prisma/enums.js';
+import type { AccountType } from '#src/generated/prisma/enums.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
 
@@ -57,7 +57,7 @@ describe('Categories (e2e)', () => {
   let seq = 0;
   const unique = (label: string) => `${TEST_NAME_PREFIX} ${label} ${Date.now()}-${seq++}`;
 
-  async function tokenFor(role: Role): Promise<string> {
+  async function tokenFor(role: AccountType): Promise<string> {
     const user = await createTestUser(prisma, {
       emailDomain: TEST_EMAIL_DOMAIN,
       emailSuffix: `${role.toLowerCase()}-`,

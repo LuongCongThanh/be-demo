@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { PasswordService } from '#src/modules/identity/auth/password.service.js';
-import type { Role } from '#src/generated/prisma/enums.js';
+import type { AccountType } from '#src/generated/prisma/enums.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
 
@@ -44,7 +44,7 @@ describe('Admin — sizes & colors (e2e)', () => {
   let seq = 0;
   const code = () => `${CODE_PREFIX}${Date.now().toString(36).toUpperCase()}${seq++}`;
 
-  async function tokenFor(role: Role): Promise<string> {
+  async function tokenFor(role: AccountType): Promise<string> {
     const user = await createTestUser(prisma, {
       emailDomain: TEST_EMAIL_DOMAIN,
       emailSuffix: `${role.toLowerCase()}-`,

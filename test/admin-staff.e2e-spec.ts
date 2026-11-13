@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { PasswordService } from '#src/modules/identity/auth/password.service.js';
-import type { Role } from '#src/generated/prisma/enums.js';
+import type { AccountType } from '#src/generated/prisma/enums.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
 
@@ -45,7 +45,7 @@ describe('Admin — staff management (e2e)', () => {
   const uniqueEmail = (prefix: string) =>
     `${prefix}${Date.now()}${Math.random().toString(36).slice(2)}${TEST_EMAIL_DOMAIN}`;
 
-  async function userWithToken(role: Role) {
+  async function userWithToken(role: AccountType) {
     const user = await createTestUser(prisma, {
       emailDomain: TEST_EMAIL_DOMAIN,
       emailSuffix: `${role.toLowerCase()}-`,

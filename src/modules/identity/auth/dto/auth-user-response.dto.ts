@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Role } from '#src/generated/prisma/enums.js';
+import { AccountType } from '#src/generated/prisma/enums.js';
 
 export class AuthUserResponseDto {
   @ApiProperty()
@@ -11,8 +11,8 @@ export class AuthUserResponseDto {
   @ApiProperty()
   fullName: string;
 
-  @ApiProperty({ enum: Role, enumName: 'Role', example: Role.CUSTOMER })
-  role: Role;
+  @ApiProperty({ enum: AccountType, enumName: 'Role', example: AccountType.CUSTOMER })
+  role: AccountType;
 
   @ApiProperty()
   emailVerified: boolean;
