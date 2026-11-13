@@ -1,6 +1,6 @@
 # Report 21
 
-- **PR:**
+- **PR:** #90
 - **Ngày merge:**
 
 ## Đã làm

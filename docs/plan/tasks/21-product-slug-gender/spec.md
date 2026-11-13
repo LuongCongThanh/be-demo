@@ -1,6 +1,6 @@
 ---
 status: done
-pr:
+pr: #90
 blocked-by: [20-product-image-upload]
 labels: [ready-for-agent]
 ---
