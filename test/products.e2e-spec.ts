@@ -211,6 +211,8 @@ describe('Products + Variants (e2e)', () => {
       const archived = await createProduct();
       await archive(archived.id).expect(200);
       const active = await publishedProduct();
+      // Danh sách storefront chỉ hiện Sản phẩm còn ít nhất một Biến thể ACTIVE.
+      await createVariant(active.id);
 
       const list = await request(server()).get(`/api/v1/products?categoryId=${categoryId}&limit=100`).expect(200);
       const ids = list.body.data.map((p: { id: string }) => p.id);

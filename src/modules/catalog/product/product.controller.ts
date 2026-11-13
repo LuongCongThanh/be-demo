@@ -6,7 +6,7 @@ import { ProductService } from '#src/modules/catalog/product/product.service.js'
 import { ListProductsQueryDto } from '#src/modules/catalog/product/dto/list-products-query.dto.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { ProductDetailResponseDto } from '#src/modules/catalog/product/dto/product-detail-response.dto.js';
-import { PaginatedProductResponseDto } from '#src/modules/catalog/product/dto/paginated-product-response.dto.js';
+import { PaginatedProductListResponseDto } from '#src/modules/catalog/product/dto/paginated-product-list-response.dto.js';
 import { VariantResponseDto } from '#src/modules/catalog/product/dto/variant-response.dto.js';
 import { PaginatedVariantResponseDto } from '#src/modules/catalog/product/dto/paginated-variant-response.dto.js';
 
@@ -17,8 +17,11 @@ export class ProductController {
   constructor(private readonly productsService: ProductService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List ACTIVE products (paginated, filterable by category, public)' })
-  @ApiOkResponse({ type: PaginatedProductResponseDto })
+  @ApiOperation({
+    summary: 'List ACTIVE products with a price range (paginated, public)',
+    description: 'Search by name, filter by category, size, color and price, sort by newest or price.',
+  })
+  @ApiOkResponse({ type: PaginatedProductListResponseDto })
   @ApiErrorResponses(400)
   findAll(@Query() query: ListProductsQueryDto) {
     return this.productsService.findAll(query);

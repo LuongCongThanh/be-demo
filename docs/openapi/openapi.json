@@ -657,6 +657,24 @@
         ],
         "type": "object"
       },
+      "PaginatedProductListResponseDto": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ProductListItemResponseDto"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "PaginatedProductResponseDto": {
         "properties": {
           "data": {
@@ -863,6 +881,73 @@
         ],
         "type": "object"
       },
+      "ProductListItemResponseDto": {
+        "properties": {
+          "categoryId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "maxPrice": {
+            "description": "Highest price among ACTIVE variants, integer VND",
+            "example": 249000,
+            "type": "number"
+          },
+          "minPrice": {
+            "description": "Lowest price among ACTIVE variants, integer VND",
+            "example": 199000,
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "description": "First time the product became ACTIVE",
+            "nullable": true,
+            "type": "object"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProductStatus"
+              }
+            ]
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "weightGrams": {
+            "description": "Shipping weight in grams",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "categoryId",
+          "name",
+          "slug",
+          "weightGrams",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "minPrice",
+          "maxPrice"
+        ],
+        "type": "object"
+      },
       "ProductResponseDto": {
         "properties": {
           "categoryId": {
@@ -917,6 +1002,14 @@
           "updatedAt"
         ],
         "type": "object"
+      },
+      "ProductSort": {
+        "enum": [
+          "newest",
+          "price_asc",
+          "price_desc"
+        ],
+        "type": "string"
       },
       "ProductStatus": {
         "enum": [
@@ -2554,41 +2647,22 @@
             }
           },
           {
-            "description": "Size codes; repeat the param for several (`?size=M&size=L`)",
-            "in": "query",
-            "name": "size",
-            "required": false,
-            "schema": {
-              "example": [
-                "M"
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Color codes; repeat the param for several (`?color=WHT&color=BLK`)",
-            "in": "query",
-            "name": "color",
-            "required": false,
-            "schema": {
-              "example": [
-                "WHT"
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
             "in": "query",
             "name": "status",
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/ProductStatus"
+            }
+          },
+          {
+            "description": "Substring of the product name or a variant SKU, case-insensitive. Trimmed; empty means no search.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "example": "TSHIRT",
+              "maxLength": 100,
+              "type": "string"
             }
           }
         ],
@@ -5831,6 +5905,7 @@
     },
     "/api/v1/products": {
       "get": {
+        "description": "Search by name, filter by category, size, color and price, sort by newest or price.",
         "operationId": "ProductController_findAll_v1",
         "parameters": [
           {
@@ -5866,6 +5941,17 @@
             }
           },
           {
+            "description": "Substring of the product name, case- and Vietnamese-accent-insensitive (BR-CAT-13). Trimmed; empty means no search.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "example": "ao thun",
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
             "description": "Size codes; repeat the param for several (`?size=M&size=L`)",
             "in": "query",
             "name": "size",
@@ -5894,6 +5980,37 @@
               },
               "type": "array"
             }
+          },
+          {
+            "description": "Lowest product price (integer VND) at least this",
+            "in": "query",
+            "name": "minPrice",
+            "required": false,
+            "schema": {
+              "example": 100000,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Lowest product price (integer VND) at most this",
+            "in": "query",
+            "name": "maxPrice",
+            "required": false,
+            "schema": {
+              "example": 500000,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Price sorts use the lowest price among ACTIVE variants",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ProductSort"
+            }
           }
         ],
         "responses": {
@@ -5901,7 +6018,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedProductResponseDto"
+                  "$ref": "#/components/schemas/PaginatedProductListResponseDto"
                 }
               }
             },
@@ -5928,7 +6045,7 @@
             "description": "Rate limit exceeded — retry after the window resets"
           }
         },
-        "summary": "List ACTIVE products (paginated, filterable by category, public)",
+        "summary": "List ACTIVE products with a price range (paginated, public)",
         "tags": [
           "Products"
         ]
