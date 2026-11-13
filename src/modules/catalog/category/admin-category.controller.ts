@@ -26,7 +26,7 @@ import { PaginatedCategoryResponseDto } from '#src/modules/catalog/category/dto/
 @ApiTags(API_TAGS.CATEGORIES.name)
 @Authorize('STAFF', 'ADMIN')
 @Controller('admin/categories')
-export class AdminCategoriesController {
+export class AdminCategoryController {
   constructor(private readonly service: AdminCategoryService) {}
 
   @Get()

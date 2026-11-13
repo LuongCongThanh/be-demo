@@ -13,7 +13,7 @@ import { PaginatedVariantResponseDto } from '#src/modules/catalog/product/dto/pa
 /** Storefront — công khai, chỉ đọc, chỉ thấy sản phẩm/biến thể ACTIVE. */
 @ApiTags(API_TAGS.PRODUCTS.name)
 @Controller('products')
-export class ProductsController {
+export class ProductController {
   constructor(private readonly productsService: ProductService) {}
 
   @Get()
