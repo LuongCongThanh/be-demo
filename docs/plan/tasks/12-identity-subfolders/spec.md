@@ -1,13 +1,13 @@
 ---
-status: todo
-pr:
+status: done
+pr: #PRNUM
 blocked-by: [08-identity-use-case-services]
 labels: [ready-for-agent]
 ---
 
 # Spec 12: `identity/` theo layout phẳng — `auth/` + `internal-account/`
 
-Branch dự kiến: `refactor/identity-subfolders` · Slice 0 của tái cấu trúc ba repo (spec cha nằm ở workspace, ngoài repo).
+Branch: `chore/identity-subfolders` · Slice 0 của tái cấu trúc ba repo (spec cha nằm ở workspace, ngoài repo).
 
 ## Problem Statement
 

@@ -85,7 +85,7 @@ import { CreateResourceDto } from './create-resource.dto.js';
 export class UpdateResourceDto extends PartialType(CreateResourceDto) {}
 ```
 
-Quy tắc (`example:`, `PartialType` từ `@nestjs/swagger`, field server tự sinh): [api-rules.md §R1](api-rules.md#r1-request-dto--validation). Tham khảo `src/modules/identity/dto/auth/register.dto.ts`.
+Quy tắc (`example:`, `PartialType` từ `@nestjs/swagger`, field server tự sinh): [api-rules.md §R1](api-rules.md#r1-request-dto--validation). Tham khảo `src/modules/identity/auth/dto/register.dto.ts`.
 
 ## B5. Service
 
@@ -289,7 +289,7 @@ verify(@Body() dto: VerifyEmailDto) { ... }
 findOne(@Param('id', ParseUUIDPipe) id: string) { ... }
 ```
 
-Tham khảo `src/modules/identity/controllers/storefront/auth.controller.ts`. Sau khi xong: `npm run start:dev` → `npm run postman:sync`.
+Tham khảo `src/modules/identity/auth/auth.controller.ts`. Sau khi xong: `npm run start:dev` → `npm run postman:sync`.
 
 ## B9. Pagination
 

@@ -1,5 +1,5 @@
 import { ExecutionContext, HttpException } from '@nestjs/common';
-import { EmailThrottlerGuard } from '#src/modules/identity/guards/email-throttler.guard.js';
+import { EmailThrottlerGuard } from '#src/modules/identity/auth/email-throttler.guard.js';
 
 function createContext(options: { route?: string; body?: Record<string, unknown>; ip?: string }): ExecutionContext {
   return {

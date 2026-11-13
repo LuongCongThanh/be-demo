@@ -4,9 +4,9 @@ import {
   GENERIC_RESEND_MESSAGE,
   MAX_VERIFY_ATTEMPTS,
   RegistrationService,
-} from '#src/modules/identity/services/auth/registration.service.js';
-import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
-import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
+} from '#src/modules/identity/auth/registration.service.js';
+import { PasswordService } from '#src/modules/identity/auth/password.service.js';
+import { TokenService } from '#src/modules/identity/auth/token.service.js';
 import { MailService } from '#src/infrastructure/mail/mail.service.js';
 
 function createHarness() {

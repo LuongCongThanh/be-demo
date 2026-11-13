@@ -1,6 +1,6 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtStrategy } from '#src/modules/identity/strategies/jwt.strategy.js';
+import { JwtStrategy } from '#src/modules/identity/auth/jwt.strategy.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 function createStrategy(userSessionVersion: number | null) {

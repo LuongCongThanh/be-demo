@@ -1,7 +1,7 @@
 import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CreateAdminCommand } from '#src/cli/create-admin.command.js';
-import type { InternalAccountService } from '#src/modules/identity/services/internal-account/internal-account.service.js';
+import type { InternalAccountService } from '#src/modules/identity/internal-account/internal-account.service.js';
 import type { PasswordPrompt } from '#src/cli/password-prompt.js';
 
 describe('CreateAdminCommand', () => {

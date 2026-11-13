@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
-import { CustomerProfileResponseDto } from '#src/modules/identity/dto/auth/customer-profile-response.dto.js';
-import { AuthUserResponseDto } from '#src/modules/identity/dto/auth/auth-user-response.dto.js';
+import { CustomerProfileResponseDto } from '#src/modules/identity/auth/dto/customer-profile-response.dto.js';
+import { AuthUserResponseDto } from '#src/modules/identity/auth/dto/auth-user-response.dto.js';
 
 @Injectable()
 export class AccountProfileService {

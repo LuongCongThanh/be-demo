@@ -1,4 +1,4 @@
-import { AccountProfileService } from '#src/modules/identity/services/auth/account-profile.service.js';
+import { AccountProfileService } from '#src/modules/identity/auth/account-profile.service.js';
 
 function createHarness() {
   const prisma = {
