@@ -17,7 +17,10 @@ import { AuthUserResponseDto } from '#src/modules/identity/dto/auth/auth-user-re
 import { MessageResponseDto } from '#src/modules/identity/dto/auth/message-response.dto.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
-import { AuthService } from '#src/modules/identity/services/auth/auth.service.js';
+import { RegistrationService } from '#src/modules/identity/services/auth/registration.service.js';
+import { SessionService } from '#src/modules/identity/services/auth/session.service.js';
+import { PasswordResetService } from '#src/modules/identity/services/auth/password-reset.service.js';
+import { AccountProfileService } from '#src/modules/identity/services/auth/account-profile.service.js';
 import { RegisterDto } from '#src/modules/identity/dto/auth/register.dto.js';
 import { RegisterResponseDto } from '#src/modules/identity/dto/auth/register-response.dto.js';
 import { CurrentUser } from '#src/common/auth/current-user.decorator.js';
@@ -38,7 +41,10 @@ const DEFAULT_THROTTLE = { default: { limit: 20, ttl: 60_000 } };
 @Controller('auth')
 export class AuthController {
   constructor(
-    private readonly authService: AuthService,
+    private readonly registrationService: RegistrationService,
+    private readonly sessionService: SessionService,
+    private readonly passwordResetService: PasswordResetService,
+    private readonly accountProfileService: AccountProfileService,
     private readonly config: ConfigService,
   ) {}
 
@@ -49,7 +55,7 @@ export class AuthController {
   @ApiCreatedResponse({ type: RegisterResponseDto })
   @ApiErrorResponses([409, 'Email already exists'], [400, 'Invalid input'])
   async register(@Body() dto: RegisterDto): Promise<RegisterResponseDto> {
-    return this.authService.register(dto);
+    return this.registrationService.register(dto);
   }
 
   @Throttle(DEFAULT_THROTTLE)
@@ -62,7 +68,7 @@ export class AuthController {
     [400, 'Invalid input, code already used or expired, or too many attempts'],
   )
   async verifyEmail(@Body() dto: VerifyEmailDto): Promise<MessageResponseDto> {
-    return this.authService.verifyEmail(dto);
+    return this.registrationService.verifyEmail(dto);
   }
 
   @UseGuards(EmailThrottlerGuard)
@@ -72,7 +78,7 @@ export class AuthController {
   @ApiOkResponse({ type: MessageResponseDto, description: 'A new verification email has been sent (if applicable)' })
   @ApiErrorResponses([400, 'Invalid input'])
   async resendVerification(@Body() dto: ResendVerificationDto): Promise<MessageResponseDto> {
-    return this.authService.resendVerification(dto);
+    return this.registrationService.resendVerification(dto);
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -82,7 +88,7 @@ export class AuthController {
   @ApiOkResponse({ type: LoginResponseDto })
   @ApiErrorResponses([400, 'Invalid input'], [401, 'Invalid credentials, account locked, or email not verified'])
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response): Promise<LoginResponseDto> {
-    const { accessToken, rawRefreshToken, user } = await this.authService.login(dto);
+    const { accessToken, rawRefreshToken, user } = await this.sessionService.login(dto);
 
     this.setRefreshTokenCookie(response, rawRefreshToken);
 
@@ -101,7 +107,7 @@ export class AuthController {
   async refresh(@Req() request: Request, @Res({ passthrough: true }) response: Response): Promise<RefreshResponseDto> {
     const rawRefreshToken = request.cookies?.[this.getRefreshTokenCookieName()] as string | undefined;
 
-    const { accessToken, newRawRefreshToken } = await this.authService.refreshToken(rawRefreshToken);
+    const { accessToken, newRawRefreshToken } = await this.sessionService.refreshToken(rawRefreshToken);
 
     this.setRefreshTokenCookie(response, newRawRefreshToken);
 
@@ -115,7 +121,7 @@ export class AuthController {
   @ApiOkResponse({ type: MessageResponseDto, description: 'A password reset email has been sent (if applicable)' })
   @ApiErrorResponses([400, 'Invalid input'])
   async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<MessageResponseDto> {
-    return this.authService.forgotPassword(dto);
+    return this.passwordResetService.forgotPassword(dto);
   }
 
   @Post('reset-password')
@@ -124,7 +130,7 @@ export class AuthController {
   @ApiOkResponse({ type: MessageResponseDto, description: 'Password has been reset' })
   @ApiErrorResponses([400, 'Invalid, expired, or already-used token; or invalid input'])
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<MessageResponseDto> {
-    return this.authService.resetPassword(dto);
+    return this.passwordResetService.resetPassword(dto);
   }
 
   @Get('me')
@@ -133,7 +139,7 @@ export class AuthController {
   @ApiOkResponse({ type: AuthUserResponseDto })
   @ApiErrorResponses(401)
   getMe(@CurrentUser() user: JwtPayload): Promise<AuthUserResponseDto> {
-    return this.authService.getMe(user.sub);
+    return this.accountProfileService.getMe(user.sub);
   }
 
   @Authorize()
@@ -146,7 +152,7 @@ export class AuthController {
     const rawRefreshToken = request.cookies?.[this.getRefreshTokenCookieName()] as string | undefined;
 
     if (rawRefreshToken) {
-      await this.authService.logout(rawRefreshToken);
+      await this.sessionService.logout(rawRefreshToken);
     }
 
     this.clearRefreshTokenCookie(response);
@@ -164,7 +170,7 @@ export class AuthController {
     @CurrentUser() user: JwtPayload,
     @Res({ passthrough: true }) response: Response,
   ): Promise<MessageResponseDto> {
-    await this.authService.logoutAll(user.sub);
+    await this.sessionService.logoutAll(user.sub);
 
     this.clearRefreshTokenCookie(response);
 

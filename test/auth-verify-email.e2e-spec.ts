@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
-import { MAX_VERIFY_ATTEMPTS } from '#src/modules/identity/services/auth/auth.service.js';
+import { MAX_VERIFY_ATTEMPTS } from '#src/modules/identity/services/auth/registration.service.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
 

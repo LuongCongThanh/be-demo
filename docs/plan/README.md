@@ -37,7 +37,7 @@ Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 | 05  | [Danh mục nhiều cấp](./tasks/05-nested-categories/spec.md)                              | done        | 04-sizes-colors-variants  | #60 |
 | 06  | [Gộp catalog thành một module](./tasks/06-catalog-module/spec.md)                       | done        | —                         | #63 |
 | 07  | [Gộp `auth` + `staff` thành module identity](./tasks/07-identity-module/spec.md)        | done        | 06                        | #65 |
-| 08  | [Tách `AuthService` theo use case](./tasks/08-identity-use-case-services/spec.md)       | in-progress | 07                        |     |
+| 08  | [Tách `AuthService` theo use case](./tasks/08-identity-use-case-services/spec.md)       | done        | 07                        | #PR |
 | 09  | [Cổng phân quyền `@Authorize` ở `common/auth/`](./tasks/09-authorize-decorator/spec.md) | done        | —                         | #67 |
 | 10  | [Gom hạ tầng vào `infrastructure/`](./tasks/10-infrastructure-folder/spec.md)           | done        | 09                        | #68 |
 | 11  | [Deploy backend miễn phí (Render + Neon)](./tasks/11-deploy-render-free/spec.md)        | todo        | —                         |     |

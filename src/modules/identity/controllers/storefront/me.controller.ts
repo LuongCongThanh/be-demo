@@ -5,7 +5,7 @@ import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decor
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { CurrentUser } from '#src/common/auth/current-user.decorator.js';
 import type { JwtPayload } from '#src/common/auth/jwt-payload.js';
-import { AuthService } from '#src/modules/identity/services/auth/auth.service.js';
+import { AccountProfileService } from '#src/modules/identity/services/auth/account-profile.service.js';
 import { CustomerProfileResponseDto } from '#src/modules/identity/dto/auth/customer-profile-response.dto.js';
 
 /**
@@ -15,7 +15,7 @@ import { CustomerProfileResponseDto } from '#src/modules/identity/dto/auth/custo
 @ApiTags(API_TAGS.AUTH.name)
 @Controller('me')
 export class MeController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly accountProfileService: AccountProfileService) {}
 
   @Get()
   @Authorize('CUSTOMER')
@@ -23,6 +23,6 @@ export class MeController {
   @ApiOkResponse({ type: CustomerProfileResponseDto })
   @ApiErrorResponses(401, 403)
   getProfile(@CurrentUser() user: JwtPayload): Promise<CustomerProfileResponseDto> {
-    return this.authService.getCustomerProfile(user.sub);
+    return this.accountProfileService.getCustomerProfile(user.sub);
   }
 }

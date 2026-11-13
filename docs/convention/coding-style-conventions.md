@@ -103,7 +103,10 @@ identity/
 ├── auth/                         # đăng ký, đăng nhập, phiên, mật khẩu, me
 │   ├── auth.controller.ts
 │   ├── me.controller.ts
-│   ├── auth.service.ts
+│   ├── registration.service.ts
+│   ├── session.service.ts
+│   ├── password-reset.service.ts
+│   ├── account-profile.service.ts
 │   ├── token.service.ts
 │   ├── password.service.ts
 │   ├── jwt.strategy.ts
@@ -173,7 +176,7 @@ Theo pattern đã thấy trong code hiện tại: package ngoài (`@nestjs/*`, t
 
 ## 7. Khi nào tách file
 
-Không có ngưỡng dòng cứng, nhưng nếu 1 service/controller vượt quá **~300 dòng** (vd. `auth.service.ts` hiện ~480 dòng, đã là file lớn nhất project), cân nhắc tách theo use-case (vd. tách riêng use-case đăng ký/đăng nhập/reset-password thành các service nhỏ hơn nếu chúng đủ độc lập) thay vì để 1 class ôm hết. Đây là gợi ý, không phải rule chặn PR — không tách chỉ vì "đủ số dòng" nếu logic thực sự gắn chặt với nhau.
+Không có ngưỡng dòng cứng, nhưng nếu 1 service/controller vượt quá **~300 dòng** (vd. `auth.service.ts` từng ~480 dòng, đã được tách thành bốn service theo use case ở task 08), cân nhắc tách theo use-case (vd. tách riêng use-case đăng ký/đăng nhập/reset-password thành các service nhỏ hơn nếu chúng đủ độc lập) thay vì để 1 class ôm hết. Đây là gợi ý, không phải rule chặn PR — không tách chỉ vì "đủ số dòng" nếu logic thực sự gắn chặt với nhau.
 
 ## Checklist khi thêm file mới
 
