@@ -4,6 +4,7 @@ import { Prisma } from '#src/generated/prisma/client.js';
 import { InternalAccountService } from '#src/modules/identity/internal-account/internal-account.service.js';
 import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import type { PasswordService } from '#src/modules/identity/auth/password.service.js';
+import type { AccessService } from '#src/modules/identity/access/access.service.js';
 import type { AuditLogService } from '#src/infrastructure/audit/audit-log.service.js';
 
 function setup() {
@@ -18,6 +19,7 @@ function setup() {
     prisma as unknown as PrismaService,
     passwords as unknown as PasswordService,
     audit as unknown as AuditLogService,
+    { assertNotAdminHolder: vi.fn() } as unknown as AccessService,
   );
   return { service, prisma, tx, passwords, audit };
 }
@@ -102,6 +104,7 @@ function setupStaff() {
     prisma as unknown as PrismaService,
     passwords as unknown as PasswordService,
     audit as unknown as AuditLogService,
+    { assertNotAdminHolder: vi.fn() } as unknown as AccessService,
   );
   const accounts = { create: vi.spyOn(service, 'create') as unknown as ReturnType<typeof vi.fn> };
   return { service, prisma, tx, audit, accounts };

@@ -20,7 +20,7 @@ export class AdminStaffController {
   constructor(private readonly internalAccounts: InternalAccountService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List staff accounts, newest first (ADMIN only)' })
+  @ApiOperation({ summary: 'List staff accounts, newest first (requires ADMINISTRATION_INTERNAL_ACCOUNT_VIEW)' })
   @ApiOkResponse({ type: PaginatedStaffResponseDto })
   @ApiErrorResponses(400, 401, 403)
   findAll(@Query() pagination: PaginationDto) {
@@ -29,7 +29,9 @@ export class AdminStaffController {
 
   @Post()
   @Authorize(Permission.ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)
-  @ApiOperation({ summary: 'Create a staff account with an initial password (ADMIN only)' })
+  @ApiOperation({
+    summary: 'Create a staff account with an initial password (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)',
+  })
   @ApiCreatedResponse({ type: StaffResponseDto })
   @ApiErrorResponses(400, 401, 403, [409, 'Email is already in use'])
   create(@Body() dto: CreateStaffDto, @CurrentUser() user: JwtPayload) {
@@ -38,7 +40,7 @@ export class AdminStaffController {
 
   @Patch(':id')
   @Authorize(Permission.ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)
-  @ApiOperation({ summary: 'Rename a staff account (ADMIN only)' })
+  @ApiOperation({ summary: 'Rename a staff account (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)' })
   @ApiOkResponse({ type: StaffResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Staff account not found'])
   rename(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateStaffDto, @CurrentUser() user: JwtPayload) {
@@ -48,7 +50,10 @@ export class AdminStaffController {
   @Post(':id/disable')
   @Authorize(Permission.ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Disable a staff account and end all its sessions immediately; idempotent (ADMIN only)' })
+  @ApiOperation({
+    summary:
+      'Disable a staff account and end all its sessions immediately; idempotent (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)',
+  })
   @ApiOkResponse({ type: StaffResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Staff account not found'])
   disable(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
@@ -58,7 +63,9 @@ export class AdminStaffController {
   @Post(':id/enable')
   @Authorize(Permission.ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Re-enable a disabled staff account; idempotent (ADMIN only)' })
+  @ApiOperation({
+    summary: 'Re-enable a disabled staff account; idempotent (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)',
+  })
   @ApiOkResponse({ type: StaffResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Staff account not found'])
   enable(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {

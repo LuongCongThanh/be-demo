@@ -46,4 +46,4 @@ Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 | 14  | [Hợp đồng OpenAPI phát hành theo tag](./tasks/14-openapi-contract/spec.md)              | done   | —                         | #80 |
 | 15  | [Schema RBAC và migration `ADMIN`/`STAFF`](./tasks/15-rbac-schema/spec.md)              | done   | —                         | #81 |
 | 16  | [`PermissionsGuard` và `auth/me`](./tasks/16-permissions-guard/spec.md)                 | todo   | 15                        |     |
-| 17  | [API quản lý Vai trò và Quyền](./tasks/17-access-admin-api/spec.md)                     | todo   | 16                        |     |
+| 17  | [API quản lý Vai trò và Quyền](./tasks/17-access-admin-api/spec.md)                     | done   | 16                        | #83 |

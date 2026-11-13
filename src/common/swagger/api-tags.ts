@@ -24,7 +24,13 @@ export const API_TAGS = {
   },
   STAFF: {
     name: 'Staff Management',
-    description: 'Back-office staff accounts — create, rename, disable/enable (ADMIN only, every change audited)',
+    description:
+      'Back-office staff accounts — create, rename, disable/enable (needs ADMINISTRATION_INTERNAL_ACCOUNT_* permissions, every change audited)',
+  },
+  ACCESS: {
+    name: 'Roles & Permissions',
+    description:
+      'Permission list, role CRUD and role assignment for internal accounts — the Admin role is read-only, role changes end the affected sessions, every change audited',
   },
   HEALTH: {
     name: 'Health',

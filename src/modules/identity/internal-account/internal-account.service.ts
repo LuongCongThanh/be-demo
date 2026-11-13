@@ -3,6 +3,7 @@ import type { Prisma, User, UserStatus } from '#src/generated/prisma/client.js';
 import { writeUnique } from '#src/infrastructure/database/prisma-error.util.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { AuditLogService } from '#src/infrastructure/audit/audit-log.service.js';
+import { AccessService } from '#src/modules/identity/access/access.service.js';
 import { PasswordService } from '#src/modules/identity/auth/password.service.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { NEWEST_FIRST, paginate } from '#src/common/pagination/paginate.js';
@@ -41,6 +42,7 @@ export class InternalAccountService {
     private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
     private readonly auditLog: AuditLogService,
+    private readonly access: AccessService,
   ) {}
 
   async create(input: CreateInternalAccountInput): Promise<User> {
@@ -142,6 +144,8 @@ export class InternalAccountService {
       }
 
       const disabling = status === 'DISABLED';
+      // Tài khoản giữ Vai trò Admin là Admin duy nhất: không được vô hiệu hoá.
+      if (disabling) await this.access.assertNotAdminHolder(tx, id);
       const user = await tx.user.update({
         where: { id },
         data: { status, ...(disabling && { sessionVersion: { increment: 1 } }) },

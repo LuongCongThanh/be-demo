@@ -15,6 +15,8 @@ import { PasswordResetService } from '#src/modules/identity/auth/password-reset.
 import { AccountProfileService } from '#src/modules/identity/auth/account-profile.service.js';
 import { PasswordService } from '#src/modules/identity/auth/password.service.js';
 import { TokenService } from '#src/modules/identity/auth/token.service.js';
+import { AdminRoleController } from '#src/modules/identity/access/admin-role.controller.js';
+import { AccessService } from '#src/modules/identity/access/access.service.js';
 import { InternalAccountService } from '#src/modules/identity/internal-account/internal-account.service.js';
 import { JwtStrategy } from '#src/modules/identity/auth/jwt.strategy.js';
 
@@ -40,7 +42,7 @@ import { JwtStrategy } from '#src/modules/identity/auth/jwt.strategy.js';
       },
     }),
   ],
-  controllers: [AuthController, MeController, AdminStaffController],
+  controllers: [AuthController, MeController, AdminStaffController, AdminRoleController],
   providers: [
     RegistrationService,
     AccessClaimsService,
@@ -50,8 +52,9 @@ import { JwtStrategy } from '#src/modules/identity/auth/jwt.strategy.js';
     PasswordService,
     TokenService,
     JwtStrategy,
+    AccessService,
     InternalAccountService,
   ],
-  exports: [PassportModule, InternalAccountService],
+  exports: [PassportModule, AccessService, InternalAccountService],
 })
 export class IdentityModule {}
