@@ -18,6 +18,7 @@ import {
   IMAGE_FORMATS,
   IMAGE_MAX_BYTES,
   imageKeyPrefix,
+  isImageKeyOf,
 } from '#src/modules/catalog/product/product-image.constants.js';
 import { toImageResponse } from '#src/modules/catalog/product/product-image.mapper.js';
 import { CreateImageDto } from '#src/modules/catalog/product/dto/create-image.dto.js';
@@ -53,7 +54,7 @@ export class AdminProductImageService {
       this.prisma.color.findUnique({ where: { id: dto.colorId }, select: { id: true } }),
     ]);
     if (!color) throw new BadRequestException(`Color #${dto.colorId} does not exist`);
-    if (!dto.storageKey.startsWith(imageKeyPrefix(productId))) {
+    if (!isImageKeyOf(productId, dto.storageKey)) {
       throw new BadRequestException('storageKey was not issued for this product');
     }
     await this.assertUploaded(dto.storageKey);

@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 pr: #87
 blocked-by: [19-catalog-search-sort]
 labels: [ready-for-agent]
@@ -17,7 +17,7 @@ Branch: `feature/product-image-upload` · Slice B1 (Catalog). Không viết test
 
 - Adapter `infrastructure/storage/cloudinary.client.ts` (một adapter, inject trực tiếp): ký tham số upload, hỏi thông tin file, xoá file, dựng URL công khai. Ký bằng SHA-1 theo tài liệu Cloudinary, gọi API bằng `fetch`, không thêm dependency.
 - `POST /admin/products/:id/images/presign` (`CATALOG_PRODUCT_MANAGE`): body `{ contentType: image/jpeg|png|webp, size ≤ 5 MB }` → `{ uploadUrl, fields, storageKey, expiresAt }`. `storageKey = products/{productId}/{uuid}`. Chữ ký kèm `allowed_formats=jpg,png,webp`, `overwrite=false`.
-- `POST /admin/products/:id/images`: `storageKey` phải đúng tiền tố của Sản phẩm (400); file phải có trong kho (422), đúng định dạng và ≤ 5 MB (sai thì xoá file, 422).
+- `POST /admin/products/:id/images`: `storageKey` phải đúng dạng `products/{productId}/{uuid}` (400); file phải có trong kho (422), đúng định dạng và ≤ 5 MB (sai thì xoá file, 422).
 - `DELETE /admin/products/:id/images/:imageId`: xoá bản ghi, rồi xoá file best-effort.
 - Ảnh trong mọi response có `url`; dòng danh sách storefront có `imageUrl` (ảnh primary trước, rồi theo `sortOrder`).
 - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` optional: thiếu thì upload/gắn ảnh 503, `url` null.

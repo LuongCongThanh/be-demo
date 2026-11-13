@@ -13,7 +13,7 @@ const storage = {
 };
 
 describe('AdminProductImageService', () => {
-  const saved = async () => ({ id: 'i1', storageKey: 'products/p1/k' });
+  const saved = async () => ({ id: 'i1', storageKey: 'products/p1/00000000-0000-4000-8000-000000000001' });
   const tx = { productImage: { updateMany: vi.fn(), create: vi.fn(saved), update: vi.fn(saved) } };
   const prisma = {
     product: { findUnique: vi.fn() },
@@ -32,14 +32,23 @@ describe('AdminProductImageService', () => {
     prisma.product.findUnique.mockResolvedValue({ id: 'p1' });
     prisma.color.findUnique.mockResolvedValue({ id: 'c1' });
 
-    await service.create('p1', { colorId: 'c1', storageKey: 'products/p1/k', isPrimary: true });
+    await service.create('p1', {
+      colorId: 'c1',
+      storageKey: 'products/p1/00000000-0000-4000-8000-000000000001',
+      isPrimary: true,
+    });
 
     expect(tx.productImage.updateMany).toHaveBeenCalledWith({
       where: { productId: 'p1', colorId: 'c1', isPrimary: true },
       data: { isPrimary: false },
     });
     expect(tx.productImage.create).toHaveBeenCalledWith({
-      data: { colorId: 'c1', storageKey: 'products/p1/k', isPrimary: true, productId: 'p1' },
+      data: {
+        colorId: 'c1',
+        storageKey: 'products/p1/00000000-0000-4000-8000-000000000001',
+        isPrimary: true,
+        productId: 'p1',
+      },
     });
   });
 
@@ -47,7 +56,7 @@ describe('AdminProductImageService', () => {
     prisma.product.findUnique.mockResolvedValue({ id: 'p1' });
     prisma.color.findUnique.mockResolvedValue({ id: 'c1' });
 
-    await service.create('p1', { colorId: 'c1', storageKey: 'products/p1/k' });
+    await service.create('p1', { colorId: 'c1', storageKey: 'products/p1/00000000-0000-4000-8000-000000000001' });
 
     expect(tx.productImage.updateMany).not.toHaveBeenCalled();
   });
@@ -55,15 +64,15 @@ describe('AdminProductImageService', () => {
   it('rejects a missing product (404) or unknown color (400)', async () => {
     prisma.product.findUnique.mockResolvedValueOnce(null);
     prisma.color.findUnique.mockResolvedValueOnce({ id: 'c1' });
-    await expect(service.create('p1', { colorId: 'c1', storageKey: 'products/p1/k' })).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      service.create('p1', { colorId: 'c1', storageKey: 'products/p1/00000000-0000-4000-8000-000000000001' }),
+    ).rejects.toThrow(NotFoundException);
 
     prisma.product.findUnique.mockResolvedValueOnce({ id: 'p1' });
     prisma.color.findUnique.mockResolvedValueOnce(null);
-    await expect(service.create('p1', { colorId: 'c1', storageKey: 'products/p1/k' })).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(
+      service.create('p1', { colorId: 'c1', storageKey: 'products/p1/00000000-0000-4000-8000-000000000001' }),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('maps a concurrent primary collision (P2002) to 409', async () => {
@@ -73,9 +82,13 @@ describe('AdminProductImageService', () => {
       new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x' }),
     );
 
-    await expect(service.create('p1', { colorId: 'c1', storageKey: 'products/p1/k', isPrimary: true })).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(
+      service.create('p1', {
+        colorId: 'c1',
+        storageKey: 'products/p1/00000000-0000-4000-8000-000000000001',
+        isPrimary: true,
+      }),
+    ).rejects.toThrow(ConflictException);
   });
 
   it('promoting an image demotes only when it was not primary already', async () => {
@@ -95,7 +108,7 @@ describe('AdminProductImageService', () => {
 
   it('remove is scoped by product and 404s when nothing was deleted', async () => {
     prisma.productImage.findFirst
-      .mockResolvedValueOnce({ id: 'i1', storageKey: 'products/p1/k' })
+      .mockResolvedValueOnce({ id: 'i1', storageKey: 'products/p1/00000000-0000-4000-8000-000000000001' })
       .mockResolvedValueOnce(null);
     prisma.productImage.deleteMany.mockResolvedValueOnce({ count: 1 });
 
