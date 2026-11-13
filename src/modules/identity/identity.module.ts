@@ -8,7 +8,10 @@ import { AuditModule } from '#src/infrastructure/audit/audit.module.js';
 import { AuthController } from '#src/modules/identity/controllers/storefront/auth.controller.js';
 import { MeController } from '#src/modules/identity/controllers/storefront/me.controller.js';
 import { AdminStaffController } from '#src/modules/identity/controllers/back-office/admin-staff.controller.js';
-import { AuthService } from '#src/modules/identity/services/auth/auth.service.js';
+import { RegistrationService } from '#src/modules/identity/services/auth/registration.service.js';
+import { SessionService } from '#src/modules/identity/services/auth/session.service.js';
+import { PasswordResetService } from '#src/modules/identity/services/auth/password-reset.service.js';
+import { AccountProfileService } from '#src/modules/identity/services/auth/account-profile.service.js';
 import { PasswordService } from '#src/modules/identity/services/auth/password.service.js';
 import { TokenService } from '#src/modules/identity/services/auth/token.service.js';
 import { InternalAccountService } from '#src/modules/identity/services/internal-account/internal-account.service.js';
@@ -38,7 +41,17 @@ import { JwtStrategy } from '#src/modules/identity/strategies/jwt.strategy.js';
     }),
   ],
   controllers: [AuthController, MeController, AdminStaffController],
-  providers: [AuthService, PasswordService, TokenService, JwtStrategy, InternalAccountService, StaffService],
+  providers: [
+    RegistrationService,
+    SessionService,
+    PasswordResetService,
+    AccountProfileService,
+    PasswordService,
+    TokenService,
+    JwtStrategy,
+    InternalAccountService,
+    StaffService,
+  ],
   exports: [PassportModule, InternalAccountService],
 })
 export class IdentityModule {}

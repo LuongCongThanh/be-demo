@@ -1,6 +1,6 @@
 ---
-status: in-progress
-pr:
+status: done
+pr: #76
 blocked-by: [07-identity-module]
 ---
 
@@ -47,12 +47,12 @@ Tách thành bốn service trong `modules/identity/services/auth/`. Mỗi servic
 
 ## Acceptance Criteria
 
-- [ ] AC1: `services/auth/auth.service.ts` và `auth.service.spec.ts` không còn tồn tại; có 4 service mới, mỗi service kèm spec.
-- [ ] AC2: Không service nào inject dependency mà nó không dùng (kiểm bằng `lint` + đọc constructor).
-- [ ] AC3: Tổng số unit test ≥ trước. Các test cũ pass mà không sửa assertion.
-- [ ] AC4: `lint`, `typecheck`, `test`, `test:e2e` xanh; e2e chỉ được đổi đường import (`MAX_VERIFY_ATTEMPTS`).
-- [ ] AC5: Swagger `jq -S` diff rỗng (so với sau task 07).
-- [ ] AC6: Không file service nào trong `services/auth/` dài quá 250 dòng.
+- [x] AC1: `services/auth/auth.service.ts` và `auth.service.spec.ts` không còn tồn tại; có 4 service mới, mỗi service kèm spec.
+- [x] AC2: Không service nào inject dependency mà nó không dùng (kiểm bằng `lint` + đọc constructor).
+- [x] AC3: Tổng số unit test ≥ trước. Các test cũ pass mà không sửa assertion.
+- [x] AC4: `lint`, `typecheck`, `test`, `test:e2e` xanh; e2e chỉ được đổi đường import (`MAX_VERIFY_ATTEMPTS`).
+- [x] AC5: Swagger `jq -S` diff rỗng (so với sau task 07).
+- [x] AC6: Không file service nào trong `services/auth/` dài quá 250 dòng.
 
 ## Out of scope
 
