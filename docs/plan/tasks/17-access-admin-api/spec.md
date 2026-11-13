@@ -1,6 +1,6 @@
 ---
 status: done
-pr: PR17
+pr: #83
 blocked-by: [16-permissions-guard]
 labels: [ready-for-agent]
 ---
