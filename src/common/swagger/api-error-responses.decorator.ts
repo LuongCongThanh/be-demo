@@ -2,7 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import { ErrorResponseDto } from '#src/common/swagger/error-response.dto.js';
 
-type ErrorStatus = 400 | 401 | 403 | 404 | 409;
+type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 422 | 503;
 
 // `Record<ErrorStatus, …>` buộc mọi status hợp lệ đều có mô tả mặc định.
 const DEFAULT_DESCRIPTIONS: Record<ErrorStatus, string> = {
@@ -11,6 +11,8 @@ const DEFAULT_DESCRIPTIONS: Record<ErrorStatus, string> = {
   403: 'Authenticated user lacks the required permission or account type',
   404: 'Resource not found',
   409: 'Conflicts with existing data',
+  422: 'Request is well-formed but cannot be processed',
+  503: 'A required external service is not configured or unavailable',
 };
 
 /**

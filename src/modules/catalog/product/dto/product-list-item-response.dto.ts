@@ -8,4 +8,11 @@ export class ProductListItemResponseDto extends ProductResponseDto {
 
   @ApiProperty({ description: 'Highest price among ACTIVE variants, integer VND', example: 249000 })
   maxPrice: number;
+
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Card image: a primary image (any color) first, else the first image; null when none',
+  })
+  imageUrl: string | null;
 }

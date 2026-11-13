@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
+import { StorageModule } from '#src/infrastructure/storage/storage.module.js';
 import { CategoryController } from '#src/modules/catalog/category/category.controller.js';
 import { AdminCategoryController } from '#src/modules/catalog/category/admin-category.controller.js';
 import { ProductController } from '#src/modules/catalog/product/product.controller.js';
@@ -15,7 +16,7 @@ import { ProductOptionService } from '#src/modules/catalog/product-option/produc
 
 @Module({
   // PassportModule cấp AuthModuleOptions cho JwtAuthGuard (@Authorize); strategy 'jwt' do IdentityModule đăng ký.
-  imports: [PassportModule.register({})],
+  imports: [PassportModule.register({}), StorageModule],
   controllers: [
     CategoryController,
     AdminCategoryController,

@@ -2,6 +2,7 @@ import { NotFoundException, ConflictException, BadRequestException } from '@nest
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminProductService } from '#src/modules/catalog/product/admin-product.service.js';
+import { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
 describe('AdminProductService', () => {
@@ -30,7 +31,11 @@ describe('AdminProductService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [AdminProductService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        AdminProductService,
+        { provide: PrismaService, useValue: prismaMock },
+        { provide: CloudinaryClient, useValue: { publicUrl: () => null } },
+      ],
     }).compile();
 
     service = moduleRef.get(AdminProductService);
