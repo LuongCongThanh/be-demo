@@ -40,7 +40,7 @@ const VARIANT_NOT_FOUND: [404, string] = [404, 'Variant not found on this produc
 @ApiTags(API_TAGS.PRODUCTS.name)
 @Authorize('STAFF', 'ADMIN')
 @Controller('admin/products')
-export class AdminProductsController {
+export class AdminProductController {
   constructor(
     private readonly service: AdminProductService,
     private readonly images: AdminProductImageService,

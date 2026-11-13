@@ -9,7 +9,7 @@ import { CategoryTreeNodeDto } from '#src/modules/catalog/category/dto/category-
 /** Storefront — công khai, chỉ đọc, chỉ danh mục hiển thị. */
 @ApiTags(API_TAGS.CATEGORIES.name)
 @Controller('categories')
-export class CategoriesController {
+export class CategoryController {
   constructor(private readonly categoriesService: CategoryService) {}
 
   @Get()
