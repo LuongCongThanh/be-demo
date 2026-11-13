@@ -24,6 +24,16 @@ export interface CreateInternalAccountInput {
 export const EMAIL_IN_USE_MESSAGE = 'Email is already in use';
 const STAFF_NOT_FOUND = 'Staff account not found';
 
+/** Mọi response Staff kèm Vai trò được gán (sắp theo tên) để CMS không phải gọi thêm request mỗi dòng. */
+const WITH_ROLES = {
+  userRoles: {
+    select: { role: { select: { id: true, name: true, isSystem: true } } },
+    orderBy: { role: { name: 'asc' } },
+  },
+} satisfies Prisma.UserInclude;
+
+type StaffWithRoles = Prisma.UserGetPayload<{ include: typeof WITH_ROLES }>;
+
 /**
  * Tài khoản nội bộ (Admin, Staff).
  *
@@ -88,7 +98,11 @@ export class InternalAccountService {
 
   async createStaff(dto: CreateStaffDto, actorUserId: string): Promise<StaffResponseDto> {
     const user = await this.create({ ...dto, role: 'STAFF', actorUserId });
-    return toStaffResponse(user);
+    return toStaffResponse(await findStaffOrThrow(this.prisma, user.id));
+  }
+
+  async findOneStaff(id: string): Promise<StaffResponseDto> {
+    return toStaffResponse(await findStaffOrThrow(this.prisma, id));
   }
 
   async findAllStaff({ page, limit }: PaginationDto): Promise<PaginatedStaffResponseDto> {
@@ -96,7 +110,7 @@ export class InternalAccountService {
     const result = await paginate(
       page,
       limit,
-      (args) => this.prisma.user.findMany({ where, orderBy: [...NEWEST_FIRST], ...args }),
+      (args) => this.prisma.user.findMany({ where, orderBy: [...NEWEST_FIRST], include: WITH_ROLES, ...args }),
       () => this.prisma.user.count({ where }),
     );
     return { ...result, data: result.data.map(toStaffResponse) };
@@ -107,7 +121,7 @@ export class InternalAccountService {
       const before = await findStaffOrThrow(tx, id);
       // Tên không đổi → không ghi gì, không có dòng audit rỗng nghĩa.
       if (before.fullName === dto.name) return toStaffResponse(before);
-      const user = await tx.user.update({ where: { id }, data: { fullName: dto.name } });
+      const user = await tx.user.update({ where: { id }, data: { fullName: dto.name }, include: WITH_ROLES });
       await this.auditLog.record(tx, {
         actorUserId,
         action: 'staff.rename',
@@ -149,6 +163,7 @@ export class InternalAccountService {
       const user = await tx.user.update({
         where: { id },
         data: { status, ...(disabling && { sessionVersion: { increment: 1 } }) },
+        include: WITH_ROLES,
       });
       if (disabling) {
         await tx.refreshToken.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: new Date() } });
@@ -166,20 +181,21 @@ export class InternalAccountService {
   }
 }
 
-async function findStaffOrThrow(tx: Prisma.TransactionClient, id: string): Promise<User> {
-  const user = await tx.user.findFirst({ where: { id, role: 'STAFF' } });
+async function findStaffOrThrow(tx: Prisma.TransactionClient, id: string): Promise<StaffWithRoles> {
+  const user = await tx.user.findFirst({ where: { id, role: 'STAFF' }, include: WITH_ROLES });
   if (!user) {
     throw new NotFoundException(STAFF_NOT_FOUND);
   }
   return user;
 }
 
-function toStaffResponse(user: User): StaffResponseDto {
+function toStaffResponse(user: StaffWithRoles): StaffResponseDto {
   return {
     id: user.id,
     email: user.email,
     name: user.fullName,
     status: user.status,
+    roles: user.userRoles.map(({ role }) => role),
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
