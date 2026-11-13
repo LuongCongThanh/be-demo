@@ -45,5 +45,6 @@ Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 | 13  | [`catalog/` theo layout phẳng](./tasks/13-catalog-subfolders/spec.md)                   | done   | —                         | #75 |
 | 14  | [Hợp đồng OpenAPI phát hành theo tag](./tasks/14-openapi-contract/spec.md)              | done   | —                         | #80 |
 | 15  | [Schema RBAC và migration `ADMIN`/`STAFF`](./tasks/15-rbac-schema/spec.md)              | done   | —                         | #81 |
-| 16  | [`PermissionsGuard` và `auth/me`](./tasks/16-permissions-guard/spec.md)                 | todo   | 15                        |     |
+| 16  | [`PermissionsGuard` và `auth/me`](./tasks/16-permissions-guard/spec.md)                 | done   | 15                        | #82 |
 | 17  | [API quản lý Vai trò và Quyền](./tasks/17-access-admin-api/spec.md)                     | done   | 16                        | #83 |
+| 18  | [Chi tiết Tài khoản nội bộ kèm Vai trò](./tasks/18-staff-detail-roles/spec.md)          | done   | 17                        |     |

@@ -85,6 +85,7 @@ const staff = (over: Record<string, unknown> = {}) => ({
   passwordHash: 'hash',
   createdAt: new Date(0),
   updatedAt: new Date(0),
+  userRoles: [{ role: { id: 'r-staff', name: 'Staff', isSystem: true } }],
   ...over,
 });
 
@@ -96,7 +97,7 @@ function setupStaff() {
   };
   const prisma = {
     $transaction: vi.fn((arg: unknown) => (typeof arg === 'function' ? arg(tx) : Promise.all(arg as unknown[]))),
-    user: { findMany: vi.fn(), count: vi.fn() },
+    user: { findMany: vi.fn(), count: vi.fn(), findFirst: vi.fn() },
   };
   const audit = { record: vi.fn() };
   const passwords = { hash: vi.fn() };
@@ -118,6 +119,7 @@ describe('InternalAccountService staff management', () => {
 
   it('create delegates to InternalAccountService with role STAFF and maps to the allow-list DTO', async () => {
     h.accounts.create.mockResolvedValue(staff());
+    h.prisma.user.findFirst.mockResolvedValue(staff());
     const result = await h.service.createStaff(
       { email: 's@x.local', name: 'Nhan Vien', password: 'Abc@1234' },
       'admin-1',
@@ -129,6 +131,7 @@ describe('InternalAccountService staff management', () => {
       email: 's@x.local',
       name: 'Nhan Vien',
       status: 'ACTIVE',
+      roles: [{ id: 'r-staff', name: 'Staff', isSystem: true }],
       createdAt: new Date(0),
       updatedAt: new Date(0),
     });
@@ -176,7 +179,10 @@ describe('InternalAccountService staff management', () => {
     it('throws 404 when the target is not a STAFF account', async () => {
       h.tx.user.findFirst.mockResolvedValue(null);
       await expect(h.service.renameStaff('admin-1', { name: 'X' }, 'admin-1')).rejects.toThrow(NotFoundException);
-      expect(h.tx.user.findFirst).toHaveBeenCalledWith({ where: { id: 'admin-1', role: 'STAFF' } });
+      expect(h.tx.user.findFirst).toHaveBeenCalledWith({
+        where: { id: 'admin-1', role: 'STAFF' },
+        include: expect.any(Object),
+      });
     });
   });
 
@@ -191,6 +197,7 @@ describe('InternalAccountService staff management', () => {
       expect(h.tx.user.update).toHaveBeenCalledWith({
         where: { id: 's1' },
         data: { status: 'DISABLED', sessionVersion: { increment: 1 } },
+        include: expect.any(Object),
       });
       expect(h.tx.refreshToken.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { userId: 's1', revokedAt: null } }),
@@ -213,7 +220,11 @@ describe('InternalAccountService staff management', () => {
 
       await h.service.enableStaff('s1', 'admin-1');
 
-      expect(h.tx.user.update).toHaveBeenCalledWith({ where: { id: 's1' }, data: { status: 'ACTIVE' } });
+      expect(h.tx.user.update).toHaveBeenCalledWith({
+        where: { id: 's1' },
+        data: { status: 'ACTIVE' },
+        include: expect.any(Object),
+      });
       expect(h.tx.refreshToken.updateMany).not.toHaveBeenCalled();
       expect(h.audit.record).toHaveBeenCalledWith(h.tx, expect.objectContaining({ action: 'staff.enable' }));
     });

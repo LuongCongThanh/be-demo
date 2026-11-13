@@ -1146,6 +1146,13 @@
           "name": {
             "type": "string"
           },
+          "roles": {
+            "description": "RBAC roles assigned to the account, sorted by name",
+            "items": {
+              "$ref": "#/components/schemas/RoleSummaryResponseDto"
+            },
+            "type": "array"
+          },
           "status": {
             "allOf": [
               {
@@ -1163,6 +1170,7 @@
           "email",
           "name",
           "status",
+          "roles",
           "createdAt",
           "updatedAt"
         ],
@@ -4668,6 +4676,90 @@
       }
     },
     "/api/v1/admin/staff/{id}": {
+      "get": {
+        "operationId": "AdminStaffController_findOne_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Staff account not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one staff account with its roles (requires ADMINISTRATION_INTERNAL_ACCOUNT_VIEW)",
+        "tags": [
+          "Staff Management"
+        ]
+      },
       "patch": {
         "operationId": "AdminStaffController_rename_v1",
         "parameters": [

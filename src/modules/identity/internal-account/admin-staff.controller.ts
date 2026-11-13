@@ -27,6 +27,14 @@ export class AdminStaffController {
     return this.internalAccounts.findAllStaff(pagination);
   }
 
+  @Get(':id')
+  @ApiOperation({ summary: 'Get one staff account with its roles (requires ADMINISTRATION_INTERNAL_ACCOUNT_VIEW)' })
+  @ApiOkResponse({ type: StaffResponseDto })
+  @ApiErrorResponses(400, 401, 403, [404, 'Staff account not found'])
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.internalAccounts.findOneStaff(id);
+  }
+
   @Post()
   @Authorize(Permission.ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)
   @ApiOperation({
