@@ -20,6 +20,8 @@
 | BR-CAT-11 | Size và màu của Biến thể được chọn từ **danh sách size** và **bảng màu** dùng chung do Admin quản lý. Size có thứ tự hiển thị; màu có mã, tên và mã hex. Size hoặc màu đã có Biến thể dùng chỉ được ẩn, không được xoá. Bộ lọc trên storefront lọc theo mã size và mã màu.                                                     |
 | BR-CAT-12 | Sắp xếp **bán chạy** theo tổng số lượng trong Dòng đơn hàng của các đơn đã vào Chờ xác nhận, chưa bị huỷ và không Hoàn hàng, trong 30 ngày gần nhất, tính theo Sản phẩm. Số liệu cập nhật mỗi đêm, không cần thời gian thực.                                                                                                   |
 | BR-CAT-13 | MVP tìm kiếm theo **chuỗi con liên tiếp trong tên Sản phẩm**, không phân biệt hoa thường và dấu tiếng Việt. Bỏ khoảng trắng đầu/cuối từ khoá; từ khoá rỗng được coi là không lọc tìm kiếm. Không sửa lỗi gõ, đảo thứ tự từ hoặc tìm gần đúng. Tìm kiếm chỉ lọc kết quả, vẫn kết hợp với các bộ lọc và cách sắp xếp của US-102. |
+| BR-CAT-14 | Mỗi Sản phẩm có một **Giới tính**: Nam, Nữ, Trẻ em hoặc Unisex. Lọc Nam hoặc Nữ trên storefront hiện cả Sản phẩm Unisex; lọc Trẻ em thì không.                                                                                                                                                                                 |
+| BR-CAT-15 | Xem hoặc lọc theo một danh mục hiện Sản phẩm của danh mục đó và mọi danh mục con, cháu.                                                                                                                                                                                                                                        |
 
 ## 2. Giá và khuyến mãi
 

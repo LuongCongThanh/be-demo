@@ -82,7 +82,7 @@ describe('Products + Variants (e2e)', () => {
     const res = await request(server())
       .post('/api/v1/admin/products')
       .set(auth(adminToken))
-      .send({ name: unique('Product'), categoryId, weightGrams: 250, ...extra })
+      .send({ name: unique('Product'), categoryId, weightGrams: 250, gender: 'UNISEX', ...extra })
       .expect(201);
     return res.body as { id: string; status: string; publishedAt: string | null };
   }
@@ -317,7 +317,7 @@ describe('Products + Variants (e2e)', () => {
       await request(server())
         .post('/api/v1/admin/products')
         .set(auth(adminToken))
-        .send({ name: unique('NoCat'), categoryId: MISSING_ID, weightGrams: 250 })
+        .send({ name: unique('NoCat'), categoryId: MISSING_ID, weightGrams: 250, gender: 'UNISEX' })
         .expect(404);
     });
 
@@ -327,7 +327,7 @@ describe('Products + Variants (e2e)', () => {
       await request(server())
         .post('/api/v1/admin/products')
         .set(auth(adminToken))
-        .send({ name, categoryId, weightGrams: 250 })
+        .send({ name, categoryId, weightGrams: 250, gender: 'UNISEX' })
         .expect(409);
     });
 
@@ -463,7 +463,7 @@ describe('Products + Variants (e2e)', () => {
         await request(server())
           .post('/api/v1/admin/products')
           .set(auth(adminToken))
-          .send({ name: unique('Weight'), categoryId, weightGrams })
+          .send({ name: unique('Weight'), categoryId, weightGrams, gender: 'UNISEX' })
           .expect(400);
       }
     });

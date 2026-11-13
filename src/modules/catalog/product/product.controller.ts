@@ -27,6 +27,14 @@ export class ProductController {
     return this.productsService.findAll(query);
   }
 
+  @Get('slug/:slug')
+  @ApiOperation({ summary: 'Get an ACTIVE product by slug with its ACTIVE variants (public)' })
+  @ApiOkResponse({ type: ProductDetailResponseDto })
+  @ApiErrorResponses([404, 'Product not found'])
+  findOneBySlug(@Param('slug') slug: string) {
+    return this.productsService.findOneBySlug(slug);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get an ACTIVE product with its ACTIVE variants (public)' })
   @ApiOkResponse({ type: ProductDetailResponseDto })

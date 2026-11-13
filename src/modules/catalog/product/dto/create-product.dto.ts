@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { Gender } from '#src/generated/prisma/enums.js';
 
 export class CreateProductDto {
   @ApiProperty({ maxLength: 255, example: 'Wireless Headphones' })
@@ -24,6 +25,15 @@ export class CreateProductDto {
   @IsInt()
   @Min(1)
   weightGrams: number;
+
+  @ApiProperty({
+    enum: Gender,
+    enumName: 'Gender',
+    example: Gender.UNISEX,
+    description: 'Who the product is for (BR-CAT-14)',
+  })
+  @IsEnum(Gender)
+  gender: Gender;
 
   @ApiPropertyOptional({
     maxLength: 5000,

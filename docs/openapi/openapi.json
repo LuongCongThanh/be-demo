@@ -306,6 +306,15 @@
             "maxLength": 5000,
             "type": "string"
           },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ],
+            "description": "Who the product is for (BR-CAT-14)",
+            "example": "UNISEX"
+          },
           "name": {
             "example": "Wireless Headphones",
             "maxLength": 255,
@@ -321,7 +330,8 @@
         "required": [
           "name",
           "categoryId",
-          "weightGrams"
+          "weightGrams",
+          "gender"
         ],
         "type": "object"
       },
@@ -509,6 +519,15 @@
           "email"
         ],
         "type": "object"
+      },
+      "Gender": {
+        "enum": [
+          "MEN",
+          "WOMEN",
+          "KIDS",
+          "UNISEX"
+        ],
+        "type": "string"
       },
       "ImageResponseDto": {
         "properties": {
@@ -894,6 +913,13 @@
             "nullable": true,
             "type": "string"
           },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -946,6 +972,7 @@
           "slug",
           "description",
           "weightGrams",
+          "gender",
           "status",
           "publishedAt",
           "createdAt",
@@ -967,6 +994,13 @@
           "description": {
             "nullable": true,
             "type": "string"
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ]
           },
           "id": {
             "type": "string"
@@ -1021,6 +1055,7 @@
           "slug",
           "description",
           "weightGrams",
+          "gender",
           "status",
           "publishedAt",
           "createdAt",
@@ -1043,6 +1078,13 @@
           "description": {
             "nullable": true,
             "type": "string"
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ]
           },
           "id": {
             "type": "string"
@@ -1082,6 +1124,7 @@
           "slug",
           "description",
           "weightGrams",
+          "gender",
           "status",
           "publishedAt",
           "createdAt",
@@ -1447,6 +1490,15 @@
             "example": "Áo thun cotton 100%, form rộng.",
             "maxLength": 5000,
             "type": "string"
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ],
+            "description": "Who the product is for (BR-CAT-14)",
+            "example": "MEN"
           },
           "name": {
             "example": "Wireless Headphones",
@@ -6152,6 +6204,7 @@
             }
           },
           {
+            "description": "Products in this category or any of its descendants",
             "in": "query",
             "name": "categoryId",
             "required": false,
@@ -6197,6 +6250,18 @@
               ],
               "items": {
                 "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Repeat the param for several; MEN and WOMEN also match UNISEX (BR-CAT-14)",
+            "in": "query",
+            "name": "gender",
+            "required": false,
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/Gender"
               },
               "type": "array"
             }
@@ -6266,6 +6331,57 @@
           }
         },
         "summary": "List ACTIVE products with a price range (paginated, public)",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/slug/{slug}": {
+      "get": {
+        "operationId": "ProductController_findOneBySlug_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetailResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Product not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "Get an ACTIVE product by slug with its ACTIVE variants (public)",
         "tags": [
           "Products"
         ]

@@ -143,7 +143,12 @@ describe('Admin — sizes & colors (e2e)', () => {
       const product = await request(server())
         .post('/api/v1/admin/products')
         .set(auth(adminToken))
-        .send({ name: `${NAME_PREFIX} product ${Date.now()}`, categoryId: category.id, weightGrams: 300 })
+        .send({
+          name: `${NAME_PREFIX} product ${Date.now()}`,
+          categoryId: category.id,
+          weightGrams: 300,
+          gender: 'UNISEX',
+        })
         .expect(201);
       const variant = await request(server())
         .post(`/api/v1/admin/products/${product.body.id}/variants`)

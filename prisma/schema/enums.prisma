@@ -4,6 +4,14 @@ enum ProductStatus {
   ARCHIVED
 }
 
+// Đối tượng mặc của Sản phẩm (BR-CAT-14). Lọc MEN/WOMEN gộp cả UNISEX.
+enum Gender {
+  MEN
+  WOMEN
+  KIDS
+  UNISEX
+}
+
 enum VariantStatus {
   ACTIVE
   ARCHIVED
