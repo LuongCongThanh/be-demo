@@ -13,6 +13,8 @@ import { ProductService } from '#src/modules/catalog/product/product.service.js'
 import { AdminProductService } from '#src/modules/catalog/product/admin-product.service.js';
 import { AdminProductImageService } from '#src/modules/catalog/product/admin-product-image.service.js';
 import { ProductOptionService } from '#src/modules/catalog/product-option/product-option.service.js';
+import { AdminSalePriceController } from '#src/modules/catalog/pricing/admin-sale-price.controller.js';
+import { AdminSalePriceService } from '#src/modules/catalog/pricing/admin-sale-price.service.js';
 
 @Module({
   // PassportModule cấp AuthModuleOptions cho JwtAuthGuard (@Authorize); strategy 'jwt' do IdentityModule đăng ký.
@@ -24,6 +26,7 @@ import { ProductOptionService } from '#src/modules/catalog/product-option/produc
     AdminProductController,
     ProductOptionController,
     AdminProductOptionController,
+    AdminSalePriceController,
   ],
   providers: [
     CategoryService,
@@ -32,6 +35,7 @@ import { ProductOptionService } from '#src/modules/catalog/product-option/produc
     AdminProductService,
     AdminProductImageService,
     ProductOptionService,
+    AdminSalePriceService,
   ],
 })
 export class CatalogModule {}

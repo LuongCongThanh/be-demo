@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma } from '#src/generated/prisma/client.js';
 import type { Product, ProductStatus, ProductVariant, VariantStatus } from '#src/generated/prisma/client.js';
 import { getUniqueConstraintTarget, writeUnique } from '#src/infrastructure/database/prisma-error.util.js';
+import { assertPriceAboveSalePrices, lockVariants } from '#src/modules/catalog/pricing/sale-price-guards.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
 import { toImageResponse } from '#src/modules/catalog/product/product-image.mapper.js';
@@ -156,10 +157,15 @@ export class AdminProductService {
     await this.findVariantOrThrow(productId, variantId);
     // where chỉ theo variantId: findVariantOrThrow() đã xác nhận đúng cặp
     // (variantId, productId) và không route nào đổi được productId của variant.
-    const variant = await this.prisma.productVariant.update({
-      where: { id: variantId },
-      data: dto,
-      include: VARIANT_INCLUDE,
+    const update = (db: Prisma.TransactionClient) =>
+      db.productVariant.update({ where: { id: variantId }, data: dto, include: VARIANT_INCLUDE });
+    if (dto.price === undefined) return toVariantResponse(await update(this.prisma));
+
+    const { price } = dto;
+    const variant = await this.prisma.$transaction(async (tx) => {
+      await lockVariants(tx, [variantId]);
+      await assertPriceAboveSalePrices(tx, variantId, price, new Date());
+      return update(tx);
     });
     return toVariantResponse(variant);
   }

@@ -1,6 +1,6 @@
 /**
  * Quyền (Permission): danh sách cố định, chỉ đổi khi phát hành phiên bản mới (GLOSSARY).
- * Nhóm logic theo tiền tố: CATALOG_*, OPERATIONS_*, ADMINISTRATION_*. Giá trị lưu trong
+ * Nhóm logic theo tiền tố: CATALOG_*, PRICING_*, OPERATIONS_*, ADMINISTRATION_*. Giá trị lưu trong
  * `role_permissions.permission` đúng bằng chuỗi này; API không nhận chuỗi tuỳ ý.
  *
  * Hiện chưa có route Vận hành nào (đơn hàng, tồn kho... đến ở slice C), nên chưa có OPERATIONS_*.
@@ -16,6 +16,10 @@ export enum Permission {
   // Catalog — admin/sizes, admin/colors
   CATALOG_PRODUCT_OPTION_VIEW = 'CATALOG_PRODUCT_OPTION_VIEW',
   CATALOG_PRODUCT_OPTION_MANAGE = 'CATALOG_PRODUCT_OPTION_MANAGE',
+
+  // Pricing — Giá khuyến mãi (admin/products/:id/sale-prices, admin/sale-prices)
+  PRICING_SALE_PRICE_VIEW = 'PRICING_SALE_PRICE_VIEW',
+  PRICING_SALE_PRICE_MANAGE = 'PRICING_SALE_PRICE_MANAGE',
 
   // Administration — Vai trò (liệt kê Quyền, CRUD Vai trò)
   ADMINISTRATION_ROLE_VIEW = 'ADMINISTRATION_ROLE_VIEW',

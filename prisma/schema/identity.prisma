@@ -33,6 +33,7 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   auditLogs               AuditLog[]
   userRoles               UserRole[]
+  salePrices              SalePrice[]
 
   @@map("users")
 }

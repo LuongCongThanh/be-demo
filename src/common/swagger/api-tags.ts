@@ -22,6 +22,11 @@ export const API_TAGS = {
     name: 'Sizes & Colors',
     description: 'Shared size list and color palette for variants — no delete, hide instead; writes gated to ADMIN',
   },
+  SALE_PRICES: {
+    name: 'Sale prices',
+    description:
+      'Time-boxed sale prices per variant (no overlap per variant); upcoming editable, active only its end, ended read-only (needs PRICING_SALE_PRICE_*)',
+  },
   STAFF: {
     name: 'Staff Management',
     description:

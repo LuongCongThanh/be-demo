@@ -12,6 +12,8 @@ import { NEWEST_FIRST, paginate, Paginated } from '#src/common/pagination/pagina
 import { VARIANT_INCLUDE } from '#src/modules/catalog/product/product.constants.js';
 import { toVariantResponse } from '#src/modules/catalog/product/variant-response.mapper.js';
 import { VariantResponseDto } from '#src/modules/catalog/product/dto/variant-response.dto.js';
+import { StorefrontVariantResponseDto } from '#src/modules/catalog/product/dto/storefront-product-detail-response.dto.js';
+import { findActiveSalePrices } from '#src/modules/catalog/pricing/active-sale-prices.js';
 
 const VISIBLE_PRODUCT = { status: 'ACTIVE' } as const satisfies Prisma.ProductWhereInput;
 const VISIBLE_VARIANT = { status: 'ACTIVE' } as const satisfies Prisma.ProductVariantWhereInput;
@@ -23,12 +25,14 @@ const CARD_IMAGE_FIRST = [
   { createdAt: 'asc' },
 ] as const satisfies Prisma.ProductImageOrderByWithRelationInput[];
 
-type ProductDetail = Product & { variants: VariantResponseDto[]; images: ImageResponseDto[] };
+type ProductDetail = Product & { variants: StorefrontVariantResponseDto[]; images: ImageResponseDto[] };
 
 interface PricedRow {
   id: string;
   minPrice: bigint;
   maxPrice: bigint;
+  minRegularPrice: bigint;
+  maxDiscountPercent: bigint | number;
 }
 
 /**
@@ -45,7 +49,7 @@ export class ProductService {
 
   /** Lọc, tìm kiếm, sắp xếp: xem `productSearchSql`. */
   async findAll(query: ListProductsQueryDto): Promise<Paginated<ProductListItemResponseDto>> {
-    const sql = productSearchSql(query);
+    const sql = productSearchSql(query, new Date());
     return paginate(
       query.page,
       query.limit,
@@ -56,12 +60,21 @@ export class ProductService {
           include: { images: { orderBy: CARD_IMAGE_FIRST, take: 1 } },
         });
         const byId = new Map(products.map((product) => [product.id, product]));
-        return rows.flatMap(({ id, minPrice, maxPrice }) => {
+        return rows.flatMap(({ id, minPrice, maxPrice, minRegularPrice, maxDiscountPercent }) => {
           const found = byId.get(id);
           if (!found) return [];
           const { images, ...product } = found;
           const imageUrl = images[0] ? this.storage.publicUrl(images[0].storageKey) : null;
-          return [{ ...product, minPrice: Number(minPrice), maxPrice: Number(maxPrice), imageUrl }];
+          return [
+            {
+              ...product,
+              minPrice: Number(minPrice),
+              maxPrice: Number(maxPrice),
+              minRegularPrice: Number(minRegularPrice),
+              maxDiscountPercent: Number(maxDiscountPercent),
+              imageUrl,
+            },
+          ];
         });
       },
       async () => (await this.prisma.$queryRaw<{ total: number }[]>(sql.count))[0].total,
@@ -90,9 +103,25 @@ export class ProductService {
     }
     return {
       ...product,
-      variants: product.variants.map(toVariantResponse),
+      variants: await this.withEffectivePrices(product.variants.map(toVariantResponse)),
       images: product.images.map((image) => toImageResponse(image, this.storage)),
     };
+  }
+
+  private async withEffectivePrices(variants: VariantResponseDto[]): Promise<StorefrontVariantResponseDto[]> {
+    const active = await findActiveSalePrices(
+      this.prisma,
+      variants.map((v) => v.id),
+      new Date(),
+    );
+    return variants.map((variant) => {
+      const sale = active.get(variant.id);
+      return {
+        ...variant,
+        effectivePrice: sale?.price ?? variant.price,
+        salePrice: sale ? { price: sale.price, endsAt: sale.endsAt } : null,
+      };
+    });
   }
 
   async findAllVariants(productId: string, { page, limit }: PaginationDto): Promise<Paginated<VariantResponseDto>> {

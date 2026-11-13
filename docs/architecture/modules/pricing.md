@@ -26,10 +26,12 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.3](../11-database
 
 ## 4. API
 
-| Method | Path                 | Actor | Ghi chú                                             |
-| ------ | -------------------- | ----- | --------------------------------------------------- |
-| `CRUD` | `/admin/sale-prices` | admin | US-804; một Biến thể hoặc mọi Biến thể của Sản phẩm |
-| `CRUD` | `/admin/vouchers`    | admin | US-901; xem `used_count`, vô hiệu hoá               |
+| Method            | Path                                     | Actor                                 | Ghi chú                                                      |
+| ----------------- | ---------------------------------------- | ------------------------------------- | ------------------------------------------------------------ |
+| `GET`, `POST`     | `/admin/products/:productId/sale-prices` | `PRICING_SALE_PRICE_VIEW` / `_MANAGE` | US-804; tạo cho một hoặc nhiều Biến thể, theo số tiền hoặc % |
+| `PATCH`, `DELETE` | `/admin/sale-prices/:id`                 | `PRICING_SALE_PRICE_MANAGE`           | BR-PRC-06                                                    |
+| `POST`            | `/admin/sale-prices/:id/end`             | `PRICING_SALE_PRICE_MANAGE`           | Kết thúc ngay Giá khuyến mãi đang hiệu lực                   |
+| `CRUD`            | `/admin/vouchers`                        | admin                                 | US-901; xem `used_count`, vô hiệu hoá                        |
 
 Áp Voucher phía storefront đi qua Tính thử của `ordering` (`POST /checkout/quotes`), không có endpoint "validate" riêng.
 

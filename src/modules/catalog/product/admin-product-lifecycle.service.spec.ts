@@ -27,7 +27,16 @@ const variantRow = {
 };
 
 function setup() {
-  const tx = { productVariant: { create: vi.fn() }, inventory: { create: vi.fn() } };
+  // Giá bán đổi trong transaction có khoá dòng (BR-PRC-05): tx dùng chung update/salePrice với prisma.
+  const tx = {
+    productVariant: {
+      create: vi.fn(),
+      update: (...args: unknown[]) => prisma.productVariant.update(...(args as [never])),
+    },
+    inventory: { create: vi.fn() },
+    salePrice: { findFirst: vi.fn().mockResolvedValue(null) },
+    $queryRaw: vi.fn().mockResolvedValue([]),
+  };
   const prisma = {
     product: {
       findUnique: vi.fn(),
@@ -36,6 +45,7 @@ function setup() {
       count: vi.fn(),
     },
     productVariant: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn(), findUniqueOrThrow: vi.fn() },
+    salePrice: { findFirst: vi.fn().mockResolvedValue(null) },
     size: { findUnique: vi.fn() },
     color: { findUnique: vi.fn() },
     category: { findUnique: vi.fn() },
