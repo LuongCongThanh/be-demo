@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
 export class CreateProductDto {
   @ApiProperty({ maxLength: 255, example: 'Wireless Headphones' })
@@ -24,6 +24,16 @@ export class CreateProductDto {
   @IsInt()
   @Min(1)
   weightGrams: number;
+
+  @ApiPropertyOptional({
+    maxLength: 5000,
+    description: 'Plain text, Vietnamese only (BR-CAT-10); empty string clears it',
+    example: 'Áo thun cotton 100%, form rộng.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  description?: string;
 
   // Không có field `slug` — server tự sinh từ `name`. Không có field `status` —
   // sản phẩm mới luôn là DRAFT (BR-CAT-07), chỉ đổi được qua UpdateProductDto.
