@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class ImageResponseDto {
   @ApiProperty()
@@ -13,7 +13,7 @@ export class ImageResponseDto {
   @ApiProperty()
   storageKey: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiProperty({ nullable: true, type: String })
   altText: string | null;
 
   @ApiProperty()

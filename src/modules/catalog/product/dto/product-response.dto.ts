@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { ProductStatus } from '#src/generated/prisma/enums.js';
 
 export class ProductResponseDto {
@@ -14,7 +14,7 @@ export class ProductResponseDto {
   @ApiProperty()
   slug: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiProperty({ nullable: true, type: String })
   description: string | null;
 
   @ApiProperty({ description: 'Shipping weight in grams' })
@@ -23,7 +23,12 @@ export class ProductResponseDto {
   @ApiProperty({ enum: ProductStatus, enumName: 'ProductStatus' })
   status: ProductStatus;
 
-  @ApiPropertyOptional({ nullable: true, description: 'First time the product became ACTIVE' })
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    format: 'date-time',
+    description: 'First time the product became ACTIVE',
+  })
   publishedAt: Date | null;
 
   @ApiProperty()
