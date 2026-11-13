@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { PasswordService } from '#src/modules/identity/auth/password.service.js';
-import type { Role, UserStatus } from '#src/generated/prisma/enums.js';
+import type { AccountType, UserStatus } from '#src/generated/prisma/enums.js';
 import { createTestUser } from './support/create-test-user.js';
 import { createTestApp } from './support/create-test-app.js';
 
@@ -29,7 +29,7 @@ describe('Four-actor roles (e2e)', () => {
     await app.close();
   });
 
-  async function createUser(role: Role, status: UserStatus = 'ACTIVE') {
+  async function createUser(role: AccountType, status: UserStatus = 'ACTIVE') {
     return createTestUser(prisma, {
       emailDomain: TEST_EMAIL_DOMAIN,
       emailSuffix: `${role.toLowerCase()}-`,
@@ -44,7 +44,7 @@ describe('Four-actor roles (e2e)', () => {
     return request(app.getHttpServer()).post('/api/v1/auth/login').send({ email, password: VALID_PASSWORD });
   }
 
-  async function tokenFor(role: Role): Promise<string> {
+  async function tokenFor(role: AccountType): Promise<string> {
     const user = await createUser(role);
     const res = await login(user.email);
     expect(res.status).toBe(200);

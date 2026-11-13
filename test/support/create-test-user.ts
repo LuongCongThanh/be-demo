@@ -1,11 +1,11 @@
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
-import type { Role, UserStatus } from '#src/generated/prisma/enums.js';
+import type { AccountType, UserStatus } from '#src/generated/prisma/enums.js';
 
 export interface CreateTestUserOptions {
   emailDomain: string;
   emailSuffix: string;
   passwordHash?: string;
-  role?: Role;
+  role?: AccountType;
   status?: UserStatus;
   emailVerifiedAt?: Date | null;
 }

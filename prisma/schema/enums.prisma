@@ -1,14 +1,3 @@
-enum Role {
-  CUSTOMER
-  STAFF
-  ADMIN
-}
-
-enum UserStatus {
-  ACTIVE
-  DISABLED
-}
-
 enum ProductStatus {
   DRAFT
   ACTIVE

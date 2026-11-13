@@ -3,6 +3,7 @@ import { PrismaClient } from '../src/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 import slugify from 'slugify';
+import { ADMIN_ROLE_PERMISSIONS, STAFF_ROLE_PERMISSIONS, type Permission } from '../src/common/auth/permission.enum.js';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -21,8 +22,10 @@ async function main() {
 
   // Upsert theo email: user đã tồn tại chỉ được đảm bảo role = ADMIN, KHÔNG
   // ghi đè mật khẩu (người dùng có thể đã đổi mật khẩu sau lần seed đầu).
+  const roleIds = await seedSystemRoles();
+
   const passwordHash = await argon2.hash(password);
-  await prisma.user.upsert({
+  const admin = await prisma.user.upsert({
     where: { email },
     update: { role: 'ADMIN' },
     create: {
@@ -38,11 +41,47 @@ async function main() {
       emailVerifiedAt: new Date(), // admin bootstrap doesn't need email verification
     },
   });
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: admin.id, roleId: roleIds.Admin } },
+    update: {},
+    create: { userId: admin.id, roleId: roleIds.Admin },
+  });
   console.log(`Ensured admin ${email}.`);
 
   // Luôn chạy dù admin đã tồn tại hay chưa — catalog tự idempotent qua
   // upsert riêng, không phụ thuộc vào nhánh admin ở trên.
   await seedCatalog();
+}
+
+// Hai Vai trò hệ thống (không xoá được). Admin luôn bằng toàn bộ enum Permission nên được
+// đồng bộ lại mỗi lần seed; Staff chỉ tạo mới Quyền mặc định, không ghi đè phần Admin đã chỉnh.
+async function seedSystemRoles(): Promise<Record<'Admin' | 'Staff', string>> {
+  const defs: Array<{
+    name: 'Admin' | 'Staff';
+    description: string;
+    permissions: readonly Permission[];
+    sync: boolean;
+  }> = [
+    { name: 'Admin', description: 'Quản trị viên: toàn bộ Quyền', permissions: ADMIN_ROLE_PERMISSIONS, sync: true },
+    { name: 'Staff', description: 'Nhân viên vận hành', permissions: STAFF_ROLE_PERMISSIONS, sync: false },
+  ];
+  const ids = {} as Record<'Admin' | 'Staff', string>;
+  for (const def of defs) {
+    const existing = await prisma.role.findUnique({ where: { name: def.name } });
+    const role =
+      existing ??
+      (await prisma.role.create({
+        data: { name: def.name, description: def.description, isSystem: true },
+      }));
+    ids[def.name] = role.id;
+    if (!existing || def.sync) {
+      await prisma.rolePermission.createMany({
+        data: def.permissions.map((permission) => ({ roleId: role.id, permission })),
+        skipDuplicates: true,
+      });
+    }
+  }
+  return ids;
 }
 
 // Dữ liệu mẫu để test tay qua Swagger/Postman (categories/products chưa có
