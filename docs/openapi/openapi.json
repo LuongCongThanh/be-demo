@@ -535,7 +535,7 @@
           "url": {
             "description": "Public image URL; null when image storage is not configured",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           }
         },
         "required": [
@@ -543,6 +543,7 @@
           "productId",
           "colorId",
           "storageKey",
+          "url",
           "altText",
           "sortOrder",
           "isPrimary",
@@ -967,7 +968,7 @@
           "imageUrl": {
             "description": "Card image: a primary image (any color) first, else the first image; null when none",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "maxPrice": {
             "description": "Highest price among ACTIVE variants, integer VND",
@@ -1019,7 +1020,8 @@
           "createdAt",
           "updatedAt",
           "minPrice",
-          "maxPrice"
+          "maxPrice",
+          "imageUrl"
         ],
         "type": "object"
       },
