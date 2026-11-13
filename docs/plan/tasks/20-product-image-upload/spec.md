@@ -1,6 +1,6 @@
 ---
 status: in-progress
-pr: #
+pr: #87
 blocked-by: [19-catalog-search-sort]
 labels: [ready-for-agent]
 ---
