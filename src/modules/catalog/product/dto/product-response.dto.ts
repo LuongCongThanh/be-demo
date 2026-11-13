@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ProductStatus } from '#src/generated/prisma/enums.js';
+import { Gender, ProductStatus } from '#src/generated/prisma/enums.js';
 
 export class ProductResponseDto {
   @ApiProperty()
@@ -19,6 +19,9 @@ export class ProductResponseDto {
 
   @ApiProperty({ description: 'Shipping weight in grams' })
   weightGrams: number;
+
+  @ApiProperty({ enum: Gender, enumName: 'Gender' })
+  gender: Gender;
 
   @ApiProperty({ enum: ProductStatus, enumName: 'ProductStatus' })
   status: ProductStatus;

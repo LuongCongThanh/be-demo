@@ -52,6 +52,10 @@ _Tránh_: collection, nhóm hàng
 Một mẫu hàng có tên, mô tả, cân nặng và ảnh theo màu; không được mua trực tiếp.
 _Tránh_: item, mặt hàng, SKU
 
+**Giới tính** (`Gender`):
+Đối tượng mặc của Sản phẩm: Nam, Nữ, Trẻ em hoặc Unisex. Là thuộc tính để lọc, không phải Danh mục.
+_Tránh_: đối tượng, giới (khi nói về Danh mục)
+
 **Biến thể** (`Variant`):
 Tổ hợp duy nhất size × màu của một Sản phẩm; là thứ Người mua thực sự mua và có giá, tồn kho riêng.
 _Tránh_: product variant (dài), option, mẫu

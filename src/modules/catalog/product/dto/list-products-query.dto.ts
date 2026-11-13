@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { ArrayMaxSize, IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, IsEnum, IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { Gender } from '#src/generated/prisma/enums.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 
 export const PRODUCT_SORTS = ['newest', 'price_asc', 'price_desc'] as const;
@@ -11,7 +12,10 @@ export type ProductSort = (typeof PRODUCT_SORTS)[number];
  * client gửi `status` sẽ bị 400 (forbidNonWhitelisted) thay vì bị bỏ qua.
  */
 export class ListProductsQueryDto extends PaginationDto {
-  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiPropertyOptional({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'Products in this category or any of its descendants',
+  })
   @IsOptional()
   @IsUUID()
   categoryId?: string;
@@ -49,6 +53,19 @@ export class ListProductsQueryDto extends PaginationDto {
   @ArrayMaxSize(20)
   @IsString({ each: true })
   color?: string[];
+
+  @ApiPropertyOptional({
+    enum: Gender,
+    enumName: 'Gender',
+    isArray: true,
+    description: 'Repeat the param for several; MEN and WOMEN also match UNISEX (BR-CAT-14)',
+    example: [Gender.MEN],
+  })
+  @IsOptional()
+  @Transform(({ value }) => toArray(value))
+  @ArrayMaxSize(4)
+  @IsEnum(Gender, { each: true })
+  gender?: Gender[];
 
   @ApiPropertyOptional({ description: 'Lowest product price (integer VND) at least this', minimum: 0, example: 100000 })
   @IsOptional()

@@ -47,7 +47,7 @@ describe('AdminProductService', () => {
       prismaMock.category.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.create({ name: 'Áo thun', categoryId: 'missing-category-id', weightGrams: 100 }),
+        service.create({ name: 'Áo thun', categoryId: 'missing-category-id', weightGrams: 100, gender: 'UNISEX' }),
       ).rejects.toThrow(NotFoundException);
       expect(prismaMock.product.create).not.toHaveBeenCalled();
     });
@@ -56,9 +56,9 @@ describe('AdminProductService', () => {
       prismaMock.category.findUnique.mockResolvedValue({ id: 'cat-1' });
       prismaMock.product.findUnique.mockResolvedValue({ id: 'existing-product', slug: 'ao-thun' });
 
-      await expect(service.create({ name: 'Áo Thun', categoryId: 'cat-1', weightGrams: 100 })).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.create({ name: 'Áo Thun', categoryId: 'cat-1', weightGrams: 100, gender: 'UNISEX' }),
+      ).rejects.toThrow(ConflictException);
       expect(prismaMock.product.create).not.toHaveBeenCalled();
     });
 
@@ -67,10 +67,10 @@ describe('AdminProductService', () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
       prismaMock.product.create.mockResolvedValue({ id: 'p1', name: 'Áo Thun', slug: 'ao-thun', categoryId: 'cat-1' });
 
-      const result = await service.create({ name: 'Áo Thun', categoryId: 'cat-1', weightGrams: 100 });
+      const result = await service.create({ name: 'Áo Thun', categoryId: 'cat-1', weightGrams: 100, gender: 'UNISEX' });
 
       expect(prismaMock.product.create).toHaveBeenCalledWith({
-        data: { name: 'Áo Thun', categoryId: 'cat-1', weightGrams: 100, slug: 'ao-thun' },
+        data: { name: 'Áo Thun', categoryId: 'cat-1', weightGrams: 100, gender: 'UNISEX', slug: 'ao-thun' },
       });
       expect(result.slug).toBe('ao-thun');
     });
@@ -82,9 +82,9 @@ describe('AdminProductService', () => {
     it('throws BadRequestException when name produces an empty slug', async () => {
       prismaMock.category.findUnique.mockResolvedValue({ id: 'cat-1' });
 
-      await expect(service.create({ name: '!!!', categoryId: 'cat-1', weightGrams: 100 })).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.create({ name: '!!!', categoryId: 'cat-1', weightGrams: 100, gender: 'UNISEX' }),
+      ).rejects.toThrow(BadRequestException);
       expect(prismaMock.product.findUnique).not.toHaveBeenCalled();
       expect(prismaMock.product.create).not.toHaveBeenCalled();
     });

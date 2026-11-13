@@ -34,12 +34,13 @@
 
 ### US-102 · Lọc và sắp xếp · P1
 
-**Là** Người mua, **tôi muốn** lọc theo size, màu, khoảng giá và sắp xếp **để** thu hẹp kết quả.
+**Là** Người mua, **tôi muốn** lọc theo giới tính, size, màu, khoảng giá và sắp xếp **để** thu hẹp kết quả.
 
 - AC1: Khi chọn size M và màu Trắng, thì chỉ hiện Sản phẩm có **ít nhất một Biến thể** size M màu Trắng còn hàng. Size và màu lọc theo mã trong danh sách size và bảng màu dùng chung (BR-CAT-11).
 - AC2: Sắp xếp được theo: mới nhất, giá tăng dần, giá giảm dần, bán chạy (BR-CAT-12).
 - AC3: Lọc theo giá dùng Giá áp dụng (đã tính Giá khuyến mãi).
 - AC4: Bộ lọc size chỉ hiện các size có trong kết quả hiện tại, theo thứ tự hiển thị của danh sách size.
+- AC5: Lọc theo giới tính Nam hoặc Nữ hiện cả Sản phẩm Unisex (BR-CAT-14).
 
 ### US-103 · Tìm kiếm theo tên · P1
 

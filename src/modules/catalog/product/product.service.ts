@@ -23,6 +23,8 @@ const CARD_IMAGE_FIRST = [
   { createdAt: 'asc' },
 ] as const satisfies Prisma.ProductImageOrderByWithRelationInput[];
 
+type ProductDetail = Product & { variants: VariantResponseDto[]; images: ImageResponseDto[] };
+
 interface PricedRow {
   id: string;
   minPrice: bigint;
@@ -66,16 +68,25 @@ export class ProductService {
     );
   }
 
-  async findOne(id: string): Promise<Product & { variants: VariantResponseDto[]; images: ImageResponseDto[] }> {
+  findOne(id: string): Promise<ProductDetail> {
+    return this.findDetail({ id }, `#${id}`);
+  }
+
+  /** Storefront dùng slug trong URL trang chi tiết. */
+  findOneBySlug(slug: string): Promise<ProductDetail> {
+    return this.findDetail({ slug }, `"${slug}"`);
+  }
+
+  private async findDetail(where: Prisma.ProductWhereInput, label: string): Promise<ProductDetail> {
     const product = await this.prisma.product.findFirst({
-      where: { id, ...VISIBLE_PRODUCT },
+      where: { ...where, ...VISIBLE_PRODUCT },
       include: {
         variants: { where: VISIBLE_VARIANT, include: VARIANT_INCLUDE, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
         images: { orderBy: [{ colorId: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }] },
       },
     });
     if (!product) {
-      throw new NotFoundException(`Product #${id} not found`);
+      throw new NotFoundException(`Product ${label} not found`);
     }
     return {
       ...product,

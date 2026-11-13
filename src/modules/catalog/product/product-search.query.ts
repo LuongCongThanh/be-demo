@@ -1,4 +1,5 @@
 import { Prisma } from '#src/generated/prisma/client.js';
+import type { Gender } from '#src/generated/prisma/enums.js';
 import type { ListProductsQueryDto } from '#src/modules/catalog/product/dto/list-products-query.dto.js';
 
 /**
@@ -9,10 +10,13 @@ import type { ListProductsQueryDto } from '#src/modules/catalog/product/dto/list
  * - Chỉ Sản phẩm ACTIVE có ít nhất một Biến thể ACTIVE (không có gì để mua thì không hiện).
  * - Giá của Sản phẩm = giá thấp nhất trong các Biến thể ACTIVE; lọc và sắp theo giá này.
  * - Lọc size/màu: ít nhất MỘT Biến thể ACTIVE thoả cả hai cùng lúc; size/màu đã ẩn không lọc ra gì.
+ * - Danh mục: gồm cả các danh mục con, cháu.
+ * - Giới tính: MEN/WOMEN gộp cả UNISEX; KIDS thì không (BR-CAT-14).
  * - Tìm kiếm: chuỗi con của tên, không phân biệt hoa thường và dấu (BR-CAT-13).
  */
 export function productSearchSql({
   categoryId,
+  gender,
   q,
   size,
   color,
@@ -22,7 +26,19 @@ export function productSearchSql({
 }: ListProductsQueryDto) {
   const conditions: Prisma.Sql[] = [Prisma.sql`p.status = 'ACTIVE'`];
   if (categoryId) {
-    conditions.push(Prisma.sql`p.category_id = ${categoryId}::uuid`);
+    conditions.push(Prisma.sql`p.category_id IN (
+      WITH RECURSIVE tree AS (
+        SELECT id FROM categories WHERE id = ${categoryId}::uuid
+        UNION
+        SELECT c.id FROM categories c JOIN tree ON c.parent_id = tree.id
+      )
+      SELECT id FROM tree
+    )`);
+  }
+  if (gender?.length) {
+    conditions.push(
+      Prisma.sql`p.gender IN (${Prisma.join(withUnisex(gender).map((g) => Prisma.sql`${g}::"Gender"`))})`,
+    );
   }
   if (q) {
     conditions.push(Prisma.sql`unaccent(lower(p.name)) LIKE '%' || unaccent(lower(${escapeLike(q)})) || '%'`);
@@ -65,6 +81,12 @@ const ORDER_BY = {
   price_asc: Prisma.sql`min_price ASC, created_at DESC, id DESC`,
   price_desc: Prisma.sql`min_price DESC, created_at DESC, id DESC`,
 } as const;
+
+function withUnisex(genders: Gender[]): Gender[] {
+  const matched = new Set(genders);
+  if (matched.has('MEN') || matched.has('WOMEN')) matched.add('UNISEX');
+  return [...matched];
+}
 
 // `%` và `_` trong từ khoá là ký tự thường, không phải wildcard.
 function escapeLike(value: string): string {

@@ -206,6 +206,7 @@ describe('Categories (e2e)', () => {
           name: unique('Product'),
           slug: `categories-e2e-product-${Date.now()}-${seq++}`,
           weightGrams: 100,
+          gender: 'UNISEX',
           status: 'ARCHIVED',
         },
       });

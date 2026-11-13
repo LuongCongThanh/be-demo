@@ -1,7 +1,7 @@
 import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
-import { ProductStatus } from '#src/generated/prisma/enums.js';
+import { Gender, ProductStatus } from '#src/generated/prisma/enums.js';
 import { CreateProductDto } from '#src/modules/catalog/product/dto/create-product.dto.js';
 
 export class UpdateProductDto extends PartialType(CreateProductDto) {
@@ -17,6 +17,12 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   @IsString()
   @MaxLength(255)
   declare name?: string;
+
+  // Cùng lý do với `name`: `{ "gender": null }` phải là 400, không phải 500.
+  @ApiPropertyOptional({ enum: Gender, enumName: 'Gender', example: Gender.MEN })
+  @ValidateIf((_, value) => value !== undefined)
+  @IsEnum(Gender)
+  declare gender?: Gender;
 
   @ApiPropertyOptional({
     enum: ProductStatus,

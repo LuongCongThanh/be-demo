@@ -32,7 +32,7 @@ Mọi route dưới `/api/v1`, Swagger ở `/docs` (ADR 0002).
 
 | Nhóm                 | Prefix              | Người gọi                                      | Ví dụ                                                                                                        |
 | -------------------- | ------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Storefront public    | `/api/v1/`          | Mọi người                                      | `GET /products`, `GET /categories`, `POST /checkout/quotes`                                                  |
+| Storefront public    | `/api/v1/`          | Mọi người                                      | `GET /products`, `GET /products/slug/:slug`, `GET /categories`, `POST /checkout/quotes`                      |
 | Storefront Người mua | `/api/v1/`          | `guest` (cookie/phiên tra cứu) hoặc `customer` | `/cart`, `POST /orders`, `POST /orders/{code}/payments`, `POST /orders/{code}/cancel`, `POST /order-lookups` |
 | Tài khoản            | `/api/v1/me`        | `customer`                                     | hồ sơ, sổ địa chỉ, lịch sử đơn, ngôn ngữ                                                                     |
 | Back-office          | `/api/v1/admin/`    | `staff`, `admin`                               | đơn, tồn kho, Kiểm kê, Sản phẩm, Voucher, Đổi trả, Hoàn tiền                                                 |

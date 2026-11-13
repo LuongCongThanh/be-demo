@@ -38,6 +38,7 @@ describe('CreateProductDto', () => {
       name: '  Wireless Headphones  ',
       categoryId: '550e8400-e29b-41d4-a716-446655440000',
       weightGrams: 250,
+      gender: 'UNISEX',
     });
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
@@ -49,6 +50,7 @@ describe('CreateProductDto', () => {
       name: 'Wireless Headphones',
       categoryId: '550e8400-e29b-41d4-a716-446655440000',
       weightGrams: 250,
+      gender: 'UNISEX',
     });
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
