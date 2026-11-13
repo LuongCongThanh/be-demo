@@ -299,6 +299,8 @@
 - AC1: Chọn Biến thể (hoặc toàn bộ Biến thể của một Sản phẩm), nhập giá khuyến mãi và thời gian.
 - AC2: Giá khuyến mãi ≥ giá bán thì báo lỗi; trùng thời gian với Giá khuyến mãi khác thì báo lỗi (BR-PRC-01, BR-PRC-02).
 - AC3: Hạ Giá bán của Biến thể xuống bằng hoặc thấp hơn một Giá khuyến mãi đang hoặc sắp hiệu lực thì báo lỗi (BR-PRC-05).
+- AC4: Đặt cho toàn bộ Biến thể nhận một số tiền chung hoặc % giảm; % tính riêng từng Biến thể, làm tròn xuống đến đồng; cả lô thành công hoặc thất bại cùng nhau.
+- AC5: Sửa, xoá, kết thúc sớm theo BR-PRC-06.
 
 ### US-805 · Quản lý danh sách size và bảng màu · P1
 

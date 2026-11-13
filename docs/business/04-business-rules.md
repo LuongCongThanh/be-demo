@@ -34,6 +34,7 @@
 | BR-PRC-03 | Giá áp dụng = Giá khuyến mãi nếu đang hiệu lực, ngược lại = Giá bán.                                                                                                                                  |
 | BR-PRC-04 | Mức giảm của Giá khuyến mãi = `(Giá bán − Giá khuyến mãi) / Giá bán`, tính chính xác (không làm tròn) từ Giá bán và đơn giá đã chụp trên Dòng đơn hàng. Mức này quyết định quyền Đổi trả (BR-RET-03). |
 | BR-PRC-05 | Không đổi được Giá bán của Biến thể xuống bằng hoặc thấp hơn một Giá khuyến mãi đang hoặc sắp hiệu lực của Biến thể đó. Admin phải sửa Giá khuyến mãi trước.                                          |
+| BR-PRC-06 | Giá khuyến mãi sắp diễn ra sửa và xoá được; đang hiệu lực chỉ đổi được thời gian kết thúc hoặc kết thúc ngay; đã kết thúc chỉ xem, giữ làm lịch sử.                                                   |
 
 ### 2.2. Mã giảm giá (Voucher)
 

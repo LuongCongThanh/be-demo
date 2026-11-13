@@ -27,6 +27,25 @@
         ],
         "type": "string"
       },
+      "ActiveSalePriceDto": {
+        "properties": {
+          "endsAt": {
+            "description": "Exclusive end",
+            "format": "date-time",
+            "type": "string"
+          },
+          "price": {
+            "description": "Integer VND",
+            "example": 159000,
+            "type": "number"
+          }
+        },
+        "required": [
+          "price",
+          "endsAt"
+        ],
+        "type": "object"
+      },
       "AuthUserResponseDto": {
         "properties": {
           "email": {
@@ -360,6 +379,45 @@
         "required": [
           "name",
           "permissions"
+        ],
+        "type": "object"
+      },
+      "CreateSalePriceDto": {
+        "properties": {
+          "endsAt": {
+            "description": "Exclusive end, after startsAt",
+            "format": "date-time",
+            "type": "string"
+          },
+          "percentOff": {
+            "description": "Percent off each Variant price (1–99), rounded down to the đồng",
+            "example": 20,
+            "type": "number"
+          },
+          "price": {
+            "description": "Integer VND for every listed Variant; must be below each Variant price",
+            "example": 159000,
+            "type": "number"
+          },
+          "startsAt": {
+            "description": "Defaults to now; may not be in the past",
+            "format": "date-time",
+            "type": "string"
+          },
+          "variantIds": {
+            "description": "Variants of this product",
+            "example": [
+              "550e8400-e29b-41d4-a716-446655440000"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "variantIds",
+          "endsAt"
         ],
         "type": "object"
       },
@@ -817,6 +875,8 @@
           "CATALOG_CATEGORY_MANAGE",
           "CATALOG_PRODUCT_OPTION_VIEW",
           "CATALOG_PRODUCT_OPTION_MANAGE",
+          "PRICING_SALE_PRICE_VIEW",
+          "PRICING_SALE_PRICE_MANAGE",
           "ADMINISTRATION_ROLE_VIEW",
           "ADMINISTRATION_ROLE_MANAGE",
           "ADMINISTRATION_INTERNAL_ACCOUNT_VIEW",
@@ -1010,13 +1070,23 @@
             "nullable": true,
             "type": "string"
           },
+          "maxDiscountPercent": {
+            "description": "Largest current discount among ACTIVE variants, whole percent rounded down; 0 when none",
+            "example": 20,
+            "type": "number"
+          },
           "maxPrice": {
-            "description": "Highest price among ACTIVE variants, integer VND",
+            "description": "Highest Effective price among ACTIVE variants, integer VND",
             "example": 249000,
             "type": "number"
           },
           "minPrice": {
-            "description": "Lowest price among ACTIVE variants, integer VND",
+            "description": "Lowest Effective price (sale price when active) among ACTIVE variants, integer VND",
+            "example": 159000,
+            "type": "number"
+          },
+          "minRegularPrice": {
+            "description": "Lowest regular Price among ACTIVE variants; show it struck through when above minPrice",
             "example": 199000,
             "type": "number"
           },
@@ -1062,6 +1132,8 @@
           "updatedAt",
           "minPrice",
           "maxPrice",
+          "minRegularPrice",
+          "maxDiscountPercent",
           "imageUrl"
         ],
         "type": "object"
@@ -1136,7 +1208,8 @@
         "enum": [
           "newest",
           "price_asc",
-          "price_desc"
+          "price_desc",
+          "discount_desc"
         ],
         "type": "string"
       },
@@ -1302,6 +1375,67 @@
         ],
         "type": "object"
       },
+      "SalePriceResponseDto": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "endsAt": {
+            "description": "Exclusive end",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "price": {
+            "description": "Integer VND, below the Variant price",
+            "example": 159000,
+            "type": "number"
+          },
+          "startsAt": {
+            "description": "Inclusive start",
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SalePriceStatus"
+              }
+            ],
+            "description": "At request time"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "variantId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "variantId",
+          "price",
+          "startsAt",
+          "endsAt",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "SalePriceStatus": {
+        "description": "At request time",
+        "enum": [
+          "UPCOMING",
+          "ACTIVE",
+          "ENDED"
+        ],
+        "type": "string"
+      },
       "SizeResponseDto": {
         "properties": {
           "code": {
@@ -1395,6 +1529,156 @@
           "roles",
           "createdAt",
           "updatedAt"
+        ],
+        "type": "object"
+      },
+      "StorefrontProductDetailResponseDto": {
+        "properties": {
+          "categoryId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "images": {
+            "description": "Images grouped by color via colorId, ordered by sortOrder",
+            "items": {
+              "$ref": "#/components/schemas/ImageResponseDto"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "description": "First time the product became ACTIVE",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProductStatus"
+              }
+            ]
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "variants": {
+            "description": "ACTIVE variants only",
+            "items": {
+              "$ref": "#/components/schemas/StorefrontVariantResponseDto"
+            },
+            "type": "array"
+          },
+          "weightGrams": {
+            "description": "Shipping weight in grams",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "categoryId",
+          "name",
+          "slug",
+          "description",
+          "weightGrams",
+          "gender",
+          "status",
+          "publishedAt",
+          "createdAt",
+          "updatedAt",
+          "variants",
+          "images"
+        ],
+        "type": "object"
+      },
+      "StorefrontVariantResponseDto": {
+        "properties": {
+          "color": {
+            "$ref": "#/components/schemas/ColorSummaryDto"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "effectivePrice": {
+            "description": "Sale price when one is active, else price; integer VND",
+            "example": 159000,
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "price": {
+            "description": "Integer VND",
+            "example": 199000,
+            "type": "number"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "salePrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActiveSalePriceDto"
+              }
+            ],
+            "description": "Active sale price, null when none",
+            "nullable": true,
+            "type": "object"
+          },
+          "size": {
+            "$ref": "#/components/schemas/SizeSummaryDto"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VariantStatus"
+              }
+            ]
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "productId",
+          "sku",
+          "size",
+          "color",
+          "price",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "effectivePrice",
+          "salePrice"
         ],
         "type": "object"
       },
@@ -1543,6 +1827,26 @@
               "$ref": "#/components/schemas/Permission"
             },
             "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateSalePriceDto": {
+        "properties": {
+          "endsAt": {
+            "description": "Exclusive end; not in the past",
+            "format": "date-time",
+            "type": "string"
+          },
+          "price": {
+            "description": "Integer VND, below the Variant price (upcoming only)",
+            "example": 149000,
+            "type": "number"
+          },
+          "startsAt": {
+            "description": "Upcoming only; may not be in the past",
+            "format": "date-time",
+            "type": "string"
           }
         },
         "type": "object"
@@ -3939,7 +4243,7 @@
                 }
               }
             },
-            "description": "SKU already exists"
+            "description": "Price at or below a current or upcoming sale price (BR-PRC-05)"
           },
           "429": {
             "content": {
@@ -4148,6 +4452,203 @@
         "summary": "Bring an archived variant back to ACTIVE; idempotent (ADMIN only)",
         "tags": [
           "Products"
+        ]
+      }
+    },
+    "/api/v1/admin/products/{productId}/sale-prices": {
+      "get": {
+        "operationId": "AdminSalePriceController_list_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SalePriceResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Product not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List every sale price of a product, newest start first, with its status now",
+        "tags": [
+          "Sale prices"
+        ]
+      },
+      "post": {
+        "description": "Send `price` (same amount for each variant) or `percentOff` (per variant, rounded down to the đồng).",
+        "operationId": "AdminSalePriceController_create_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSalePriceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SalePriceResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Product or variant not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Overlaps another sale price"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set a sale price on one or more variants of a product (all or nothing)",
+        "tags": [
+          "Sale prices"
         ]
       }
     },
@@ -4601,6 +5102,295 @@
         "summary": "Edit a role's description, name or permissions (requires ADMINISTRATION_ROLE_MANAGE). Accounts holding the role must log in again: their access tokens stop working and their refresh tokens are revoked. The Admin role is read-only; system roles cannot be renamed.",
         "tags": [
           "Roles & Permissions"
+        ]
+      }
+    },
+    "/api/v1/admin/sale-prices/{id}": {
+      "delete": {
+        "operationId": "AdminSalePriceController_remove_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Sale price not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Already started"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an upcoming sale price",
+        "tags": [
+          "Sale prices"
+        ]
+      },
+      "patch": {
+        "operationId": "AdminSalePriceController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSalePriceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalePriceResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Sale price not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Ended, active field locked, or overlapping"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change an upcoming sale price, or the end of an active one",
+        "tags": [
+          "Sale prices"
+        ]
+      }
+    },
+    "/api/v1/admin/sale-prices/{id}/end": {
+      "post": {
+        "operationId": "AdminSalePriceController_end_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalePriceResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Sale price not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Not active"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End an active sale price now",
+        "tags": [
+          "Sale prices"
         ]
       }
     },
@@ -6177,7 +6967,7 @@
     },
     "/api/v1/products": {
       "get": {
-        "description": "Search by name, filter by category, size, color and price, sort by newest or price.",
+        "description": "Search by name; filter by category (with descendants), gender, size, color, price and onSale; sort by newest, Effective price or discount.",
         "operationId": "ProductController_findAll_v1",
         "parameters": [
           {
@@ -6267,7 +7057,7 @@
             }
           },
           {
-            "description": "Lowest product price (integer VND) at least this",
+            "description": "Lowest Effective product price (integer VND) at least this",
             "in": "query",
             "name": "minPrice",
             "required": false,
@@ -6278,7 +7068,7 @@
             }
           },
           {
-            "description": "Lowest product price (integer VND) at most this",
+            "description": "Lowest Effective product price (integer VND) at most this",
             "in": "query",
             "name": "maxPrice",
             "required": false,
@@ -6289,7 +7079,17 @@
             }
           },
           {
-            "description": "Price sorts use the lowest price among ACTIVE variants",
+            "description": "Only products with an active sale price on at least one ACTIVE variant",
+            "in": "query",
+            "name": "onSale",
+            "required": false,
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Price sorts use the lowest Effective price (sale price when active) among ACTIVE variants; discount_desc puts the largest current discount first",
             "in": "query",
             "name": "sort",
             "required": false,
@@ -6354,7 +7154,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductDetailResponseDto"
+                  "$ref": "#/components/schemas/StorefrontProductDetailResponseDto"
                 }
               }
             },
@@ -6405,7 +7205,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductDetailResponseDto"
+                  "$ref": "#/components/schemas/StorefrontProductDetailResponseDto"
                 }
               }
             },
@@ -6654,6 +7454,10 @@
     {
       "description": "Shared size list and color palette for variants — no delete, hide instead; writes gated to ADMIN",
       "name": "Sizes & Colors"
+    },
+    {
+      "description": "Time-boxed sale prices per variant (no overlap per variant); upcoming editable, active only its end, ended read-only (needs PRICING_SALE_PRICE_*)",
+      "name": "Sale prices"
     },
     {
       "description": "Back-office staff accounts — create, rename, disable/enable (needs ADMINISTRATION_INTERNAL_ACCOUNT_* permissions, every change audited)",

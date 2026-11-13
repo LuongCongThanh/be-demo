@@ -20,6 +20,7 @@ describe('ProductService (storefront)', () => {
   const prisma = {
     product: { findMany: vi.fn(), count: vi.fn(), findFirst: vi.fn() },
     productVariant: { findMany: vi.fn(), count: vi.fn(), findFirst: vi.fn() },
+    salePrice: { findMany: vi.fn().mockResolvedValue([]) },
   };
   let service: ProductService;
 

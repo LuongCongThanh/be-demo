@@ -1,10 +1,21 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { ArrayMaxSize, IsEnum, IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsBoolean,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { Gender } from '#src/generated/prisma/enums.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 
-export const PRODUCT_SORTS = ['newest', 'price_asc', 'price_desc'] as const;
+export const PRODUCT_SORTS = ['newest', 'price_asc', 'price_desc', 'discount_desc'] as const;
 export type ProductSort = (typeof PRODUCT_SORTS)[number];
 
 /**
@@ -67,14 +78,22 @@ export class ListProductsQueryDto extends PaginationDto {
   @IsEnum(Gender, { each: true })
   gender?: Gender[];
 
-  @ApiPropertyOptional({ description: 'Lowest product price (integer VND) at least this', minimum: 0, example: 100000 })
+  @ApiPropertyOptional({
+    description: 'Lowest Effective product price (integer VND) at least this',
+    minimum: 0,
+    example: 100000,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   minPrice?: number;
 
-  @ApiPropertyOptional({ description: 'Lowest product price (integer VND) at most this', minimum: 0, example: 500000 })
+  @ApiPropertyOptional({
+    description: 'Lowest Effective product price (integer VND) at most this',
+    minimum: 0,
+    example: 500000,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -82,10 +101,20 @@ export class ListProductsQueryDto extends PaginationDto {
   maxPrice?: number;
 
   @ApiPropertyOptional({
+    description: 'Only products with an active sale price on at least one ACTIVE variant',
+    example: true,
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value === 'true' ? true : value === 'false' ? false : value))
+  @IsBoolean()
+  onSale?: boolean;
+
+  @ApiPropertyOptional({
     enum: PRODUCT_SORTS,
     enumName: 'ProductSort',
     default: 'newest',
-    description: 'Price sorts use the lowest price among ACTIVE variants',
+    description:
+      'Price sorts use the lowest Effective price (sale price when active) among ACTIVE variants; discount_desc puts the largest current discount first',
   })
   @IsOptional()
   @IsIn(PRODUCT_SORTS)

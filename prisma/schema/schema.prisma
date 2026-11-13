@@ -95,12 +95,34 @@ model ProductVariant {
   inventory  Inventory?
   cartItems  CartItem[]
   orderItems OrderItem[]
+  salePrices SalePrice[]
 
   @@unique([productId, sizeId, colorId])
   @@index([productId, createdAt(sort: Desc)])
   @@index([sizeId])
   @@index([colorId])
   @@map("product_variants")
+}
+
+// Giá khuyến mãi của một Biến thể trong [startsAt, endsAt) (BR-PRC-01). Không trùng thời gian
+// trên cùng Biến thể: exclusion constraint btree_gist trong migration (BR-PRC-02).
+model SalePrice {
+  id          String   @id @default(uuid()) @db.Uuid
+  variantId   String   @map("variant_id") @db.Uuid
+  // VND số nguyên, CHECK > 0; < Giá bán kiểm ở service (BR-PRC-01, BR-PRC-05).
+  price       BigInt
+  startsAt    DateTime @map("starts_at") @db.Timestamptz(6)
+  // CHECK ends_at > starts_at.
+  endsAt      DateTime @map("ends_at") @db.Timestamptz(6)
+  createdById String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  createdBy User           @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([variantId, endsAt])
+  @@map("sale_prices")
 }
 
 // Danh sách size dùng chung do Admin quản lý (BR-CAT-11). Không xoá, chỉ ẩn.

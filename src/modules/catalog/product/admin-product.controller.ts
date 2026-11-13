@@ -124,7 +124,10 @@ export class AdminProductController {
   @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @ApiOperation({ summary: 'Update a variant (ADMIN only)' })
   @ApiOkResponse({ type: VariantResponseDto })
-  @ApiErrorResponses(400, 401, 403, VARIANT_NOT_FOUND, [409, 'SKU already exists'])
+  @ApiErrorResponses(400, 401, 403, VARIANT_NOT_FOUND, [
+    409,
+    'Price at or below a current or upcoming sale price (BR-PRC-05)',
+  ])
   updateVariant(
     @Param('id', ParseUUIDPipe) productId: string,
     @Param('variantId', ParseUUIDPipe) variantId: string,
