@@ -8,7 +8,7 @@ type ErrorStatus = 400 | 401 | 403 | 404 | 409;
 const DEFAULT_DESCRIPTIONS: Record<ErrorStatus, string> = {
   400: 'Invalid input (validation failed or malformed id)',
   401: 'Missing, invalid, or expired access token',
-  403: 'Authenticated user lacks the required role',
+  403: 'Authenticated user lacks the required permission or account type',
   404: 'Resource not found',
   409: 'Conflicts with existing data',
 };

@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Authorize } from '#src/common/auth/authorize.decorator.js';
+import { Permission } from '#src/common/auth/permission.enum.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { AdminCategoryService } from '#src/modules/catalog/category/admin-category.service.js';
@@ -24,7 +25,7 @@ import { PaginatedCategoryResponseDto } from '#src/modules/catalog/category/dto/
 
 /** Back-office: đọc cho STAFF + ADMIN (kể cả danh mục ẩn), ghi chỉ ADMIN. */
 @ApiTags(API_TAGS.CATEGORIES.name)
-@Authorize('STAFF', 'ADMIN')
+@Authorize(Permission.CATALOG_CATEGORY_VIEW)
 @Controller('admin/categories')
 export class AdminCategoryController {
   constructor(private readonly service: AdminCategoryService) {}
@@ -46,7 +47,7 @@ export class AdminCategoryController {
   }
 
   @Post()
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_CATEGORY_MANAGE)
   @ApiOperation({ summary: 'Create a category, optionally under a parent (ADMIN only)' })
   @ApiCreatedResponse({ type: CategoryResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Parent category not found'], [409, 'Category name already exists'])
@@ -55,7 +56,7 @@ export class AdminCategoryController {
   }
 
   @Patch(':id')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_CATEGORY_MANAGE)
   @ApiOperation({
     summary: 'Update a category: rename (new slug), move to another parent or root, reorder, hide (ADMIN only)',
   })
@@ -72,7 +73,7 @@ export class AdminCategoryController {
   }
 
   @Delete(':id')
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_CATEGORY_MANAGE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an empty leaf category (409 while it has subcategories or products, ADMIN only)' })
   @ApiNoContentResponse({ description: 'Deleted' })

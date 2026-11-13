@@ -1,6 +1,14 @@
 {
   "components": {
     "schemas": {
+      "AccountType": {
+        "enum": [
+          "CUSTOMER",
+          "STAFF",
+          "ADMIN"
+        ],
+        "type": "string"
+      },
       "AuthUserResponseDto": {
         "properties": {
           "email": {
@@ -18,7 +26,7 @@
           "role": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/Role"
+                "$ref": "#/components/schemas/AccountType"
               }
             ],
             "example": "CUSTOMER"
@@ -520,6 +528,60 @@
         ],
         "type": "object"
       },
+      "MeResponseDto": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "permissions": {
+            "description": "Union of the permissions granted by the account roles (empty for customers)",
+            "example": [
+              "CATALOG_PRODUCT_VIEW"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "type": "array"
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccountType"
+              }
+            ],
+            "example": "CUSTOMER"
+          },
+          "roles": {
+            "description": "Names of the RBAC roles assigned to the account",
+            "example": [
+              "Staff"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "role",
+          "emailVerified",
+          "roles",
+          "permissions"
+        ],
+        "type": "object"
+      },
       "MessageResponseDto": {
         "properties": {
           "message": {
@@ -629,6 +691,22 @@
           "totalPages"
         ],
         "type": "object"
+      },
+      "Permission": {
+        "description": "Union of the permissions granted by the account roles (empty for customers)",
+        "enum": [
+          "CATALOG_PRODUCT_VIEW",
+          "CATALOG_PRODUCT_MANAGE",
+          "CATALOG_CATEGORY_VIEW",
+          "CATALOG_CATEGORY_MANAGE",
+          "CATALOG_PRODUCT_OPTION_VIEW",
+          "CATALOG_PRODUCT_OPTION_MANAGE",
+          "ADMINISTRATION_ROLE_VIEW",
+          "ADMINISTRATION_ROLE_MANAGE",
+          "ADMINISTRATION_INTERNAL_ACCOUNT_VIEW",
+          "ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE"
+        ],
+        "type": "string"
       },
       "ProductDetailResponseDto": {
         "properties": {
@@ -851,14 +929,6 @@
           "confirmPassword"
         ],
         "type": "object"
-      },
-      "Role": {
-        "enum": [
-          "CUSTOMER",
-          "STAFF",
-          "ADMIN"
-        ],
-        "type": "string"
       },
       "SizeResponseDto": {
         "properties": {
@@ -1276,7 +1346,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "429": {
             "content": {
@@ -1351,7 +1421,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -1440,7 +1510,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -1534,7 +1604,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -1628,7 +1698,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -1708,7 +1778,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "429": {
             "content": {
@@ -1783,7 +1853,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "409": {
             "content": {
@@ -1879,7 +1949,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -2027,7 +2097,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "429": {
             "content": {
@@ -2102,7 +2172,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -2198,7 +2268,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -2292,7 +2362,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -2388,7 +2458,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -2484,7 +2554,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -2571,7 +2641,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -2673,7 +2743,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -2759,7 +2829,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -2855,7 +2925,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -2969,7 +3039,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -3073,7 +3143,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -3167,7 +3237,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -3237,7 +3307,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "429": {
             "content": {
@@ -3312,7 +3382,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "409": {
             "content": {
@@ -3408,7 +3478,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -3509,7 +3579,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "429": {
             "content": {
@@ -3584,7 +3654,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "409": {
             "content": {
@@ -3680,7 +3750,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -3766,7 +3836,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -3852,7 +3922,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "404": {
             "content": {
@@ -4103,7 +4173,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthUserResponseDto"
+                  "$ref": "#/components/schemas/MeResponseDto"
                 }
               }
             },
@@ -4664,7 +4734,7 @@
                 }
               }
             },
-            "description": "Authenticated user lacks the required role"
+            "description": "Authenticated user lacks the required permission or account type"
           },
           "429": {
             "content": {

@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 pr:
 blocked-by: [15-rbac-schema]
 labels: [ready-for-agent]

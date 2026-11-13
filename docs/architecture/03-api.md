@@ -9,7 +9,7 @@ flowchart TD
     Req(["Request"]) --> RID["RequestIdMiddleware<br/>X-Request-Id + AsyncLocalStorage"]
     RID --> TH["Rate limit (Redis)<br/>global + theo route"]
     TH --> AUTH["AuthGuard<br/>access token / phiên Khách vãng lai"]
-    AUTH --> ROLE["RolesGuard<br/>vai trò khai báo tường minh (ADR 0005)"]
+    AUTH --> ROLE["PermissionsGuard<br/>Quyền khai báo tường minh"]
     ROLE --> OWN["Ownership check<br/>đơn/giỏ thuộc người gọi"]
     OWN --> VP["ValidationPipe<br/>whitelist + forbidNonWhitelisted + transform"]
     VP --> C["Controller"] --> S["Service"] --> DB[("PostgreSQL")]

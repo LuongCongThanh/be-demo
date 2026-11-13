@@ -66,6 +66,8 @@ export class InternalAccountService {
               status: 'ACTIVE',
               // Tài khoản do Admin/hệ thống tạo, không qua bước xác thực email.
               emailVerifiedAt: new Date(),
+              // Quyền đến từ Vai trò hệ thống cùng tên loại tài khoản (Staff / Admin), không từ cột `role`.
+              userRoles: { create: { role: { connect: { name: input.role === 'ADMIN' ? 'Admin' : 'Staff' } } } },
             },
           });
           await this.auditLog.record(tx, {

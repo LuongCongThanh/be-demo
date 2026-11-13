@@ -17,15 +17,20 @@ export interface CreateTestUserOptions {
 export async function createTestUser(prisma: PrismaService, options: CreateTestUserOptions) {
   const email = `${options.emailSuffix}${Date.now()}${Math.random().toString(36).slice(2)}${options.emailDomain}`;
 
+  const accountType = options.role ?? 'CUSTOMER';
+  // Quyền đến từ Vai trò hệ thống (migration/seed đã tạo `Admin`, `Staff`), không từ cột `role`.
+  const systemRole = { ADMIN: 'Admin', STAFF: 'Staff' }[accountType as string];
+
   return prisma.user.create({
     data: {
       email,
       passwordHash: options.passwordHash ?? 'irrelevant-for-this-test',
       fullName: 'Nguyen Van A',
       phone: '0912345678',
-      role: options.role ?? 'CUSTOMER',
+      role: accountType,
       status: options.status ?? 'ACTIVE',
       emailVerifiedAt: options.emailVerifiedAt,
+      ...(systemRole && { userRoles: { create: { role: { connect: { name: systemRole } } } } }),
     },
   });
 }

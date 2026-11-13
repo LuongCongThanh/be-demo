@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Authorize } from '#src/common/auth/authorize.decorator.js';
+import { Permission } from '#src/common/auth/permission.enum.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { CurrentUser } from '#src/common/auth/current-user.decorator.js';
@@ -13,7 +14,7 @@ import { StaffResponseDto } from '#src/modules/identity/internal-account/dto/sta
 import { PaginatedStaffResponseDto } from '#src/modules/identity/internal-account/dto/paginated-staff-response.dto.js';
 
 @ApiTags(API_TAGS.STAFF.name)
-@Authorize('ADMIN')
+@Authorize(Permission.ADMINISTRATION_INTERNAL_ACCOUNT_VIEW)
 @Controller('admin/staff')
 export class AdminStaffController {
   constructor(private readonly internalAccounts: InternalAccountService) {}
@@ -27,6 +28,7 @@ export class AdminStaffController {
   }
 
   @Post()
+  @Authorize(Permission.ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)
   @ApiOperation({ summary: 'Create a staff account with an initial password (ADMIN only)' })
   @ApiCreatedResponse({ type: StaffResponseDto })
   @ApiErrorResponses(400, 401, 403, [409, 'Email is already in use'])
@@ -35,6 +37,7 @@ export class AdminStaffController {
   }
 
   @Patch(':id')
+  @Authorize(Permission.ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)
   @ApiOperation({ summary: 'Rename a staff account (ADMIN only)' })
   @ApiOkResponse({ type: StaffResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Staff account not found'])
@@ -43,6 +46,7 @@ export class AdminStaffController {
   }
 
   @Post(':id/disable')
+  @Authorize(Permission.ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Disable a staff account and end all its sessions immediately; idempotent (ADMIN only)' })
   @ApiOkResponse({ type: StaffResponseDto })
@@ -52,6 +56,7 @@ export class AdminStaffController {
   }
 
   @Post(':id/enable')
+  @Authorize(Permission.ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Re-enable a disabled staff account; idempotent (ADMIN only)' })
   @ApiOkResponse({ type: StaffResponseDto })

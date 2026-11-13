@@ -3,14 +3,15 @@ import { Reflector } from '@nestjs/core';
 import { DECORATORS } from '@nestjs/swagger';
 import { Authorize } from '#src/common/auth/authorize.decorator.js';
 import { JwtAuthGuard } from '#src/common/auth/jwt-auth.guard.js';
-import { RolesGuard } from '#src/common/auth/roles.guard.js';
-import { ROLES_KEY } from '#src/common/auth/roles.decorator.js';
+import { PermissionsGuard } from '#src/common/auth/permissions.guard.js';
+import { PERMISSIONS_KEY } from '#src/common/auth/permissions.decorator.js';
+import { Permission } from '#src/common/auth/permission.enum.js';
 
-@Authorize('STAFF', 'ADMIN')
+@Authorize(Permission.CATALOG_PRODUCT_VIEW, Permission.CATALOG_CATEGORY_VIEW)
 class FakeController {
   list() {}
 
-  @Authorize('ADMIN')
+  @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   remove() {}
 }
 
@@ -18,25 +19,30 @@ class FakeController {
 class LoginOnlyController {}
 
 const reflector = new Reflector();
-const rolesFor = (handler: () => void, cls: new () => unknown) =>
-  reflector.getAllAndOverride(ROLES_KEY, [handler, cls]);
+const permissionsFor = (handler: () => void, cls: new () => unknown) =>
+  reflector.getAllAndOverride(PERMISSIONS_KEY, [handler, cls]);
 
 describe('Authorize', () => {
-  it('attaches JwtAuthGuard then RolesGuard', () => {
-    expect(Reflect.getMetadata(GUARDS_METADATA, FakeController)).toEqual([JwtAuthGuard, RolesGuard]);
+  it('attaches JwtAuthGuard then PermissionsGuard', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, FakeController)).toEqual([JwtAuthGuard, PermissionsGuard]);
   });
 
-  it('records the class-level roles for routes without their own @Authorize', () => {
-    expect(rolesFor(FakeController.prototype.list, FakeController)).toEqual(['STAFF', 'ADMIN']);
+  it('records the class-level permissions for routes without their own @Authorize', () => {
+    expect(permissionsFor(FakeController.prototype.list, FakeController)).toEqual([
+      Permission.CATALOG_PRODUCT_VIEW,
+      Permission.CATALOG_CATEGORY_VIEW,
+    ]);
   });
 
-  it('lets a method-level @Authorize override the class-level roles', () => {
-    expect(rolesFor(FakeController.prototype.remove, FakeController)).toEqual(['ADMIN']);
+  it('lets a method-level @Authorize override the class-level permissions', () => {
+    expect(permissionsFor(FakeController.prototype.remove, FakeController)).toEqual([
+      Permission.CATALOG_PRODUCT_MANAGE,
+    ]);
   });
 
-  it('with no roles only requires login (empty role list)', () => {
-    expect(Reflect.getMetadata(GUARDS_METADATA, LoginOnlyController)).toEqual([JwtAuthGuard, RolesGuard]);
-    expect(Reflect.getMetadata(ROLES_KEY, LoginOnlyController)).toEqual([]);
+  it('with no permissions only requires login (empty permission list)', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, LoginOnlyController)).toEqual([JwtAuthGuard, PermissionsGuard]);
+    expect(Reflect.getMetadata(PERMISSIONS_KEY, LoginOnlyController)).toEqual([]);
   });
 
   it('declares Swagger bearer auth', () => {
@@ -53,11 +59,14 @@ describe('Authorize', () => {
     class MixedController {
       open() {}
 
-      @Authorize('CUSTOMER')
+      @Authorize(Permission.CATALOG_PRODUCT_VIEW)
       me() {}
     }
 
-    expect(Reflect.getMetadata(GUARDS_METADATA, MixedController.prototype.me)).toEqual([JwtAuthGuard, RolesGuard]);
+    expect(Reflect.getMetadata(GUARDS_METADATA, MixedController.prototype.me)).toEqual([
+      JwtAuthGuard,
+      PermissionsGuard,
+    ]);
     expect(Reflect.getMetadata(DECORATORS.API_SECURITY, MixedController.prototype.me)).toEqual([{ bearer: [] }]);
     expect(Reflect.getMetadata(GUARDS_METADATA, MixedController.prototype.open)).toBeUndefined();
   });
