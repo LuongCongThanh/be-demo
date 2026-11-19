@@ -5,7 +5,7 @@ import { Permission } from '#src/common/auth/permission.enum.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { AdminCategoryImageService } from '#src/modules/catalog/category/admin-category-image.service.js';
-import { CategoryImageSlot } from '#src/modules/catalog/category/category-image.constants.js';
+import { CategoryImageSlot } from '#src/modules/catalog/category/category-image-slot.enum.js';
 import { PresignCategoryImageDto, SetCategoryImageDto } from '#src/modules/catalog/category/dto/category-image.dto.js';
 import { CategoryResponseDto } from '#src/modules/catalog/category/dto/category-response.dto.js';
 import { PresignedImageUploadResponseDto } from '#src/modules/catalog/product/dto/presigned-image-upload-response.dto.js';

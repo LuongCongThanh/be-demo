@@ -95,6 +95,16 @@ describe('Categories (e2e)', () => {
     request(server()).patch(`/api/v1/admin/categories/${id}`).set(auth(adminToken)).send(body);
   const remove = (id: string) => request(server()).delete(`/api/v1/admin/categories/${id}`).set(auth(adminToken));
 
+  function scopedTranslationPrisma(categoryId: string): PrismaService {
+    return {
+      categoryTranslation: {
+        findMany: (args: Prisma.CategoryTranslationFindManyArgs) =>
+          prisma.categoryTranslation.findMany({ ...args, where: { ...args.where, categoryId } }),
+        updateMany: (args: Prisma.CategoryTranslationUpdateManyArgs) => prisma.categoryTranslation.updateMany(args),
+      },
+    } as unknown as PrismaService;
+  }
+
   async function storefrontTree(): Promise<TreeNode[]> {
     const res = await request(server()).get('/api/v1/categories').expect(200);
     return res.body;
@@ -414,14 +424,6 @@ describe('Categories (e2e)', () => {
       'does not commit stale translation after %s',
       async (change) => {
         const category = await createCategory();
-        // Scope the batch to this fixture; keep the real PostgreSQL claim and completion writes.
-        const scoped = {
-          categoryTranslation: {
-            findMany: (args: Prisma.CategoryTranslationFindManyArgs) =>
-              prisma.categoryTranslation.findMany({ ...args, where: { ...args.where, categoryId: category.id } }),
-            updateMany: (args: Prisma.CategoryTranslationUpdateManyArgs) => prisma.categoryTranslation.updateMany(args),
-          },
-        } as unknown as PrismaService;
         const translator = {
           enabled: true,
           translate: async () => {
@@ -436,7 +438,7 @@ describe('Categories (e2e)', () => {
             return 'Stale provider result';
           },
         } as unknown as CategoryTranslationClient;
-        await new CategoryTranslationService(scoped, translator).tick();
+        await new CategoryTranslationService(scopedTranslationPrisma(category.id), translator).tick();
         const response = await request(server()).get(`/api/v1/admin/categories/${category.id}`).set(auth(adminToken));
         const result = response.status === 404 ? null : response.body;
         if (change === 'delete') expect(result).toBeNull();
@@ -450,14 +452,7 @@ describe('Categories (e2e)', () => {
 
     it('persists a successful automatic translation and then preserves its slug', async () => {
       const category = await createCategory();
-      const scoped = {
-        categoryTranslation: {
-          findMany: (args: Prisma.CategoryTranslationFindManyArgs) =>
-            prisma.categoryTranslation.findMany({ ...args, where: { ...args.where, categoryId: category.id } }),
-          updateMany: (args: Prisma.CategoryTranslationUpdateManyArgs) => prisma.categoryTranslation.updateMany(args),
-        },
-      } as unknown as PrismaService;
-      await new CategoryTranslationService(scoped, {
+      await new CategoryTranslationService(scopedTranslationPrisma(category.id), {
         enabled: true,
         translate: async () => 'T-shirt',
       } as unknown as CategoryTranslationClient).tick();

@@ -4,14 +4,6 @@
 
 Work is tracked as local Markdown tasks in `docs/plan/` (not GitHub Issues). See `docs/agents/issue-tracker.md`.
 
-### Triage labels
-
-Use `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix` as the canonical triage state labels. See `docs/agents/triage-labels.md`.
-
-### Pull requests
-
-Before creating or editing a PR, read `.github/pull_request_template.md` and `.github/workflows/pr-title.yml` plus `.github/workflows/pr-body.yml`. Use the repository template headings and required Vietnamese fields verbatim; fill every placeholder, check exactly one type, and include every required checklist section. The title must follow Conventional Commits and use a type allowed by `pr-title.yml`. Keep the body factual: report only validations actually run, describe gaps and rollout risks, and mark non-applicable API/config items as `Không` or `N/A`. Verify the title and body against the workflow requirements before publishing.
-
 ### Domain docs
 
 Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
