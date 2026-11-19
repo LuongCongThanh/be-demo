@@ -1,9 +1,18 @@
 import { NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { CategoryService } from '#src/modules/catalog/category/category.service.js';
+import type { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
 import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
-const base = { description: null, sortOrder: 0, createdAt: new Date(0), updatedAt: new Date(0) };
+const base = {
+  nameEn: null,
+  thumbnailStorageKey: null,
+  bannerStorageKey: null,
+  description: null,
+  sortOrder: 0,
+  createdAt: new Date(0),
+  updatedAt: new Date(0),
+};
 
 describe('CategoryService (storefront)', () => {
   const prisma = {
@@ -14,16 +23,38 @@ describe('CategoryService (storefront)', () => {
       ]),
     },
   };
-  const service = new CategoryService(prisma as unknown as PrismaService);
+  const service = new CategoryService(
+    prisma as unknown as PrismaService,
+    { publicUrl: () => null } as unknown as CloudinaryClient,
+  );
 
   it('returns the visible tree from a single query', async () => {
     const tree = await service.tree();
-    expect(tree).toEqual([{ id: 'root', name: 'Root', slug: 'root', children: [] }]);
+    expect(tree).toEqual([
+      {
+        id: 'root',
+        name: 'Root',
+        slug: 'root',
+        nameVi: 'Root',
+        nameEn: null,
+        thumbnailUrl: null,
+        bannerUrl: null,
+        children: [],
+      },
+    ]);
     expect(prisma.category.findMany).toHaveBeenCalledTimes(1);
   });
 
   it('findVisible returns a visible category and 404s a hidden one', async () => {
     await expect(service.findVisible('root')).resolves.toMatchObject({ id: 'root' });
     await expect(service.findVisible('hidden')).rejects.toThrow(NotFoundException);
+  });
+  it('uses stored English names without changing the URL identity', async () => {
+    prisma.category.findMany.mockResolvedValueOnce([
+      { ...base, id: 'root', parentId: null, name: 'Áo thun', nameEn: 'T-shirt', slug: 'ao-thun', isVisible: true },
+    ]);
+    await expect(service.tree('en')).resolves.toMatchObject([
+      { id: 'root', name: 'T-shirt', nameVi: 'Áo thun', slug: 'ao-thun' },
+    ]);
   });
 });

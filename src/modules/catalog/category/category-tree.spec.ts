@@ -8,6 +8,12 @@ const cat = (id: string, parentId: string | null, over: Partial<Category> = {}):
   name: id,
   slug: id,
   description: null,
+  nameEn: null,
+  translationStatus: 'PENDING',
+  translationVersion: 0,
+  translationLeaseUntil: null,
+  thumbnailStorageKey: null,
+  bannerStorageKey: null,
   sortOrder: 0,
   isVisible: true,
   createdAt: new Date(0),
@@ -51,5 +57,11 @@ describe('isEffectivelyVisible', () => {
 
   it('is true when the category and all ancestors are visible', () => {
     expect(isEffectivelyVisible('other', byId)).toBe(true);
+  });
+  it('rejects cyclic or orphaned legacy branches without hanging', () => {
+    const damaged = [cat('a', 'b'), cat('b', 'a'), cat('orphan', 'missing')];
+    const damagedMap = new Map(damaged.map((c) => [c.id, c]));
+    expect(isEffectivelyVisible('a', damagedMap)).toBe(false);
+    expect(isEffectivelyVisible('orphan', damagedMap)).toBe(false);
   });
 });

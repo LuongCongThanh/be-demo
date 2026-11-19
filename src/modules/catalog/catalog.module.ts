@@ -1,3 +1,7 @@
+import { CategoryTranslationClient } from '#src/modules/catalog/category/category-translation.client.js';
+import { CategoryTranslationService } from '#src/modules/catalog/category/category-translation.service.js';
+import { AdminCategoryImageController } from '#src/modules/catalog/category/admin-category-image.controller.js';
+import { AdminCategoryImageService } from '#src/modules/catalog/category/admin-category-image.service.js';
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { StorageModule } from '#src/infrastructure/storage/storage.module.js';
@@ -21,6 +25,7 @@ import { AdminSalePriceService } from '#src/modules/catalog/pricing/admin-sale-p
   imports: [PassportModule.register({}), StorageModule],
   controllers: [
     CategoryController,
+    AdminCategoryImageController,
     AdminCategoryController,
     ProductController,
     AdminProductController,
@@ -30,6 +35,9 @@ import { AdminSalePriceService } from '#src/modules/catalog/pricing/admin-sale-p
   ],
   providers: [
     CategoryService,
+    CategoryTranslationClient,
+    CategoryTranslationService,
+    AdminCategoryImageService,
     AdminCategoryService,
     ProductService,
     AdminProductService,

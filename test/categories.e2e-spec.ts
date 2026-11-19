@@ -1,6 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { CategoryTranslationService } from '#src/modules/catalog/category/category-translation.service.js';
+import type { CategoryTranslationClient } from '#src/modules/catalog/category/category-translation.client.js';
+import type { Prisma } from '#src/generated/prisma/client.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { PasswordService } from '#src/modules/identity/auth/password.service.js';
 import type { AccountType } from '#src/generated/prisma/enums.js';
@@ -78,7 +81,14 @@ describe('Categories (e2e)', () => {
       .set(auth(adminToken))
       .send({ name: unique('Cat'), ...body })
       .expect(201);
-    return res.body as { id: string; name: string; parentId: string | null; sortOrder: number; isVisible: boolean };
+    return res.body as {
+      id: string;
+      slug: string;
+      name: string;
+      parentId: string | null;
+      sortOrder: number;
+      isVisible: boolean;
+    };
   }
 
   const patch = (id: string, body: Record<string, unknown>) =>
@@ -268,16 +278,168 @@ describe('Categories (e2e)', () => {
       await request(server()).post('/api/v1/admin/categories').set(auth(adminToken)).send({}).expect(400);
     });
 
-    it('renaming regenerates the slug; an explicit null name is 400', async () => {
+    it('renaming preserves the slug; an explicit null name is 400', async () => {
       const category = await createCategory({ name: unique('Before') });
       const res = await patch(category.id, { name: unique('After') }).expect(200);
-      expect(res.body.slug).toContain('after');
+      expect(res.body.slug).toBe(category.slug);
       await patch(category.id, { name: null }).expect(400);
     });
 
     it('storefront detail returns 404 for a missing id and 400 for a malformed id', async () => {
       await request(server()).get(`/api/v1/categories/${MISSING_ID}`).expect(404);
       await request(server()).get('/api/v1/categories/not-a-uuid').expect(400);
+    });
+  });
+  describe('localized content and optional images', () => {
+    it('serves English by locale, falls back to Vietnamese and preserves slug through editorial updates', async () => {
+      const category = await createCategory({ nameEn: 'T-shirts' });
+      const en = await request(server()).get(`/api/v1/categories/${category.id}?locale=en`).expect(200);
+      expect(en.body).toMatchObject({
+        name: 'T-shirts',
+        nameVi: category.name,
+        nameEn: 'T-shirts',
+        slug: category.slug,
+        thumbnailUrl: null,
+        bannerUrl: null,
+      });
+      expect(en.body).not.toHaveProperty('translationVersion');
+      expect(en.body).not.toHaveProperty('translationLeaseUntil');
+      expect(en.body).not.toHaveProperty('translationStatus');
+      const renamed = await patch(category.id, { name: unique('Áo thun') }).expect(200);
+      expect(renamed.body).toMatchObject({ slug: category.slug, nameEn: 'T-shirts', translationStatus: 'REVIEW' });
+      await patch(category.id, { nameEn: 'Editorial T-shirts' }).expect(200);
+      const tree = await request(server()).get('/api/v1/categories?locale=en').expect(200);
+      expect(tree.body.find((c: { id: string }) => c.id === category.id)).toMatchObject({
+        name: 'Editorial T-shirts',
+        slug: category.slug,
+      });
+      const cleared = await patch(category.id, { nameEn: null }).expect(200);
+      expect(cleared.body).toMatchObject({ nameEn: null, translationStatus: 'PENDING' });
+      const fallback = await request(server()).get(`/api/v1/categories/${category.id}?locale=en`).expect(200);
+      expect(fallback.body.name).toBe(renamed.body.name);
+      await request(server()).get('/api/v1/categories?locale=fr').expect(400);
+      for (const body of [{ nameEn: ' ' }, { sortOrder: null }, { isVisible: null }]) {
+        await patch(category.id, body).expect(400);
+      }
+    });
+
+    it('requires category management permission for retry and retains an override until successful translation', async () => {
+      const category = await createCategory({ nameEn: 'Hand edited' });
+      await request(server())
+        .post(`/api/v1/admin/categories/${category.id}/translation/retry`)
+        .set(auth(staffToken))
+        .expect(403);
+      const queued = await request(server())
+        .post(`/api/v1/admin/categories/${category.id}/translation/retry`)
+        .set(auth(adminToken))
+        .expect(200);
+      expect(queued.body).toMatchObject({ nameEn: 'Hand edited', translationStatus: 'PENDING' });
+      await request(server())
+        .post(`/api/v1/admin/categories/${MISSING_ID}/translation/retry`)
+        .set(auth(adminToken))
+        .expect(404);
+    });
+
+    it('presigns and attaches independent image slots, rejects foreign keys and allows clearing', async () => {
+      const category = await createCategory();
+      const presignPath = `/api/v1/admin/categories/${category.id}/images/thumbnail/presign`;
+      await request(server())
+        .post(presignPath)
+        .set(auth(staffToken))
+        .send({ contentType: 'image/webp', size: 100 })
+        .expect(403);
+      await request(server())
+        .post(presignPath)
+        .set(auth(adminToken))
+        .send({ contentType: 'image/svg+xml', size: 100 })
+        .expect(400);
+      const upload = await request(server())
+        .post(presignPath)
+        .set(auth(adminToken))
+        .send({ contentType: 'image/webp', size: 100 })
+        .expect(201);
+      const key = upload.body.storageKey as string;
+      const base = `/api/v1/admin/categories/${category.id}/images`;
+      const attached = await request(server())
+        .patch(`${base}/thumbnail`)
+        .set(auth(adminToken))
+        .send({ storageKey: key })
+        .expect(200);
+      expect(attached.body).toMatchObject({ thumbnailStorageKey: key, bannerStorageKey: null });
+      await request(server()).patch(`${base}/banner`).set(auth(adminToken)).send({ storageKey: key }).expect(400);
+      await request(server()).patch(`${base}/thumbnail`).set(auth(staffToken)).send({ storageKey: null }).expect(403);
+      await request(server()).patch(`${base}/thumbnail`).set(auth(adminToken)).send({}).expect(400);
+      await request(server()).patch(`${base}/other`).set(auth(adminToken)).send({ storageKey: null }).expect(400);
+      const cleared = await request(server())
+        .patch(`${base}/thumbnail`)
+        .set(auth(adminToken))
+        .send({ storageKey: null })
+        .expect(200);
+      expect(cleared.body.thumbnailStorageKey).toBeNull();
+    });
+
+    it('serializes opposing concurrent moves so one is rejected rather than producing a cycle', async () => {
+      const a = await createCategory();
+      const b = await createCategory();
+      const results = await Promise.all([patch(a.id, { parentId: b.id }), patch(b.id, { parentId: a.id })]);
+      expect(results.map((r) => r.status).sort()).toEqual([200, 400]);
+    });
+  });
+  describe('translation results against real conditional database writes', () => {
+    it.each(['rename', 'manual', 'retry', 'delete'] as const)(
+      'does not commit stale translation after %s',
+      async (change) => {
+        const category = await createCategory();
+        // Scope the batch to this fixture; keep the real PostgreSQL claim and completion writes.
+        const scoped = {
+          category: {
+            findMany: (args: Prisma.CategoryFindManyArgs) =>
+              prisma.category.findMany({ ...args, where: { ...args.where, id: category.id } }),
+            updateMany: (args: Prisma.CategoryUpdateManyArgs) => prisma.category.updateMany(args),
+          },
+        } as unknown as PrismaService;
+        const translator = {
+          enabled: true,
+          translate: async () => {
+            if (change === 'rename') await patch(category.id, { name: unique('Renamed') }).expect(200);
+            if (change === 'manual') await patch(category.id, { nameEn: 'Editorial T-shirt' }).expect(200);
+            if (change === 'retry')
+              await request(server())
+                .post(`/api/v1/admin/categories/${category.id}/translation/retry`)
+                .set(auth(adminToken))
+                .expect(200);
+            if (change === 'delete') await remove(category.id).expect(204);
+            return 'Stale provider result';
+          },
+        } as unknown as CategoryTranslationClient;
+        await new CategoryTranslationService(scoped, translator).tick();
+        const result = await prisma.category.findUnique({ where: { id: category.id } });
+        if (change === 'delete') expect(result).toBeNull();
+        else
+          expect(result).toMatchObject({
+            nameEn: change === 'manual' ? 'Editorial T-shirt' : null,
+            translationStatus: change === 'manual' ? 'MANUAL' : 'PENDING',
+          });
+      },
+    );
+
+    it('persists a successful automatic translation and then preserves its slug', async () => {
+      const category = await createCategory();
+      const scoped = {
+        category: {
+          findMany: (args: Prisma.CategoryFindManyArgs) =>
+            prisma.category.findMany({ ...args, where: { ...args.where, id: category.id } }),
+          updateMany: (args: Prisma.CategoryUpdateManyArgs) => prisma.category.updateMany(args),
+        },
+      } as unknown as PrismaService;
+      await new CategoryTranslationService(scoped, {
+        enabled: true,
+        translate: async () => 'T-shirt',
+      } as unknown as CategoryTranslationClient).tick();
+      const en = await request(server()).get(`/api/v1/categories/${category.id}?locale=en`).expect(200);
+      expect(en.body).toMatchObject({ name: 'T-shirt', slug: category.slug });
+      const renamed = await patch(category.id, { name: unique('Áo polo') }).expect(200);
+      expect(renamed.body).toMatchObject({ nameEn: null, translationStatus: 'PENDING', slug: category.slug });
     });
   });
 });

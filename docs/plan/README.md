@@ -50,3 +50,7 @@ Plan tổng: [realign-identity-catalog.md](./realign-identity-catalog.md)
 | 18  | [Chi tiết Tài khoản nội bộ kèm Vai trò](./tasks/18-staff-detail-roles/spec.md)          | done   | 17                        | #85 |
 | 19  | [Tìm kiếm, sắp xếp, lọc giá Sản phẩm](./tasks/19-catalog-search-sort/spec.md)           | done   | —                         | #86 |
 | 20  | [Upload ảnh Sản phẩm lên Cloudinary](./tasks/20-product-image-upload/spec.md)           | done   | 19                        | #87 |
+
+| 21 | [Hoàn thiện hợp đồng category cho CMS và store](./tasks/21-category-content/spec.md) | in-progress | — | |
+
+Ticket con Giai đoạn B của [Hoàn thiện hợp đồng category cho CMS và store](./tasks/21-category-content/issues/README.md) nằm trong `21-category-content/issues/` theo yêu cầu người dùng; trạng thái và blocking edges được theo dõi tại chỉ mục đó.

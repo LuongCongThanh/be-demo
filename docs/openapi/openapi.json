@@ -80,6 +80,14 @@
       },
       "CategoryResponseDto": {
         "properties": {
+          "bannerStorageKey": {
+            "nullable": true,
+            "type": "string"
+          },
+          "bannerUrl": {
+            "nullable": true,
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -97,6 +105,13 @@
           "name": {
             "type": "string"
           },
+          "nameEn": {
+            "nullable": true,
+            "type": "string"
+          },
+          "nameVi": {
+            "type": "string"
+          },
           "parentId": {
             "description": "null for a root category",
             "nullable": true,
@@ -108,12 +123,37 @@
           "sortOrder": {
             "type": "number"
           },
+          "thumbnailStorageKey": {
+            "nullable": true,
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "translationStatus": {
+            "enum": [
+              "PENDING",
+              "TRANSLATED",
+              "MANUAL",
+              "REVIEW",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "updatedAt": {
             "format": "date-time",
             "type": "string"
           }
         },
         "required": [
+          "nameEn",
+          "nameVi",
+          "translationStatus",
+          "thumbnailStorageKey",
+          "bannerStorageKey",
+          "thumbnailUrl",
+          "bannerUrl",
           "id",
           "name",
           "slug",
@@ -128,6 +168,10 @@
       },
       "CategoryTreeNodeDto": {
         "properties": {
+          "bannerUrl": {
+            "nullable": true,
+            "type": "string"
+          },
           "children": {
             "description": "Visible children ordered by sortOrder, then name",
             "items": {
@@ -141,11 +185,26 @@
           "name": {
             "type": "string"
           },
+          "nameEn": {
+            "nullable": true,
+            "type": "string"
+          },
+          "nameVi": {
+            "type": "string"
+          },
           "slug": {
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "nullable": true,
             "type": "string"
           }
         },
         "required": [
+          "nameVi",
+          "nameEn",
+          "thumbnailUrl",
+          "bannerUrl",
           "id",
           "name",
           "slug",
@@ -225,6 +284,13 @@
             "example": "Men's Clothing",
             "maxLength": 150,
             "type": "string"
+          },
+          "nameEn": {
+            "description": "Manual English name; null requests automatic translation",
+            "example": "T-shirts",
+            "maxLength": 150,
+            "nullable": true,
+            "type": "object"
           },
           "parentId": {
             "description": "Parent category; omit or null for a root category",
@@ -990,6 +1056,30 @@
         ],
         "type": "object"
       },
+      "PresignCategoryImageDto": {
+        "properties": {
+          "contentType": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "example": "image/webp",
+            "type": "string"
+          },
+          "size": {
+            "example": 524288,
+            "maximum": 5242880,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "contentType",
+          "size"
+        ],
+        "type": "object"
+      },
       "PresignImageDto": {
         "properties": {
           "contentType": {
@@ -1307,6 +1397,73 @@
         ],
         "type": "string"
       },
+      "PublicCategoryResponseDto": {
+        "properties": {
+          "bannerUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isVisible": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nameEn": {
+            "nullable": true,
+            "type": "string"
+          },
+          "nameVi": {
+            "type": "string"
+          },
+          "parentId": {
+            "description": "null for a root category",
+            "nullable": true,
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "thumbnailUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nameEn",
+          "nameVi",
+          "thumbnailUrl",
+          "bannerUrl",
+          "id",
+          "name",
+          "slug",
+          "description",
+          "parentId",
+          "sortOrder",
+          "isVisible",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "RefreshResponseDto": {
         "properties": {
           "accessToken": {
@@ -1521,6 +1678,20 @@
           "ENDED"
         ],
         "type": "string"
+      },
+      "SetCategoryImageDto": {
+        "properties": {
+          "storageKey": {
+            "description": "Uploaded key from presign, or null to remove the image",
+            "example": "categories/550e8400-e29b-41d4-a716-446655440000/banner/550e8400-e29b-41d4-a716-446655440001",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "storageKey"
+        ],
+        "type": "object"
       },
       "SizeResponseDto": {
         "properties": {
@@ -1784,6 +1955,13 @@
             "example": "Men's Clothing",
             "maxLength": 150,
             "type": "string"
+          },
+          "nameEn": {
+            "description": "Manual English name; null requests automatic translation",
+            "example": "T-shirts",
+            "maxLength": 150,
+            "nullable": true,
+            "type": "object"
           },
           "parentId": {
             "description": "Parent category; omit or null for a root category",
@@ -2696,7 +2874,7 @@
                 }
               }
             },
-            "description": "Category name already exists"
+            "description": "Category content changed concurrently; reload and retry"
           },
           "429": {
             "content": {
@@ -2714,7 +2892,331 @@
             "bearer": []
           }
         ],
-        "summary": "Update a category: rename (new slug), move to another parent or root, reorder, hide (ADMIN only)",
+        "summary": "Update a category: rename (stable slug), move to another parent or root, reorder, hide (ADMIN only)",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/api/v1/admin/categories/{id}/images/{slot}": {
+      "patch": {
+        "operationId": "AdminCategoryImageController_set_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "slot",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCategoryImageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Request is well-formed but cannot be processed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "A required external service is not configured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Attach an uploaded category image, or clear it with null (ADMIN only)",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/api/v1/admin/categories/{id}/images/{slot}/presign": {
+      "post": {
+        "operationId": "AdminCategoryImageController_presign_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "slot",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignCategoryImageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresignedImageUploadResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "A required external service is not configured or unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sign a thumbnail or banner upload (ADMIN only)",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/api/v1/admin/categories/{id}/translation/retry": {
+      "post": {
+        "operationId": "AdminCategoryController_retryTranslation_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Queue a fresh English translation, replacing an override on success (ADMIN only)",
         "tags": [
           "Categories"
         ]
@@ -7418,7 +7920,22 @@
     "/api/v1/categories": {
       "get": {
         "operationId": "CategoryController_tree_v1",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "vi",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "example": "en",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -7432,6 +7949,16 @@
               }
             },
             "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
           },
           "429": {
             "content": {
@@ -7461,6 +7988,20 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "vi",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "example": "en",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7468,7 +8009,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CategoryResponseDto"
+                  "$ref": "#/components/schemas/PublicCategoryResponseDto"
                 }
               }
             },
@@ -7845,6 +8386,16 @@
               }
             },
             "description": "Invalid input (validation failed or malformed id)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Category not found or hidden"
           },
           "429": {
             "content": {

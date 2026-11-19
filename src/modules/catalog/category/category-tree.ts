@@ -6,7 +6,17 @@ import { CategoryTreeNodeDto } from '#src/modules/catalog/category/dto/category-
  * danh mục hiển thị; danh mục ẩn kéo theo cả nhánh con (con chỉ được gắn khi
  * cha đã nằm trong cây). Anh em sắp theo sortOrder rồi tên.
  */
-export function buildVisibleTree(categories: Category[]): CategoryTreeNodeDto[] {
+export function buildVisibleTree(
+  categories: Category[],
+  content: (
+    category: Category,
+  ) => Pick<CategoryTreeNodeDto, 'nameVi' | 'nameEn' | 'thumbnailUrl' | 'bannerUrl'> & { name?: string } = (c) => ({
+    nameVi: c.name,
+    nameEn: c.nameEn,
+    thumbnailUrl: null,
+    bannerUrl: null,
+  }),
+): CategoryTreeNodeDto[] {
   const childrenOf = new Map<string | null, Category[]>();
   for (const category of categories) {
     const siblings = childrenOf.get(category.parentId) ?? [];
@@ -18,15 +28,20 @@ export function buildVisibleTree(categories: Category[]): CategoryTreeNodeDto[] 
     (childrenOf.get(parentId) ?? [])
       .filter((c) => c.isVisible)
       .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'vi') || a.id.localeCompare(b.id))
-      .map((c) => ({ id: c.id, name: c.name, slug: c.slug, children: build(c.id) }));
+      .map((c) => ({ id: c.id, name: c.name, slug: c.slug, ...content(c), children: build(c.id) }));
 
   return build(null);
 }
 
 /** Danh mục hiển thị trên storefront khi nó và mọi tổ tiên đều `isVisible`. */
 export function isEffectivelyVisible(id: string, byId: Map<string, Category>): boolean {
-  for (let current = byId.get(id); current; current = current.parentId ? byId.get(current.parentId) : undefined) {
-    if (!current.isVisible) return false;
+  const seen = new Set<string>();
+  let current = byId.get(id);
+  while (current) {
+    if (!current.isVisible || seen.has(current.id)) return false;
+    seen.add(current.id);
+    if (current.parentId === null) return true;
+    current = byId.get(current.parentId);
   }
-  return byId.has(id);
+  return false;
 }
