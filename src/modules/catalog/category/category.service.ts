@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { buildVisibleTree, isEffectivelyVisible } from '#src/modules/catalog/category/category-tree.js';
 import { CategoryTreeNodeDto } from '#src/modules/catalog/category/dto/category-tree-node.dto.js';
+import type { CategoryLocale } from '#src/modules/catalog/category/category-locale.js';
 
 /** Storefront (công khai): chỉ danh mục hiển thị, ẩn cha thì ẩn cả nhánh. */
 @Injectable()
@@ -17,13 +18,13 @@ export class CategoryService {
     private readonly storage: CloudinaryClient,
   ) {}
 
-  async tree(locale: 'vi' | 'en' = 'vi'): Promise<CategoryTreeNodeDto[]> {
+  async tree(locale: CategoryLocale = 'vi'): Promise<CategoryTreeNodeDto[]> {
     return buildVisibleTree(await this.prisma.category.findMany({ include: categoryTranslations }), (c) =>
       categoryContent(c, this.storage, locale),
     );
   }
 
-  async findVisible(id: string, locale: 'vi' | 'en' = 'vi') {
+  async findVisible(id: string, locale: CategoryLocale = 'vi') {
     const all = await this.prisma.category.findMany({ include: categoryTranslations });
     const byId = new Map(all.map((c) => [c.id, c]));
     if (!isEffectivelyVisible(id, byId)) {

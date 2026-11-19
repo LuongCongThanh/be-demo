@@ -48,7 +48,7 @@ describe('category media validation', () => {
     expect(prisma.category.update).toHaveBeenCalledWith({
       where: { id },
       data: { bannerStorageKey: key },
-      include: { translations: { where: { locale: 'en' } } },
+      include: { translations: true },
     });
   });
   it('clears a slot without depending on storage availability', async () => {

@@ -6,26 +6,32 @@ import { CategoryService } from '#src/modules/catalog/category/category.service.
 import { CategoryLocaleQueryDto } from '#src/modules/catalog/category/dto/category-locale-query.dto.js';
 import { PublicCategoryResponseDto as CategoryResponseDto } from '#src/modules/catalog/category/dto/public-category-response.dto.js';
 import { CategoryTreeNodeDto } from '#src/modules/catalog/category/dto/category-tree-node.dto.js';
+import { CategoryLanguageService } from '#src/modules/catalog/category/category-language.service.js';
 
 /** Storefront — công khai, chỉ đọc, chỉ danh mục hiển thị. */
 @ApiTags(API_TAGS.CATEGORIES.name)
 @Controller('categories')
 export class CategoryController {
-  constructor(private readonly categoriesService: CategoryService) {}
+  constructor(
+    private readonly categoriesService: CategoryService,
+    private readonly languages: CategoryLanguageService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get the visible category tree for the storefront menu (public)' })
   @ApiOkResponse({ type: [CategoryTreeNodeDto] })
   @ApiErrorResponses(400)
-  tree(@Query() query: CategoryLocaleQueryDto) {
-    return this.categoriesService.tree(query.locale);
+  async tree(@Query() query: CategoryLocaleQueryDto) {
+    const locale = await this.languages.assertEnabled(query.locale);
+    return this.categoriesService.tree(locale);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a visible category by id (public)' })
   @ApiOkResponse({ type: CategoryResponseDto })
   @ApiErrorResponses(400, [404, 'Category not found or hidden'])
-  findOne(@Param('id', ParseUUIDPipe) id: string, @Query() query: CategoryLocaleQueryDto) {
-    return this.categoriesService.findVisible(id, query.locale);
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @Query() query: CategoryLocaleQueryDto) {
+    const locale = await this.languages.assertEnabled(query.locale);
+    return this.categoriesService.findVisible(id, locale);
   }
 }

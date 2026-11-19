@@ -10,13 +10,13 @@ export class CategoryTranslationClient {
     return Boolean(this.config.get<string>('GOOGLE_TRANSLATE_API_KEY')?.trim());
   }
 
-  async translate(name: string): Promise<string> {
+  async translate(name: string, targetLocale = 'en'): Promise<string> {
     const key = this.config.get<string>('GOOGLE_TRANSLATE_API_KEY');
     if (!key?.trim()) throw new Error('Category translation is not configured');
     const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({ q: name, source: 'vi', target: 'en', format: 'text' }),
+      body: JSON.stringify({ q: name, source: 'vi', target: targetLocale, format: 'text' }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`Translation provider returned HTTP ${response.status}`);

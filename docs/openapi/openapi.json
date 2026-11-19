@@ -168,6 +168,16 @@
         ],
         "type": "object"
       },
+      "CategoryTranslationUpdateDto": {
+        "properties": {
+          "name": {
+            "maxLength": 150,
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
       "CategoryTreeNodeDto": {
         "properties": {
           "bannerUrl": {
@@ -1982,6 +1992,18 @@
         },
         "type": "object"
       },
+      "UpdateCategoryLanguageDto": {
+        "properties": {
+          "enabled": {
+            "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "type": "object"
+      },
       "UpdateColorDto": {
         "properties": {
           "hex": {
@@ -3225,6 +3247,269 @@
         ]
       }
     },
+    "/api/v1/admin/categories/{id}/translations": {
+      "get": {
+        "operationId": "AdminCategoryController_translations_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category translations"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List category translations by locale (STAFF/ADMIN)",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/api/v1/admin/categories/{id}/translations/{locale}": {
+      "patch": {
+        "operationId": "AdminCategoryController_updateTranslation_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "locale",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryTranslationUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated category translation"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set a manual category translation or request retranslation (ADMIN only)",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/api/v1/admin/categories/{id}/translations/{locale}/retry": {
+      "post": {
+        "operationId": "AdminCategoryController_retryLocaleTranslation_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "locale",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Queued category translation"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retry one category locale translation (ADMIN only)",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
     "/api/v1/admin/colors": {
       "get": {
         "operationId": "AdminProductOptionController_listColors_v1",
@@ -3755,6 +4040,135 @@
         "summary": "Assign a role to an internal account; idempotent (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE). Accounts holding the role must log in again: their access tokens stop working and their refresh tokens are revoked. The Admin role cannot be assigned to a second account.",
         "tags": [
           "Roles & Permissions"
+        ]
+      }
+    },
+    "/api/v1/admin/languages": {
+      "get": {
+        "operationId": "AdminCategoryLanguageController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Category languages"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List category content languages (STAFF/ADMIN)",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/api/v1/admin/languages/{locale}": {
+      "patch": {
+        "operationId": "AdminCategoryLanguageController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "locale",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryLanguageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated category language"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Enable or disable a category content language (ADMIN only)",
+        "tags": [
+          "Categories"
         ]
       }
     },
@@ -7932,7 +8346,14 @@
               "default": "vi",
               "enum": [
                 "vi",
-                "en"
+                "en",
+                "th",
+                "ja",
+                "ko",
+                "zh-CN",
+                "fr",
+                "de",
+                "es"
               ],
               "example": "en",
               "type": "string"
@@ -8000,7 +8421,14 @@
               "default": "vi",
               "enum": [
                 "vi",
-                "en"
+                "en",
+                "th",
+                "ja",
+                "ko",
+                "zh-CN",
+                "fr",
+                "de",
+                "es"
               ],
               "example": "en",
               "type": "string"
@@ -8176,6 +8604,31 @@
         "summary": "Report whether the app can serve traffic (checks Postgres)",
         "tags": [
           "Health"
+        ]
+      }
+    },
+    "/api/v1/languages": {
+      "get": {
+        "operationId": "CategoryLanguageController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Enabled category languages"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "List enabled category content languages (public)",
+        "tags": [
+          "Categories"
         ]
       }
     },

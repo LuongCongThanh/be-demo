@@ -10,6 +10,13 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
+  await prisma.categoryLanguage.createMany({
+    data: [
+      { locale: 'vi', name: 'Tieng Viet', enabled: true },
+      { locale: 'en', name: 'English', enabled: true },
+    ],
+    skipDuplicates: true,
+  });
   // Deliberate exception: this script runs standalone, outside the Nest DI
   // container (no ConfigService to inject), so it's allowed to read
   // process.env directly — the one exception to "config only via

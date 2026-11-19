@@ -11,6 +11,7 @@ import { UpdateCategoryDto } from '#src/modules/catalog/category/dto/update-cate
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { NEWEST_FIRST, paginate, Paginated } from '#src/common/pagination/paginate.js';
 import { toSlugOrThrow } from '#src/common/utils/slug.util.js';
+import { isCategoryLocale } from '#src/modules/catalog/category/category-locale.js';
 
 /**
  * Back-office danh mục (STAFF đọc, ADMIN ghi). Cây nhiều cấp với hai bất biến
@@ -27,13 +28,38 @@ export class AdminCategoryService {
     const slug = await this.uniqueSlug(dto.name);
 
     const { nameEn, ...input } = dto;
+    const enabledLocales =
+      typeof this.prisma.categoryLanguage?.findMany === 'function'
+        ? await this.prisma.categoryLanguage.findMany({
+            where: { enabled: true },
+            select: { locale: true },
+          })
+        : [];
+    const locales = new Set(
+      ['en', ...enabledLocales.map((language) => language.locale)].filter((locale) => locale !== 'vi'),
+    );
     return writeUnique(
       () =>
         this.prisma.category.create({
           data: {
             ...input,
             slug,
-            translations: { create: { locale: 'en', name: nameEn ?? null, status: nameEn ? 'MANUAL' : 'PENDING' } },
+            translations:
+              locales.size === 1
+                ? {
+                    create: {
+                      locale: 'en',
+                      name: nameEn ?? null,
+                      status: nameEn ? 'MANUAL' : 'PENDING',
+                    },
+                  }
+                : {
+                    create: [...locales].map((locale) => ({
+                      locale,
+                      name: locale === 'en' ? (nameEn ?? null) : null,
+                      status: locale === 'en' && nameEn ? 'MANUAL' : 'PENDING',
+                    })),
+                  },
           },
           include: categoryTranslations,
         }),
@@ -84,22 +110,59 @@ export class AdminCategoryService {
     const data: Prisma.CategoryUncheckedUpdateInput = { ...input };
     if (renamed) data.sourceVersion = { increment: 1 };
     if (nameEn !== undefined || renamed) {
-      const manual = english.status === 'MANUAL' || english.status === 'REVIEW';
-      data.translations = {
-        update: {
-          where: { categoryId_locale: { categoryId: id, locale: 'en' }, revision: english.revision },
-          data: {
-            ...(nameEn !== undefined
-              ? { name: nameEn, status: nameEn === null ? 'PENDING' : 'MANUAL' }
-              : manual
-                ? { status: 'REVIEW' }
-                : { name: null, status: 'PENDING' }),
-            sourceVersion: current.sourceVersion + (renamed ? 1 : 0),
-            revision: { increment: 1 },
-            leaseUntil: null,
+      const nextSourceVersion = current.sourceVersion + (renamed ? 1 : 0);
+      if (current.translations.length === 1 && current.translations[0].locale === 'en') {
+        const manual = english.status === 'MANUAL' || english.status === 'REVIEW';
+        data.translations = {
+          update: {
+            where: { categoryId_locale: { categoryId: id, locale: 'en' }, revision: english.revision },
+            data: {
+              ...(nameEn !== undefined
+                ? { name: nameEn, status: nameEn === null ? 'PENDING' : 'MANUAL' }
+                : manual
+                  ? { status: 'REVIEW' }
+                  : { name: null, status: 'PENDING' }),
+              sourceVersion: nextSourceVersion,
+              revision: { increment: 1 },
+              leaseUntil: null,
+            },
           },
-        },
-      };
+        };
+      } else {
+        data.translations = {
+          update: current.translations.map((translation) => ({
+            where: {
+              categoryId_locale: { categoryId: id, locale: translation.locale },
+              revision: translation.revision,
+            },
+            data:
+              translation.locale === 'en' && nameEn !== undefined
+                ? {
+                    name: nameEn,
+                    status: nameEn === null ? 'PENDING' : 'MANUAL',
+                    sourceVersion: nextSourceVersion,
+                    revision: { increment: 1 },
+                    leaseUntil: null,
+                  }
+                : renamed
+                  ? translation.status === 'MANUAL' || translation.status === 'REVIEW'
+                    ? {
+                        status: 'REVIEW',
+                        sourceVersion: nextSourceVersion,
+                        revision: { increment: 1 },
+                        leaseUntil: null,
+                      }
+                    : {
+                        name: null,
+                        status: 'PENDING',
+                        sourceVersion: nextSourceVersion,
+                        revision: { increment: 1 },
+                        leaseUntil: null,
+                      }
+                  : {},
+          })),
+        };
+      }
     }
     // The nested write is atomic. Both source and translation revisions revoke stale edits/results.
     return db.category
@@ -134,6 +197,53 @@ export class AdminCategoryService {
         },
       },
       include: categoryTranslations,
+    });
+  }
+
+  async listTranslations(id: string) {
+    await this.findOne(id);
+    return this.prisma.categoryTranslation.findMany({
+      where: { categoryId: id },
+      orderBy: [{ locale: 'asc' }],
+    });
+  }
+
+  async updateTranslation(id: string, locale: string, name: string | null | undefined) {
+    if (!isCategoryLocale(locale) || locale === 'vi') {
+      throw new BadRequestException(`Invalid category translation locale "${locale}"`);
+    }
+    const language = await this.prisma.categoryLanguage.findUnique({ where: { locale }, select: { enabled: true } });
+    if (!language?.enabled) throw new BadRequestException(`Category locale "${locale}" is not enabled`);
+    await this.findOne(id);
+    const status = name === undefined ? 'PENDING' : name === null ? 'PENDING' : 'MANUAL';
+    return this.prisma.categoryTranslation.upsert({
+      where: { categoryId_locale: { categoryId: id, locale } },
+      update: {
+        name: name === undefined ? null : name,
+        status,
+        revision: { increment: 1 },
+        leaseUntil: null,
+      },
+      create: {
+        categoryId: id,
+        locale,
+        name: name === undefined ? null : name,
+        status,
+      },
+      include: { category: false },
+    });
+  }
+
+  async retryLocaleTranslation(id: string, locale: string) {
+    if (!isCategoryLocale(locale) || locale === 'vi') {
+      throw new BadRequestException(`Invalid category translation locale "${locale}"`);
+    }
+    const language = await this.prisma.categoryLanguage.findUnique({ where: { locale }, select: { enabled: true } });
+    if (!language?.enabled) throw new BadRequestException(`Category locale "${locale}" is not enabled`);
+    await this.findOne(id);
+    return this.prisma.categoryTranslation.update({
+      where: { categoryId_locale: { categoryId: id, locale } },
+      data: { status: 'PENDING', revision: { increment: 1 }, leaseUntil: null },
     });
   }
 

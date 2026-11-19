@@ -24,6 +24,19 @@ import { UpdateCategoryDto } from '#src/modules/catalog/category/dto/update-cate
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { CategoryResponseDto } from '#src/modules/catalog/category/dto/category-response.dto.js';
 import { PaginatedCategoryResponseDto } from '#src/modules/catalog/category/dto/paginated-category-response.dto.js';
+import { IsNotEmpty, IsString, MaxLength, ValidateIf } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+
+class CategoryTranslationUpdateDto {
+  @ApiPropertyOptional({ nullable: true, maxLength: 150 })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @ValidateIf((_, value) => value !== undefined && value !== null)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(150)
+  name?: string | null;
+}
 
 /** Back-office: đọc cho STAFF + ADMIN (kể cả danh mục ẩn), ghi chỉ ADMIN. */
 @ApiTags(API_TAGS.CATEGORIES.name)
@@ -86,6 +99,37 @@ export class AdminCategoryController {
   @ApiErrorResponses(400, 401, 403, 404)
   async retryTranslation(@Param('id', ParseUUIDPipe) id: string) {
     return adminCategory(await this.service.retryTranslation(id), this.storage);
+  }
+
+  @Get(':id/translations')
+  @ApiOperation({ summary: 'List category translations by locale (STAFF/ADMIN)' })
+  @ApiOkResponse({ description: 'Category translations' })
+  @ApiErrorResponses(400, 401, 403, 404)
+  translations(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.listTranslations(id);
+  }
+
+  @Patch(':id/translations/:locale')
+  @Authorize(Permission.CATALOG_CATEGORY_MANAGE)
+  @ApiOperation({ summary: 'Set a manual category translation or request retranslation (ADMIN only)' })
+  @ApiOkResponse({ description: 'Updated category translation' })
+  @ApiErrorResponses(400, 401, 403, 404)
+  updateTranslation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('locale') locale: string,
+    @Body() dto: CategoryTranslationUpdateDto,
+  ) {
+    return this.service.updateTranslation(id, locale, dto.name);
+  }
+
+  @Post(':id/translations/:locale/retry')
+  @Authorize(Permission.CATALOG_CATEGORY_MANAGE)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Retry one category locale translation (ADMIN only)' })
+  @ApiOkResponse({ description: 'Queued category translation' })
+  @ApiErrorResponses(400, 401, 403, 404)
+  retryLocaleTranslation(@Param('id', ParseUUIDPipe) id: string, @Param('locale') locale: string) {
+    return this.service.retryLocaleTranslation(id, locale);
   }
 
   @Delete(':id')
