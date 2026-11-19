@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import { categoryTranslations } from '#src/modules/catalog/category/category-response.mapper.js';
 import { AdminCategoryService } from '#src/modules/catalog/category/admin-category.service.js';
 
 describe('AdminCategoryService', () => {
@@ -43,7 +44,14 @@ describe('AdminCategoryService', () => {
       expect(prismaMock.category.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({ where: { slug: 'shoes' } }),
       );
-      expect(prismaMock.category.create).toHaveBeenCalledWith({ data: { name: 'Shoes', slug: 'shoes' } });
+      expect(prismaMock.category.create).toHaveBeenCalledWith({
+        data: {
+          name: 'Shoes',
+          slug: 'shoes',
+          translations: { create: { locale: 'en', name: null, status: 'PENDING' } },
+        },
+        include: categoryTranslations,
+      });
       expect(result.slug).toBe('shoes');
     });
 
@@ -89,6 +97,7 @@ describe('AdminCategoryService', () => {
         skip: 0,
         take: 20,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        include: categoryTranslations,
       });
       expect(result).toEqual({
         data: [{ id: '1', name: 'Shoes', slug: 'shoes' }],
@@ -121,26 +130,40 @@ describe('AdminCategoryService', () => {
 
   describe('update', () => {
     it('preserves the original slug when the Vietnamese name changes', async () => {
-      prismaMock.category.findUnique.mockResolvedValueOnce({ id: '1', name: 'Shoes', slug: 'shoes' });
+      prismaMock.category.findUnique.mockResolvedValueOnce({
+        id: '1',
+        name: 'Shoes',
+        slug: 'shoes',
+        sourceVersion: 0,
+        translations: [{ locale: 'en', revision: 0, status: 'PENDING' }],
+      });
       prismaMock.category.update.mockResolvedValue({ id: '1', name: 'Sneakers', slug: 'shoes' });
       const result = await service.update('1', { name: 'Sneakers' });
       expect(prismaMock.category.update).toHaveBeenCalledWith({
-        where: { id: '1' },
-        data: expect.objectContaining({ name: 'Sneakers', nameEn: null, translationStatus: 'PENDING' }),
+        where: { id: '1', sourceVersion: 0, translations: { some: { locale: 'en', revision: 0 } } },
+        data: expect.objectContaining({ name: 'Sneakers', sourceVersion: { increment: 1 } }),
+        include: categoryTranslations,
       });
       expect(result.slug).toBe('shoes');
       expect(prismaMock.category.findUnique).toHaveBeenCalledTimes(1);
     });
 
     it('does not touch the slug when name is not part of the update', async () => {
-      prismaMock.category.findUnique.mockResolvedValueOnce({ id: '1', name: 'Shoes', slug: 'shoes' });
+      prismaMock.category.findUnique.mockResolvedValueOnce({
+        id: '1',
+        name: 'Shoes',
+        slug: 'shoes',
+        sourceVersion: 0,
+        translations: [{ locale: 'en', revision: 0, status: 'PENDING' }],
+      });
       prismaMock.category.update.mockResolvedValue({ id: '1', name: 'Shoes', slug: 'shoes', description: 'Updated' });
 
       await service.update('1', { description: 'Updated' });
 
       expect(prismaMock.category.update).toHaveBeenCalledWith({
-        where: { id: '1' },
+        where: { id: '1', sourceVersion: 0, translations: { some: { locale: 'en', revision: 0 } } },
         data: { description: 'Updated' },
+        include: categoryTranslations,
       });
     });
 
@@ -151,78 +174,85 @@ describe('AdminCategoryService', () => {
   });
 
   describe('translation lifecycle', () => {
-    it.each(['MANUAL', 'REVIEW'])('keeps editorial English after Vietnamese rename (%s)', async (translationStatus) => {
+    beforeEach(() => {
       prismaMock.category.findUnique.mockResolvedValue({
         id: '1',
         name: 'Áo thun',
-        nameEn: 'T-shirts',
-        translationStatus,
-        translationVersion: 2,
+        sourceVersion: 3,
+        translations: [{ locale: 'en', name: 'T-shirts', status: 'MANUAL', revision: 2 }],
       });
       prismaMock.category.update.mockResolvedValue({ id: '1' });
-      await service.update('1', { name: 'Áo polo' });
-      expect(prismaMock.category.update).toHaveBeenCalledWith({
-        where: { id: '1', translationVersion: 2 },
-        data: {
-          name: 'Áo polo',
-          translationStatus: 'REVIEW',
-          translationVersion: { increment: 1 },
-          translationLeaseUntil: null,
-        },
-      });
     });
 
-    it('an English override cancels automatic work, even with a simultaneous Vietnamese rename', async () => {
-      prismaMock.category.findUnique.mockResolvedValue({ id: '1', name: 'Áo thun', translationVersion: 2 });
-      prismaMock.category.update.mockResolvedValue({ id: '1' });
-      await service.update('1', { name: 'Áo polo', nameEn: 'Polo shirts' });
+    it.each(['MANUAL', 'REVIEW'])('keeps editorial English after Vietnamese rename (%s)', async (status) => {
+      prismaMock.category.findUnique.mockResolvedValue({
+        id: '1',
+        name: 'Áo thun',
+        sourceVersion: 3,
+        translations: [{ locale: 'en', name: 'T-shirts', status, revision: 2 }],
+      });
+      await service.update('1', { name: 'Áo polo' });
       expect(prismaMock.category.update).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: { id: '1', sourceVersion: 3, translations: { some: { locale: 'en', revision: 2 } } },
           data: {
             name: 'Áo polo',
-            nameEn: 'Polo shirts',
-            translationStatus: 'MANUAL',
-            translationVersion: { increment: 1 },
-            translationLeaseUntil: null,
+            sourceVersion: { increment: 1 },
+            translations: {
+              update: {
+                where: { categoryId_locale: { categoryId: '1', locale: 'en' }, revision: 2 },
+                data: { status: 'REVIEW', sourceVersion: 4, revision: { increment: 1 }, leaseUntil: null },
+              },
+            },
           },
         }),
       );
     });
 
-    it('null English clears an override and requests a fresh translation', async () => {
-      prismaMock.category.findUnique.mockResolvedValue({ id: '1', translationVersion: 2 });
-      prismaMock.category.update.mockResolvedValue({ id: '1' });
-      await service.update('1', { nameEn: null });
+    it.each(['Polo shirts', null])('writes a legacy override into the locale row (%s)', async (name) => {
+      await service.update('1', { name: 'Áo polo', nameEn: name });
       expect(prismaMock.category.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: {
-            nameEn: null,
-            translationStatus: 'PENDING',
-            translationVersion: { increment: 1 },
-            translationLeaseUntil: null,
+            name: 'Áo polo',
+            sourceVersion: { increment: 1 },
+            translations: {
+              update: {
+                where: { categoryId_locale: { categoryId: '1', locale: 'en' }, revision: 2 },
+                data: {
+                  name,
+                  status: name === null ? 'PENDING' : 'MANUAL',
+                  sourceVersion: 4,
+                  revision: { increment: 1 },
+                  leaseUntil: null,
+                },
+              },
+            },
           },
         }),
       );
     });
 
     it('reports a concurrent content edit as 409 rather than silently overwriting it', async () => {
-      prismaMock.category.findUnique.mockResolvedValue({ id: '1', translationVersion: 2 });
       prismaMock.category.update.mockRejectedValue(
         new Prisma.PrismaClientKnownRequestError('Stale version', { code: 'P2025', clientVersion: 'test' }),
       );
       await expect(service.update('1', { nameEn: 'T-shirts' })).rejects.toThrow(ConflictException);
     });
 
-    it('retry revokes the previous worker lease and keeps the current English until success', async () => {
-      prismaMock.category.update.mockResolvedValue({ id: '1' });
+    it('retry revokes the translation lease and keeps its current English until success', async () => {
       await service.retryTranslation('1');
       expect(prismaMock.category.update).toHaveBeenCalledWith({
         where: { id: '1' },
         data: {
-          translationStatus: 'PENDING',
-          translationVersion: { increment: 1 },
-          translationLeaseUntil: null,
+          translations: {
+            update: {
+              where: { categoryId_locale: { categoryId: '1', locale: 'en' } },
+              data: { status: 'PENDING', revision: { increment: 1 }, leaseUntil: null },
+            },
+          },
         },
+        include: categoryTranslations,
       });
     });
   });
@@ -300,7 +330,14 @@ describe('AdminCategoryService', () => {
     it('update rejects moving a category under its own descendant (a → b → c, move a under c)', async () => {
       const parents: Record<string, string | null> = { c: 'b', b: 'a', a: null };
       prismaMock.category.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
-        where.id in parents ? { id: where.id, parentId: parents[where.id] } : null,
+        where.id in parents
+          ? {
+              id: where.id,
+              parentId: parents[where.id],
+              sourceVersion: 0,
+              translations: [{ locale: 'en', revision: 0 }],
+            }
+          : null,
       );
 
       await expect(service.update('a', { parentId: 'c' })).rejects.toThrow(BadRequestException);
@@ -310,7 +347,14 @@ describe('AdminCategoryService', () => {
     it('update allows moving to an unrelated parent and back to root', async () => {
       const parents: Record<string, string | null> = { a: null, x: null };
       prismaMock.category.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
-        where.id in parents ? { id: where.id, parentId: parents[where.id] } : null,
+        where.id in parents
+          ? {
+              id: where.id,
+              parentId: parents[where.id],
+              sourceVersion: 0,
+              translations: [{ locale: 'en', revision: 0 }],
+            }
+          : null,
       );
       prismaMock.category.update.mockResolvedValue({ id: 'a' });
 
@@ -323,7 +367,14 @@ describe('AdminCategoryService', () => {
     it('update rejects a destination with an already-corrupt cycle', async () => {
       const parents: Record<string, string | null> = { a: null, x: 'y', y: 'x' };
       prismaMock.category.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
-        where.id in parents ? { id: where.id, parentId: parents[where.id] } : null,
+        where.id in parents
+          ? {
+              id: where.id,
+              parentId: parents[where.id],
+              sourceVersion: 0,
+              translations: [{ locale: 'en', revision: 0 }],
+            }
+          : null,
       );
       prismaMock.category.update.mockResolvedValue({ id: 'a' });
 

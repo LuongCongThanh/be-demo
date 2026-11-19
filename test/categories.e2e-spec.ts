@@ -291,6 +291,30 @@ describe('Categories (e2e)', () => {
     });
   });
   describe('localized content and optional images', () => {
+    it('projects legacy English from the locale row even when retained legacy columns disagree', async () => {
+      const category = await createCategory({ nameEn: 'Editorial English' });
+      await prisma.category.update({
+        where: { id: category.id },
+        data: {
+          nameEn: 'Retired column',
+          translationStatus: 'FAILED',
+        },
+      });
+      const detail = await request(server())
+        .get(`/api/v1/admin/categories/${category.id}`)
+        .set(auth(adminToken))
+        .expect(200);
+      expect(detail.body).toMatchObject({ nameEn: 'Editorial English', translationStatus: 'MANUAL' });
+      const image = await request(server())
+        .patch(`/api/v1/admin/categories/${category.id}/images/thumbnail`)
+        .set(auth(adminToken))
+        .send({ storageKey: null })
+        .expect(200);
+      expect(image.body).toMatchObject({ nameEn: 'Editorial English', translationStatus: 'MANUAL' });
+      const en = await request(server()).get(`/api/v1/categories/${category.id}?locale=en`).expect(200);
+      expect(en.body.name).toBe('Editorial English');
+    });
+
     it('serves English by locale, falls back to Vietnamese and preserves slug through editorial updates', async () => {
       const category = await createCategory({ nameEn: 'T-shirts' });
       const en = await request(server()).get(`/api/v1/categories/${category.id}?locale=en`).expect(200);
@@ -392,10 +416,10 @@ describe('Categories (e2e)', () => {
         const category = await createCategory();
         // Scope the batch to this fixture; keep the real PostgreSQL claim and completion writes.
         const scoped = {
-          category: {
-            findMany: (args: Prisma.CategoryFindManyArgs) =>
-              prisma.category.findMany({ ...args, where: { ...args.where, id: category.id } }),
-            updateMany: (args: Prisma.CategoryUpdateManyArgs) => prisma.category.updateMany(args),
+          categoryTranslation: {
+            findMany: (args: Prisma.CategoryTranslationFindManyArgs) =>
+              prisma.categoryTranslation.findMany({ ...args, where: { ...args.where, categoryId: category.id } }),
+            updateMany: (args: Prisma.CategoryTranslationUpdateManyArgs) => prisma.categoryTranslation.updateMany(args),
           },
         } as unknown as PrismaService;
         const translator = {
@@ -413,7 +437,8 @@ describe('Categories (e2e)', () => {
           },
         } as unknown as CategoryTranslationClient;
         await new CategoryTranslationService(scoped, translator).tick();
-        const result = await prisma.category.findUnique({ where: { id: category.id } });
+        const response = await request(server()).get(`/api/v1/admin/categories/${category.id}`).set(auth(adminToken));
+        const result = response.status === 404 ? null : response.body;
         if (change === 'delete') expect(result).toBeNull();
         else
           expect(result).toMatchObject({
@@ -426,10 +451,10 @@ describe('Categories (e2e)', () => {
     it('persists a successful automatic translation and then preserves its slug', async () => {
       const category = await createCategory();
       const scoped = {
-        category: {
-          findMany: (args: Prisma.CategoryFindManyArgs) =>
-            prisma.category.findMany({ ...args, where: { ...args.where, id: category.id } }),
-          updateMany: (args: Prisma.CategoryUpdateManyArgs) => prisma.category.updateMany(args),
+        categoryTranslation: {
+          findMany: (args: Prisma.CategoryTranslationFindManyArgs) =>
+            prisma.categoryTranslation.findMany({ ...args, where: { ...args.where, categoryId: category.id } }),
+          updateMany: (args: Prisma.CategoryTranslationUpdateManyArgs) => prisma.categoryTranslation.updateMany(args),
         },
       } as unknown as PrismaService;
       await new CategoryTranslationService(scoped, {

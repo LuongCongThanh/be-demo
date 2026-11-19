@@ -19,3 +19,26 @@ Tạo: `POST /api/v1/admin/categories` với `{ "name": "Áo thun" }` → trạn
 5. Kiểm thử một category trong môi trường đích sau cấu hình key. Lượt test ở đây dùng fake vendor/storage; chưa xác minh credential hay bản dịch Google thật.
 
 Tài liệu provider: [Google Cloud Translation text API](https://docs.cloud.google.com/translate/docs/translate-text). Worker nằm trong tiến trình API; cần một instance hoạt động để hàng đợi tiếp tục chạy. Tắt worker bằng bỏ key và restart; tên đã dịch vẫn được lưu.
+
+## Rollout tương thích locale (ticket 01)
+
+`20261119100000_category_locale_translations` thêm `categories.source_version` và bảng
+`category_translations`, sao chép duy nhất dòng `en` cho mỗi category. Mọi trạng thái
+và tên đã sửa tay được giữ; lease cũ bị bỏ để worker mới có thể nhận lại PENDING.
+`nameEn` và `translationStatus` của API là projection từ dòng `en`; request `nameEn`
+cũ ghi vào cùng dòng này. Không cần consumers nhập lại bản dịch.
+
+1. Dừng toàn bộ BE/worker bản cũ trước khi migrate; không cho tiến trình cũ ghi
+   `categories.name_en`/`translation_*` trong hoặc sau rollout.
+2. Sao lưu, chạy `prisma migrate deploy --config prisma7.config.ts`, generate client
+   và build/phát hành BE mới. Không drop các cột legacy trong lần này; chúng chỉ còn
+   là dữ liệu giữ lại, không được đồng bộ hay dùng làm nguồn đọc.
+3. Khởi động BE mới. Thiếu Google key vẫn tạo PENDING bền vững; nhập Anh thủ công,
+   đọc locale, sửa/retry và ảnh vẫn hoạt động. Khi có key, worker đọc/claim/ghi từng
+   dòng dịch bằng sourceVersion + revision + lease, không gọi provider trong transaction.
+4. Kiểm tra GET admin/store, sửa Việt sau MANUAL → REVIEW, và retry giữ tên hiện có
+   đến khi dịch thành công. Không rollback chạy BE cũ vì cột legacy đã ngừng cập nhật;
+   phục hồi cần bản BE tương thích bảng mới hoặc kế hoạch khôi phục dữ liệu riêng.
+
+Ticket này chỉ chuyển Việt/Anh hiện có. API quản lý ngôn ngữ và sửa bản dịch theo
+locale sẽ được bổ sung trong các ticket tiếp theo.

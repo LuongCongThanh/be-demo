@@ -106,6 +106,7 @@
             "type": "string"
           },
           "nameEn": {
+            "description": "Compatibility projection of the English category translation; null falls back to Vietnamese on the storefront",
             "nullable": true,
             "type": "string"
           },
@@ -132,6 +133,7 @@
             "type": "string"
           },
           "translationStatus": {
+            "description": "Compatibility projection of the English translation status",
             "enum": [
               "PENDING",
               "TRANSLATED",
@@ -286,7 +288,7 @@
             "type": "string"
           },
           "nameEn": {
-            "description": "Manual English name; null requests automatic translation",
+            "description": "Compatibility input for the English category translation; a name sets MANUAL, null requests automatic translation",
             "example": "T-shirts",
             "maxLength": 150,
             "nullable": true,
@@ -1421,6 +1423,7 @@
             "type": "string"
           },
           "nameEn": {
+            "description": "Compatibility projection of the English category translation; null falls back to Vietnamese on the storefront",
             "nullable": true,
             "type": "string"
           },
@@ -1957,7 +1960,7 @@
             "type": "string"
           },
           "nameEn": {
-            "description": "Manual English name; null requests automatic translation",
+            "description": "Compatibility input for the English category translation; a name sets MANUAL, null requests automatic translation",
             "example": "T-shirts",
             "maxLength": 150,
             "nullable": true,

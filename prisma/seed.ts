@@ -199,7 +199,13 @@ async function seedCatalog(): Promise<void> {
     const category = await prisma.category.upsert({
       where: { slug: categorySlug },
       update: {},
-      create: { name: categorySeed.name, slug: categorySlug },
+      create: { name: categorySeed.name, slug: categorySlug, translations: { create: { locale: 'en' } } },
+    });
+
+    await prisma.categoryTranslation.upsert({
+      where: { categoryId_locale: { categoryId: category.id, locale: 'en' } },
+      update: {},
+      create: { categoryId: category.id, locale: 'en', sourceVersion: category.sourceVersion },
     });
 
     for (const productSeed of categorySeed.products) {

@@ -9,6 +9,7 @@ const cat = (id: string, parentId: string | null, over: Partial<Category> = {}):
   slug: id,
   description: null,
   nameEn: null,
+  sourceVersion: 0,
   translationStatus: 'PENDING',
   translationVersion: 0,
   translationLeaseUntil: null,

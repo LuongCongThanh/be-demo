@@ -6,10 +6,10 @@ import { CategoryTreeNodeDto } from '#src/modules/catalog/category/dto/category-
  * danh mục hiển thị; danh mục ẩn kéo theo cả nhánh con (con chỉ được gắn khi
  * cha đã nằm trong cây). Anh em sắp theo sortOrder rồi tên.
  */
-export function buildVisibleTree(
-  categories: Category[],
+export function buildVisibleTree<T extends Category>(
+  categories: T[],
   content: (
-    category: Category,
+    category: T,
   ) => Pick<CategoryTreeNodeDto, 'nameVi' | 'nameEn' | 'thumbnailUrl' | 'bannerUrl'> & { name?: string } = (c) => ({
     nameVi: c.name,
     nameEn: c.nameEn,
@@ -17,7 +17,7 @@ export function buildVisibleTree(
     bannerUrl: null,
   }),
 ): CategoryTreeNodeDto[] {
-  const childrenOf = new Map<string | null, Category[]>();
+  const childrenOf = new Map<string | null, T[]>();
   for (const category of categories) {
     const siblings = childrenOf.get(category.parentId) ?? [];
     siblings.push(category);

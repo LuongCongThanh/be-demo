@@ -9,7 +9,7 @@ PostgreSQL, 49 bảng chia theo module (xem [`architecture/02-modules.md`](./02-
 | Module             | Bảng                                                                                                                                                 |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | identity           | `users`, `user_auth_providers`, `customer_addresses`, `refresh_tokens`, `password_reset_tokens`, `email_verification_tokens`, `guest_order_sessions` |
-| catalog            | `categories`, `products`, `sizes`, `colors`, `product_variants`, `product_images`, `product_sales_stats`                                             |
+| catalog            | `categories`, `category_translations`, `products`, `sizes`, `colors`, `product_variants`, `product_images`, `product_sales_stats`                    |
 | pricing            | `sale_prices`, `vouchers`, `voucher_usages`                                                                                                          |
 | cart               | `carts`, `cart_items`                                                                                                                                |
 | inventory          | `warehouses`, `inventory_levels`, `inventory_reservations`, `awaiting_dispatch_items`, `inventory_movements`, `stock_counts`                         |
@@ -267,7 +267,21 @@ Bổ sung additive trong migration `20261119000000_category_content`:
 | translation_lease_until                   | timestamptz(6), nullable                       | Worker claim có hạn; index (translation_status, translation_lease_until) |
 | thumbnail_storage_key, banner_storage_key | text, nullable                                 | Hai ảnh độc lập; URL dựng từ storage adapter                             |
 
-Category cũ giữ ids/slugs/parent/order/visibility và nhận PENDING để backfill khi bật worker. Không có translation job table riêng; category row là hàng đợi bền vững.
+Migration `20261119100000_category_locale_translations` thêm `categories.source_version` (int, NN, default 0), tăng khi tên Việt đổi. Các cột legacy `name_en` và `translation_*` vẫn giữ để migration additive, nhưng BE mới không đọc/ghi chúng. API legacy projection đọc từ dòng `en` của bảng dưới.
+
+#### `category_translations`
+
+| Cột                    | Kiểu / ràng buộc                                    | Ý nghĩa                                           |
+| ---------------------- | --------------------------------------------------- | ------------------------------------------------- |
+| category_id, locale    | uuid FK → categories CASCADE + varchar(35), PK ghép | Một bản dịch mỗi category + locale; hiện tạo `en` |
+| name                   | varchar(150), nullable                              | Tên dịch hoặc bản sửa tay; null fallback Việt     |
+| status                 | CategoryTranslationStatus, NN, default PENDING      | PENDING / TRANSLATED / MANUAL / REVIEW / FAILED   |
+| source_version         | int, NN, default 0                                  | Version nguồn dùng để bảo vệ kết quả              |
+| revision               | int, NN, default 0                                  | Tăng khi rename/manual/retry để hủy kết quả cũ    |
+| lease_until            | timestamptz(6), nullable                            | Lease từng bản dịch, reset khi đổi revision       |
+| created_at, updated_at | timestamptz(6), NN                                  | Giữ timestamps cũ khi migrate                     |
+
+Index worker `(locale, status, lease_until, created_at, category_id)`. Bảng bản dịch là hàng đợi bền vững; migration chuyển mọi dòng Anh hiện có (kể cả null, MANUAL, REVIEW, FAILED), giữ tên/trạng thái/revision cũ và bỏ lease cũ. Không cần bảng job riêng. Phải dừng BE/worker cũ trước migration; không chạy song song writer cũ/mới.
 
 Chống vòng lặp cây (A là cha của B là cha của A) ở service, với transaction advisory lock chung khi move để hai request đối nghịch không cùng vượt kiểm tra.
 

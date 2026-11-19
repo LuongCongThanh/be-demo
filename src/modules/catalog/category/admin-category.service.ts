@@ -1,6 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '#src/generated/prisma/client.js';
-import type { Category } from '#src/generated/prisma/client.js';
+import {
+  categoryTranslations,
+  type CategoryWithTranslations,
+} from '#src/modules/catalog/category/category-response.mapper.js';
 import { writeUnique } from '#src/infrastructure/database/prisma-error.util.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { CreateCategoryDto } from '#src/modules/catalog/category/dto/create-category.dto.js';
@@ -19,7 +22,7 @@ import { toSlugOrThrow } from '#src/common/utils/slug.util.js';
 export class AdminCategoryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateCategoryDto): Promise<Category> {
+  async create(dto: CreateCategoryDto): Promise<CategoryWithTranslations> {
     if (dto.parentId) await this.assertExists(dto.parentId, 'Parent category');
     const slug = await this.uniqueSlug(dto.name);
 
@@ -27,31 +30,36 @@ export class AdminCategoryService {
     return writeUnique(
       () =>
         this.prisma.category.create({
-          data: { ...input, slug, ...(nameEn ? { nameEn, translationStatus: 'MANUAL' } : {}) },
+          data: {
+            ...input,
+            slug,
+            translations: { create: { locale: 'en', name: nameEn ?? null, status: nameEn ? 'MANUAL' : 'PENDING' } },
+          },
+          include: categoryTranslations,
         }),
       'slug',
       `Category name "${dto.name}" already exists`,
     );
   }
 
-  findAll({ page, limit }: PaginationDto): Promise<Paginated<Category>> {
+  findAll({ page, limit }: PaginationDto): Promise<Paginated<CategoryWithTranslations>> {
     return paginate(
       page,
       limit,
-      (args) => this.prisma.category.findMany({ orderBy: [...NEWEST_FIRST], ...args }),
+      (args) => this.prisma.category.findMany({ orderBy: [...NEWEST_FIRST], ...args, include: categoryTranslations }),
       () => this.prisma.category.count(),
     );
   }
 
-  async findOne(id: string, db: Prisma.TransactionClient = this.prisma): Promise<Category> {
-    const category = await db.category.findUnique({ where: { id } });
+  async findOne(id: string, db: Prisma.TransactionClient = this.prisma): Promise<CategoryWithTranslations> {
+    const category = await db.category.findUnique({ where: { id }, include: categoryTranslations });
     if (!category) {
       throw new NotFoundException(`Category #${id} not found`);
     }
     return category;
   }
 
-  async update(id: string, dto: UpdateCategoryDto): Promise<Category> {
+  async update(id: string, dto: UpdateCategoryDto): Promise<CategoryWithTranslations> {
     if (dto.parentId === undefined) return this.updateContent(this.prisma, id, dto);
     // Serialize tree moves across instances. Opposing concurrent moves must not both pass the cycle check.
     return this.prisma.$transaction(async (tx) => {
@@ -60,46 +68,72 @@ export class AdminCategoryService {
     });
   }
 
-  private async updateContent(db: Prisma.TransactionClient, id: string, dto: UpdateCategoryDto): Promise<Category> {
+  private async updateContent(
+    db: Prisma.TransactionClient,
+    id: string,
+    dto: UpdateCategoryDto,
+  ): Promise<CategoryWithTranslations> {
     // Read the editorial state and revision before validating a tree move.
     const current = await this.findOne(id, db);
 
     if (dto.parentId) await this.assertNoCycle(id, dto.parentId, db);
 
-    const data: Prisma.CategoryUncheckedUpdateInput = { ...dto };
-    if (dto.nameEn !== undefined) {
-      data.translationStatus = dto.nameEn === null ? 'PENDING' : 'MANUAL';
-      data.translationVersion = { increment: 1 };
-      data.translationLeaseUntil = null;
-    } else if (dto.name !== undefined && dto.name !== current.name) {
-      const manual = current.translationStatus === 'MANUAL' || current.translationStatus === 'REVIEW';
-      data.translationStatus = manual ? 'REVIEW' : 'PENDING';
-      if (!manual) data.nameEn = null;
-      data.translationVersion = { increment: 1 };
-      data.translationLeaseUntil = null;
+    const { nameEn, ...input } = dto;
+    const english = current.translations.find((translation) => translation.locale === 'en')!;
+    const renamed = dto.name !== undefined && dto.name !== current.name;
+    const data: Prisma.CategoryUncheckedUpdateInput = { ...input };
+    if (renamed) data.sourceVersion = { increment: 1 };
+    if (nameEn !== undefined || renamed) {
+      const manual = english.status === 'MANUAL' || english.status === 'REVIEW';
+      data.translations = {
+        update: {
+          where: { categoryId_locale: { categoryId: id, locale: 'en' }, revision: english.revision },
+          data: {
+            ...(nameEn !== undefined
+              ? { name: nameEn, status: nameEn === null ? 'PENDING' : 'MANUAL' }
+              : manual
+                ? { status: 'REVIEW' }
+                : { name: null, status: 'PENDING' }),
+            sourceVersion: current.sourceVersion + (renamed ? 1 : 0),
+            revision: { increment: 1 },
+            leaseUntil: null,
+          },
+        },
+      };
     }
-    // Slug is the permanent URL identity; rename and reparent preserve it.
-
+    // The nested write is atomic. Both source and translation revisions revoke stale edits/results.
     return db.category
-      .update({ where: { id, translationVersion: current.translationVersion }, data })
+      .update({
+        where: {
+          id,
+          sourceVersion: current.sourceVersion,
+          translations: { some: { locale: 'en', revision: english.revision } },
+        },
+        data,
+        include: categoryTranslations,
+      })
       .catch(async (err: unknown) => {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
-          await this.findOne(id, db); // Deleted category remains a 404.
+          await this.findOne(id, db);
           throw new ConflictException('Category content changed concurrently — reload and retry');
         }
         throw err;
       });
   }
 
-  async retryTranslation(id: string): Promise<Category> {
-    // Atomic increment revokes every in-flight result, including an older retry.
+  async retryTranslation(id: string): Promise<CategoryWithTranslations> {
+    // Atomic nested update keeps the current name and revokes each previous lease.
     return this.prisma.category.update({
       where: { id },
       data: {
-        translationStatus: 'PENDING',
-        translationVersion: { increment: 1 },
-        translationLeaseUntil: null,
+        translations: {
+          update: {
+            where: { categoryId_locale: { categoryId: id, locale: 'en' } },
+            data: { status: 'PENDING', revision: { increment: 1 }, leaseUntil: null },
+          },
+        },
       },
+      include: categoryTranslations,
     });
   }
 

@@ -79,3 +79,7 @@ BR-CAT-01–13; US-101–104, US-801–803, US-805; ADR 0001.
 - POST `/admin/categories/:id/images/:slot/presign`, PATCH `/admin/categories/:id/images/:slot` với slot thumbnail/banner. Upload trực tiếp Cloudinary; attach kiểm file thật, ≤5MB JPEG/PNG/WebP. Null gỡ ảnh.
 - Worker poll mỗi 5 giây, batch 10, lease 60 giây, timeout Google 10 giây; chỉ bật khi có GOOGLE_TRANSLATE_API_KEY. Claim/complete có điều kiện version/status/lease; lỗi FAILED chờ retry. Không gọi HTTP trong transaction. API ghi không đợi dịch.
 - Hidden branch không truy cập/filter được, filter cha bỏ nhánh con ẩn; search không có categoryId giữ quy tắc sản phẩm hiện có.
+
+### Tương thích locale — ticket 01
+
+Bản dịch Anh hiện nằm trong `category_translations` (PK categoryId + locale), không còn dùng cột legacy làm nguồn dữ liệu. `nameEn`/`translationStatus` trên mọi response và request cũ là adapter cho `en`, kể cả response gắn ảnh. `categories.name` giữ nguồn Việt, `sourceVersion` tăng khi rename; revision/lease thuộc từng bản dịch. Worker chỉ nhận `en` PENDING, ghi có điều kiện theo sourceVersion/revision/lease, giữ manual/review và bỏ kết quả cũ sau rename/manual/retry/delete. Chưa thêm API quản lý ngôn ngữ trong ticket này. Rollout phải dừng writer cũ trước migration; xem hướng dẫn task category.
