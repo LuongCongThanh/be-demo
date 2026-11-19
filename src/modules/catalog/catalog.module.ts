@@ -1,9 +1,9 @@
+import { Module } from '@nestjs/common';
+import { PassportModule } from '@nestjs/passport';
 import { CategoryTranslationClient } from '#src/modules/catalog/category/category-translation.client.js';
 import { CategoryTranslationService } from '#src/modules/catalog/category/category-translation.service.js';
 import { AdminCategoryImageController } from '#src/modules/catalog/category/admin-category-image.controller.js';
 import { AdminCategoryImageService } from '#src/modules/catalog/category/admin-category-image.service.js';
-import { Module } from '@nestjs/common';
-import { PassportModule } from '@nestjs/passport';
 import { StorageModule } from '#src/infrastructure/storage/storage.module.js';
 import { CategoryController } from '#src/modules/catalog/category/category.controller.js';
 import { AdminCategoryController } from '#src/modules/catalog/category/admin-category.controller.js';

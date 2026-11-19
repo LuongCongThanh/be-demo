@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminCategoryImageService } from '#src/modules/catalog/category/admin-category-image.service.js';
-import { CategoryImageSlot } from '#src/modules/catalog/category/category-image.constants.js';
+import { CategoryImageSlot } from '#src/modules/catalog/category/category-image-slot.enum.js';
 import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import type { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
 

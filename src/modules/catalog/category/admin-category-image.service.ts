@@ -5,10 +5,10 @@ import { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.
 import {
   CATEGORY_IMAGE_FORMATS,
   CATEGORY_IMAGE_MAX_BYTES,
-  CategoryImageSlot,
   categoryImagePrefix,
   isCategoryImageKey,
 } from '#src/modules/catalog/category/category-image.constants.js';
+import { CategoryImageSlot } from '#src/modules/catalog/category/category-image-slot.enum.js';
 import { adminCategory, categoryTranslations } from '#src/modules/catalog/category/category-response.mapper.js';
 
 @Injectable()
