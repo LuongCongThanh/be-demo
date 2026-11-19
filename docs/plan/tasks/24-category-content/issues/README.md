@@ -1,6 +1,6 @@
 # Ticket BE — Giai đoạn B của category
 
-Các ticket đặt tại đây theo yêu cầu người dùng, trong task category hiện có; không tạo task 22–24. Trạng thái dùng todo/in-progress/done theo tracker BE; readiness không thay thế trạng thái. blocked-by trong frontmatter dùng tên file cùng thư mục (không có .md). Chỉ bắt đầu khi các blocker đã done; cập nhật trạng thái file và bảng chỉ mục cùng lúc. Đóng ticket theo quy ước report/PR của repo, không tự đóng task cha.
+Các ticket này là phần việc con của task category, không phải task được đánh số riêng. Trạng thái dùng todo/in-progress/done theo tracker BE; readiness không thay thế trạng thái. blocked-by trong frontmatter dùng tên file cùng thư mục (không có .md). Chỉ bắt đầu khi các blocker đã done; cập nhật trạng thái file và bảng chỉ mục cùng lúc. Đóng ticket theo quy ước report/PR của repo, không tự đóng task cha.
 
 | Ticket                                                                                 | Status | Blocked by                                   |
 | -------------------------------------------------------------------------------------- | ------ | -------------------------------------------- |

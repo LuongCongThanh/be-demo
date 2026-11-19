@@ -1,5 +1,5 @@
 ---
-status: done
+status: in-progress
 pr: #83
 blocked-by: [16-permissions-guard]
 labels: [ready-for-agent]
@@ -20,3 +20,4 @@ Branch dự kiến: `feature/access-admin-api` · Slice A (RBAC) của tái cấ
 ## Acceptance criteria
 
 - Chạy tay: tạo Vai trò, tick Quyền, gán cho Staff → Staff đăng nhập lại có Quyền mới; refresh token cũ bị từ chối; sửa/xoá Vai trò `Admin` bị từ chối; gỡ Admin khỏi tài khoản Admin duy nhất bị từ chối; bản ghi audit có đủ.
+- Khi đã có Admin đang hoạt động, lệnh CLI `create-admin` không được tạo thêm Admin đang hoạt động; cần kiểm chứng cả trường hợp CLI và API.
