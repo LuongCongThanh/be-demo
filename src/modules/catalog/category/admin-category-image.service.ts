@@ -9,7 +9,7 @@ import {
   categoryImagePrefix,
   isCategoryImageKey,
 } from '#src/modules/catalog/category/category-image.constants.js';
-import { adminCategory } from '#src/modules/catalog/category/category-response.mapper.js';
+import { adminCategory, categoryTranslations } from '#src/modules/catalog/category/category-response.mapper.js';
 
 @Injectable()
 export class AdminCategoryImageService {
@@ -42,7 +42,10 @@ export class AdminCategoryImageService {
     // Never destroy the old object here: another concurrent request may reattach it.
     const data =
       slot === CategoryImageSlot.THUMBNAIL ? { thumbnailStorageKey: storageKey } : { bannerStorageKey: storageKey };
-    return adminCategory(await this.prisma.category.update({ where: { id }, data }), this.storage);
+    return adminCategory(
+      await this.prisma.category.update({ where: { id }, data, include: categoryTranslations }),
+      this.storage,
+    );
   }
 
   private async find(id: string) {

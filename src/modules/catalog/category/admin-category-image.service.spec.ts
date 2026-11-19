@@ -41,14 +41,24 @@ describe('category media validation', () => {
   it('returns a storage URL only after verifying the uploaded content', async () => {
     storage.findImage.mockResolvedValue({ bytes: 1024, format: 'webp' });
     storage.publicUrl.mockReturnValue('https://images.test/banner');
-    prisma.category.update.mockResolvedValue({ id, name: 'Áo', nameEn: null, bannerStorageKey: key });
+    prisma.category.update.mockResolvedValue({ id, name: 'Áo', nameEn: null, translations: [], bannerStorageKey: key });
     expect(await service.set(id, CategoryImageSlot.BANNER, key)).toMatchObject({
       bannerUrl: 'https://images.test/banner',
     });
-    expect(prisma.category.update).toHaveBeenCalledWith({ where: { id }, data: { bannerStorageKey: key } });
+    expect(prisma.category.update).toHaveBeenCalledWith({
+      where: { id },
+      data: { bannerStorageKey: key },
+      include: { translations: { where: { locale: 'en' } } },
+    });
   });
   it('clears a slot without depending on storage availability', async () => {
-    prisma.category.update.mockResolvedValue({ id, name: 'Áo', nameEn: null, bannerStorageKey: null });
+    prisma.category.update.mockResolvedValue({
+      id,
+      name: 'Áo',
+      nameEn: null,
+      translations: [],
+      bannerStorageKey: null,
+    });
     await expect(service.set(id, CategoryImageSlot.BANNER, null)).resolves.toMatchObject({ bannerUrl: null });
     expect(storage.findImage).not.toHaveBeenCalled();
   });

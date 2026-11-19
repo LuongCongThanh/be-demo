@@ -5,7 +5,7 @@ import { CategoryTranslationClient } from '#src/modules/catalog/category/categor
 const LEASE_MS = 60_000;
 const BATCH_SIZE = 10;
 
-/** The category row is the durable queue; failed work awaits explicit retry. */
+/** Each translation row is the durable queue; failed work awaits explicit retry. */
 @Injectable()
 export class CategoryTranslationService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CategoryTranslationService.name);
@@ -47,10 +47,11 @@ export class CategoryTranslationService implements OnModuleInit, OnModuleDestroy
 
   private async processBatch(): Promise<void> {
     const at = new Date();
-    const available = { OR: [{ translationLeaseUntil: null }, { translationLeaseUntil: { lte: at } }] };
-    const pending = await this.prisma.category.findMany({
-      where: { translationStatus: 'PENDING', ...available },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    const available = { OR: [{ leaseUntil: null }, { leaseUntil: { lte: at } }] };
+    const pending = await this.prisma.categoryTranslation.findMany({
+      where: { locale: 'en', status: 'PENDING', ...available },
+      include: { category: { select: { name: true, sourceVersion: true } } },
+      orderBy: [{ createdAt: 'asc' }, { categoryId: 'asc' }],
       take: BATCH_SIZE,
     });
     for (const category of pending) {
@@ -58,36 +59,44 @@ export class CategoryTranslationService implements OnModuleInit, OnModuleDestroy
       // A fresh lease per claim, not per batch (HTTP may take ten seconds each).
       const now = new Date();
       const lease = new Date(now.getTime() + LEASE_MS);
-      const claimed = await this.prisma.category.updateMany({
+      const claimed = await this.prisma.categoryTranslation.updateMany({
         where: {
-          id: category.id,
-          translationVersion: category.translationVersion,
-          translationStatus: 'PENDING',
-          OR: [{ translationLeaseUntil: null }, { translationLeaseUntil: { lte: now } }],
+          categoryId: category.categoryId,
+          locale: category.locale,
+          sourceVersion: category.sourceVersion,
+          category: { sourceVersion: category.sourceVersion },
+          revision: category.revision,
+          status: 'PENDING',
+          OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }],
         },
-        data: { translationLeaseUntil: lease },
+        data: { leaseUntil: lease },
       });
       if (!claimed.count) continue;
       const where = {
-        id: category.id,
-        translationVersion: category.translationVersion,
-        translationStatus: 'PENDING' as const,
-        translationLeaseUntil: lease,
+        categoryId: category.categoryId,
+        locale: category.locale,
+        sourceVersion: category.sourceVersion,
+        category: { sourceVersion: category.sourceVersion },
+        revision: category.revision,
+        status: 'PENDING' as const,
+        leaseUntil: lease,
       };
-      let nameEn: string;
+      let name: string;
       try {
-        nameEn = await this.translator.translate(category.name);
+        name = await this.translator.translate(category.category.name);
       } catch {
-        await this.prisma.category.updateMany({
+        await this.prisma.categoryTranslation.updateMany({
           where,
-          data: { translationStatus: 'FAILED', translationLeaseUntil: null },
+          data: { status: 'FAILED', leaseUntil: null },
         });
-        this.logger.warn(`Category ${category.id} translation failed; an administrator can retry`);
+        this.logger.warn(
+          `Category ${category.categoryId} (${category.locale}) translation failed; an administrator can retry`,
+        );
         continue;
       }
-      await this.prisma.category.updateMany({
+      await this.prisma.categoryTranslation.updateMany({
         where,
-        data: { nameEn, translationStatus: 'TRANSLATED', translationLeaseUntil: null },
+        data: { name, status: 'TRANSLATED', leaseUntil: null },
       });
     }
   }

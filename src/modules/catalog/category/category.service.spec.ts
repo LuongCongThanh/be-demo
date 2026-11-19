@@ -6,6 +6,7 @@ import type { PrismaService } from '#src/infrastructure/database/prisma.service.
 
 const base = {
   nameEn: null,
+  translations: [] as { locale: string; name: string }[],
   thumbnailStorageKey: null,
   bannerStorageKey: null,
   description: null,
@@ -51,7 +52,16 @@ describe('CategoryService (storefront)', () => {
   });
   it('uses stored English names without changing the URL identity', async () => {
     prisma.category.findMany.mockResolvedValueOnce([
-      { ...base, id: 'root', parentId: null, name: 'Áo thun', nameEn: 'T-shirt', slug: 'ao-thun', isVisible: true },
+      {
+        ...base,
+        id: 'root',
+        parentId: null,
+        name: 'Áo thun',
+        nameEn: 'Retired value',
+        translations: [{ locale: 'en', name: 'T-shirt' }],
+        slug: 'ao-thun',
+        isVisible: true,
+      },
     ]);
     await expect(service.tree('en')).resolves.toMatchObject([
       { id: 'root', name: 'T-shirt', nameVi: 'Áo thun', slug: 'ao-thun' },

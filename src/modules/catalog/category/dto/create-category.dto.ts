@@ -26,7 +26,8 @@ export class CreateCategoryDto {
     nullable: true,
     maxLength: 150,
     example: 'T-shirts',
-    description: 'Manual English name; null requests automatic translation',
+    description:
+      'Compatibility input for the English category translation; a name sets MANUAL, null requests automatic translation',
   })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()

@@ -1,13 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CategoryResponseDto {
-  @ApiProperty({ nullable: true, type: String })
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description:
+      'Compatibility projection of the English category translation; null falls back to Vietnamese on the storefront',
+  })
   nameEn: string | null;
 
   @ApiProperty()
   nameVi: string;
 
-  @ApiProperty({ enum: ['PENDING', 'TRANSLATED', 'MANUAL', 'REVIEW', 'FAILED'] })
+  @ApiProperty({
+    enum: ['PENDING', 'TRANSLATED', 'MANUAL', 'REVIEW', 'FAILED'],
+    description: 'Compatibility projection of the English translation status',
+  })
   translationStatus: string;
 
   @ApiProperty({ nullable: true, type: String })
