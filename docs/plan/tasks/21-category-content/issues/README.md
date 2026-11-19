@@ -4,7 +4,7 @@ Các ticket đặt tại đây theo yêu cầu người dùng, trong task catego
 
 | Ticket                                                                                 | Status | Blocked by                                   |
 | -------------------------------------------------------------------------------------- | ------ | -------------------------------------------- |
-| [Chuyển bản dịch Anh sang mô hình theo locale](01-locale-translation-compatibility.md) | todo   | —; baseline Giai đoạn A hiện có              |
+| [Chuyển bản dịch Anh sang mô hình theo locale](01-locale-translation-compatibility.md) | done   | —; baseline Giai đoạn A hiện có              |
 | [Bật/tắt ngôn ngữ và tự dịch category](02-language-enablement-backfill.md)             | todo   | Chuyển bản dịch Anh sang mô hình theo locale |
 | [Sửa tay và retry bản dịch theo ngôn ngữ](03-editorial-translations-per-locale.md)     | todo   | Bật/tắt ngôn ngữ và tự dịch category         |
 
