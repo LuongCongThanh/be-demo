@@ -1,6 +1,6 @@
 # Plan tổng: Căn chỉnh identity & catalog theo docs business
 
-> Trạng thái: **Nháp** ([quy ước](../README.md#trạng-thái-tài-liệu)).
+> Trạng thái: **Kế hoạch lịch sử, đã hoàn thành cho task 01–05**. Công việc tiếp theo được theo dõi trong [bảng task hiện tại](./README.md).
 
 Nguồn chuẩn: `docs/business/*` > `docs/architecture/11-database.md` > `docs/adr/*`. Code hiện tại (auth/categories/products, schema Prisma) viết trước khi docs business được viết lại (commit `91c255c`, #48) nên lệch.
 

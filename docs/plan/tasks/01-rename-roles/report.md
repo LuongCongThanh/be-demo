@@ -1,8 +1,8 @@
 # Report 01
 
-> Viết sau khi PR merge.
+> PR #60 đã hợp nhất; báo cáo nghiệm thu riêng cho task 01 chưa được hoàn thiện.
 
-- **PR:** #
+- **PR:** #60
 - **Ngày merge:**
 
 ## Đã làm
@@ -10,6 +10,8 @@
 ## Lệch so với spec (và vì sao)
 
 ## Acceptance criteria
+
+Bằng chứng theo từng tiêu chí chưa được ghi trong báo cáo này. Kết quả tổng hợp của PR 1–5 được ghi tại [metrics](../../realign-identity-catalog-metrics.md); không thay thế cho báo cáo nghiệm thu riêng của task 01.
 
 | AC  | Kết quả | Bằng chứng (test) |
 | --- | ------- | ----------------- |

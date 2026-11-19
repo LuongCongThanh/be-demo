@@ -176,4 +176,4 @@
 
 - Slug category ổn định sau tạo, dùng chung vi/en; đổi tên hoặc cha không đổi slug.
 - Thumbnail và banner độc lập, đều tùy chọn. Ẩn category ẩn toàn nhánh; đọc trực tiếp hoặc lọc nhánh ẩn trả 404. Lọc category cha chỉ lấy descendants hiển thị. Sản phẩm vẫn có thể hiện ngoài bộ lọc category theo quy tắc hiển thị Sản phẩm.
-- Giữ sortOrder và move parent; chưa có reorder siblings hàng loạt. Chi tiết vận hành bản dịch và API: [delivery spec](../plan/tasks/21-category-content/spec.md).
+- Giữ sortOrder và move parent; chưa có reorder siblings hàng loạt. Chi tiết vận hành bản dịch và API: [delivery spec](../plan/tasks/24-category-content/spec.md).
