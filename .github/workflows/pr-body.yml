@@ -24,17 +24,25 @@ jobs:
           fi
           # Keep in sync with .claude/hooks/enforce-pr-template.sh
           required=(
-            "# 🏷️ Type"
-            "## 📌 Summary"
-            "**Làm gì:**"
-            "**Vì sao:**"
-            "**Giải pháp:**"
-            "**Kết quả:**"
-            "## 📋 Changes"
-            "## 🔌 API / Migration / Cấu hình"
-            "## 🧪 Cách kiểm"
-            "## ⚠️ Gap và lưu ý"
-            "## ✅ Checklist"
+            "# Pull Request"
+            "## 🏷️ 1. Type"
+            "## 📌 2. Summary"
+            "### 2.1. Làm gì?"
+            "### 2.2. Vì sao?"
+            "### 2.3. Giải pháp"
+            "### 2.4. Kết quả thực tế"
+            "### 2.5. Scope & Traceability"
+            "## 📋 3. Changes"
+            "## 🔌 4. API Contract"
+            "## 🗄️ 5. Database / Migration / Configuration"
+            "## 🧪 6. Testing & Verification"
+            "## 🔒 7. Security / Performance / Data Integrity"
+            "## ⚠️ 8. Gap / Risks / Reviewer Attention"
+            "## 🚀 9. Deployment / Rollback"
+            "## 🏛️ 10. Architecture / Documentation"
+            "## ✅ 11. Definition of Done"
+            "## 💬 12. Notes"
+            "## 📖 Project References"
           )
           status=0
           for h in "${required[@]}"; do
@@ -43,13 +51,24 @@ jobs:
               status=1
             fi
           done
-          if grep -Eq '^\*\*(Làm gì|Vì sao|Giải pháp|Kết quả|Module):\*\*[[:space:]]*(<!--|$)' <<< "${BODY//$'\r'/}"; then
-            echo "::error::Summary fields still hold template placeholders"
+          summary=$(sed -n '/^## 📌 2\. Summary$/,/^---$/p' <<< "${BODY//$'\r'/}")
+          for marker in "### 2.1. Làm gì?" "### 2.2. Vì sao?" "### 2.3. Giải pháp" "### 2.4. Kết quả thực tế"; do
+            if ! grep -Fq "$marker" <<< "$summary"; then
+              echo "::error::Missing summary heading: $marker"
+              status=1
+            fi
+          done
+          if grep -Eq '^\- \*\*(Module chính|Các module bị ảnh hưởng|Task|User Story|Business Rules|ADR):.*<!--|^-\*\*|^-\s*$' <<< "$summary"; then
+            echo "::error::Summary traceability fields remain template placeholders"
             status=1
           fi
-          ticked=$(grep -Ec '^- \[[xX]\] (✨ Feature|🐛 Bug|♻️ Refactor|🧹 Chore|📚 Docs)[[:space:]]*$' <<< "${BODY//$'\r'/}" || true)
+          ticked=$(grep -Ec '^- \[[xX]\] (✨ Feature|🐛 Bug Fix|♻️ Refactor|⚡ Performance|🔒 Security|🧹 Chore|📚 Documentation|🧪 Test|🏗️ Architecture)' <<< "${BODY//$'\r'/}" || true)
           if [[ "$ticked" != 1 ]]; then
             echo "::error::Tick exactly one Type checkbox (found $ticked)"
+            status=1
+          fi
+          if [[ "$BODY" != *"## 💬 12. Notes"* ]] || ! grep -qi 'code-review' <<< "${BODY#*## 💬 12. Notes}"; then
+            echo "::error::Record the code-review outcome under ## 💬 12. Notes"
             status=1
           fi
           exit $status

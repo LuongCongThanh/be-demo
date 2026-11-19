@@ -27,3 +27,4 @@ jobs:
             ci
             build
             revert
+            security
