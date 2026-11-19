@@ -43,3 +43,11 @@ Schema/migration/Prisma Client rules (naming & mapping, hand-written SQL migrati
 ### Docs layout
 
 Index: `docs/README.md`. Business requirements (`docs/business/`) take priority over `docs/architecture/`, `docs/architecture/11-database.md` and `docs/adr/` when they conflict.
+
+## Shared AI Code Review
+
+For every code review, including `/mattpocock-skills:code-review`, read and follow `docs/ai/code-review.md` before reviewing. Merge it with the skill's Standards/Spec workflow; repository policy and severity/format rules win conflicts. Apply it to PRs, branches, commits, working-tree diffs, file reviews and "review since X". Do not modify files or automatically fix findings during a review.
+
+## Git Commit Identity & AI Attribution Policy
+
+Do not identify any AI tool or agent in commit subjects, bodies, footers, tags or author/committer metadata. Do not add AI attribution trailers or change the authorized human identity. Use Conventional Commits and describe the code change itself.
