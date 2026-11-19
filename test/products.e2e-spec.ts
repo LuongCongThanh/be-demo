@@ -596,4 +596,33 @@ describe('Products + Variants (e2e)', () => {
       expect(codes).not.toContain(hidden.code);
     });
   });
+  it('category filters include visible descendants, reject hidden ancestors, and leave global search independent', async () => {
+    const root = await prisma.category.create({
+      data: { name: unique('Root'), slug: `e2e-root-${Date.now()}-${seq++}` },
+    });
+    const visible = await prisma.category.create({
+      data: { name: unique('Visible'), slug: `e2e-visible-${Date.now()}-${seq++}`, parentId: root.id },
+    });
+    const hidden = await prisma.category.create({
+      data: { name: unique('Hidden'), slug: `e2e-hidden-${Date.now()}-${seq++}`, parentId: root.id, isVisible: false },
+    });
+    const grandchild = await prisma.category.create({
+      data: { name: unique('Grandchild'), slug: `e2e-grandchild-${Date.now()}-${seq++}`, parentId: hidden.id },
+    });
+    const shown = await createProduct({ categoryId: visible.id });
+    const elsewhere = await createProduct({ categoryId: grandchild.id });
+    for (const p of [shown, elsewhere]) {
+      await createVariant(p.id);
+      await setStatus(p.id, 'ACTIVE').expect(200);
+    }
+    const list = await request(server()).get(`/api/v1/products?categoryId=${root.id}`).expect(200);
+    expect(list.body.data.map((p: { id: string }) => p.id)).toEqual([shown.id]);
+    await request(server()).get(`/api/v1/products?categoryId=${grandchild.id}`).expect(404);
+    await request(server()).get(`/api/v1/products?categoryId=${MISSING_ID}`).expect(404);
+    const name = await prisma.product.findUniqueOrThrow({ where: { id: elsewhere.id } });
+    const global = await request(server()).get('/api/v1/products').query({ q: name.name }).expect(200);
+    expect(global.body.data.map((p: { id: string }) => p.id)).toContain(elsewhere.id);
+    await prisma.category.update({ where: { id: root.id }, data: { isVisible: false } });
+    await request(server()).get(`/api/v1/products?categoryId=${visible.id}`).expect(404);
+  });
 });

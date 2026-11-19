@@ -68,3 +68,14 @@ BR-CAT-01–13; US-101–104, US-801–803, US-805; ADR 0001.
 ## 9. Câu hỏi mở
 
 - Đọc dữ liệu đơn cho job bán chạy: qua view do `ordering` cung cấp hay đặt job ở `reporting`? Đề xuất: `reporting` tính và ghi qua interface của `catalog`.
+
+## Category content — triển khai 2026-11-19
+
+[Spec và contract](../../plan/tasks/21-category-content/spec.md), [hướng dẫn consumer](../../plan/tasks/21-category-content/guide.md).
+
+- GET `/categories` và `/categories/:id` nhận `locale=vi|en`, default vi; name theo locale và giữ nameVi/nameEn; ảnh optional URL nullable. Slug không đổi khi rename/move/locale.
+- POST/PATCH admin category nhận nameEn tùy chọn để sửa tay; null yêu cầu dịch lại. GET admin trả tên Việt, trạng thái dịch và hai storage keys/URLs; không lộ version/lease.
+- POST `/admin/categories/:id/translation/retry` chỉ quyền category manage; reset PENDING, giữ tên Anh hiện tại tới khi có kết quả mới.
+- POST `/admin/categories/:id/images/:slot/presign`, PATCH `/admin/categories/:id/images/:slot` với slot thumbnail/banner. Upload trực tiếp Cloudinary; attach kiểm file thật, ≤5MB JPEG/PNG/WebP. Null gỡ ảnh.
+- Worker poll mỗi 5 giây, batch 10, lease 60 giây, timeout Google 10 giây; chỉ bật khi có GOOGLE_TRANSLATE_API_KEY. Claim/complete có điều kiện version/status/lease; lỗi FAILED chờ retry. Không gọi HTTP trong transaction. API ghi không đợi dịch.
+- Hidden branch không truy cập/filter được, filter cha bỏ nhánh con ẩn; search không có categoryId giữ quy tắc sản phẩm hiện có.

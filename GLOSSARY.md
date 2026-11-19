@@ -48,6 +48,14 @@ _Tránh_: role (khi nói về loại Tài khoản), nhóm quyền, user group
 Nhóm phân loại Sản phẩm, xếp thành cây nhiều cấp.
 _Tránh_: collection, nhóm hàng
 
+**Tên gốc Danh mục** (`CategorySourceName`):
+Tên tiếng Việt do người quản trị nhập, làm nguồn để dịch tên Danh mục sang các ngôn ngữ cửa hàng hỗ trợ.
+_Tránh_: key i18n (khi nói về tên Danh mục)
+
+**Bản dịch tên Danh mục** (`CategoryNameTranslation`):
+Tên của cùng một Danh mục trong một ngôn ngữ khác, được tự dịch và có thể được người quản trị sửa lại. Bản đã sửa tay được giữ khi tên gốc thay đổi và cần được rà soát.
+_Tránh_: Danh mục mới (khi chỉ khác ngôn ngữ)
+
 **Sản phẩm** (`Product`):
 Một mẫu hàng có tên, mô tả, cân nặng và ảnh theo màu; không được mua trực tiếp.
 _Tránh_: item, mặt hàng, SKU

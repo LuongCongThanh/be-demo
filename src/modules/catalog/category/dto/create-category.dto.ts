@@ -22,6 +22,19 @@ export class CreateCategoryDto {
   @MaxLength(150)
   name: string;
 
+  @ApiPropertyOptional({
+    nullable: true,
+    maxLength: 150,
+    example: 'T-shirts',
+    description: 'Manual English name; null requests automatic translation',
+  })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(150)
+  nameEn?: string | null;
+
   // Không có field `slug` — server tự sinh từ `name` (xem CategoryService).
   // Client gửi `slug` lên sẽ bị ValidationPipe global từ chối với 400
   // (`forbidNonWhitelisted: true`), không bị âm thầm bỏ qua.
@@ -43,7 +56,7 @@ export class CreateCategoryDto {
   parentId?: string | null;
 
   @ApiPropertyOptional({ default: 0, minimum: 0, description: 'Ascending order among siblings', example: 0 })
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsInt()
   @Min(0)
   sortOrder?: number;
@@ -53,7 +66,7 @@ export class CreateCategoryDto {
     description: 'Hidden categories (and their subtree) leave the storefront',
     example: true,
   })
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsBoolean()
   isVisible?: boolean;
 }

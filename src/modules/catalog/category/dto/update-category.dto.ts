@@ -3,7 +3,7 @@ import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, MaxLength, ValidateIf } from 'class-validator';
 import { CreateCategoryDto } from '#src/modules/catalog/category/dto/create-category.dto.js';
 
-export class UpdateCategoryDto extends PartialType(CreateCategoryDto) {
+export class UpdateCategoryDto extends PartialType(CreateCategoryDto, { skipNullProperties: false }) {
   // Override `name` thay vì để nguyên field @IsOptional() PartialType tự sinh:
   // @IsOptional() coi `null` như "absent" và bỏ qua mọi validator phía sau —
   // client gửi { "name": null } sẽ lọt qua validation, rồi Prisma từ chối

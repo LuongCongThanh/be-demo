@@ -12,6 +12,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
+import { adminCategory } from '#src/modules/catalog/category/category-response.mapper.js';
 import { Authorize } from '#src/common/auth/authorize.decorator.js';
 import { Permission } from '#src/common/auth/permission.enum.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
@@ -28,22 +30,26 @@ import { PaginatedCategoryResponseDto } from '#src/modules/catalog/category/dto/
 @Authorize(Permission.CATALOG_CATEGORY_VIEW)
 @Controller('admin/categories')
 export class AdminCategoryController {
-  constructor(private readonly service: AdminCategoryService) {}
+  constructor(
+    private readonly service: AdminCategoryService,
+    private readonly storage: CloudinaryClient,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List every category flat, including hidden ones (paginated, STAFF/ADMIN)' })
   @ApiOkResponse({ type: PaginatedCategoryResponseDto })
   @ApiErrorResponses(400, 401, 403)
-  findAll(@Query() pagination: PaginationDto) {
-    return this.service.findAll(pagination);
+  async findAll(@Query() pagination: PaginationDto) {
+    const result = await this.service.findAll(pagination);
+    return { ...result, data: result.data.map((c) => adminCategory(c, this.storage)) };
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get any category by id, including hidden ones (STAFF/ADMIN)' })
   @ApiOkResponse({ type: CategoryResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Category not found'])
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return adminCategory(await this.service.findOne(id), this.storage);
   }
 
   @Post()
@@ -51,14 +57,14 @@ export class AdminCategoryController {
   @ApiOperation({ summary: 'Create a category, optionally under a parent (ADMIN only)' })
   @ApiCreatedResponse({ type: CategoryResponseDto })
   @ApiErrorResponses(400, 401, 403, [404, 'Parent category not found'], [409, 'Category name already exists'])
-  create(@Body() dto: CreateCategoryDto) {
-    return this.service.create(dto);
+  async create(@Body() dto: CreateCategoryDto) {
+    return adminCategory(await this.service.create(dto), this.storage);
   }
 
   @Patch(':id')
   @Authorize(Permission.CATALOG_CATEGORY_MANAGE)
   @ApiOperation({
-    summary: 'Update a category: rename (new slug), move to another parent or root, reorder, hide (ADMIN only)',
+    summary: 'Update a category: rename (stable slug), move to another parent or root, reorder, hide (ADMIN only)',
   })
   @ApiOkResponse({ type: CategoryResponseDto })
   @ApiErrorResponses(
@@ -66,10 +72,20 @@ export class AdminCategoryController {
     401,
     403,
     [404, 'Category or parent not found'],
-    [409, 'Category name already exists'],
+    [409, 'Category content changed concurrently; reload and retry'],
   )
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCategoryDto) {
-    return this.service.update(id, dto);
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCategoryDto) {
+    return adminCategory(await this.service.update(id, dto), this.storage);
+  }
+
+  @Post(':id/translation/retry')
+  @Authorize(Permission.CATALOG_CATEGORY_MANAGE)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Queue a fresh English translation, replacing an override on success (ADMIN only)' })
+  @ApiOkResponse({ type: CategoryResponseDto })
+  @ApiErrorResponses(400, 401, 403, 404)
+  async retryTranslation(@Param('id', ParseUUIDPipe) id: string) {
+    return adminCategory(await this.service.retryTranslation(id), this.storage);
   }
 
   @Delete(':id')

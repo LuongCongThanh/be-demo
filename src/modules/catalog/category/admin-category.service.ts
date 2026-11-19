@@ -23,8 +23,12 @@ export class AdminCategoryService {
     if (dto.parentId) await this.assertExists(dto.parentId, 'Parent category');
     const slug = await this.uniqueSlug(dto.name);
 
+    const { nameEn, ...input } = dto;
     return writeUnique(
-      () => this.prisma.category.create({ data: { ...dto, slug } }),
+      () =>
+        this.prisma.category.create({
+          data: { ...input, slug, ...(nameEn ? { nameEn, translationStatus: 'MANUAL' } : {}) },
+        }),
       'slug',
       `Category name "${dto.name}" already exists`,
     );
@@ -39,8 +43,8 @@ export class AdminCategoryService {
     );
   }
 
-  async findOne(id: string): Promise<Category> {
-    const category = await this.prisma.category.findUnique({ where: { id } });
+  async findOne(id: string, db: Prisma.TransactionClient = this.prisma): Promise<Category> {
+    const category = await db.category.findUnique({ where: { id } });
     if (!category) {
       throw new NotFoundException(`Category #${id} not found`);
     }
@@ -48,22 +52,55 @@ export class AdminCategoryService {
   }
 
   async update(id: string, dto: UpdateCategoryDto): Promise<Category> {
-    // Pre-fetch để đổi 1 id không tồn tại trả 404, không rơi xuống nhánh 409
-    // (trùng tên) hay 400 (vòng lặp).
-    await this.findOne(id);
+    if (dto.parentId === undefined) return this.updateContent(this.prisma, id, dto);
+    // Serialize tree moves across instances. Opposing concurrent moves must not both pass the cycle check.
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(724061319)::text`;
+      return this.updateContent(tx, id, dto);
+    });
+  }
 
-    if (dto.parentId) await this.assertNoCycle(id, dto.parentId);
+  private async updateContent(db: Prisma.TransactionClient, id: string, dto: UpdateCategoryDto): Promise<Category> {
+    // Read the editorial state and revision before validating a tree move.
+    const current = await this.findOne(id, db);
+
+    if (dto.parentId) await this.assertNoCycle(id, dto.parentId, db);
 
     const data: Prisma.CategoryUncheckedUpdateInput = { ...dto };
-    if (dto.name) {
-      data.slug = await this.uniqueSlug(dto.name, id);
+    if (dto.nameEn !== undefined) {
+      data.translationStatus = dto.nameEn === null ? 'PENDING' : 'MANUAL';
+      data.translationVersion = { increment: 1 };
+      data.translationLeaseUntil = null;
+    } else if (dto.name !== undefined && dto.name !== current.name) {
+      const manual = current.translationStatus === 'MANUAL' || current.translationStatus === 'REVIEW';
+      data.translationStatus = manual ? 'REVIEW' : 'PENDING';
+      if (!manual) data.nameEn = null;
+      data.translationVersion = { increment: 1 };
+      data.translationLeaseUntil = null;
     }
+    // Slug is the permanent URL identity; rename and reparent preserve it.
 
-    return writeUnique(
-      () => this.prisma.category.update({ where: { id }, data }),
-      'slug',
-      `Category name "${dto.name}" already exists`,
-    );
+    return db.category
+      .update({ where: { id, translationVersion: current.translationVersion }, data })
+      .catch(async (err: unknown) => {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+          await this.findOne(id, db); // Deleted category remains a 404.
+          throw new ConflictException('Category content changed concurrently — reload and retry');
+        }
+        throw err;
+      });
+  }
+
+  async retryTranslation(id: string): Promise<Category> {
+    // Atomic increment revokes every in-flight result, including an older retry.
+    return this.prisma.category.update({
+      where: { id },
+      data: {
+        translationStatus: 'PENDING',
+        translationVersion: { increment: 1 },
+        translationLeaseUntil: null,
+      },
+    });
   }
 
   async remove(id: string): Promise<void> {
@@ -96,11 +133,11 @@ export class AdminCategoryService {
    * Đi ngược chuỗi tổ tiên của parent mới: gặp chính danh mục đang sửa nghĩa
    * là nó sẽ thành tổ tiên của chính mình → 400. Parent không tồn tại → 404.
    */
-  private async assertNoCycle(id: string, newParentId: string): Promise<void> {
+  private async assertNoCycle(id: string, newParentId: string, db: Prisma.TransactionClient): Promise<void> {
     if (newParentId === id) {
       throw new BadRequestException('A category cannot be its own parent');
     }
-    await this.assertExists(newParentId, 'Parent category');
+    await this.assertExists(newParentId, 'Parent category', db);
 
     const seen = new Set<string>();
     let cursor: string | null = newParentId;
@@ -108,9 +145,9 @@ export class AdminCategoryService {
       if (cursor === id) {
         throw new BadRequestException('Moving the category under its own descendant would create a cycle');
       }
-      if (seen.has(cursor)) break; // dữ liệu hỏng có sẵn vòng — không lặp vô hạn
+      if (seen.has(cursor)) throw new BadRequestException('The destination category tree contains a cycle');
       seen.add(cursor);
-      const parent: { parentId: string | null } | null = await this.prisma.category.findUnique({
+      const parent: { parentId: string | null } | null = await db.category.findUnique({
         where: { id: cursor },
         select: { parentId: true },
       });
@@ -118,19 +155,19 @@ export class AdminCategoryService {
     }
   }
 
-  private async assertExists(id: string, label: string): Promise<void> {
-    const found = await this.prisma.category.findUnique({ where: { id }, select: { id: true } });
+  private async assertExists(id: string, label: string, db: Prisma.TransactionClient = this.prisma): Promise<void> {
+    const found = await db.category.findUnique({ where: { id }, select: { id: true } });
     if (!found) {
       throw new NotFoundException(`${label} #${id} not found`);
     }
   }
 
   /** Pre-check trùng tên cho message rõ ràng; unique constraint vẫn là chốt chặn thật. */
-  private async uniqueSlug(name: string, selfId?: string): Promise<string> {
+  private async uniqueSlug(name: string): Promise<string> {
     const slug = toSlugOrThrow(name, 'Category');
     // Trùng tên (=> trùng slug) bị từ chối thẳng — không tự thêm hậu tố số.
     const existing = await this.prisma.category.findUnique({ where: { slug }, select: { id: true } });
-    if (existing && existing.id !== selfId) {
+    if (existing) {
       throw new ConflictException(`Category name "${name}" already exists`);
     }
     return slug;

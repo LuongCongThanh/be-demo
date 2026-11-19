@@ -24,9 +24,9 @@ export function productSearchSql(
   if (categoryId) {
     conditions.push(Prisma.sql`p.category_id IN (
       WITH RECURSIVE tree AS (
-        SELECT id FROM categories WHERE id = ${categoryId}::uuid
+        SELECT id FROM categories WHERE id = ${categoryId}::uuid AND is_visible
         UNION
-        SELECT c.id FROM categories c JOIN tree ON c.parent_id = tree.id
+        SELECT c.id FROM categories c JOIN tree ON c.parent_id = tree.id WHERE c.is_visible
       )
       SELECT id FROM tree
     )`);

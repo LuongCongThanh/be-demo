@@ -1,3 +1,4 @@
+import { isEffectivelyVisible } from '#src/modules/catalog/category/category-tree.js';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma, Product } from '#src/generated/prisma/client.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
@@ -49,6 +50,12 @@ export class ProductService {
 
   /** Lọc, tìm kiếm, sắp xếp: xem `productSearchSql`. */
   async findAll(query: ListProductsQueryDto): Promise<Paginated<ProductListItemResponseDto>> {
+    if (query.categoryId) {
+      const categories = await this.prisma.category.findMany();
+      if (!isEffectivelyVisible(query.categoryId, new Map(categories.map((c) => [c.id, c])))) {
+        throw new NotFoundException(`Category #${query.categoryId} not found`);
+      }
+    }
     const sql = productSearchSql(query, new Date());
     return paginate(
       query.page,

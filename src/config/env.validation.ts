@@ -72,6 +72,11 @@ export class EnvironmentVariables {
   @IsString()
   SMTP_FROM?: string;
 
+  // Optional: absent means category translations remain pending; manual names still work.
+  @IsOptional()
+  @IsString()
+  GOOGLE_TRANSLATE_API_KEY?: string;
+
   // Kho ảnh Sản phẩm. Thiếu thì upload/gắn ảnh trả 503, ảnh không có `url`.
   @IsOptional()
   @IsString()

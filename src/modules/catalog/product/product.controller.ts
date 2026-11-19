@@ -23,7 +23,7 @@ export class ProductController {
       'Search by name; filter by category (with descendants), gender, size, color, price and onSale; sort by newest, Effective price or discount.',
   })
   @ApiOkResponse({ type: PaginatedProductListResponseDto })
-  @ApiErrorResponses(400)
+  @ApiErrorResponses(400, [404, 'Category not found or hidden'])
   findAll(@Query() query: ListProductsQueryDto) {
     return this.productsService.findAll(query);
   }

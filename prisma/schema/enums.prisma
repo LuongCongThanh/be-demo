@@ -33,3 +33,12 @@ enum OrderStatus {
   PAID
   CANCELLED
 }
+
+// English category names: automatic translation or an editorial override.
+enum CategoryTranslationStatus {
+  PENDING
+  TRANSLATED
+  MANUAL
+  REVIEW
+  FAILED
+}

@@ -247,17 +247,29 @@ Mọi thao tác ghi trên back-office (`business/02` §4). Chỉ thêm, không s
 
 #### `categories`
 
-| Cột                    | Kiểu        | Ràng buộc                    | Ghi chú                    |
-| ---------------------- | ----------- | ---------------------------- | -------------------------- |
-| id                     | uuid        | PK                           |                            |
-| parent_id              | uuid        | FK → categories RESTRICT, IX | cây nhiều cấp; ADR 0001    |
-| name                   | text        | NN                           | chỉ tiếng Việt (BR-CAT-10) |
-| slug                   | text        | UK, NN                       |                            |
-| sort_order             | int         | NN                           |                            |
-| is_visible             | boolean     | NN                           |                            |
-| created_at, updated_at | timestamptz | NN                           |                            |
+| Cột                    | Kiểu        | Ràng buộc                    | Ghi chú                      |
+| ---------------------- | ----------- | ---------------------------- | ---------------------------- |
+| id                     | uuid        | PK                           |                              |
+| parent_id              | uuid        | FK → categories RESTRICT, IX | cây nhiều cấp; ADR 0001      |
+| name                   | text        | NN                           | chỉ tiếng Việt (BR-CAT-10)   |
+| slug                   | text        | UK, NN                       | ổn định sau tạo, chung vi/en |
+| sort_order             | int         | NN                           |                              |
+| is_visible             | boolean     | NN                           |                              |
+| created_at, updated_at | timestamptz | NN                           |                              |
 
-Chống vòng lặp cây (A là cha của B là cha của A) ở service.
+Bổ sung additive trong migration `20261119000000_category_content`:
+
+| Cột                                       | Kiểu                                           | Ý nghĩa                                                                  |
+| ----------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ |
+| name_en                                   | varchar(150), nullable                         | Tên Anh; `name` vẫn là tên Việt                                          |
+| translation_status                        | CategoryTranslationStatus, NN, default PENDING | PENDING / TRANSLATED / MANUAL / REVIEW / FAILED                          |
+| translation_version                       | int, NN, default 0                             | Tăng khi đổi nguồn/override/retry để hủy kết quả cũ                      |
+| translation_lease_until                   | timestamptz(6), nullable                       | Worker claim có hạn; index (translation_status, translation_lease_until) |
+| thumbnail_storage_key, banner_storage_key | text, nullable                                 | Hai ảnh độc lập; URL dựng từ storage adapter                             |
+
+Category cũ giữ ids/slugs/parent/order/visibility và nhận PENDING để backfill khi bật worker. Không có translation job table riêng; category row là hàng đợi bền vững.
+
+Chống vòng lặp cây (A là cha của B là cha của A) ở service, với transaction advisory lock chung khi move để hai request đối nghịch không cùng vượt kiểm tra.
 
 #### `products`
 
