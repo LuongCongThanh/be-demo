@@ -4,41 +4,51 @@
  * không thể lệch chuỗi (lệch thì Swagger mất mô tả mà không báo lỗi).
  */
 export const API_TAGS = {
-  AUTH: {
-    name: 'Authentication & Authorization',
-    description: 'Register, email verification, login/refresh/logout, and role/ownership-based access control',
+  STOREFRONT_AUTH: {
+    name: 'Storefront — Authentication',
+    description: 'Customer registration, email verification, login, sessions and profile',
   },
-  CATEGORIES: {
-    name: 'Categories',
-    description:
-      'Nested category tree — public visible tree; back-office CRUD with cycle and delete guards (writes ADMIN)',
+  STOREFRONT_CATEGORIES: {
+    name: 'Storefront — Categories',
+    description: 'Public category tree, category detail and enabled content languages',
   },
-  PRODUCTS: {
-    name: 'Products',
-    description:
-      'Product + variant CRUD (variants nested under products, inventory created atomically) — writes gated to ADMIN, reads public',
+  ADMIN_CATEGORIES: {
+    name: 'Admin CMS — Categories',
+    description: 'Back-office category, translation, language and image management — reads STAFF/ADMIN, writes ADMIN',
   },
-  PRODUCT_OPTIONS: {
-    name: 'Sizes & Colors',
-    description: 'Shared size list and color palette for variants — no delete, hide instead; writes gated to ADMIN',
+  STOREFRONT_PRODUCTS: {
+    name: 'Storefront — Products',
+    description: 'Public product listing, details and variants',
   },
-  SALE_PRICES: {
-    name: 'Sale prices',
+  ADMIN_PRODUCTS: {
+    name: 'Admin CMS — Products',
+    description: 'Product and variant management — writes gated to ADMIN',
+  },
+  STOREFRONT_PRODUCT_OPTIONS: {
+    name: 'Storefront — Sizes & Colors',
+    description: 'Public size list and color palette used by product variants',
+  },
+  ADMIN_PRODUCT_OPTIONS: {
+    name: 'Admin CMS — Sizes & Colors',
+    description: 'Manage shared size lists and color palettes — writes gated to ADMIN',
+  },
+  ADMIN_SALE_PRICES: {
+    name: 'Admin CMS — Sale prices',
     description:
       'Time-boxed sale prices per variant (no overlap per variant); upcoming editable, active only its end, ended read-only (needs PRICING_SALE_PRICE_*)',
   },
-  VOUCHERS: {
-    name: 'Vouchers',
+  ADMIN_VOUCHERS: {
+    name: 'Admin CMS — Vouchers',
     description:
       'Order discount codes (percent with optional cap, or fixed amount); code immutable, locked fields after first use, delete only unused (needs PRICING_VOUCHER_*)',
   },
-  STAFF: {
-    name: 'Staff Management',
+  ADMIN_STAFF: {
+    name: 'Admin CMS — Staff Management',
     description:
       'Back-office staff accounts — create, rename, disable/enable (needs ADMINISTRATION_INTERNAL_ACCOUNT_* permissions, every change audited)',
   },
-  ACCESS: {
-    name: 'Roles & Permissions',
+  ADMIN_ACCESS: {
+    name: 'Admin CMS — Roles & Permissions',
     description:
       'Permission list, role CRUD and role assignment for internal accounts — the Admin role is read-only, role changes end the affected sessions, every change audited',
   },

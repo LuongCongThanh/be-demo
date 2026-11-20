@@ -80,13 +80,13 @@ Chỉ cho một loại tài khoản (vd. Khách hàng)? → @AuthorizeAccountTyp
 Cần kiểm chủ sở hữu? → có → thêm OwnershipGuard + @OwnedResource()
 ```
 
-- Dùng `@Authorize(...permissions)` (`#src/common/auth/authorize.decorator.js`, enum `Permission` ở `permission.enum.ts`) — một decorator gộp JWT + kiểm Quyền (phải có **mọi** Quyền khai báo) + Swagger bearer, đặt ở class (mặc định) hoặc method (ghi đè class, vd. Quyền `*_MANAGE`). Route chỉ dành cho một loại tài khoản (vd. `GET /me` của Khách hàng) dùng `@AuthorizeAccountType('CUSTOMER')`, không dùng Quyền. **Không** import `PermissionsGuard`/`RequirePermissions` trực tiếp (lint chặn). `@CurrentUser()`, `OwnershipGuard`, `@OwnedResource()` cũng ở `common/auth/`. Resource có chủ sở hữu (`Cart`, `Order`) dùng thêm `OwnershipGuard`, không chỉ kiểm vai trò.
+- Dùng `@Authorize(...permissions)` (`#src/security/authorization/permissions/authorize.decorator.js`, enum `Permission` ở `security/contracts/permission.enum.ts`) — một decorator gộp JWT + kiểm Quyền (phải có **mọi** Quyền khai báo) + Swagger bearer, đặt ở class (mặc định) hoặc method (ghi đè class, vd. Quyền `*_MANAGE`). Route chỉ dành cho một loại tài khoản (vd. `GET /me` của Khách hàng) dùng `@AuthorizeAccountType('CUSTOMER')` trong `security/authorization/account-type/`, không dùng Quyền. **Không** import `PermissionsGuard`/`RequirePermissions` trực tiếp (lint chặn). `@CurrentUser()` thuộc authentication; `OwnershipGuard` và `@OwnedResource()` thuộc `security/authorization/ownership/`. Resource có chủ sở hữu (`Cart`, `Order`) dùng thêm `OwnershipGuard`, không chỉ kiểm vai trò.
 - Endpoint public: không gắn `@Authorize`. Kết luận "public" cũng phải là quyết định có chủ đích.
 - Endpoint public-facing cần auth mà **chưa có auth** → gap **blocking**, không ship.
 
 ### R6. Exception mapping
 
-`AllExceptionsFilter` (`src/common/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) đã xử lý `HttpException`, Prisma (`P2002` unique → 409, `P2003` FK → 409, `P2025` không tồn tại → 404) và lỗi không lường trước → không viết filter riêng cho resource. Filter là **safety net**, không thay thế domain error ở service (R2). Response shape + quy tắc log: [error-logging-conventions.md](error-logging-conventions.md).
+`AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) đã xử lý `HttpException`, Prisma (`P2002` unique → 409, `P2003` FK → 409, `P2025` không tồn tại → 404) và lỗi không lường trước → không viết filter riêng cho resource. Filter là **safety net**, không thay thế domain error ở service (R2). Response shape + quy tắc log: [error-logging-conventions.md](error-logging-conventions.md).
 
 ### R7. Response DTO / Serialization
 

@@ -31,4 +31,4 @@
 
 | File                                                                 | Thay đổi                                                     |
 | -------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `product.service.spec.ts`, `admin-product-lifecycle.service.spec.ts` | Thêm stub `salePrice` vào mock Prisma; assertion giữ nguyên. |
+| `product.service.spec.ts`, `admin-product.service-lifecycle.spec.ts` | Thêm stub `salePrice` vào mock Prisma; assertion giữ nguyên. |

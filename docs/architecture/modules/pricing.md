@@ -60,3 +60,63 @@ BR-PRC-01–05, BR-VCH-01–10; US-304, US-804, US-901.
 ## 9. Câu hỏi mở
 
 - Voucher hết hạn giữa Tính thử và đặt đơn → `409 QUOTE_CHANGED` (đã đúng theo ADR 0013); không cần quy tắc riêng.
+
+## As-built — triển khai hiện tại (2026-11-21)
+
+Mục tiêu phía trên là contract kiến trúc; runtime hiện có hai phần chưa thành một interface `pricing`: sale price được đăng ký cùng `catalog` trong `CatalogModule`, còn Voucher có `VoucherModule` riêng. Cả hai dùng Prisma trực tiếp. Sale price được `ProductService` gọi bằng helper query giá đang hiệu lực; `AdminProductService` gọi guard để đồng bộ thay đổi Giá bán. Không có provider/port công khai cho các module khác.
+
+### API hiện tại
+
+| Method            | Path                                     | Hành vi hiện tại                                                                                       |
+| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `GET`, `POST`     | `/admin/products/:productId/sale-prices` | Liệt kê hoặc tạo cho một/nhiều Biến thể; tạo theo Giá hoặc phần trăm giảm.                             |
+| `PATCH`, `DELETE` | `/admin/sale-prices/:id`                 | Sửa lịch sắp tới/thời điểm kết thúc đang hiệu lực; chỉ xóa lịch chưa bắt đầu.                          |
+| `POST`            | `/admin/sale-prices/:id/end`             | Kết thúc Giá khuyến mãi đang hiệu lực ngay.                                                            |
+| `GET`, `POST`     | `/admin/vouchers`, `/admin/vouchers/:id` | Liệt kê/đọc và tạo Voucher.                                                                            |
+| `PATCH`, `DELETE` | `/admin/vouchers/:id`                    | Sửa và xóa Voucher chưa có lượt dùng; Voucher đã dùng chỉ cho phép sửa một số trường hoặc vô hiệu hóa. |
+
+Sale-price routes thuộc `AdminSalePriceController` trong `CatalogModule`; Voucher routes thuộc `AdminVoucherController` trong `VoucherModule`. Cả hai dùng permission `PRICING_*_VIEW/MANAGE`. Trong các module được khảo sát không có route áp mã/validate Voucher phía storefront.
+
+### Kiểm kê runtime theo file
+
+Các đường dẫn sau là toàn bộ 17 file TypeScript không phải spec trong `src/modules/catalog/pricing/**` và `src/modules/voucher/**`.
+
+#### Sale price
+
+| File                                                                           | Trách nhiệm, symbol chính và phụ thuộc đáng kể                                                                                                                           |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/modules/catalog/pricing/controllers/admin/admin-sale-price.controller.ts` | `AdminSalePriceController`: list/create/update/end/delete qua các admin routes; gọi `AdminSalePriceService`, authorization và DTO.                                       |
+| `src/modules/catalog/pricing/domain/active-sale-prices.ts`                     | `ActiveSalePrice`, `findActiveSalePrices`: query khoảng thời gian đang hiệu lực cho các variant, trả map; nhận `PrismaService` từ caller.                                |
+| `src/modules/catalog/pricing/domain/sale-price-guards.ts`                      | `isSalePriceOverlap`, `lockVariants`, `assertPriceAboveSalePrices`: xử lý overlap/lock và bảo vệ Giá bán trước giá sale; được gọi trực tiếp bởi pricing/product service. |
+| `src/modules/catalog/pricing/domain/sale-price-status.ts`                      | `SALE_PRICE_STATUSES`, `SalePriceStatus`, `salePriceStatus`, `priceAfterPercentOff`: trạng thái theo thời điểm và làm tròn giá phần trăm.                                |
+| `src/modules/catalog/pricing/dto/admin/create-sale-price.dto.ts`               | `CreateSalePriceDto`: input tạo lịch cho một/nhiều variant, validator/Swagger.                                                                                           |
+| `src/modules/catalog/pricing/dto/admin/sale-price-response.dto.ts`             | `SalePriceResponseDto`: response lịch sale, dùng `SalePriceStatus`.                                                                                                      |
+| `src/modules/catalog/pricing/dto/admin/update-sale-price.dto.ts`               | `UpdateSalePriceDto`: input sửa lịch sale, validator/Swagger.                                                                                                            |
+| `src/modules/catalog/pricing/services/admin/admin-sale-price.service.ts`       | `AdminSalePriceService`: quản lý lịch sale, validation/transaction/lock/overlap và lifecycle; Prisma, DTO, guard/status helpers.                                         |
+
+#### Voucher
+
+| File                                                                | Trách nhiệm, symbol chính và phụ thuộc đáng kể                                                                                                                                                                           |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/modules/voucher/controllers/admin/admin-voucher.controller.ts` | `AdminVoucherController`: admin list/read/create/update/delete; `Authorize`, `CurrentUser`, `Permission`, gọi `AdminVoucherService`.                                                                                     |
+| `src/modules/voucher/domain/voucher-status.ts`                      | `VOUCHER_STATUSES`, `VoucherStatus`, `voucherStatus`, `voucherStatusWhere`: phân loại active/upcoming/ended/exhausted/disabled và tạo Prisma filter.                                                                     |
+| `src/modules/voucher/dto/admin/create-voucher.dto.ts`               | `CreateVoucherDto`: input Voucher; dùng generated Prisma enums và validation/Swagger.                                                                                                                                    |
+| `src/modules/voucher/dto/admin/list-vouchers-query.dto.ts`          | `ListVouchersQueryDto`: pagination, query và status; phụ thuộc `PaginationDto`/`VoucherStatus`.                                                                                                                          |
+| `src/modules/voucher/dto/admin/paginated-voucher-response.dto.ts`   | `PaginatedVoucherResponseDto`: response trang voucher, ghép pagination metadata và response item.                                                                                                                        |
+| `src/modules/voucher/dto/admin/update-voucher.dto.ts`               | `UpdateVoucherDto`: input cập nhật, mở rộng `CreateVoucherDto`.                                                                                                                                                          |
+| `src/modules/voucher/dto/admin/voucher-response.dto.ts`             | `VoucherResponseDto`: response gồm usedCount và status; dùng Prisma enum/`VoucherStatus`.                                                                                                                                |
+| `src/modules/voucher/services/admin/admin-voucher.service.ts`       | `AdminVoucherService`: CRUD back-office, kiểm điều khoản, khóa row khi sửa/xóa và bảo vệ trường sau khi đã dùng; Prisma, pagination, DTO và status helpers. `usedCount` chỉ được đọc/đưa vào response và dùng làm guard. |
+| `src/modules/voucher/voucher.module.ts`                             | `VoucherModule`: đăng ký controller/service với Passport; không export provider hoặc runtime contract khác.                                                                                                              |
+
+### Target so với hiện tại
+
+| Chủ đề           | Target contract                                                                        | Hiện trạng quan sát được                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Effective price  | `getEffectivePrices(variantIds, at)` được gọi bởi cart/catalog/ordering.               | Không có function/provider với contract đó. Có `findActiveSalePrices` trong pricing; storefront gọi helper này cho detail và `productSearchSql` tự ghép `sale_prices` để lọc/sắp xếp danh sách.                                                                                                                                                                                    |
+| Giá bán và sale  | `assertPriceChangeAllowed(variantId, newPrice)` là interface của pricing cho catalog.  | Không có symbol đó; `AdminProductService` gọi trực tiếp `assertPriceAboveSalePrices` và `lockVariants` từ file guard của pricing.                                                                                                                                                                                                                                                  |
+| Voucher          | `evaluateVoucher`, `recordUsage`, `releaseUsage` phục vụ ordering và Tính thử/đặt đơn. | Chưa có runtime interface áp mã, tính giảm, ghi/trả VoucherUsage hoặc endpoint storefront. Phần application/counting được deferred; `AdminVoucherService` không tăng `usedCount` hay ghi `VoucherUsage` — chỉ đọc counter hiện có để tính trạng thái và khóa chỉnh sửa/xóa. Các hàng `voucher_usages` và contract trong phần target không đồng nghĩa đã có runtime implementation. |
+| Ranh giới module | Target gộp Giá khuyến mãi, Voucher và lượt dùng trong `pricing`.                       | Sale price nằm dưới `catalog/pricing` và được wiring trong `CatalogModule`; CRUD Voucher nằm trong module riêng. Chưa có interface xuyên module để che Prisma hoặc gom hai phần này.                                                                                                                                                                                               |
+
+## Test inventory
+
+Không có unit spec (`*.spec.ts`) dưới `src/modules/catalog/pricing/` hoặc `src/modules/voucher/`. Các test catalog-specific trong những thư mục e2e đã xác định được liệt kê theo từng file ở [`catalog.md`](./catalog.md#test-inventory); không đưa test identity/cross-cutting vào inventory này.

@@ -3,7 +3,11 @@ import { PrismaClient } from '../src/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as argon2 from 'argon2';
 import slugify from 'slugify';
-import { ADMIN_ROLE_PERMISSIONS, STAFF_ROLE_PERMISSIONS, type Permission } from '../src/common/auth/permission.enum.js';
+import {
+  ADMIN_ROLE_PERMISSIONS,
+  STAFF_ROLE_PERMISSIONS,
+  type Permission,
+} from '../src/security/contracts/permission.enum.js';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),

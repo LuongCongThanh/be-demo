@@ -34,7 +34,7 @@ File/class naming, folder structure per module, barrel files banned, `#src/*` im
 
 ### Error handling & logging conventions
 
-Global `AllExceptionsFilter` (`src/common/filters/all-exceptions.filter.ts`) unifying HttpException/Prisma/unexpected-error responses, log-level policy (log 5xx only, never 4xx), request-id tracing via `AsyncLocalStorage` + `AppLogger` (auto-injected into every existing `Logger` call site, no code changes needed at call sites). See `docs/convention`.
+Global `AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`) unifying HttpException/Prisma/unexpected-error responses, log-level policy (log 5xx only, never 4xx), request-id tracing via `AsyncLocalStorage` + `AppLogger` (auto-injected into every existing `Logger` call site, no code changes needed at call sites). See `docs/convention`.
 
 ### Prisma schema convention
 

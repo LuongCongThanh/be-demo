@@ -5,20 +5,20 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import type ms from 'ms';
 import { MailModule } from '#src/infrastructure/mail/mail.module.js';
 import { AuditModule } from '#src/infrastructure/audit/audit.module.js';
-import { AuthController } from '#src/modules/identity/auth/auth.controller.js';
-import { MeController } from '#src/modules/identity/auth/me.controller.js';
-import { AdminStaffController } from '#src/modules/identity/internal-account/admin-staff.controller.js';
-import { RegistrationService } from '#src/modules/identity/auth/registration.service.js';
-import { AccessClaimsService } from '#src/modules/identity/auth/access-claims.service.js';
-import { SessionService } from '#src/modules/identity/auth/session.service.js';
-import { PasswordResetService } from '#src/modules/identity/auth/password-reset.service.js';
-import { AccountProfileService } from '#src/modules/identity/auth/account-profile.service.js';
-import { PasswordService } from '#src/modules/identity/auth/password.service.js';
-import { TokenService } from '#src/modules/identity/auth/token.service.js';
-import { AdminRoleController } from '#src/modules/identity/access/admin-role.controller.js';
-import { AccessService } from '#src/modules/identity/access/access.service.js';
-import { InternalAccountService } from '#src/modules/identity/internal-account/internal-account.service.js';
-import { JwtStrategy } from '#src/modules/identity/auth/jwt.strategy.js';
+import { AuthController } from '#src/modules/identity/auth/controllers/storefront/auth.controller.js';
+import { MeController } from '#src/modules/identity/auth/controllers/storefront/me.controller.js';
+import { AdminStaffController } from '#src/modules/identity/internal-account/controllers/admin/admin-staff.controller.js';
+import { RegistrationService } from '#src/modules/identity/auth/services/storefront/registration.service.js';
+import { AccessClaimsService } from '#src/modules/identity/auth/services/shared/access-claims.service.js';
+import { SessionService } from '#src/modules/identity/auth/services/storefront/session.service.js';
+import { PasswordResetService } from '#src/modules/identity/auth/services/storefront/password-reset.service.js';
+import { AccountProfileService } from '#src/modules/identity/auth/services/storefront/account-profile.service.js';
+import { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
+import { TokenService } from '#src/modules/identity/auth/services/shared/token.service.js';
+import { AdminRoleController } from '#src/modules/identity/access/controllers/admin/admin-role.controller.js';
+import { AccessService } from '#src/modules/identity/access/services/admin/access.service.js';
+import { InternalAccountService } from '#src/modules/identity/internal-account/services/admin/internal-account.service.js';
+import { JwtStrategy } from '#src/modules/identity/auth/strategies/jwt.strategy.js';
 
 @Module({
   imports: [
