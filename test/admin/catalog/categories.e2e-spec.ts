@@ -159,17 +159,15 @@ describe('Categories — Admin CMS (e2e)', () => {
         });
 
         const categoryPromise = createCategory();
-        const enablementPromise = Promise.all(
+        const enablementResponses = await Promise.all(
           TEST_LOCALES.map((locale) =>
-            request(server())
-              .patch(`/api/v1/admin/languages/${locale}`)
-              .set(auth(adminToken))
-              .send({ enabled: true })
-              .expect(200),
+            request(server()).patch(`/api/v1/admin/languages/${locale}`).set(auth(adminToken)).send({ enabled: true }),
           ),
         );
+        for (const response of enablementResponses) {
+          expect(response.status, JSON.stringify(response.body)).toBe(200);
+        }
         const category = await categoryPromise;
-        await enablementPromise;
 
         const translations = await prisma.categoryTranslation.findMany({
           where: { categoryId: category.id, locale: { in: [...TEST_LOCALES] } },
