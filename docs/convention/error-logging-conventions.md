@@ -12,7 +12,7 @@ Prisma error (P2002/P2003/P2025) → AllExceptionsFilter tự map sang HTTP stat
 Lỗi không lường trước           →  AllExceptionsFilter bắt, trả 500 generic, log stack
 ```
 
-`AllExceptionsFilter` (`../../src/common/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) là **safety net cho lỗi không lường trước, không phải nơi định nghĩa domain error** — nguyên tắc này giữ nguyên như đã ghi ở `api-rules.md` §R2/§R6, tài liệu này chỉ mô tả phần filter đã được implement thật (trước đây là gap chưa code).
+`AllExceptionsFilter` (`../../src/http/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) là **safety net cho lỗi không lường trước, không phải nơi định nghĩa domain error** — nguyên tắc này giữ nguyên như đã ghi ở `api-rules.md` §R2/§R6, tài liệu này chỉ mô tả phần filter đã được implement thật (trước đây là gap chưa code).
 
 ## 2. Response shape lỗi — thống nhất toàn app
 
@@ -33,7 +33,7 @@ Lỗi không lường trước           →  AllExceptionsFilter bắt, trả 5
 
 ## 4. Request-id — trace 1 request qua nhiều dòng log
 
-Mỗi request HTTP được gắn 1 `requestId` (UUID) ngay từ `RequestIdMiddleware` (`../../src/common/middleware/request-id.middleware.ts`, áp dụng cho `'*'` trong `AppModule.configure()`):
+Mỗi request HTTP được gắn 1 `requestId` (UUID) ngay từ `RequestIdMiddleware` (`../../src/http/middleware/request-id.middleware.ts`, áp dụng cho `'*'` trong `AppModule.configure()`):
 
 - Nếu request đã có header `X-Request-Id` (từ load balancer/gateway phía trước) → giữ nguyên, không tự sinh mới — để trace xuyên suốt nhiều service trong hệ thống lớn hơn.
 - Ngược lại tự sinh bằng `randomUUID()`.

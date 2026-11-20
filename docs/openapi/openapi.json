@@ -78,6 +78,38 @@
         ],
         "type": "object"
       },
+      "CategoryLanguageResponseDto": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "enabled": {
+            "example": true,
+            "type": "boolean"
+          },
+          "generation": {
+            "example": 1,
+            "type": "number"
+          },
+          "locale": {
+            "example": "en",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "locale",
+          "enabled",
+          "generation",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "CategoryResponseDto": {
         "properties": {
           "bannerStorageKey": {
@@ -166,6 +198,16 @@
           "createdAt",
           "updatedAt"
         ],
+        "type": "object"
+      },
+      "CategoryTranslationUpdateDto": {
+        "properties": {
+          "name": {
+            "maxLength": 150,
+            "nullable": true,
+            "type": "object"
+          }
+        },
         "type": "object"
       },
       "CategoryTreeNodeDto": {
@@ -1982,6 +2024,18 @@
         },
         "type": "object"
       },
+      "UpdateCategoryLanguageDto": {
+        "properties": {
+          "enabled": {
+            "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "type": "object"
+      },
       "UpdateColorDto": {
         "properties": {
           "hex": {
@@ -2525,7 +2579,7 @@
         ],
         "summary": "List every category flat, including hidden ones (paginated, STAFF/ADMIN)",
         "tags": [
-          "Categories"
+          "Admin CMS — Categories"
         ]
       },
       "post": {
@@ -2620,7 +2674,7 @@
         ],
         "summary": "Create a category, optionally under a parent (ADMIN only)",
         "tags": [
-          "Categories"
+          "Admin CMS — Categories"
         ]
       }
     },
@@ -2709,7 +2763,7 @@
         ],
         "summary": "Delete an empty leaf category (409 while it has subcategories or products, ADMIN only)",
         "tags": [
-          "Categories"
+          "Admin CMS — Categories"
         ]
       },
       "get": {
@@ -2793,7 +2847,7 @@
         ],
         "summary": "Get any category by id, including hidden ones (STAFF/ADMIN)",
         "tags": [
-          "Categories"
+          "Admin CMS — Categories"
         ]
       },
       "patch": {
@@ -2897,7 +2951,7 @@
         ],
         "summary": "Update a category: rename (stable slug), move to another parent or root, reorder, hide (ADMIN only)",
         "tags": [
-          "Categories"
+          "Admin CMS — Categories"
         ]
       }
     },
@@ -3021,7 +3075,7 @@
         ],
         "summary": "Attach an uploaded category image, or clear it with null (ADMIN only)",
         "tags": [
-          "Categories"
+          "Admin CMS — Categories"
         ]
       }
     },
@@ -3135,7 +3189,7 @@
         ],
         "summary": "Sign a thumbnail or banner upload (ADMIN only)",
         "tags": [
-          "Categories"
+          "Admin CMS — Categories"
         ]
       }
     },
@@ -3221,7 +3275,270 @@
         ],
         "summary": "Queue a fresh English translation, replacing an override on success (ADMIN only)",
         "tags": [
-          "Categories"
+          "Admin CMS — Categories"
+        ]
+      }
+    },
+    "/api/v1/admin/categories/{id}/translations": {
+      "get": {
+        "operationId": "AdminCategoryController_translations_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category translations"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List category translations by locale (STAFF/ADMIN)",
+        "tags": [
+          "Admin CMS — Categories"
+        ]
+      }
+    },
+    "/api/v1/admin/categories/{id}/translations/{locale}": {
+      "patch": {
+        "operationId": "AdminCategoryController_updateTranslation_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "locale",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryTranslationUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated category translation"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set a manual category translation or request retranslation (ADMIN only)",
+        "tags": [
+          "Admin CMS — Categories"
+        ]
+      }
+    },
+    "/api/v1/admin/categories/{id}/translations/{locale}/retry": {
+      "post": {
+        "operationId": "AdminCategoryController_retryLocaleTranslation_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "locale",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Queued category translation"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retry one category locale translation (ADMIN only)",
+        "tags": [
+          "Admin CMS — Categories"
         ]
       }
     },
@@ -3281,7 +3598,7 @@
         ],
         "summary": "List every color including hidden ones (STAFF/ADMIN)",
         "tags": [
-          "Sizes & Colors"
+          "Admin CMS — Sizes & Colors"
         ]
       },
       "post": {
@@ -3366,7 +3683,7 @@
         ],
         "summary": "Create a color with a #RRGGBB swatch (ADMIN only)",
         "tags": [
-          "Sizes & Colors"
+          "Admin CMS — Sizes & Colors"
         ]
       }
     },
@@ -3462,7 +3779,7 @@
         ],
         "summary": "Rename, recolor or hide a color; the code is immutable (ADMIN only)",
         "tags": [
-          "Sizes & Colors"
+          "Admin CMS — Sizes & Colors"
         ]
       }
     },
@@ -3548,7 +3865,7 @@
         ],
         "summary": "List the roles held by an internal account (requires ADMINISTRATION_INTERNAL_ACCOUNT_VIEW)",
         "tags": [
-          "Roles & Permissions"
+          "Admin CMS — Roles & Permissions"
         ]
       }
     },
@@ -3652,7 +3969,7 @@
         ],
         "summary": "Remove a role from an internal account (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE). Accounts holding the role must log in again: their access tokens stop working and their refresh tokens are revoked. The sole active Admin cannot lose the Admin role.",
         "tags": [
-          "Roles & Permissions"
+          "Admin CMS — Roles & Permissions"
         ]
       },
       "put": {
@@ -3754,7 +4071,153 @@
         ],
         "summary": "Assign a role to an internal account; idempotent (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE). Accounts holding the role must log in again: their access tokens stop working and their refresh tokens are revoked. The Admin role cannot be assigned to a second account.",
         "tags": [
-          "Roles & Permissions"
+          "Admin CMS — Roles & Permissions"
+        ]
+      }
+    },
+    "/api/v1/admin/languages": {
+      "get": {
+        "operationId": "AdminCategoryLanguageController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryLanguageResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List category content languages (STAFF/ADMIN)",
+        "tags": [
+          "Admin CMS — Categories"
+        ]
+      }
+    },
+    "/api/v1/admin/languages/{locale}": {
+      "patch": {
+        "operationId": "AdminCategoryLanguageController_update_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "locale",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryLanguageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryLanguageResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Enable or disable a category content language (ADMIN only)",
+        "tags": [
+          "Admin CMS — Categories"
         ]
       }
     },
@@ -3814,7 +4277,7 @@
         ],
         "summary": "List every Permission, grouped by prefix (requires ADMINISTRATION_ROLE_VIEW)",
         "tags": [
-          "Roles & Permissions"
+          "Admin CMS — Roles & Permissions"
         ]
       }
     },
@@ -3933,7 +4396,7 @@
         ],
         "summary": "List products of any status (paginated, filterable by category/status, STAFF/ADMIN)",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       },
       "post": {
@@ -4028,7 +4491,7 @@
         ],
         "summary": "Create a product; it starts as DRAFT (ADMIN only)",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -4114,7 +4577,7 @@
         ],
         "summary": "Get a product of any status with all its variants (STAFF/ADMIN)",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       },
       "patch": {
@@ -4218,7 +4681,7 @@
         ],
         "summary": "Update a product; changing status follows DRAFT → ACTIVE ↔ ARCHIVED (ADMIN only)",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -4304,7 +4767,7 @@
         ],
         "summary": "Archive a product instead of deleting it; idempotent (ADMIN only)",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -4421,7 +4884,7 @@
         ],
         "summary": "Attach an uploaded image to a product color; isPrimary replaces that color primary",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -4528,7 +4991,7 @@
         ],
         "summary": "Sign a direct upload of one product image to storage",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -4615,7 +5078,7 @@
         ],
         "summary": "Remove an image from a product and, best effort, from storage",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       },
       "patch": {
@@ -4717,7 +5180,7 @@
         ],
         "summary": "Update image metadata or make it the primary image of its color",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -4803,7 +5266,7 @@
         ],
         "summary": "Bring an archived product back to ACTIVE; idempotent (ADMIN only)",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -4909,7 +5372,7 @@
         ],
         "summary": "Create a variant, atomically creating its inventory row (ADMIN only)",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -5023,7 +5486,7 @@
         ],
         "summary": "Update a variant (ADMIN only)",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -5117,7 +5580,7 @@
         ],
         "summary": "Archive a variant (stop selling it); idempotent (ADMIN only)",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -5211,7 +5674,7 @@
         ],
         "summary": "Bring an archived variant back to ACTIVE; idempotent (ADMIN only)",
         "tags": [
-          "Products"
+          "Admin CMS — Products"
         ]
       }
     },
@@ -5300,7 +5763,7 @@
         ],
         "summary": "List every sale price of a product, newest start first, with its status now",
         "tags": [
-          "Sale prices"
+          "Admin CMS — Sale prices"
         ]
       },
       "post": {
@@ -5408,7 +5871,7 @@
         ],
         "summary": "Set a sale price on one or more variants of a product (all or nothing)",
         "tags": [
-          "Sale prices"
+          "Admin CMS — Sale prices"
         ]
       }
     },
@@ -5499,7 +5962,7 @@
         ],
         "summary": "List roles with their permissions, by name (requires ADMINISTRATION_ROLE_VIEW)",
         "tags": [
-          "Roles & Permissions"
+          "Admin CMS — Roles & Permissions"
         ]
       },
       "post": {
@@ -5584,7 +6047,7 @@
         ],
         "summary": "Create a role with a set of permissions (requires ADMINISTRATION_ROLE_MANAGE)",
         "tags": [
-          "Roles & Permissions"
+          "Admin CMS — Roles & Permissions"
         ]
       }
     },
@@ -5673,7 +6136,7 @@
         ],
         "summary": "Delete a role (requires ADMINISTRATION_ROLE_MANAGE). Rejected for system roles and for roles still assigned to accounts",
         "tags": [
-          "Roles & Permissions"
+          "Admin CMS — Roles & Permissions"
         ]
       },
       "get": {
@@ -5757,7 +6220,7 @@
         ],
         "summary": "Get one role (requires ADMINISTRATION_ROLE_VIEW)",
         "tags": [
-          "Roles & Permissions"
+          "Admin CMS — Roles & Permissions"
         ]
       },
       "patch": {
@@ -5861,7 +6324,7 @@
         ],
         "summary": "Edit a role's description, name or permissions (requires ADMINISTRATION_ROLE_MANAGE). Accounts holding the role must log in again: their access tokens stop working and their refresh tokens are revoked. The Admin role is read-only; system roles cannot be renamed.",
         "tags": [
-          "Roles & Permissions"
+          "Admin CMS — Roles & Permissions"
         ]
       }
     },
@@ -5950,7 +6413,7 @@
         ],
         "summary": "Delete an upcoming sale price",
         "tags": [
-          "Sale prices"
+          "Admin CMS — Sale prices"
         ]
       },
       "patch": {
@@ -6054,7 +6517,7 @@
         ],
         "summary": "Change an upcoming sale price, or the end of an active one",
         "tags": [
-          "Sale prices"
+          "Admin CMS — Sale prices"
         ]
       }
     },
@@ -6150,7 +6613,7 @@
         ],
         "summary": "End an active sale price now",
         "tags": [
-          "Sale prices"
+          "Admin CMS — Sale prices"
         ]
       }
     },
@@ -6210,7 +6673,7 @@
         ],
         "summary": "List every size including hidden ones, by display order (STAFF/ADMIN)",
         "tags": [
-          "Sizes & Colors"
+          "Admin CMS — Sizes & Colors"
         ]
       },
       "post": {
@@ -6295,7 +6758,7 @@
         ],
         "summary": "Create a size (ADMIN only)",
         "tags": [
-          "Sizes & Colors"
+          "Admin CMS — Sizes & Colors"
         ]
       }
     },
@@ -6391,7 +6854,7 @@
         ],
         "summary": "Rename, reorder or hide a size; the code is immutable (ADMIN only)",
         "tags": [
-          "Sizes & Colors"
+          "Admin CMS — Sizes & Colors"
         ]
       }
     },
@@ -6482,7 +6945,7 @@
         ],
         "summary": "List staff accounts, newest first (requires ADMINISTRATION_INTERNAL_ACCOUNT_VIEW)",
         "tags": [
-          "Staff Management"
+          "Admin CMS — Staff Management"
         ]
       },
       "post": {
@@ -6567,7 +7030,7 @@
         ],
         "summary": "Create a staff account with an initial password (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)",
         "tags": [
-          "Staff Management"
+          "Admin CMS — Staff Management"
         ]
       }
     },
@@ -6653,7 +7116,7 @@
         ],
         "summary": "Get one staff account with its roles (requires ADMINISTRATION_INTERNAL_ACCOUNT_VIEW)",
         "tags": [
-          "Staff Management"
+          "Admin CMS — Staff Management"
         ]
       },
       "patch": {
@@ -6747,7 +7210,7 @@
         ],
         "summary": "Rename a staff account (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)",
         "tags": [
-          "Staff Management"
+          "Admin CMS — Staff Management"
         ]
       }
     },
@@ -6833,7 +7296,7 @@
         ],
         "summary": "Disable a staff account and end all its sessions immediately; idempotent (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)",
         "tags": [
-          "Staff Management"
+          "Admin CMS — Staff Management"
         ]
       }
     },
@@ -6919,7 +7382,7 @@
         ],
         "summary": "Re-enable a disabled staff account; idempotent (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE)",
         "tags": [
-          "Staff Management"
+          "Admin CMS — Staff Management"
         ]
       }
     },
@@ -7028,7 +7491,7 @@
         ],
         "summary": "List vouchers, newest first; search by code, filter by status now",
         "tags": [
-          "Vouchers"
+          "Admin CMS — Vouchers"
         ]
       },
       "post": {
@@ -7113,7 +7576,7 @@
         ],
         "summary": "Create a voucher; the code is stored upper case and never changes",
         "tags": [
-          "Vouchers"
+          "Admin CMS — Vouchers"
         ]
       }
     },
@@ -7202,7 +7665,7 @@
         ],
         "summary": "Delete an unused voucher; a used one can only be deactivated",
         "tags": [
-          "Vouchers"
+          "Admin CMS — Vouchers"
         ]
       },
       "get": {
@@ -7286,7 +7749,7 @@
         ],
         "summary": "Get a voucher with its use count",
         "tags": [
-          "Vouchers"
+          "Admin CMS — Vouchers"
         ]
       },
       "patch": {
@@ -7391,7 +7854,7 @@
         ],
         "summary": "Change a voucher",
         "tags": [
-          "Vouchers"
+          "Admin CMS — Vouchers"
         ]
       }
     },
@@ -7443,7 +7906,7 @@
         },
         "summary": "Request a password reset email",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -7505,7 +7968,7 @@
         },
         "summary": "Log in and receive an access token (refresh token is set as an HttpOnly cookie)",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -7552,7 +8015,7 @@
         ],
         "summary": "Log out the current session (revokes its refresh token)",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -7599,7 +8062,7 @@
         ],
         "summary": "Log out of all sessions (revokes every refresh token of the current user)",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -7646,7 +8109,7 @@
         ],
         "summary": "Get the currently authenticated user",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -7688,7 +8151,7 @@
         },
         "summary": "Rotate the refresh token cookie and issue a new access token",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -7750,7 +8213,7 @@
         },
         "summary": "Register a new CUSTOMER account",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -7802,7 +8265,7 @@
         },
         "summary": "Resend the email verification code",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -7854,7 +8317,7 @@
         },
         "summary": "Reset password using the token received by email",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -7916,7 +8379,7 @@
         },
         "summary": "Verify email address using the 6-digit code sent by email",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -7932,7 +8395,14 @@
               "default": "vi",
               "enum": [
                 "vi",
-                "en"
+                "en",
+                "th",
+                "ja",
+                "ko",
+                "zh-CN",
+                "fr",
+                "de",
+                "es"
               ],
               "example": "en",
               "type": "string"
@@ -7976,7 +8446,7 @@
         },
         "summary": "Get the visible category tree for the storefront menu (public)",
         "tags": [
-          "Categories"
+          "Storefront — Categories"
         ]
       }
     },
@@ -8000,7 +8470,14 @@
               "default": "vi",
               "enum": [
                 "vi",
-                "en"
+                "en",
+                "th",
+                "ja",
+                "ko",
+                "zh-CN",
+                "fr",
+                "de",
+                "es"
               ],
               "example": "en",
               "type": "string"
@@ -8051,7 +8528,7 @@
         },
         "summary": "Get a visible category by id (public)",
         "tags": [
-          "Categories"
+          "Storefront — Categories"
         ]
       }
     },
@@ -8086,7 +8563,7 @@
         },
         "summary": "List visible colors for storefront filters and swatches (public)",
         "tags": [
-          "Sizes & Colors"
+          "Storefront — Sizes & Colors"
         ]
       }
     },
@@ -8179,6 +8656,41 @@
         ]
       }
     },
+    "/api/v1/languages": {
+      "get": {
+        "operationId": "CategoryLanguageController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryLanguageResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "List enabled category content languages (public)",
+        "tags": [
+          "Storefront — Categories"
+        ]
+      }
+    },
     "/api/v1/me": {
       "get": {
         "operationId": "MeController_getProfile_v1",
@@ -8232,7 +8744,7 @@
         ],
         "summary": "Get the signed-in customer profile (CUSTOMER only)",
         "tags": [
-          "Authentication & Authorization"
+          "Storefront — Authentication"
         ]
       }
     },
@@ -8413,7 +8925,7 @@
         },
         "summary": "List ACTIVE products with a price range (paginated, public)",
         "tags": [
-          "Products"
+          "Storefront — Products"
         ]
       }
     },
@@ -8464,7 +8976,7 @@
         },
         "summary": "Get an ACTIVE product by slug with its ACTIVE variants (public)",
         "tags": [
-          "Products"
+          "Storefront — Products"
         ]
       }
     },
@@ -8525,7 +9037,7 @@
         },
         "summary": "Get an ACTIVE product with its ACTIVE variants (public)",
         "tags": [
-          "Products"
+          "Storefront — Products"
         ]
       }
     },
@@ -8609,7 +9121,7 @@
         },
         "summary": "List ACTIVE variants of an ACTIVE product (paginated, public)",
         "tags": [
-          "Products"
+          "Storefront — Products"
         ]
       }
     },
@@ -8678,7 +9190,7 @@
         },
         "summary": "Get an ACTIVE variant of an ACTIVE product (public)",
         "tags": [
-          "Products"
+          "Storefront — Products"
         ]
       }
     },
@@ -8713,7 +9225,7 @@
         },
         "summary": "List visible sizes for storefront filters (public)",
         "tags": [
-          "Sizes & Colors"
+          "Storefront — Sizes & Colors"
         ]
       }
     }
@@ -8721,36 +9233,48 @@
   "servers": [],
   "tags": [
     {
-      "description": "Register, email verification, login/refresh/logout, and role/ownership-based access control",
-      "name": "Authentication & Authorization"
+      "description": "Customer registration, email verification, login, sessions and profile",
+      "name": "Storefront — Authentication"
     },
     {
-      "description": "Nested category tree — public visible tree; back-office CRUD with cycle and delete guards (writes ADMIN)",
-      "name": "Categories"
+      "description": "Public category tree, category detail and enabled content languages",
+      "name": "Storefront — Categories"
     },
     {
-      "description": "Product + variant CRUD (variants nested under products, inventory created atomically) — writes gated to ADMIN, reads public",
-      "name": "Products"
+      "description": "Back-office category, translation, language and image management — reads STAFF/ADMIN, writes ADMIN",
+      "name": "Admin CMS — Categories"
     },
     {
-      "description": "Shared size list and color palette for variants — no delete, hide instead; writes gated to ADMIN",
-      "name": "Sizes & Colors"
+      "description": "Public product listing, details and variants",
+      "name": "Storefront — Products"
+    },
+    {
+      "description": "Product and variant management — writes gated to ADMIN",
+      "name": "Admin CMS — Products"
+    },
+    {
+      "description": "Public size list and color palette used by product variants",
+      "name": "Storefront — Sizes & Colors"
+    },
+    {
+      "description": "Manage shared size lists and color palettes — writes gated to ADMIN",
+      "name": "Admin CMS — Sizes & Colors"
     },
     {
       "description": "Time-boxed sale prices per variant (no overlap per variant); upcoming editable, active only its end, ended read-only (needs PRICING_SALE_PRICE_*)",
-      "name": "Sale prices"
+      "name": "Admin CMS — Sale prices"
     },
     {
       "description": "Order discount codes (percent with optional cap, or fixed amount); code immutable, locked fields after first use, delete only unused (needs PRICING_VOUCHER_*)",
-      "name": "Vouchers"
+      "name": "Admin CMS — Vouchers"
     },
     {
       "description": "Back-office staff accounts — create, rename, disable/enable (needs ADMINISTRATION_INTERNAL_ACCOUNT_* permissions, every change audited)",
-      "name": "Staff Management"
+      "name": "Admin CMS — Staff Management"
     },
     {
       "description": "Permission list, role CRUD and role assignment for internal accounts — the Admin role is read-only, role changes end the affected sessions, every change audited",
-      "name": "Roles & Permissions"
+      "name": "Admin CMS — Roles & Permissions"
     },
     {
       "description": "Liveness/readiness probes — public, readiness depends on Postgres only",

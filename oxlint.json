@@ -8,12 +8,12 @@
       {
         "paths": [
           {
-            "name": "#src/common/auth/permissions.guard.js",
-            "message": "Dùng @Authorize(...) từ #src/common/auth/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+            "name": "#src/security/authorization/permissions/permissions.guard.js",
+            "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
           },
           {
-            "name": "#src/common/auth/permissions.decorator.js",
-            "message": "Dùng @Authorize(...) từ #src/common/auth/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+            "name": "#src/security/authorization/permissions/permissions.decorator.js",
+            "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
           }
         ]
       }
@@ -24,7 +24,7 @@
   },
   "overrides": [
     {
-      "files": ["src/common/auth/**"],
+      "files": ["src/security/authorization/**"],
       "rules": {
         "no-restricted-imports": "off"
       }

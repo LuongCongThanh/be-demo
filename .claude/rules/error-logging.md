@@ -5,7 +5,7 @@ paths:
 
 # Error handling & logging (condensed — full rationale: docs/convention/error-logging-conventions.md)
 
-- `AllExceptionsFilter` (global, `src/common/filters/all-exceptions.filter.ts`) là **safety net cho lỗi không lường trước**, không phải nơi định nghĩa domain error. Domain error đã biết trước (trùng unique, còn record con tham chiếu, sai business rule...) → **ném rõ ràng ở service** bằng `NotFoundException`/`ConflictException`/... kèm message cụ thể, không để rơi xuống filter.
+- `AllExceptionsFilter` (global, `src/http/filters/all-exceptions.filter.ts`) là **safety net cho lỗi không lường trước**, không phải nơi định nghĩa domain error. Domain error đã biết trước (trùng unique, còn record con tham chiếu, sai business rule...) → **ném rõ ràng ở service** bằng `NotFoundException`/`ConflictException`/... kèm message cụ thể, không để rơi xuống filter.
 - Response lỗi shape cố định: `{ statusCode, message, requestId }`. Prisma map sẵn: `P2002`→409, `P2003`→409, `P2025`→404, còn lại→500.
 - Log level: **`5xx` filter tự `.error()` kèm stack — không log lại ở service**. **`4xx` không log** (luồng nghiệp vụ bình thường, log sẽ tạo noise). Business event quan trọng log `.log()` qua `new Logger(ClassName.name)`.
 - **Không bao giờ log secret**: password, token thô (JWT/refresh/reset-code), header `Authorization`.

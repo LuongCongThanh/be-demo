@@ -12,5 +12,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    // E2E specs share one PostgreSQL database and mutate global locale state.
+    fileParallelism: false,
   },
 });

@@ -40,5 +40,28 @@ cũ ghi vào cùng dòng này. Không cần consumers nhập lại bản dịch.
    đến khi dịch thành công. Không rollback chạy BE cũ vì cột legacy đã ngừng cập nhật;
    phục hồi cần bản BE tương thích bảng mới hoặc kế hoạch khôi phục dữ liệu riêng.
 
-Ticket này chỉ chuyển Việt/Anh hiện có. API quản lý ngôn ngữ và sửa bản dịch theo
-locale sẽ được bổ sung trong các ticket tiếp theo.
+Ticket 01 chỉ chuyển Việt/Anh hiện có. API quản lý ngôn ngữ thuộc ticket 02;
+ticket 03 tiếp tục đặc tả và nghiệm thu chỉnh sửa tay/retry riêng theo locale.
+
+## Ngôn ngữ category (ticket 02)
+
+`vi` là ngôn ngữ nguồn và không thể tắt. Danh sách locale được hỗ trợ là allowlist
+của BE; `vi` và `en` được seed idempotent. Locale bật/tắt không thay đổi slug hay
+URL identity của category.
+
+- Storefront: `GET /api/v1/languages` liệt kê locale đang bật.
+- CMS: `GET /api/v1/admin/languages` đọc cấu hình; `PATCH /api/v1/admin/languages/:locale`
+  với `{ "enabled": true }` hoặc `{ "enabled": false }` yêu cầu quyền category manage.
+- Storefront: `GET /api/v1/categories` và `GET /api/v1/categories/:id` nhận
+  `?locale=...`; mặc định `vi`, locale không hợp lệ/chưa bật trả 400, tên thiếu
+  bản dịch fallback về tiếng Việt.
+
+Khi bật locale, các category hiện có được đưa vào durable queue. Worker dịch tối đa
+10 bản dịch mỗi batch và tiếp tục từ dữ liệu đã lưu sau khi process khởi động lại.
+Tạo category và bật locale dùng chung transaction lock: nếu tạo trước, backfill
+sẽ thấy category; nếu bật trước, thao tác tạo sẽ đọc locale đã bật. Tắt locale
+không xóa bản dịch; bật lại giữ `MANUAL`/`REVIEW` và đưa bản máy lỗi thời về
+`PENDING`. Generation ngăn kết quả của lần bật cũ ghi đè trạng thái mới.
+
+Integration test dùng fake provider cho `fr`, `de`, `es`; không gọi Google Cloud
+Translation và không cần API key thật.

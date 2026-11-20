@@ -22,5 +22,7 @@
 ## 2. Quy ước viết
 
 - Không chép lại quy tắc nghiệp vụ: trích mã `BR-*`, `US-*`, `ADR xxxx`.
-- Tài liệu mô tả **kiến trúc mục tiêu** sau tái cấu trúc, không mô tả code cũ. Trạng thái implement theo dõi trong [`docs/plan/`](../plan/README.md).
+- Phần thiết kế của tài liệu mô tả **kiến trúc mục tiêu** sau tái cấu trúc. Các mục có nhãn **As-built inventory** là phần tách biệt, chỉ kiểm kê trách nhiệm và bằng chứng có trong source hiện tại; không thay thế thiết kế mục tiêu hoặc hàm ý mọi năng lực mục tiêu đã được triển khai.
+- Năng lực/thư mục/bảng chưa có bằng chứng trong source phải được ghi là **target-only / chưa triển khai**. Trạng thái implement tổng thể theo dõi trong [`docs/plan/`](../plan/README.md); inventory nêu rõ phạm vi và nguồn đã kiểm tra.
+- Inventory loại trừ mã sinh tự động, dependency và output build; test được ghi như bằng chứng/phạm vi kiểm thử, không được xem là xác nhận test đã chạy thành công.
 - Quyết định khó đảo ngược ghi thành ADR ở [`../adr/`](../adr/), tài liệu ở đây chỉ link tới.

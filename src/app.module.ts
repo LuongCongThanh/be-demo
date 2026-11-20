@@ -9,8 +9,8 @@ import { MetricsModule } from '#src/infrastructure/observability/metrics/metrics
 import { CatalogModule } from '#src/modules/catalog/catalog.module.js';
 import { VoucherModule } from '#src/modules/voucher/voucher.module.js';
 import { validate } from '#src/config/env.validation.js';
-import { AllExceptionsFilter } from '#src/common/filters/all-exceptions.filter.js';
-import { RequestIdMiddleware } from '#src/common/middleware/request-id.middleware.js';
+import { AllExceptionsFilter } from '#src/http/filters/all-exceptions.filter.js';
+import { RequestIdMiddleware } from '#src/http/middleware/request-id.middleware.js';
 
 @Module({
   imports: [

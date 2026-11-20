@@ -6,21 +6,22 @@
 
 PostgreSQL, 49 bảng chia theo module (xem [`architecture/02-modules.md`](./02-modules.md)). Mỗi bảng chỉ do **một** module ghi.
 
-| Module             | Bảng                                                                                                                                                 |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| identity           | `users`, `user_auth_providers`, `customer_addresses`, `refresh_tokens`, `password_reset_tokens`, `email_verification_tokens`, `guest_order_sessions` |
-| catalog            | `categories`, `category_translations`, `products`, `sizes`, `colors`, `product_variants`, `product_images`, `product_sales_stats`                    |
-| pricing            | `sale_prices`, `vouchers`, `voucher_usages`                                                                                                          |
-| cart               | `carts`, `cart_items`                                                                                                                                |
-| inventory          | `warehouses`, `inventory_levels`, `inventory_reservations`, `awaiting_dispatch_items`, `inventory_movements`, `stock_counts`                         |
-| ordering           | `checkout_quotes`, `orders`, `order_items`, `order_status_history`, `order_flags`                                                                    |
-| payments           | `payments`, `payment_notifications`, `cod_collections`                                                                                               |
-| refunds-returns    | `refunds`, `returns`, `return_items`                                                                                                                 |
-| fulfillment        | `provinces`, `wards`, `ghn_ward_mappings`, `shipments`, `shipment_events`                                                                            |
-| notifications      | `outbox_events`, `email_logs`                                                                                                                        |
-| compliance         | `consents`, `data_erasure_requests`, `data_access_logs`                                                                                              |
-| admin-config       | `settings`, `audit_logs`                                                                                                                             |
-| hạ tầng dùng chung | `idempotency_keys`                                                                                                                                   |
+| Module             | Bảng                                                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| identity           | `users`, `user_auth_providers`, `refresh_tokens`, `password_reset_tokens`, `email_verification_tokens`, `guest_order_sessions`    |
+| customer           | `customer_addresses` (module target-only; source hiện chưa có address management)                                                 |
+| catalog            | `categories`, `category_translations`, `products`, `sizes`, `colors`, `product_variants`, `product_images`, `product_sales_stats` |
+| pricing            | `sale_prices`, `vouchers`, `voucher_usages`                                                                                       |
+| cart               | `carts`, `cart_items`                                                                                                             |
+| inventory          | `warehouses`, `inventory_levels`, `inventory_reservations`, `awaiting_dispatch_items`, `inventory_movements`, `stock_counts`      |
+| ordering           | `checkout_quotes`, `orders`, `order_items`, `order_status_history`, `order_flags`                                                 |
+| payments           | `payments`, `payment_notifications`, `cod_collections`                                                                            |
+| refunds-returns    | `refunds`, `returns`, `return_items`                                                                                              |
+| fulfillment        | `provinces`, `wards`, `ghn_ward_mappings`, `shipments`, `shipment_events`                                                         |
+| notifications      | `outbox_events`, `email_logs`                                                                                                     |
+| compliance         | `consents`, `data_erasure_requests`, `data_access_logs`                                                                           |
+| admin-config       | `settings`, `audit_logs`                                                                                                          |
+| hạ tầng dùng chung | `idempotency_keys`                                                                                                                |
 
 ---
 
@@ -33,12 +34,20 @@ Chỉ vẽ khoá và quan hệ; cột đầy đủ ở mục 4.
 ```mermaid
 erDiagram
     USERS ||--o{ USER_AUTH_PROVIDERS : "đăng nhập qua"
-    USERS ||--o{ CUSTOMER_ADDRESSES : "sổ địa chỉ"
     USERS ||--o{ REFRESH_TOKENS : ""
     USERS ||--o{ PASSWORD_RESET_TOKENS : ""
     USERS ||--o{ EMAIL_VERIFICATION_TOKENS : ""
     USERS ||--o{ AUDIT_LOGS : "actor"
     ORDERS ||--o{ GUEST_ORDER_SESSIONS : "quyền tạm"
+```
+
+### 2.1a. Customer (target-only)
+
+`customer_addresses` thuộc module `customer`, không thuộc `identity`. Quan hệ target là User sở hữu nhiều địa chỉ và Ward có thể được tham chiếu bởi nhiều địa chỉ; module `customer` chưa được triển khai trong source.
+
+```mermaid
+erDiagram
+    USERS ||--o{ CUSTOMER_ADDRESSES : "sổ địa chỉ"
     WARDS ||--o{ CUSTOMER_ADDRESSES : ""
 ```
 
@@ -188,6 +197,8 @@ Một dòng cho mỗi Tài khoản: Khách hàng, Staff hoặc Admin (`business/
 UK `(provider, provider_subject)`. Tài khoản nội bộ không được liên kết Google (`business/02` §1).
 
 #### `customer_addresses`
+
+> Target-only: bảng do module `customer` sở hữu, không phải `identity`. Bảng này chưa có trong các Prisma source schema/migrations hiện tại; source cũng chưa có address management.
 
 | Cột                    | Kiểu        | Ràng buộc                  | Ghi chú                                 |
 | ---------------------- | ----------- | -------------------------- | --------------------------------------- |
@@ -948,3 +959,75 @@ Thời hạn theo [`business/06-compliance.md`](../business/06-compliance.md) §
 | `carts`                                                                                        | `expired` sau 30 ngày không hoạt động (BR-CRT-02), xoá sau đó            |
 | `payment_notifications.raw_payload`, `shipments.creation_input`, địa chỉ trên `orders`         | **[Cần xác minh trước go-live]**, chỉ ẩn danh khi có Yêu cầu xoá dữ liệu |
 | `users`, `orders`, `customer_addresses`, `consents`                                            | ẩn danh theo CMP-05, không xoá dòng                                      |
+
+## 7. As-built inventory — database
+
+Các mục §1–§6 phía trên là schema và nguyên tắc **mục tiêu**, không phải mô tả database đã triển khai. Inventory dưới đây dựa trên Prisma source, migration SQL, seed, test và config trong working tree; không kiểm tra một database đang chạy nên không khẳng định migration nào đã được áp dụng ở môi trường cụ thể. `src/generated/`, `node_modules/`, build output và file dependency bị loại trừ.
+
+### 7.1 Prisma source hiện tại
+
+| File                                    | Trách nhiệm, ký hiệu chính và phụ thuộc đáng kể                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prisma/schema/schema.prisma`           | Prisma generator dùng provider `prisma-client`, output `src/generated/prisma`; datasource PostgreSQL. Model source gồm `Category`, `CategoryTranslation`, `CategoryLanguage`, `Product`, `ProductImage`, `ProductVariant`, `SalePrice`, `Voucher`, `Size`, `Color`, `Inventory`, `Cart`, `CartItem`, `Order`, `OrderItem`, `AuditLog`; khai báo relation/index và map tên cột/bảng. Một số model feature ở đây không đồng nghĩa đã có module nghiệp vụ chuyên biệt. |
+| `prisma/schema/identity.prisma`         | `AccountType`, `UserStatus`, `User`, `RefreshToken`, `PasswordResetToken`, `EmailVerificationToken`, `Role`, `RolePermission`, `UserRole`; mô hình tài khoản + RBAC hiện tại. Không khai báo `UserAuthProvider`, `GuestOrderSession` hay `CustomerAddress`.                                                                                                                                                                                                         |
+| `prisma/schema/enums.prisma`            | `ProductStatus`, `Gender`, `VoucherType`, `VariantStatus`, `CartStatus`, `OrderStatus`, `CategoryTranslationStatus`; các enum được schema tham chiếu.                                                                                                                                                                                                                                                                                                               |
+| `prisma/migrations/migration_lock.toml` | Ghi provider của lịch sử migration là PostgreSQL.                                                                                                                                                                                                                                                                                                                                                                                                                   |
+
+Source model hiện khác schema mục tiêu ở những điểm có thể xác nhận trực tiếp: `Inventory` hiện một bản ghi mỗi variant, không có warehouse/reservation/stock ledger; `Cart.userId` và `Order.userId` bắt buộc; `Order`/`OrderItem` dùng `Decimal(12,2)`; chưa có checkout quote, payment, shipment, refund/return, consent, outbox hay idempotency model trong Prisma source hiện tại. `User.email` là `varchar(255)` unique, không phải `citext` như target. Đây là khác biệt source-schema, không phải tuyên bố trạng thái runtime/deploy.
+
+**Quyết định sở hữu địa chỉ:** target `customer_addresses` do module tương lai `customer` sở hữu. Không có model/bảng/address service trong Prisma source hoặc migration được kiểm kê; address management hiện chưa triển khai.
+
+### 7.2 Migration history đã có trong source
+
+Các file dưới đây là migration artifacts, theo timestamp; migration mới nhất trong working tree là `20261120090000_category_language_enablement`. Nội dung mô tả theo thay đổi trong SQL, không khẳng định đã chạy trong môi trường nào.
+
+| File                                                                             | Thay đổi chính                                                                                                                             |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `prisma/migrations/20260910101956_init/migration.sql`                            | Tạo schema khởi đầu cho user, catalog, inventory, cart, order, RBAC đời đầu và token xác thực; bổ sung index/constraints.                  |
+| `prisma/migrations/20260911030156_init_ecommerce/migration.sql`                  | Bổ sung index cho các truy vấn e-commerce ban đầu.                                                                                         |
+| `prisma/migrations/20260915100403_require_user_profile_fields/migration.sql`     | Bổ sung yêu cầu profile fields cho User.                                                                                                   |
+| `prisma/migrations/20260915165859_add_email_verification_attempts/migration.sql` | Thêm số lần thử vào email verification token.                                                                                              |
+| `prisma/migrations/20260919102332_add_authorization_version/migration.sql`       | Thêm version phục vụ invalidation phiên trên User.                                                                                         |
+| `prisma/migrations/20260919102648_rename_admin_to_master_admin/migration.sql`    | Đổi/seed lại tên role Admin hiện hành.                                                                                                     |
+| `prisma/migrations/20261106090000_four_actor_roles/migration.sql`                | Đổi mô hình thành AccountType bốn actor, chuẩn hoá trạng thái tài khoản/token và loại bỏ role tables đời đầu trước khi RBAC mới được thêm. |
+| `prisma/migrations/20261106100000_audit_logs/migration.sql`                      | Tạo `audit_logs` cùng các index.                                                                                                           |
+| `prisma/migrations/20261106110000_product_status_archive/migration.sql`          | Chuẩn hoá product/variant status sang archived và thêm các ràng buộc liên quan.                                                            |
+| `prisma/migrations/20261106120000_sizes_colors_variant_rules/migration.sql`      | Tạo/seed bảng size, color; bổ sung ràng buộc SKU/variant, giá và ảnh.                                                                      |
+| `prisma/migrations/20261106130000_nested_categories/migration.sql`               | Thêm quan hệ parent cho category và index.                                                                                                 |
+| `prisma/migrations/20261113090000_rbac_roles_permissions/migration.sql`          | Tạo roles, role permissions, user roles; seed role/quyền hệ thống.                                                                         |
+| `prisma/migrations/20261113120000_unaccent_search/migration.sql`                 | Cài extension cần cho tìm kiếm không dấu.                                                                                                  |
+| `prisma/migrations/20261113150000_product_gender/migration.sql`                  | Thêm enum/field gender cho Product.                                                                                                        |
+| `prisma/migrations/20261113180000_sale_prices/migration.sql`                     | Tạo sale prices, index/ràng buộc khoảng thời gian và seed quyền.                                                                           |
+| `prisma/migrations/20261114090000_vouchers/migration.sql`                        | Tạo voucher và enum, index/ràng buộc, seed quyền.                                                                                          |
+| `prisma/migrations/20261119000000_category_content/migration.sql`                | Bổ sung field nội dung category/translation và trạng thái translation.                                                                     |
+| `prisma/migrations/20261119100000_category_locale_translations/migration.sql`    | Tạo `category_translations`, thêm `source_version`, migrate dữ liệu/trạng thái Anh cũ sang locale table.                                   |
+| `prisma/migrations/20261120090000_category_language_enablement/migration.sql`    | Tạo bảng `category_languages`, seed locale và bổ sung generation/state cho translation.                                                    |
+
+### 7.3 Runtime DB wiring, seed và test
+
+| File(s)                                                     | Trách nhiệm, ký hiệu chính và phụ thuộc đáng kể                                                                                                                                                                                                                            |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/infrastructure/database/prisma.service.ts`             | `PrismaService` extends generated Prisma Client, khởi tạo `PrismaPg` bằng `DATABASE_URL`, connect/disconnect theo Nest lifecycle.                                                                                                                                          |
+| `src/infrastructure/database/prisma.module.ts`              | `PrismaModule` global, export `PrismaService`.                                                                                                                                                                                                                             |
+| `src/infrastructure/database/prisma-error.util.ts`          | `getUniqueConstraintTarget()` đọc meta P2002; `writeUnique()` bắt race unique trên write và ném `ConflictException` cho field được chỉ định.                                                                                                                               |
+| `src/infrastructure/audit/audit-log.service.ts`             | `AuditLogService.record(tx, entry)` ghi `auditLog` trong transaction do caller truyền và đính kèm `requestId`.                                                                                                                                                             |
+| `src/infrastructure/audit/audit.module.ts`                  | `AuditModule` đăng ký và export `AuditLogService`.                                                                                                                                                                                                                         |
+| `prisma/seed.ts`                                            | Khởi tạo Prisma qua `PrismaPg`; seed locale, system Admin/Staff permissions, bootstrap Admin (`argon2`) và catalog mẫu (size/color/category/product/variant/inventory) theo upsert/idempotent pattern. Đọc env trực tiếp vì chạy standalone, như comment trong source nêu. |
+| `test/system/catalog/category-locale-migration.e2e-spec.ts` | Chạy migrations đến trước locale migration trong schema PostgreSQL tách biệt, chèn các trạng thái editorial legacy, áp migration và kiểm preservation/unique key. Cần PostgreSQL qua `DATABASE_URL`.                                                                       |
+| `test/support/create-test-app.ts`                           | Test bootstrap tạo Nest app thật, áp `configureApp` và stub throttling/storage theo mục tiêu test; rate-limit test có thể dùng guard thật.                                                                                                                                 |
+| `test/support/create-test-user.ts`                          | Tạo user test qua `PrismaService`, role hệ thống và email ngẫu nhiên.                                                                                                                                                                                                      |
+
+### 7.4 Cấu hình database/repository được kiểm tra
+
+- `prisma7.config.ts` trỏ schema tới `prisma/schema`, migration path tới `prisma/migrations`, seed tới `tsx prisma/seed.ts` và URL datasource tới `DATABASE_URL`.
+- `package.json` khai báo `prisma:generate`, `db:seed`, `build`, `test`, `test:e2e`, `typecheck`; dependencies database gồm `@prisma/client`, `@prisma/adapter-pg`, `pg`, `prisma`.
+- `tsconfig.json` bật TypeScript strict/NodeNext, đặt alias `#src/*` và cấu hình type roots dùng chung.
+- `tsconfig.build.json` giới hạn build vào `src/` và loại test/generated files theo cấu hình.
+- `nest-cli.json` đặt `src` làm source root cho Nest CLI.
+- `docker-compose.yml` định nghĩa PostgreSQL 17 với volume/healthcheck, Redis 8, Mailpit và API phụ thuộc healthcheck PostgreSQL.
+- `.env.example` yêu cầu `DATABASE_URL`; Redis/S3/payment/shipping được đánh dấu `[PLANNED]`.
+- `.gitignore` loại `src/generated/prisma`, `.env`, `dist`, `node_modules` và coverage khỏi source control.
+- `Dockerfile` multi-stage Node 24 cài dependencies, generate Prisma Client rồi build; runtime copy `dist`, generated client và `prisma/`, không chạy migration ở container entrypoint.
+- `vitest.config.ts` cấu hình unit runner và alias `#src/*` về source.
+- `vitest.config.e2e.ts` lọc các file `*.e2e-spec.ts`.
+- Migration test đã inventory ở trên là test database được kiểm tra trong phạm vi này; các e2e runtime system/shared khác có danh sách per-file tại [02-modules.md §5.3](./02-modules.md#53-test-và-repository-entrypoints-liên-quan). Không thấy test về `customer_addresses`/address management trong scope đã kiểm tra.

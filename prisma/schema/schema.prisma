@@ -48,6 +48,7 @@ model CategoryTranslation {
   status        CategoryTranslationStatus @default(PENDING)
   sourceVersion Int                       @default(0) @map("source_version")
   revision      Int                       @default(0)
+  enableGeneration Int                     @default(0) @map("enable_generation")
   leaseUntil    DateTime?                 @map("lease_until") @db.Timestamptz(6)
   createdAt     DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -56,6 +57,17 @@ model CategoryTranslation {
   @@id([categoryId, locale])
   @@index([locale, status, leaseUntil, createdAt, categoryId], map: "category_translations_queue_idx")
   @@map("category_translations")
+}
+
+model CategoryLanguage {
+  locale     String   @id @db.VarChar(35)
+  name       String   @db.VarChar(100)
+  enabled    Boolean  @default(false)
+  generation Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("category_languages")
 }
 
 model Product {
