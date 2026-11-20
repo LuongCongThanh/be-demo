@@ -78,6 +78,38 @@
         ],
         "type": "object"
       },
+      "CategoryLanguageResponseDto": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "enabled": {
+            "example": true,
+            "type": "boolean"
+          },
+          "generation": {
+            "example": 1,
+            "type": "number"
+          },
+          "locale": {
+            "example": "en",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "locale",
+          "enabled",
+          "generation",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "CategoryResponseDto": {
         "properties": {
           "bannerStorageKey": {
@@ -4049,7 +4081,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Category languages"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryLanguageResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
           },
           "401": {
             "content": {
@@ -4118,7 +4160,14 @@
         },
         "responses": {
           "200": {
-            "description": "Updated category language"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryLanguageResponseDto"
+                }
+              }
+            },
+            "description": ""
           },
           "400": {
             "content": {
@@ -8613,7 +8662,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Enabled category languages"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryLanguageResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
           },
           "429": {
             "content": {

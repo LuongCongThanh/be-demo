@@ -10,6 +10,7 @@ Update the existing architecture documents to describe the backend as it is impl
 - Describe each file's role, important public symbols, and significant dependencies. Do not write line-by-line explanations or inventory every private helper.
 - Distribute updates across existing architecture documents: use `02-modules.md` for shared layers and the existing module documents for domain areas; keep the architecture README as the index.
 - Keep recommendations separate from descriptions of the current implementation. Do not change application code or reorganize source folders as part of this effort.
+- The source-layout refactor was later authorized separately in PR #97. It intentionally supersedes the folder layout recorded in completed tasks 12 and 13; this map's original destination remains documentation-only.
 
 ## Decisions so far
 

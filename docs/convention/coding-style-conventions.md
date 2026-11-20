@@ -221,7 +221,7 @@ Không có ngưỡng dòng cứng, nhưng nếu 1 service/controller vượt qu�
 ## Checklist khi thêm file mới
 
 - [ ] Tên file kebab-case, đúng hậu tố theo vai trò ([§1](#1-đặt-tên-file))
-- [ ] File nằm trong module/thực thể và đúng thư mục vai trò; chỉ tạo thư mục có file thực tế ([§2.2](#22-sub-module-theo-thực-thể-file-nhóm-theo-vai-trò))
+- [ ] File nằm trong module/thực thể và đúng thư mục vai trò; chỉ tạo thư mục có file thực tế ([§2.2](#22-feature-folder-theo-thực-thể-file-nhóm-theo-vai-trò))
 - [ ] Không import file ruột của module khác; chỉ dùng service được `exports` ([§2.3](#23-ranh-giới-giữa-module))
 - [ ] Không tạo `index.ts` barrel file
 - [ ] Import tới file trong `src/` dùng `#src/...` — không dùng relative, kể cả trong cùng thư mục và trong test

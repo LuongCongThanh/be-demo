@@ -2,6 +2,10 @@
 
 Trạng thái: **done**, PR #77.
 
+## Bố cục hiện hành
+
+PR #97 chủ ý supersede cách đặt file phẳng của ticket này: `auth/` và `internal-account/` tiếp tục là nhóm entity, bên trong chia `controllers/`, `services/`, `dto/` theo audience/use case. Spec và kết quả PR #77 bên dưới ghi lại trạng thái khi ticket được hoàn thành; cấu trúc mới là quyết định tiếp nối, không phải thay đổi hồi tố acceptance criteria cũ.
+
 ## Đã làm
 
 - `identity/` → `auth/` và `internal-account/`: controller, service, dto, spec nằm cạnh nhau; `controllers/ services/ dto/ guards/ strategies/` cũ đã xoá.

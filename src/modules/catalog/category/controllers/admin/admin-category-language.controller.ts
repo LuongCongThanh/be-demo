@@ -6,6 +6,7 @@ import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decor
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { CategoryLanguageService } from '#src/modules/catalog/category/services/shared/category-language.service.js';
 import { UpdateCategoryLanguageDto } from '#src/modules/catalog/category/dto/admin/category-language.dto.js';
+import { CategoryLanguageResponseDto } from '#src/modules/catalog/category/dto/shared/category-language-response.dto.js';
 
 @ApiTags(API_TAGS.ADMIN_CATEGORIES.name)
 @Authorize(Permission.CATALOG_CATEGORY_VIEW)
@@ -15,7 +16,7 @@ export class AdminCategoryLanguageController {
 
   @Get()
   @ApiOperation({ summary: 'List category content languages (STAFF/ADMIN)' })
-  @ApiOkResponse({ description: 'Category languages' })
+  @ApiOkResponse({ type: [CategoryLanguageResponseDto] })
   @ApiErrorResponses(401, 403)
   list() {
     return this.languages.findAll();
@@ -24,7 +25,7 @@ export class AdminCategoryLanguageController {
   @Patch(':locale')
   @Authorize(Permission.CATALOG_CATEGORY_MANAGE)
   @ApiOperation({ summary: 'Enable or disable a category content language (ADMIN only)' })
-  @ApiOkResponse({ description: 'Updated category language' })
+  @ApiOkResponse({ type: CategoryLanguageResponseDto })
   @ApiErrorResponses(400, 401, 403)
   update(@Param('locale') locale: string, @Body() dto: UpdateCategoryLanguageDto) {
     return this.languages.setEnabled(locale, dto.enabled);
