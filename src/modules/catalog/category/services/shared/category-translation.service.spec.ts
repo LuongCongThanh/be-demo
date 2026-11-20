@@ -5,9 +5,11 @@ import type { PrismaService } from '#src/infrastructure/database/prisma.service.
 import type { CategoryTranslationStatus } from '#src/generated/prisma/enums.js';
 
 function setup(locale = 'en') {
+  let enabledGeneration = 0;
   const row = {
     categoryId: 'cat',
     locale,
+    enableGeneration: 0,
     sourceVersion: 0,
     category: { name: 'Áo thun', sourceVersion: 0 },
     name: null as string | null,
@@ -17,7 +19,7 @@ function setup(locale = 'en') {
   };
   const prisma = {
     categoryLanguage: {
-      findMany: vi.fn(async () => [{ locale, generation: 0 }]),
+      findMany: vi.fn(async () => [{ locale, generation: enabledGeneration }]),
     },
     categoryTranslation: {
       findMany: vi.fn(async () => (row.status === 'PENDING' ? [{ ...row }] : [])),
@@ -30,6 +32,7 @@ function setup(locale = 'en') {
             sourceVersion: number;
             category: { sourceVersion: number };
             revision: number;
+            enableGeneration: number;
             status: string;
             leaseUntil?: Date;
             OR?: unknown;
@@ -40,6 +43,7 @@ function setup(locale = 'en') {
             where.category.sourceVersion !== row.category.sourceVersion ||
             where.sourceVersion !== row.sourceVersion ||
             where.revision !== row.revision ||
+            where.enableGeneration !== row.enableGeneration ||
             where.status !== row.status
           )
             return { count: 0 };
@@ -56,7 +60,15 @@ function setup(locale = 'en') {
     prisma as unknown as PrismaService,
     translator as unknown as CategoryTranslationClient,
   );
-  return { row, prisma, translator, service };
+  return {
+    row,
+    prisma,
+    translator,
+    service,
+    setEnabledGeneration: (generation: number) => {
+      enabledGeneration = generation;
+    },
+  };
 }
 
 describe('durable category translation worker', () => {
@@ -97,6 +109,24 @@ describe('durable category translation worker', () => {
     });
     await service.tick();
     expect(row.name).toBe(change === 'manual' ? 'Editorial name' : null);
+  });
+  it('discards an in-flight result from a previous disable/re-enable generation', async () => {
+    const { row, service, translator, setEnabledGeneration } = setup('fr');
+    translator.translate.mockImplementation(async () => {
+      row.enableGeneration = 1;
+      row.leaseUntil = null;
+      setEnabledGeneration(1);
+      return 'Stale translation';
+    });
+
+    await service.tick();
+
+    expect(row).toMatchObject({
+      name: null,
+      status: 'PENDING',
+      enableGeneration: 1,
+      leaseUntil: null,
+    });
   });
   it('recovers an expired lease but skips work leased by another instance', async () => {
     const { row, service, translator } = setup();
