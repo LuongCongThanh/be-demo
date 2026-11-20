@@ -178,7 +178,7 @@ describe('Categories — Admin CMS (e2e)', () => {
         expect(translations.every((translation) => translation.status === 'PENDING')).toBe(true);
 
         const fallback = await request(server()).get(`/api/v1/categories/${category.id}?locale=fr`).expect(200);
-        expect(fallback.body.name).toBe(category.name);
+        expect(fallback.body).toMatchObject({ id: category.id, slug: category.slug, name: category.name });
         await request(server()).get('/api/v1/categories?locale=invalid').expect(400);
 
         const adminLanguages = await request(server()).get('/api/v1/admin/languages').set(auth(staffToken)).expect(200);
@@ -251,6 +251,7 @@ describe('Categories — Admin CMS (e2e)', () => {
         );
         const disabledPublicLanguages = await request(server()).get('/api/v1/languages').expect(200);
         expect(disabledPublicLanguages.body.map((language: { locale: string }) => language.locale)).not.toContain('fr');
+        await request(server()).get(`/api/v1/categories/${category.id}?locale=fr`).expect(400);
         expect(
           await prisma.categoryTranslation.findUnique({
             where: { categoryId_locale: { categoryId: category.id, locale: 'fr' } },
@@ -298,6 +299,11 @@ describe('Categories — Admin CMS (e2e)', () => {
           .send({ enabled: true })
           .expect(200);
         expect((await prisma.categoryLanguage.findUnique({ where: { locale: 'fr' } }))?.generation).toBe(generation);
+        expect(
+          await prisma.categoryTranslation.count({
+            where: { categoryId: category.id, locale: { in: [...TEST_LOCALES] } },
+          }),
+        ).toBe(TEST_LOCALES.length);
 
         const renamedName = unique('Renamed');
         const renamedCategory = await patch(category.id, { name: renamedName }).expect(200);

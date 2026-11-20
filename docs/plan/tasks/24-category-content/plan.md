@@ -10,7 +10,11 @@
 6. Unit tests lifecycle/race/provider/media, HTTP e2e category/locale/permission/filter. Migrate DB test cô lập, không reset DB hiện có.
 7. Generate OpenAPI; cập nhật business rules, module/database docs, report và tracker. CMS/store cần regenerate client từ contract BE mới.
 
-## Giai đoạn B — mở rộng đa ngôn ngữ đã thống nhất, chưa triển khai
+## Giai đoạn B — mở rộng đa ngôn ngữ đã thống nhất
+
+Ticket 01 (mô hình bản dịch theo locale) và ticket 02 (bật/tắt ngôn ngữ, worker
+và backfill) đã hoàn tất ở BE. Ticket 03 về editorial translations và bàn giao
+consumer CMS/store vẫn còn trong phạm vi kế hoạch.
 
 Đầu vào: các xác nhận ở phần thiết kế đa ngôn ngữ trong [spec](spec.md). Chỉ mở rộng nội dung Category; không tự dịch chữ giao diện, Product hoặc bổ sung locale UI của store.
 
@@ -55,4 +59,6 @@
 
 ## Bước tiếp theo
 
-Triển khai Giai đoạn B theo thứ tự dữ liệu + migration compatibility → API locale/translation → worker → kiểm chứng BE → bàn giao CMS/store. Không cần hỏi lại các quyết định sản phẩm đã xác nhận. Code hiện tại và kết quả test trong report chỉ đại diện Giai đoạn A.
+Tiếp tục với ticket 03 về editorial translations theo locale, sau đó bàn giao
+contract cho CMS/store và nghiệm thu luồng end-to-end. Các quyết định sản phẩm
+trong spec đã được xác nhận; không cần hỏi lại.
