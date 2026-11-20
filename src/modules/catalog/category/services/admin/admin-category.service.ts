@@ -12,6 +12,7 @@ import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { NEWEST_FIRST, paginate, Paginated } from '#src/common/pagination/paginate.js';
 import { toSlugOrThrow } from '#src/common/utils/slug.util.js';
 import { isCategoryLocale } from '#src/modules/catalog/category/domain/category-locale.js';
+import { acquireCategoryLanguageWriteLock } from '#src/modules/catalog/category/services/shared/category-language-lock.js';
 
 /**
  * Back-office danh mục (STAFF đọc, ADMIN ghi). Cây nhiều cấp với hai bất biến
@@ -28,40 +29,43 @@ export class AdminCategoryService {
     const slug = await this.uniqueSlug(dto.name);
 
     const { nameEn, ...input } = dto;
-    const enabledLocales =
-      typeof this.prisma.categoryLanguage?.findMany === 'function'
-        ? await this.prisma.categoryLanguage.findMany({
-            where: { enabled: true },
-            select: { locale: true },
-          })
-        : [];
-    const locales = new Set(
-      ['en', ...enabledLocales.map((language) => language.locale)].filter((locale) => locale !== 'vi'),
-    );
     return writeUnique(
       () =>
-        this.prisma.category.create({
-          data: {
-            ...input,
-            slug,
-            translations:
-              locales.size === 1
-                ? {
-                    create: {
-                      locale: 'en',
-                      name: nameEn ?? null,
-                      status: nameEn ? 'MANUAL' : 'PENDING',
+        this.prisma.$transaction(async (tx) => {
+          await acquireCategoryLanguageWriteLock(tx);
+          const enabledLocales =
+            typeof tx.categoryLanguage?.findMany === 'function'
+              ? await tx.categoryLanguage.findMany({
+                  where: { enabled: true },
+                  select: { locale: true },
+                })
+              : [];
+          const locales = new Set(
+            ['en', ...enabledLocales.map((language) => language.locale)].filter((locale) => locale !== 'vi'),
+          );
+          return tx.category.create({
+            data: {
+              ...input,
+              slug,
+              translations:
+                locales.size === 1
+                  ? {
+                      create: {
+                        locale: 'en',
+                        name: nameEn ?? null,
+                        status: nameEn ? 'MANUAL' : 'PENDING',
+                      },
+                    }
+                  : {
+                      create: [...locales].map((locale) => ({
+                        locale,
+                        name: locale === 'en' ? (nameEn ?? null) : null,
+                        status: locale === 'en' && nameEn ? 'MANUAL' : 'PENDING',
+                      })),
                     },
-                  }
-                : {
-                    create: [...locales].map((locale) => ({
-                      locale,
-                      name: locale === 'en' ? (nameEn ?? null) : null,
-                      status: locale === 'en' && nameEn ? 'MANUAL' : 'PENDING',
-                    })),
-                  },
-          },
-          include: categoryTranslations,
+            },
+            include: categoryTranslations,
+          });
         }),
       'slug',
       `Category name "${dto.name}" already exists`,

@@ -1,9 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
 import type { AccountType } from '#src/generated/prisma/enums.js';
+import { CategoryTranslationClient } from '#src/modules/catalog/category/clients/category-translation.client.js';
+import { CategoryTranslationService } from '#src/modules/catalog/category/services/shared/category-translation.service.js';
 import { createTestUser } from '../../support/create-test-user.js';
 import { createTestApp } from '../../support/create-test-app.js';
 
@@ -13,6 +15,11 @@ const TEST_NAME_PREFIX = 'CategoriesAdminE2E';
 const TEST_EMAIL_DOMAIN = '@categories-admin.e2e-test.local';
 const VALID_PASSWORD = 'Abc@1234';
 const MISSING_ID = '00000000-0000-0000-0000-000000000000';
+const TEST_LOCALES = ['fr', 'de', 'es'] as const;
+const fakeTranslator = {
+  enabled: false,
+  translate: vi.fn(async (name: string, locale = 'en') => `${locale}: ${name}`),
+};
 
 describe('Categories — Admin CMS (e2e)', () => {
   let app: INestApplication;
@@ -28,7 +35,7 @@ describe('Categories — Admin CMS (e2e)', () => {
   let customerToken: string;
 
   beforeAll(async () => {
-    const created = await createTestApp();
+    const created = await createTestApp({ categoryTranslationClient: fakeTranslator });
     app = created.app;
     prisma = created.moduleFixture.get(PrismaService);
     passwordService = created.moduleFixture.get(PasswordService);
@@ -132,6 +139,149 @@ describe('Categories — Admin CMS (e2e)', () => {
 
       await patch(a.id, { parentId: b.id }).expect(400);
       await patch(a.id, { parentId: c.id }).expect(400);
+    });
+  });
+
+  describe('category language lifecycle', () => {
+    it('serializes locale enablement with category creation and resumes durable translation work', async () => {
+      const originalLanguages = await prisma.categoryLanguage.findMany({
+        where: { locale: { in: [...TEST_LOCALES] } },
+      });
+      const originalTranslations = await prisma.categoryTranslation.findMany({
+        where: { locale: { in: [...TEST_LOCALES] } },
+      });
+
+      try {
+        await prisma.categoryTranslation.deleteMany({ where: { locale: { in: [...TEST_LOCALES] } } });
+        await prisma.categoryLanguage.deleteMany({ where: { locale: { in: [...TEST_LOCALES] } } });
+        await prisma.categoryLanguage.createMany({
+          data: TEST_LOCALES.map((locale) => ({ locale, name: locale, enabled: false })),
+        });
+
+        const categoryPromise = createCategory();
+        const enablementPromise = Promise.all(
+          TEST_LOCALES.map((locale) =>
+            request(server())
+              .patch(`/api/v1/admin/languages/${locale}`)
+              .set(auth(adminToken))
+              .send({ enabled: true })
+              .expect(200),
+          ),
+        );
+        const category = await categoryPromise;
+        await enablementPromise;
+
+        const translations = await prisma.categoryTranslation.findMany({
+          where: { categoryId: category.id, locale: { in: [...TEST_LOCALES] } },
+        });
+        expect(translations).toHaveLength(TEST_LOCALES.length);
+        expect(translations.every((translation) => translation.status === 'PENDING')).toBe(true);
+
+        const fallback = await request(server()).get(`/api/v1/categories/${category.id}?locale=fr`).expect(200);
+        expect(fallback.body.name).toBe(category.name);
+        await request(server()).get('/api/v1/categories?locale=invalid').expect(400);
+
+        const adminLanguages = await request(server()).get('/api/v1/admin/languages').set(auth(staffToken)).expect(200);
+        const testLocales = new Set<string>(TEST_LOCALES);
+        expect(
+          adminLanguages.body.filter((language: { locale: string }) => testLocales.has(language.locale)),
+        ).toHaveLength(TEST_LOCALES.length);
+        const publicLanguages = await request(server()).get('/api/v1/languages').expect(200);
+        expect(publicLanguages.body.map((language: { locale: string }) => language.locale)).toEqual(
+          expect.arrayContaining([...TEST_LOCALES]),
+        );
+        await request(server())
+          .patch('/api/v1/admin/languages/fr')
+          .set(auth(staffToken))
+          .send({ enabled: false })
+          .expect(403);
+        await request(server())
+          .patch('/api/v1/admin/languages/invalid')
+          .set(auth(adminToken))
+          .send({ enabled: true })
+          .expect(400);
+        await request(server())
+          .patch('/api/v1/admin/languages/vi')
+          .set(auth(adminToken))
+          .send({ enabled: false })
+          .expect(400);
+
+        fakeTranslator.enabled = true;
+        fakeTranslator.translate.mockClear();
+        const worker = new CategoryTranslationService(prisma, app.get(CategoryTranslationClient));
+        let translatedRows = translations;
+        for (let attempt = 0; attempt < 30; attempt++) {
+          await worker.tick();
+          translatedRows = await prisma.categoryTranslation.findMany({
+            where: { categoryId: category.id, locale: { in: [...TEST_LOCALES] } },
+          });
+          if (
+            translatedRows.length === TEST_LOCALES.length &&
+            translatedRows.every((translation) => translation.status === 'TRANSLATED')
+          )
+            break;
+        }
+        expect(translatedRows).toHaveLength(TEST_LOCALES.length);
+        expect(translatedRows.every((translation) => translation.status === 'TRANSLATED')).toBe(true);
+        for (const locale of TEST_LOCALES) {
+          expect(fakeTranslator.translate).toHaveBeenCalledWith(category.name, locale);
+        }
+        const translatedPublic = await request(server()).get(`/api/v1/categories/${category.id}?locale=fr`).expect(200);
+        expect(translatedPublic.body.name).toBe(`fr: ${category.name}`);
+
+        const frenchName = translatedRows.find((translation) => translation.locale === 'fr')?.name;
+        await request(server())
+          .patch('/api/v1/admin/languages/fr')
+          .set(auth(adminToken))
+          .send({ enabled: false })
+          .expect(200);
+        const disabledPublicLanguages = await request(server()).get('/api/v1/languages').expect(200);
+        expect(disabledPublicLanguages.body.map((language: { locale: string }) => language.locale)).not.toContain('fr');
+        expect(
+          await prisma.categoryTranslation.findUnique({
+            where: { categoryId_locale: { categoryId: category.id, locale: 'fr' } },
+          }),
+        ).toMatchObject({ name: frenchName, status: 'TRANSLATED' });
+
+        await request(server())
+          .patch('/api/v1/admin/languages/fr')
+          .set(auth(adminToken))
+          .send({ enabled: true })
+          .expect(200);
+        const reenabled = await prisma.categoryTranslation.findUnique({
+          where: { categoryId_locale: { categoryId: category.id, locale: 'fr' } },
+        });
+        expect(reenabled).toMatchObject({ name: frenchName, status: 'PENDING' });
+        const generation = (await prisma.categoryLanguage.findUnique({ where: { locale: 'fr' } }))?.generation;
+        await request(server())
+          .patch('/api/v1/admin/languages/fr')
+          .set(auth(adminToken))
+          .send({ enabled: true })
+          .expect(200);
+        expect((await prisma.categoryLanguage.findUnique({ where: { locale: 'fr' } }))?.generation).toBe(generation);
+
+        const resumedWorker = new CategoryTranslationService(prisma, app.get(CategoryTranslationClient));
+        let resumedTranslation = await prisma.categoryTranslation.findUnique({
+          where: { categoryId_locale: { categoryId: category.id, locale: 'fr' } },
+        });
+        for (let attempt = 0; attempt < 30 && resumedTranslation?.status !== 'TRANSLATED'; attempt++) {
+          await resumedWorker.tick();
+          resumedTranslation = await prisma.categoryTranslation.findUnique({
+            where: { categoryId_locale: { categoryId: category.id, locale: 'fr' } },
+          });
+        }
+        expect(resumedTranslation).toMatchObject({ status: 'TRANSLATED' });
+      } finally {
+        fakeTranslator.enabled = false;
+        await prisma.categoryTranslation.deleteMany({ where: { locale: { in: [...TEST_LOCALES] } } });
+        await prisma.categoryLanguage.deleteMany({ where: { locale: { in: [...TEST_LOCALES] } } });
+        if (originalTranslations.length) {
+          await prisma.categoryTranslation.createMany({ data: originalTranslations });
+        }
+        if (originalLanguages.length) {
+          await prisma.categoryLanguage.createMany({ data: originalLanguages });
+        }
+      }
     });
   });
 

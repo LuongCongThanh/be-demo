@@ -4,10 +4,10 @@ import type { CategoryTranslationClient } from '#src/modules/catalog/category/cl
 import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import type { CategoryTranslationStatus } from '#src/generated/prisma/enums.js';
 
-function setup() {
+function setup(locale = 'en') {
   const row = {
     categoryId: 'cat',
-    locale: 'en',
+    locale,
     sourceVersion: 0,
     category: { name: 'Áo thun', sourceVersion: 0 },
     name: null as string | null,
@@ -16,6 +16,9 @@ function setup() {
     leaseUntil: null as Date | null,
   };
   const prisma = {
+    categoryLanguage: {
+      findMany: vi.fn(async () => [{ locale, generation: 0 }]),
+    },
     categoryTranslation: {
       findMany: vi.fn(async () => (row.status === 'PENDING' ? [{ ...row }] : [])),
       updateMany: vi.fn(
@@ -57,11 +60,15 @@ function setup() {
 }
 
 describe('durable category translation worker', () => {
-  it('translates pending rows and clears the lease', async () => {
-    const { row, service } = setup();
-    await service.tick();
-    expect(row).toMatchObject({ name: 'T-shirts', status: 'TRANSLATED', leaseUntil: null });
-  });
+  it.each(['en', 'fr', 'de'])(
+    'translates pending %s rows using the target locale and clears the lease',
+    async (locale) => {
+      const { row, service, translator } = setup(locale);
+      await service.tick();
+      expect(row).toMatchObject({ name: 'T-shirts', status: 'TRANSLATED', leaseUntil: null });
+      expect(translator.translate).toHaveBeenCalledWith('Áo thun', locale);
+    },
+  );
   it.each(['MANUAL', 'REVIEW', 'FAILED', 'TRANSLATED'] as const)('does not backfill %s names', async (status) => {
     const { row, service, translator } = setup();
     row.status = status;

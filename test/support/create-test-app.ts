@@ -5,6 +5,7 @@ import { AppModule } from '#src/app.module.js';
 import { EmailThrottlerGuard } from '#src/modules/identity/auth/guards/email-throttler.guard.js';
 import { configureApp } from '#src/bootstrap/configure-app.js';
 import { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
+import { CategoryTranslationClient } from '#src/modules/catalog/category/clients/category-translation.client.js';
 
 const ALWAYS_ALLOW = { canActivate: () => true };
 
@@ -14,6 +15,10 @@ const FAKE_STORAGE: Partial<CloudinaryClient> = {
   signUpload: () => ({ uploadUrl: 'https://storage.test/upload', fields: {}, expiresAt: new Date() }),
   findImage: () => Promise.resolve({ bytes: 1024, format: 'jpg' }),
   destroy: () => Promise.resolve(),
+};
+
+type TestAppOptions = {
+  categoryTranslationClient?: Pick<CategoryTranslationClient, 'enabled' | 'translate'>;
 };
 
 /**
@@ -28,8 +33,10 @@ const FAKE_STORAGE: Partial<CloudinaryClient> = {
  * `auth-rate-limiting.e2e-spec.ts`. The image storage adapter is stubbed too,
  * so specs never call Cloudinary.
  */
-export async function createTestApp(): Promise<{ app: INestApplication; moduleFixture: TestingModule }> {
-  const moduleFixture = await Test.createTestingModule({
+export async function createTestApp(
+  options: TestAppOptions = {},
+): Promise<{ app: INestApplication; moduleFixture: TestingModule }> {
+  const moduleBuilder = Test.createTestingModule({
     imports: [AppModule],
   })
     // `overrideGuard()`/`overrideProvider(APP_GUARD)` would only ADD a stub
@@ -41,8 +48,13 @@ export async function createTestApp(): Promise<{ app: INestApplication; moduleFi
     .overrideGuard(EmailThrottlerGuard)
     .useValue(ALWAYS_ALLOW)
     .overrideProvider(CloudinaryClient)
-    .useValue(FAKE_STORAGE)
-    .compile();
+    .useValue(FAKE_STORAGE);
+
+  if (options.categoryTranslationClient) {
+    moduleBuilder.overrideProvider(CategoryTranslationClient).useValue(options.categoryTranslationClient);
+  }
+
+  const moduleFixture = await moduleBuilder.compile();
 
   const app = moduleFixture.createNestApplication();
   configureApp(app);

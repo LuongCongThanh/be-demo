@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { isCategoryLocale } from '#src/modules/catalog/category/domain/category-locale.js';
+import { acquireCategoryLanguageWriteLock } from '#src/modules/catalog/category/services/shared/category-language-lock.js';
 
 @Injectable()
 export class CategoryLanguageService {
@@ -23,6 +24,7 @@ export class CategoryLanguageService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await acquireCategoryLanguageWriteLock(tx);
       const current = await tx.categoryLanguage.findUnique({ where: { locale } });
       if (!current) throw new BadRequestException(`Category locale "${locale}" is not configured`);
       if (enabled === current.enabled) return current;
