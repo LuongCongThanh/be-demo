@@ -23,11 +23,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/enforce-git-workflow.sh\""
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || { echo 'Blocked: open the repository root as the workspace so repository hooks can load.' >&2; exit 2; }; bash \"$ROOT/.claude/hooks/enforce-git-workflow.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/enforce-pr-template.sh\""
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || { echo 'Blocked: open the repository root as the workspace so repository hooks can load.' >&2; exit 2; }; bash \"$ROOT/.claude/hooks/enforce-pr-template.sh\""
           }
         ]
       }
@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/after-pr-create.sh\""
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || { echo 'Blocked: open the repository root as the workspace so repository hooks can load.' >&2; exit 2; }; bash \"$ROOT/.claude/hooks/after-pr-create.sh\""
           }
         ]
       }

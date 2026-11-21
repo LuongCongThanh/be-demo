@@ -12,7 +12,8 @@ This is the Copilot-specific entrypoint. Follow [`../execution-workflow.md`](../
 
 - Use only tools and skills available in the active Copilot surface. Do not assume Claude slash commands or Claude-only skills are available; the shared hook behavior is the explicit compatibility exception below.
 - Project skills are in `.github/skills/`; file-scoped conventions are in `.github/instructions/`. Invoke `feature` for implementation workflows and `ship` only for an explicitly requested PR workflow.
-- `.claude/settings.json` is an additional hook source read by the Copilot harness. Its compatible hooks are shared intentionally; do not add duplicate events under `.github/hooks/`.
+- `.claude/settings.json` is an additional hook source read by the Copilot harness. Its compatible hooks are shared intentionally; do not add duplicate events under `.github/hooks/`. Open the repository root as the workspace so the hook commands can resolve it with Git.
+- Bash hooks accept both Claude's `tool_input.command` and Copilot's `toolCalls[].args.command` payloads via `scripts/hooks/read-tool-command.js`; keep the regression test in `scripts/hooks/enforce-template-hook.spec.ts` passing when changing these hooks.
 - The project Prisma skills are copied from the Claude skill package. [The Claude skill guide](../../../.claude/skill-guide/) is a user-global inventory reference; it does not mean those global skills or MCP servers are available in Copilot.
 - For code review, follow the [repository review policy](../../../AGENTS.md#shared-ai-code-review) and keep the review read-only.
 - When implementation is requested, complete it and verify it rather than stopping at a plan. Ask only for a consequential unresolved decision, blocker, or separately authorized operation.
