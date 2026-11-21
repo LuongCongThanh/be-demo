@@ -1,14 +1,17 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
-import { InternalAccountService } from '#src/modules/identity/internal-account/services/admin/internal-account.service.js';
+import {
+  ACTIVE_ADMIN_EXISTS_MESSAGE,
+  InternalAccountService,
+} from '#src/modules/identity/internal-account.service.js';
 import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import type { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
-import type { AccessService } from '#src/modules/identity/access/services/admin/access.service.js';
+import type { AccessService } from '#src/modules/identity/access.service.js';
 import type { AuditLogService } from '#src/infrastructure/audit/audit-log.service.js';
 
 function setup() {
-  const tx = { user: { create: vi.fn() } };
+  const tx = { $queryRaw: vi.fn(), user: { create: vi.fn() }, userRole: { findFirst: vi.fn() } };
   const prisma = {
     user: { findUnique: vi.fn() },
     $transaction: vi.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
@@ -30,6 +33,7 @@ describe('InternalAccountService.create', () => {
   it('creates a verified ACTIVE account with a hashed password and audits admin.create', async () => {
     const h = setup();
     h.prisma.user.findUnique.mockResolvedValue(null);
+    h.tx.userRole.findFirst.mockResolvedValue(null);
     h.tx.user.create.mockResolvedValue({ id: 'u1', email: 'a@x.local', fullName: 'A', role: 'ADMIN' });
 
     await h.service.create(input);
@@ -41,6 +45,16 @@ describe('InternalAccountService.create', () => {
       h.tx,
       expect.objectContaining({ action: 'admin.create', actorUserId: null }),
     );
+  });
+
+  it('rejects creating a second active Admin before creating', async () => {
+    const h = setup();
+    h.prisma.user.findUnique.mockResolvedValue(null);
+    h.tx.userRole.findFirst.mockResolvedValue({ userId: 'existing-admin' });
+
+    await expect(h.service.create(input)).rejects.toThrow(ACTIVE_ADMIN_EXISTS_MESSAGE);
+    expect(h.passwords.hash).toHaveBeenCalled();
+    expect(h.tx.user.create).not.toHaveBeenCalled();
   });
 
   it('audits staff.create for STAFF accounts', async () => {
