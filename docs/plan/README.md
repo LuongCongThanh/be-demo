@@ -54,7 +54,7 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 22  | [Giá khuyến mãi](./tasks/22-sale-prices/spec.md)                                                       | done        | 21-product-slug-gender    | #91 |
 | 23  | [Quản lý voucher](./tasks/23-vouchers/spec.md)                                                         | done        | 22-sale-prices            | #92 |
 | 24  | [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/spec.md)                | in-progress | —                         |     |
-| 25  | [MVP thương mại end-to-end (điều phối)](./tasks/25-mvp-commerce-end-to-end/spec.md)                  | todo        | 17-access-admin-api, 24-category-content | |
+| 25  | [MVP thương mại end-to-end (điều phối)](./tasks/25-mvp-commerce-end-to-end/spec.md)                  | todo        | 26–36                    | |
 | 26  | [Giỏ hàng Buyer và gộp giỏ](./tasks/26-buyer-cart/spec.md)                                             | todo        | 17-access-admin-api, 24-category-content | |
 | 27  | [Tồn kho và điều chỉnh Staff](./tasks/27-inventory-availability/spec.md)                               | todo        | —                         |     |
 | 28  | [Tính thử và đặt đơn COD](./tasks/28-cod-checkout/spec.md)                                             | todo        | 26-buyer-cart, 27-inventory-availability | |

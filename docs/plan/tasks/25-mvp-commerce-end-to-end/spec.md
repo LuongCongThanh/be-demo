@@ -2,8 +2,17 @@
 status: todo
 pr:
 blocked-by:
-  - 17-access-admin-api
-  - 24-category-content
+  - 26-buyer-cart
+  - 27-inventory-availability
+  - 28-cod-checkout
+  - 29-online-payment
+  - 30-buyer-order-access
+  - 31-buyer-cancellation
+  - 32-ghn-fulfillment
+  - 33-staff-order-operations
+  - 34-returns-refunds
+  - 35-order-notifications
+  - 36-compliance-operations-reporting
 ---
 
 # MVP thương mại end-to-end

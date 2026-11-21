@@ -1,7 +1,7 @@
 ---
 status: todo
 pr:
-blocked-by:
+blocked-by: []
 ---
 
 # Tồn kho và điều chỉnh Staff
