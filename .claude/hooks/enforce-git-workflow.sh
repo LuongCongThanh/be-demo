@@ -1,15 +1,20 @@
 #!/bin/bash
 # enforce-git-workflow.sh — enforce docs/convention/git-workflow.md hard rules on Bash tool calls
 
+HOOK_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$HOOK_DIR/../.." && pwd)"
 INPUT=$(cat)
-COMMAND=$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write(JSON.parse(d).tool_input?.command||"")}catch{}})' <<< "$INPUT")
+if ! COMMAND=$(node "$REPO_ROOT/scripts/hooks/read-tool-command.js" <<< "$INPUT"); then
+  echo "Blocked: could not read the Bash command from the hook payload" >&2
+  exit 2
+fi
 
 # Only care about commands that touch git commit/push
 if [[ "$COMMAND" != *"git commit"* && "$COMMAND" != *"git push"* ]]; then
   exit 0
 fi
 
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+CURRENT_BRANCH=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)
 
 # 1) Never `git push --force` — only --force-with-lease is allowed
 if [[ "$COMMAND" == *"git push"* ]] && [[ "$COMMAND" =~ (^|[[:space:]])--force([[:space:]]|=|$) ]] && [[ "$COMMAND" != *"--force-with-lease"* ]]; then
