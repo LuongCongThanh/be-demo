@@ -20,4 +20,4 @@ blocked-by:
 - [ ] Không gửi email đặt đơn hoặc huỷ cho đơn online chưa thanh toán.
 - [ ] Ngôn ngữ email theo Khách hàng đã chọn hoặc locale lúc checkout; tên Sản phẩm trong email giữ tiếng Việt.
 - [ ] Delivery qua outbox sau commit và consumer có thể chạy lại mà không gửi trùng.
-- [ ] EmailLog tồn tại theo chính sách lưu 90 ngày; metadata PII được xử lý theo quy ước dữ liệu cá nhân.
+- [ ] EmailLog retention và xử lý metadata PII tuân theo chính sách quyền riêng tư/lưu trữ dữ liệu đã được phê duyệt; không mặc định thời hạn cụ thể khi chưa xác nhận chính sách.

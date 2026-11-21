@@ -2,14 +2,11 @@
 status: todo
 pr:
 blocked-by:
-  - 26-buyer-cart
 ---
 
 # Tồn kho và điều chỉnh Staff
 
 **What to build:** Staff hoặc Admin có thể kiểm soát Tồn kho một Kho một cách nhất quán và ngăn mọi điều chỉnh tạo oversell.
-
-**Blocked by:** 26-buyer-cart
 
 **Status:** ready-for-agent
 

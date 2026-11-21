@@ -4,10 +4,15 @@ pr:
 blocked-by:
   - 17-access-admin-api
   - 24-category-content
-triage: ready-for-agent
 ---
 
 # MVP thương mại end-to-end
+
+## Vai trò và tiêu chí hoàn thành
+
+Đây là nhiệm vụ cha/điều phối, không phải một lát cắt triển khai độc lập. Các câu chuyện người dùng và quyết định bên dưới mô tả mục tiêu MVP chung; nhiệm vụ 26–36 sở hữu việc triển khai và tiêu chí nghiệm thu cụ thể. Không tạo một PR triển khai riêng cho nhiệm vụ 25.
+
+Chỉ đánh dấu nhiệm vụ này hoàn tất khi các nhiệm vụ con 26–36 đã hoàn tất, các kiểm thử end-to-end tổng thể nêu trong phần Testing Decisions đã đạt, và mọi khoảng trống trong phạm vi MVP đã được xử lý bằng nhiệm vụ con có tiêu chí nghiệm thu và phụ thuộc rõ ràng.
 
 ## Problem Statement
 
