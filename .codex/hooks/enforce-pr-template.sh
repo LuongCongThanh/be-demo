@@ -8,17 +8,17 @@
 # so PRs created by agents silently skipped the template and the pre-PR checks.
 # Keep REQUIRED in sync with .github/workflows/pr-body.yml and the template headings.
 
+HOOK_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$HOOK_DIR/../.." && pwd)"
 INPUT=$(cat)
-COMMAND=$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write(JSON.parse(d).tool_input?.command||"")}catch{}})' <<< "$INPUT")
+if ! COMMAND=$(node "$REPO_ROOT/scripts/hooks/read-tool-command.js" <<< "$INPUT"); then
+  echo "Blocked: could not read the Bash command from the hook payload" >&2
+  exit 2
+fi
 
 # Only when `gh pr create` is actually invoked (start of command or after ; & | ( ), not merely mentioned
 [[ "$COMMAND" =~ (^|[\;\&\|\(][[:space:]]*)gh[[:space:]]+pr[[:space:]]+create ]] || exit 0
 
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
-[[ -n "$REPO_ROOT" && -d "$REPO_ROOT" ]] || {
-  echo "Blocked: could not locate the repository root for PR validation" >&2
-  exit 2
-}
 TEMPLATE="$REPO_ROOT/.github/pull_request_template.md"
 fail() {
   echo "Blocked: PR body must follow $TEMPLATE — $1. Copy the template to a file, fill every section (write \"N/A\" for items that do not apply; never delete sections), then run: gh pr create --base dev --title \"<type>: ...\" --body-file <absolute path>" >&2
