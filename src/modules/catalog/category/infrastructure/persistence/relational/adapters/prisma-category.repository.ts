@@ -19,9 +19,12 @@ import type {
   CategoryDeleteResult,
   CategoryTranslationListItem,
   CategoryLanguageRepository,
+  CategoryLanguageOperations,
+  CategoryMutationOperations,
   CategoryPersistenceOperations,
   CategoryRepository,
   CategoryTranslationRepository,
+  CategoryTranslationOperations,
   CategoryCreateInput,
   CategoryContentUpdate,
   CategoryTranslationUpdate,
@@ -275,7 +278,15 @@ export class PrismaCategoryRepository
     super(prisma);
   }
 
-  transaction<T>(work: (tx: CategoryPersistenceOperations) => Promise<T>): Promise<T> {
+  transaction<T>(work: (tx: CategoryMutationOperations) => Promise<T>): Promise<T>;
+  transaction<T>(work: (tx: CategoryTranslationOperations) => Promise<T>): Promise<T>;
+  transaction<T>(work: (tx: CategoryLanguageOperations) => Promise<T>): Promise<T>;
+  transaction<T>(
+    work:
+      | ((tx: CategoryMutationOperations) => Promise<T>)
+      | ((tx: CategoryTranslationOperations) => Promise<T>)
+      | ((tx: CategoryLanguageOperations) => Promise<T>),
+  ): Promise<T> {
     return this.prisma.$transaction((tx) => work(new PrismaCategoryPersistenceOperations(tx)));
   }
 }

@@ -192,38 +192,46 @@ modules/catalog/
 ├── category/                              # Category v1.6; own Nest composition root
 │   ├── category.module.ts
 │   ├── category-core.module.ts
-│   ├── domain/
-│   │   ├── models/
-│   │   ├── tree/
-│   │   ├── localization/
-│   │   ├── image/
-│   │   └── errors/
 │   ├── application/
 │   │   ├── ports/
-│   │   │   ├── persistence/
-│   │   │   ├── storage/
+│   │   │   ├── persistence/category.repository.ts
+│   │   │   ├── storage/category-image.storage.ts
 │   │   │   └── translation/
+│   │   │       ├── category-translation.port.ts
+│   │   │       └── category-translation-worker.port.ts
 │   │   └── shared/
 │   │       ├── localization/
 │   │       └── translation/
 │   ├── admin/
 │   │   ├── admin-category.module.ts
-│   │   ├── application/{category,image,translation}/
+│   │   ├── application/
+│   │   │   ├── category/
+│   │   │   ├── image/
+│   │   │   └── translation/
 │   │   ├── controllers/
 │   │   ├── dto/{category,image,localization}/
 │   │   └── presentation/mappers/
+│   ├── domain/
+│   │   ├── errors/
+│   │   ├── image/
+│   │   ├── localization/
+│   │   ├── models/
+│   │   └── tree/
+│   ├── infrastructure/
+│   │   ├── integrations/translation/
+│   │   ├── persistence/relational/
+│   │   │   ├── adapters/
+│   │   │   ├── queries/
+│   │   │   └── category-relational-persistence.module.ts
+│   │   └── storage/
+│   ├── presentation/                     # shared error-mapping interceptor
 │   ├── storefront/
 │   │   ├── storefront-category.module.ts
 │   │   ├── application/category/
 │   │   ├── controllers/
 │   │   ├── dto/category/
 │   │   └── presentation/mappers/
-│   ├── presentation/                     # shared error mapping
-│   ├── infrastructure/
-│   │   ├── integrations/translation/
-│   │   ├── persistence/relational/{adapters,queries}/
-│   │   └── storage/
-│   └── testing/                           # shared test setup only
+│   └── testing/                          # shared test setup
 ├── product-option/
 │   ├── controllers/
 │   │   ├── storefront/
@@ -270,7 +278,7 @@ modules/voucher/
 
 Trong module có API cho cả Storefront và Admin CMS, nhóm controller và DTO theo `storefront/` hoặc `admin/`; service/mapper riêng cho một phía cũng theo nhóm tương ứng. Logic hoặc DTO dùng chung nằm trong `shared/`; domain thuần nằm trong `domain/`. Chỉ tạo nhóm thực sự có file, không để thư mục rỗng. Swagger dùng tag riêng có tiền tố `Storefront —` hoặc `Admin CMS —`. Test `*.spec.ts` đặt cạnh file được test trong nhóm tương ứng.
 
-Riêng `category/`, tuân thủ [`refactor/01-category-folder-structure-convention-v1.6.md`](./refactor/01-category-folder-structure-convention-v1.6.md) và [`refactor/02-category-clean-code-quality-convention-v1.6.md`](./refactor/02-category-clean-code-quality-convention-v1.6.md). `CategoryModule` là composition root cho Category và được `CatalogModule` import; các port outbound thuộc Application, adapter công nghệ thuộc Infrastructure. Các module khác không mặc nhiên áp dụng cùng cấu trúc này. Transaction callback giữ một context nội bộ để phối hợp thao tác category/translation theo revision/generation; không làm lộ Prisma transaction client. Tách file theo trách nhiệm, không áp dụng ngưỡng dòng cứng.
+Riêng `category/`, tuân thủ [`refactor/01-category-folder-structure-convention-v1.6.md`](./refactor/01-category-folder-structure-convention-v1.6.md) và [`refactor/02-category-clean-code-quality-convention-v1.6.md`](./refactor/02-category-clean-code-quality-convention-v1.6.md). `CategoryModule` là composition root cho Category và được `CatalogModule` import; các port outbound thuộc Application, adapter công nghệ thuộc Infrastructure. Các module khác không mặc nhiên áp dụng cùng cấu trúc này. Transaction callback dùng context nội bộ với capability riêng cho category mutation, translation và language; không làm lộ Prisma transaction client. Tách file theo trách nhiệm, không áp dụng ngưỡng dòng cứng.
 
 ## 5. As-built inventory — shared/runtime
 

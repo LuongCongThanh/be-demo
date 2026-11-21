@@ -6,7 +6,7 @@ import {
 } from '#src/modules/catalog/category/domain/errors/category-errors.js';
 import { isCategoryLocale } from '#src/modules/catalog/category/domain/localization/category-locale.js';
 import type {
-  CategoryPersistenceOperations,
+  CategoryTranslationOperations,
   CategoryTranslationRepository,
 } from '#src/modules/catalog/category/application/ports/persistence/category.repository.js';
 import { CATEGORY_TRANSLATION_REPOSITORY } from '#src/modules/catalog/category/application/ports/persistence/category.repository.js';
@@ -96,7 +96,7 @@ export class AdminCategoryTranslationService {
   }
 
   private async lockTranslationTarget(
-    tx: CategoryPersistenceOperations,
+    tx: CategoryTranslationOperations,
     id: string,
     locale: string,
   ): Promise<{ sourceVersion: number; generation: number }> {
@@ -109,7 +109,7 @@ export class AdminCategoryTranslationService {
     return { sourceVersion, generation: language.generation };
   }
 
-  private async lockCategoryForTranslationEdit(tx: CategoryPersistenceOperations, id: string): Promise<number> {
+  private async lockCategoryForTranslationEdit(tx: CategoryTranslationOperations, id: string): Promise<number> {
     const sourceVersion = await tx.lockCategoryForTranslationEdit(id);
     if (sourceVersion === null) {
       throw new CategoryNotFoundError(`Category #${id} not found`);
