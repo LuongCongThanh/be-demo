@@ -23,3 +23,4 @@ blocked-by:
 - [ ] Mở chi tiết Khách hàng hoặc Đơn hàng và tra cứu số điện thoại tạo lịch sử truy cập; mở danh sách đơn không tạo log.
 - [ ] Báo cáo Doanh thu chỉ tính đơn Hoàn tất, tách tiền hàng và Phí ship, trừ Hoàn tiền Đổi trả đúng quy tắc.
 - [ ] Admin xuất danh sách đơn đã thu tiền theo ngày làm dữ liệu cho kế toán nhưng không tích hợp hoá đơn điện tử.
+- [ ] Khi Buyer yêu cầu thông tin xuất hoá đơn, lưu ảnh chụp tùy chọn `invoice_info` theo Order gồm tên công ty, mã số thuế (MST), địa chỉ và email nhận hoá đơn; xuất các trường này cùng payment/order reference và thời điểm, số tiền đã thu trong danh sách kế toán. Order không yêu cầu hoá đơn để trống các trường; đây chỉ là dữ liệu hỗ trợ quy trình thủ công, không phát hành hoặc tích hợp hoá đơn điện tử.

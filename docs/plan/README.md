@@ -54,22 +54,23 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 22  | [Giá khuyến mãi](./tasks/22-sale-prices/spec.md)                                                       | done        | 21-product-slug-gender    | #91 |
 | 23  | [Quản lý voucher](./tasks/23-vouchers/spec.md)                                                         | done        | 22-sale-prices            | #92 |
 | 24  | [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/spec.md)                | in-progress | —                         |     |
-| 25  | [MVP thương mại end-to-end (điều phối)](./tasks/25-mvp-commerce-end-to-end/spec.md)                  | todo        | 26–36                    | |
-| 26  | [Giỏ hàng Buyer và gộp giỏ](./tasks/26-buyer-cart/spec.md)                                             | todo        | 17-access-admin-api, 24-category-content | |
+| 25  | [MVP thương mại end-to-end (điều phối)](./tasks/25-mvp-commerce-end-to-end/spec.md)                  | todo        | 26–37                    | |
+| 26  | [Giỏ hàng Buyer và gộp giỏ](./tasks/26-buyer-cart/spec.md)                                             | todo        | 17-access-admin-api, 24-category-content, 37-customer-identity-profile | |
 | 27  | [Tồn kho và điều chỉnh Staff](./tasks/27-inventory-availability/spec.md)                               | todo        | —                         |     |
 | 28  | [Tính thử và đặt đơn COD](./tasks/28-cod-checkout/spec.md)                                             | todo        | 26-buyer-cart, 27-inventory-availability | |
 | 29  | [Thanh toán online và đối soát](./tasks/29-online-payment/spec.md)                                     | todo        | 28-cod-checkout           |     |
-| 30  | [Tra cứu và xem đơn Buyer](./tasks/30-buyer-order-access/spec.md)                                      | todo        | 28-cod-checkout           |     |
+| 30  | [Tra cứu và xem đơn Buyer](./tasks/30-buyer-order-access/spec.md)                                      | todo        | 28-cod-checkout, 37-customer-identity-profile |     |
 | 31  | [Huỷ đơn Buyer và hoàn nghĩa vụ](./tasks/31-buyer-cancellation/spec.md)                                | todo        | 28-cod-checkout, 29-online-payment | |
 | 32  | [Vận đơn GHN và đối soát giao hàng](./tasks/32-ghn-fulfillment/spec.md)                                | todo        | 28-cod-checkout, 29-online-payment | |
 | 33  | [Nghiệp vụ Staff xử lý đơn](./tasks/33-staff-order-operations/spec.md)                                 | todo        | 27-inventory-availability, 32-ghn-fulfillment, 17-access-admin-api | |
 | 34  | [Hoàn hàng, Đổi trả và Hoàn tiền](./tasks/34-returns-refunds/spec.md)                                  | todo        | 29-online-payment, 33-staff-order-operations | |
 | 35  | [Thông báo Email theo vòng đời đơn](./tasks/35-order-notifications/spec.md)                            | todo        | 28-cod-checkout, 29-online-payment, 32-ghn-fulfillment, 34-returns-refunds | |
 | 36  | [Đồng ý dữ liệu, vận hành và báo cáo](./tasks/36-compliance-operations-reporting/spec.md)              | todo        | 17-access-admin-api, 28-cod-checkout, 33-staff-order-operations, 34-returns-refunds | |
+| 37  | [Định danh và hồ sơ Khách hàng](./tasks/37-customer-identity-profile/spec.md)                          | todo        | 08-identity-use-case-services, 16-permissions-guard | |
 
 Các đầu việc thuộc Giai đoạn B của [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/issues/README.md) nằm trong nhiệm vụ cha; trạng thái và các mối phụ thuộc được theo dõi tại danh sách đó.
 
-Nhiệm vụ 25 là nhiệm vụ cha/điều phối, không phải một lát cắt triển khai riêng. Các nhiệm vụ 26–36 sở hữu phạm vi triển khai và tiêu chí nghiệm thu; nhiệm vụ 25 chỉ hoàn tất sau khi các nhiệm vụ con và kiểm thử end-to-end tổng thể đã hoàn tất.
+Nhiệm vụ 25 là nhiệm vụ cha/điều phối, không phải một lát cắt triển khai riêng. Các nhiệm vụ 26–37 sở hữu phạm vi triển khai và tiêu chí nghiệm thu; nhiệm vụ 25 chỉ hoàn tất sau khi các nhiệm vụ con và kiểm thử end-to-end tổng thể đã hoàn tất. Stories 38, 40–44 do task 37 sở hữu; story 39 được chia rõ giữa task 37 (xác minh email/Google identity) và task 30 (gắn Guest Order theo email đã xác thực).
 
 Nhiệm vụ 17 vẫn `in-progress` tới khi bản sửa CLI được đưa vào PR/merge. PR #83 đã hợp nhất phần API RBAC; bản sửa [report](./tasks/17-access-admin-api/report.md) ngăn `create-admin` tạo Admin thứ hai active trong working tree.
 

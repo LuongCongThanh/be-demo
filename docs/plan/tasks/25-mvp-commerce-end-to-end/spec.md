@@ -13,15 +13,16 @@ blocked-by:
   - 34-returns-refunds
   - 35-order-notifications
   - 36-compliance-operations-reporting
+  - 37-customer-identity-profile
 ---
 
 # MVP thương mại end-to-end
 
 ## Vai trò và tiêu chí hoàn thành
 
-Đây là nhiệm vụ cha/điều phối, không phải một lát cắt triển khai độc lập. Các câu chuyện người dùng và quyết định bên dưới mô tả mục tiêu MVP chung; nhiệm vụ 26–36 sở hữu việc triển khai và tiêu chí nghiệm thu cụ thể. Không tạo một PR triển khai riêng cho nhiệm vụ 25.
+Đây là nhiệm vụ cha/điều phối, không phải một lát cắt triển khai độc lập. Các câu chuyện người dùng và quyết định bên dưới mô tả mục tiêu MVP chung; nhiệm vụ 26–37 sở hữu việc triển khai và tiêu chí nghiệm thu cụ thể. Không tạo một PR triển khai riêng cho nhiệm vụ 25.
 
-Chỉ đánh dấu nhiệm vụ này hoàn tất khi các nhiệm vụ con 26–36 đã hoàn tất, các kiểm thử end-to-end tổng thể nêu trong phần Testing Decisions đã đạt, và mọi khoảng trống trong phạm vi MVP đã được xử lý bằng nhiệm vụ con có tiêu chí nghiệm thu và phụ thuộc rõ ràng.
+Chỉ đánh dấu nhiệm vụ này hoàn tất khi các nhiệm vụ con 26–37 đã hoàn tất, các kiểm thử end-to-end tổng thể nêu trong phần Testing Decisions đã đạt, và mọi khoảng trống trong phạm vi MVP đã được xử lý bằng nhiệm vụ con có tiêu chí nghiệm thu và phụ thuộc rõ ràng.
 
 ## Problem Statement
 
@@ -114,11 +115,17 @@ Tài sản giao nộp là một chuỗi module/backend có thể chạy thử en
 77. As a Staff or Admin, I want personal-data views and searches recorded without logging routine list access, so that access auditing is proportional.
 78. As an implementation agent, I want the public API and state changes to return stable domain errors, so that frontend, workers and retries do not guess behavior.
 
+### Phân công stories 38–44
+
+- **Task 37 — Định danh và hồ sơ Khách hàng:** sở hữu stories 38, 40–44: đăng ký với ngưỡng mật khẩu, chống dò tài khoản, khoá đăng nhập/throttling, đặt lại mật khẩu và thu hồi phiên, sổ địa chỉ, locale, cập nhật hồ sơ không đổi email; đồng thời cung cấp xác minh email và Google login theo story 39.
+- **Task 30 — Tra cứu và xem đơn Buyer:** sở hữu phần còn lại của story 39: chỉ gắn Guest Order theo email đã xác thực (không theo số điện thoại), kể cả sau xác minh email/Google login. Task 30 phụ thuộc task 37 để có identity đã xác thực.
+- Task 26 phụ thuộc task 37 để gộp Giỏ hàng vào tài khoản sau đăng nhập. Không task nào khác được xem các stories 38–44 là phạm vi ngầm của task 25.
+
 ## Implementation Decisions
 
-- Build MVP as ordered vertical slices through public API behavior: identity and storefront prerequisites; Cart; Quote and Checkout; inventory and Order state; payment; fulfillment; staff operations; refunds/returns; notifications; reporting/compliance. Catalog/category remains a prerequisite for slices that browse or purchase products.
+- Build MVP as ordered vertical slices through public API behavior: identity/customer prerequisites (task 37); Cart; Quote and Checkout; inventory and Order state; payment; fulfillment; staff operations; refunds/returns; notifications; reporting/compliance. Catalog/category remains a prerequisite for slices that browse or purchase products.
 - Complete task 17 before relying on the Admin/Staff permission matrix; retain task 24 as the catalog/locale contract for Category and Product. Task 11 and hosting rollout remain separate from feature implementation.
-- Use the existing module boundaries as ownership seams: identity for authentication, customer for addresses, cart for browser/account baskets, inventory for reservations and stock, ordering for Order state and Quotes, payment for gateways, fulfillment for GHN, returns-refunds for returns and refunds, notification for email, and administration for settings, audit, compliance and reporting.
+- Use the existing module boundaries as ownership seams: identity for authentication; the planned customer module for Customer profile, addresses and locale; cart for browser/account baskets; inventory for reservations and stock; ordering for Order state and Quotes; payment for gateways; fulfillment for GHN; returns-refunds for returns and refunds; notification for email; and administration for settings, audit, compliance and reporting.
 - Keep the existing one-warehouse constraint. AvailableQuantity, OnShelf and all inventory state remain PostgreSQL-owned; Redis is only cache, rate limit or queue, never the source of commercial truth.
 - Make checkout a two-step Quote and confirmed placement flow. Quote is time-limited and not a reservation. Placement must atomically revalidate every line, EffectivePrice, discount, Voucher, ShippingFee and total against the confirmed Quote, reject stale confirmation and remain idempotent.
 - Place all inventory reserve/decrement, Voucher usage, Order creation, payment records, status history and outbox events in one transaction where a use case spans modules. Preserve row-lock ordering and conditional updates to prevent overselling and lost updates.
@@ -141,6 +148,7 @@ Tài sản giao nộp là một chuỗi module/backend có thể chạy thử en
   - Online checkout, IPN confirmation, duplicate IPN and late payment.
   - Concurrent checkout of the last Variant and stale Quote mismatch.
   - Cart merge and Guest/Customer isolation.
+  - Customer registration, email verification/Google login, security thresholds, profile/address ownership and locale; verified-email Guest Order linking.
   - Guest lookup rate limit and account enumeration resistance.
   - GHN webhook success, retry, 15-minute reconciliation and shipment failure.
   - Staff confirmation, packing, handover and delivery completion.

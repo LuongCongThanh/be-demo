@@ -1,62 +1,35 @@
 # Catalog module
 
-Tài liệu này mô tả cây thư mục và trách nhiệm chính của từng thành phần trong module `catalog`.
+Tài liệu này mô tả **cấu trúc đang có trong mã nguồn**, không phải cấu trúc Category v1.6 được đề xuất. Đối chiếu được thực hiện trên `src/modules/catalog/`; các thay đổi cấu trúc tương lai cần được ghi thành task riêng trước khi triển khai.
 
-## Sơ đồ tổng quan
+## Cấu trúc hiện tại
 
 ```text
 catalog/
-├── category/        CategoryModule: Danh mục, cây, locale, ảnh và bản dịch
-│   ├── category.module.ts
+├── category/        Danh mục, ngôn ngữ, ảnh và dịch thuật
+│   ├── clients/
+│   ├── controllers/{admin,storefront}/
 │   ├── domain/
-│   ├── application/   services/ và ports/
-│   ├── controllers/
-│   ├── dto/
-│   ├── presentation/
-│   ├── infrastructure/
-│   └── testing/
+│   ├── dto/{admin,shared,storefront}/
+│   ├── mappers/shared/
+│   └── services/{admin,shared,storefront}/
 ├── product/         Sản phẩm, biến thể, ảnh và truy vấn storefront
 ├── product-option/  Kích cỡ và màu sắc dùng cho biến thể
 ├── pricing/         Giá khuyến mãi của biến thể
-└── catalog.module.ts Composition root; import CategoryModule
+└── catalog.module.ts Composition root trực tiếp cho các feature trên
 ```
 
-Với Category: Controller → Application Service → Domain/Port → Infrastructure Adapter; Controller chuyển Application Result thành DTO qua Presentation Mapper. Các feature Catalog khác giữ cách tổ chức hiện tại.
+`CatalogModule` đăng ký controller/provider cho Category, Product, ProductOption và Pricing trực tiếp. Category hiện **chưa** có `CategoryModule`, `application/`, `infrastructure/`, repository ports hay `presentation/`; không dựa vào những thư mục hoặc ranh giới này khi sửa mã hiện tại.
 
 ## Thư mục và file
 
 ### Module gốc
 
-- [`catalog.module.ts`](./catalog.module.ts) — composition root cho product, product-option và pricing; import `CategoryModule`.
+- [`catalog.module.ts`](./catalog.module.ts) — composition root trực tiếp; đăng ký controllers/providers cho cả Category, Product, ProductOption và Pricing, đồng thời import Passport/Storage.
 
 ### `category/`
 
-`CategoryModule` là composition root riêng theo hai convention Category v1.6; `CatalogModule` chỉ import module này. Không có dependency từ Domain/Application tới Prisma, HTTP DTO, Cloudinary hoặc provider translation.
-
-#### Domain
-
-- [`category.module.ts`](./category/category.module.ts) — wiring controller, application providers và token-to-adapter bindings.
-- [`category.model.ts`](./category/domain/models/category.model.ts) — domain model cho danh mục, bản dịch và locale.
-- [`category-tree.ts`](./category/domain/tree/category-tree.ts) — dựng cây hiển thị và kiểm tra visibility thuần, không phụ thuộc DTO/Prisma.
-- `domain/localization/`, `domain/image/`, `domain/errors/` — locale, quy tắc ảnh và lỗi nghiệp vụ.
-
-#### Application
-
-- [`category.repository.ts`](./category/application/ports/persistence/category.repository.ts) — persistence ports và kiểu dữ liệu thuộc Application.
-- `application/ports/storage/` và `application/ports/translation/` — hợp đồng ảnh, dịch thuật và worker dịch.
-- `application/services/admin/` — category, image và translation use cases; `shared/` — localization và worker; `storefront/category/` — truy vấn danh mục công khai.
-
-#### HTTP và Presentation
-
-- `controllers/admin/` và `controllers/storefront/` là HTTP adapters.
-- `dto/admin/` chia theo category, image và localization; `dto/shared/` và `dto/storefront/` giữ hợp đồng response/query.
-- [`category-response.mapper.ts`](./category/presentation/mappers/shared/category-response.mapper.ts) chuyển Application/Domain result thành response DTO.
-
-#### Infrastructure và Testing
-
-- `infrastructure/persistence/relational/queries/` chứa Prisma selects; `adapters/` hiện thực persistence ports; module persistence export concrete adapter để `CategoryModule` bind token.
-- `infrastructure/integrations/translation/` hiện thực translation port; `infrastructure/storage/` nối storage dùng chung với category image port.
-- [`category-test-setup.ts`](./category/testing/category-test-setup.ts) là helper dùng chung. Test riêng đặt cạnh thành phần được kiểm thử.
+Category hiện dùng `controllers/`, `dto/`, `mappers/` và `services/` trong cùng feature; service xử lý use case và truy cập hạ tầng theo cách triển khai hiện tại. Các file `domain/` giữ các quy tắc thuần như dựng cây, locale và cấu hình ảnh. Dịch thuật dùng `clients/category-translation.client.ts` cùng service chia sẻ; ảnh dùng storage tích hợp ở service quản trị. Test đặt cạnh service/DTO/domain tương ứng. Tham khảo các đường dẫn tồn tại như [`category-tree.ts`](./category/domain/category-tree.ts), [`category-response.mapper.ts`](./category/mappers/shared/category-response.mapper.ts) và [`category.service.ts`](./category/services/storefront/category.service.ts).
 
 ### `product/`
 
@@ -164,6 +137,6 @@ Quản lý giá khuyến mãi áp dụng cho biến thể; các quy tắc giá n
 
 ## Ghi chú cấu trúc
 
-- Category được tách giữa hợp đồng repository (`category/repositories/`) và adapter Prisma (`category/infrastructure/persistence/relational/`).
+- Các tên `CategoryModule`, `category/application/`, `category/repositories/`, `category/infrastructure/` và `category/presentation/` trong tài liệu cũ là thiết kế chưa được hiện thực; chúng không phải đường dẫn mã hiện tại.
 - Product và pricing hiện dùng Prisma trực tiếp trong service, không có repository riêng trong cây thư mục này.
-- Các file `*.spec.ts` là kiểm thử cho domain, DTO, client hoặc service tương ứng; `category-test-setup.ts` là helper phục vụ test.
+- Các file `*.spec.ts` là kiểm thử cho domain, DTO, client hoặc service tương ứng; chưa có helper test Category dùng chung trong cây hiện tại.
