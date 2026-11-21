@@ -1,6 +1,10 @@
-import { BadRequestException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminCategoryImageService } from '#src/modules/catalog/category/admin/application/image/admin-category-image.service.js';
+import {
+  CategoryImageUploadError,
+  CategoryInvalidInputError,
+  CategoryNotFoundError,
+} from '#src/modules/catalog/category/domain/errors/category-errors.js';
 import { CategoryImageSlot } from '#src/modules/catalog/category/domain/image/category-image-slot.enum.js';
 import type { CategoryImageRepository } from '#src/modules/catalog/category/application/ports/persistence/category.repository.js';
 import type {
@@ -52,7 +56,7 @@ describe('category media validation', () => {
     { bytes: 1024, format: 'svg' },
   ])('rejects missing, oversized or unsupported stored content', async (image) => {
     findImage.mockResolvedValue(image);
-    await expect(service.set(id, CategoryImageSlot.BANNER, key)).rejects.toThrow(UnprocessableEntityException);
+    await expect(service.set(id, CategoryImageSlot.BANNER, key)).rejects.toThrow(CategoryImageUploadError);
     expect(updateCategoryImage).not.toHaveBeenCalled();
   });
   it.each([
@@ -61,7 +65,7 @@ describe('category media validation', () => {
     `${key}/../other`,
     'https://external.test/image.jpg',
   ])('rejects keys outside the category and slot namespace', async (badKey) => {
-    await expect(service.set(id, CategoryImageSlot.BANNER, badKey)).rejects.toThrow(BadRequestException);
+    await expect(service.set(id, CategoryImageSlot.BANNER, badKey)).rejects.toThrow(CategoryInvalidInputError);
     expect(findImage).not.toHaveBeenCalled();
   });
   it('persists an uploaded image key only after verifying the stored content', async () => {
@@ -77,7 +81,7 @@ describe('category media validation', () => {
   });
   it('does not sign an upload for a missing category', async () => {
     findCategoryId.mockResolvedValue(null);
-    await expect(service.presign(id, CategoryImageSlot.BANNER)).rejects.toThrow(NotFoundException);
+    await expect(service.presign(id, CategoryImageSlot.BANNER)).rejects.toThrow(CategoryNotFoundError);
     expect(signUpload).not.toHaveBeenCalled();
   });
 });

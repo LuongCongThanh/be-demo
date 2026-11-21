@@ -1,13 +1,10 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
-import {
-  ACTIVE_ADMIN_EXISTS_MESSAGE,
-  InternalAccountService,
-} from '#src/modules/identity/internal-account.service.js';
+import { InternalAccountService } from '#src/modules/identity/internal-account/services/admin/internal-account.service.js';
 import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import type { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
-import type { AccessService } from '#src/modules/identity/access.service.js';
+import type { AccessService } from '#src/modules/identity/access/services/admin/access.service.js';
 import type { AuditLogService } from '#src/infrastructure/audit/audit-log.service.js';
 
 function setup() {
@@ -33,7 +30,6 @@ describe('InternalAccountService.create', () => {
   it('creates a verified ACTIVE account with a hashed password and audits admin.create', async () => {
     const h = setup();
     h.prisma.user.findUnique.mockResolvedValue(null);
-    h.tx.userRole.findFirst.mockResolvedValue(null);
     h.tx.user.create.mockResolvedValue({ id: 'u1', email: 'a@x.local', fullName: 'A', role: 'ADMIN' });
 
     await h.service.create(input);
@@ -47,14 +43,13 @@ describe('InternalAccountService.create', () => {
     );
   });
 
-  it('rejects creating a second active Admin before creating', async () => {
+  it('does not enforce Admin exclusivity during internal-account creation', async () => {
     const h = setup();
     h.prisma.user.findUnique.mockResolvedValue(null);
     h.tx.userRole.findFirst.mockResolvedValue({ userId: 'existing-admin' });
+    h.tx.user.create.mockResolvedValue({ id: 'u2', email: 'b@x.local', fullName: 'B', role: 'ADMIN' });
 
-    await expect(h.service.create(input)).rejects.toThrow(ACTIVE_ADMIN_EXISTS_MESSAGE);
-    expect(h.passwords.hash).toHaveBeenCalled();
-    expect(h.tx.user.create).not.toHaveBeenCalled();
+    await expect(h.service.create(input)).resolves.toMatchObject({ id: 'u2', role: 'ADMIN' });
   });
 
   it('audits staff.create for STAFF accounts', async () => {

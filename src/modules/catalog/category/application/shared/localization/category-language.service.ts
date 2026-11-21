@@ -1,5 +1,6 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { isCategoryLocale } from '#src/modules/catalog/category/domain/localization/category-locale.js';
+import { CategoryInvalidInputError } from '#src/modules/catalog/category/domain/errors/category-errors.js';
 import type { CategoryLanguageRepository } from '#src/modules/catalog/category/application/ports/persistence/category.repository.js';
 import { CATEGORY_LANGUAGE_REPOSITORY } from '#src/modules/catalog/category/application/ports/persistence/category.repository.js';
 
@@ -13,17 +14,17 @@ export class CategoryLanguageService {
 
   async setEnabled(locale: string, enabled: boolean) {
     if (!isCategoryLocale(locale)) {
-      throw new BadRequestException(`Unsupported category locale "${locale}"`);
+      throw new CategoryInvalidInputError(`Unsupported category locale "${locale}"`);
     }
     if (locale === 'vi') {
-      if (!enabled) throw new BadRequestException('The Vietnamese source locale cannot be disabled');
+      if (!enabled) throw new CategoryInvalidInputError('The Vietnamese source locale cannot be disabled');
       enabled = true;
     }
 
     return this.repository.transaction(async (tx) => {
       await tx.acquireCategoryLanguageWriteLock();
       const current = await tx.findCategoryLanguage(locale);
-      if (!current) throw new BadRequestException(`Category locale "${locale}" is not configured`);
+      if (!current) throw new CategoryInvalidInputError(`Category locale "${locale}" is not configured`);
       if (enabled === current.enabled) return current;
 
       const generation = current.generation + 1;
@@ -55,9 +56,9 @@ export class CategoryLanguageService {
 
   async assertEnabled(locale: string | undefined) {
     const resolved = locale ?? 'vi';
-    if (!isCategoryLocale(resolved)) throw new BadRequestException(`Unsupported category locale "${resolved}"`);
+    if (!isCategoryLocale(resolved)) throw new CategoryInvalidInputError(`Unsupported category locale "${resolved}"`);
     const language = await this.repository.findCategoryLanguage(resolved);
-    if (!language?.enabled) throw new BadRequestException(`Category locale "${resolved}" is not enabled`);
+    if (!language?.enabled) throw new CategoryInvalidInputError(`Category locale "${resolved}" is not enabled`);
     return resolved;
   }
 }

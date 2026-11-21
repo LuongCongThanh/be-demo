@@ -20,7 +20,7 @@ import { Permission } from '#src/security/contracts/permission.enum.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
-import { AccessService } from '#src/modules/identity/access.service.js';
+import { AccessService } from '#src/modules/identity/access/services/admin/access.service.js';
 import { CreateRoleDto } from '#src/modules/identity/access/dto/admin/create-role.dto.js';
 import { UpdateRoleDto } from '#src/modules/identity/access/dto/admin/update-role.dto.js';
 import { PaginatedRoleResponseDto, RoleResponseDto } from '#src/modules/identity/access/dto/admin/role-response.dto.js';

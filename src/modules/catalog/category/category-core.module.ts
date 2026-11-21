@@ -14,12 +14,14 @@ import { CategoryRelationalPersistenceModule } from '#src/modules/catalog/catego
 import { PrismaCategoryRepository } from '#src/modules/catalog/category/infrastructure/persistence/relational/adapters/prisma-category.repository.js';
 import { CategoryTranslationClient } from '#src/modules/catalog/category/infrastructure/integrations/translation/category-translation.client.js';
 import { CloudinaryCategoryImageStorage } from '#src/modules/catalog/category/infrastructure/storage/cloudinary-category-image.storage.js';
+import { CategoryErrorMappingInterceptor } from '#src/modules/catalog/category/presentation/category-error-mapping.interceptor.js';
 
 @Module({
   imports: [StorageModule, CategoryRelationalPersistenceModule],
   providers: [
     CategoryLanguageService,
     CategoryTranslationService,
+    CategoryErrorMappingInterceptor,
     CategoryTranslationClient,
     CloudinaryCategoryImageStorage,
     { provide: CATEGORY_REPOSITORY, useExisting: PrismaCategoryRepository },
@@ -38,6 +40,7 @@ import { CloudinaryCategoryImageStorage } from '#src/modules/catalog/category/in
     CATEGORY_IMAGE_STORAGE,
     CategoryLanguageService,
     CategoryTranslationService,
+    CategoryErrorMappingInterceptor,
   ],
 })
 export class CategoryCoreModule {}

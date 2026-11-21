@@ -1,7 +1,11 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
+import {
+  CategoryConflictError,
+  CategoryInvalidInputError,
+  CategoryNotFoundError,
+} from '#src/modules/catalog/category/domain/errors/category-errors.js';
 import { categoryTranslations } from '#src/modules/catalog/category/infrastructure/persistence/relational/queries/category-prisma-selects.js';
 import { categoryRepositoryProviders } from '#src/modules/catalog/category/testing/category-test-setup.js';
 import { AdminCategoryService } from '#src/modules/catalog/category/admin/application/category/admin-category.service.js';
@@ -84,9 +88,9 @@ describe('AdminCategoryService content and tree rules', () => {
       );
     });
 
-    it('throws NotFoundException when the category does not exist', async () => {
+    it('throws a domain not-found error when the category does not exist', async () => {
       prismaMock.category.findUnique.mockResolvedValueOnce(null);
-      await expect(service.update('missing-id', { name: 'X' })).rejects.toThrow(NotFoundException);
+      await expect(service.update('missing-id', { name: 'X' })).rejects.toThrow(CategoryNotFoundError);
     });
 
     it('reports a concurrent content edit as 409 rather than silently overwriting it', async () => {
@@ -100,7 +104,7 @@ describe('AdminCategoryService content and tree rules', () => {
         new Prisma.PrismaClientKnownRequestError('Stale version', { code: 'P2025', clientVersion: 'test' }),
       );
 
-      await expect(service.update('1', { nameEn: 'T-shirts' })).rejects.toThrow(ConflictException);
+      await expect(service.update('1', { nameEn: 'T-shirts' })).rejects.toThrow(CategoryConflictError);
     });
   });
 
@@ -169,13 +173,13 @@ describe('AdminCategoryService content and tree rules', () => {
   describe('tree rules (ADR 0001)', () => {
     it('create rejects an unknown parent with 404', async () => {
       prismaMock.category.findUnique.mockResolvedValueOnce(null);
-      await expect(service.create({ name: 'Ao', parentId: 'missing' })).rejects.toThrow(NotFoundException);
+      await expect(service.create({ name: 'Ao', parentId: 'missing' })).rejects.toThrow(CategoryNotFoundError);
       expect(prismaMock.category.create).not.toHaveBeenCalled();
     });
 
     it('update rejects making a category its own parent', async () => {
       prismaMock.category.findUnique.mockResolvedValueOnce({ id: 'a' });
-      await expect(service.update('a', { parentId: 'a' })).rejects.toThrow(BadRequestException);
+      await expect(service.update('a', { parentId: 'a' })).rejects.toThrow(CategoryInvalidInputError);
     });
 
     it('rejects moving a category under its own descendant', async () => {
@@ -191,7 +195,7 @@ describe('AdminCategoryService content and tree rules', () => {
           : null,
       );
 
-      await expect(service.update('a', { parentId: 'c' })).rejects.toThrow(BadRequestException);
+      await expect(service.update('a', { parentId: 'c' })).rejects.toThrow(CategoryInvalidInputError);
       expect(prismaMock.category.update).not.toHaveBeenCalled();
     });
 
@@ -228,7 +232,7 @@ describe('AdminCategoryService content and tree rules', () => {
           : null,
       );
 
-      await expect(service.update('a', { parentId: 'x' })).rejects.toThrow(BadRequestException);
+      await expect(service.update('a', { parentId: 'x' })).rejects.toThrow(CategoryInvalidInputError);
     });
   });
 });
