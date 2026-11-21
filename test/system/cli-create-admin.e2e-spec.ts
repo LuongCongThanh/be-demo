@@ -3,7 +3,6 @@ import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { CliModule } from '#src/cli/cli.module.js';
 import { CreateAdminCommand } from '#src/cli/create-admin.command.js';
 import { PasswordPrompt } from '#src/cli/password-prompt.js';
-import { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
 
 const TEST_EMAIL_DOMAIN = '@cli-create-admin.e2e-test.local';
 const VALID_PASSWORD = 'Abc@1234';
@@ -42,27 +41,28 @@ describe('CLI — create-admin (application context, prompt stubbed)', () => {
   const run = (args: string[]) =>
     moduleRef.get(CreateAdminCommand).run(args, { log: (m) => output.push(m), error: (m) => output.push(m) });
 
-  it('creates an ADMIN with the prompted password and a system audit row', async () => {
+  it('rejects creating a second active ADMIN with the prompted password', async () => {
+    const activeAdmin = await prisma.userRole.findFirst({
+      where: { role: { name: 'Admin', isSystem: true }, user: { status: 'ACTIVE' } },
+      select: { userId: true },
+    });
+    expect(activeAdmin).not.toBeNull();
+
     const email = uniqueEmail();
     passwords = [VALID_PASSWORD, VALID_PASSWORD];
 
     const exitCode = await run(['--email', email, '--name', 'Quan Tri']);
 
-    expect(exitCode).toBe(0);
-    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-    expect(user).toMatchObject({ role: 'ADMIN', status: 'ACTIVE', fullName: 'Quan Tri' });
-    expect(user.emailVerifiedAt).not.toBeNull();
-    expect(await moduleRef.get(PasswordService).verify(user.passwordHash, VALID_PASSWORD)).toBe(true);
-
-    const audit = await prisma.auditLog.findMany({ where: { entityId: user.id } });
-    expect(audit).toEqual([expect.objectContaining({ action: 'admin.create', actorUserId: null })]);
+    expect(exitCode).not.toBe(0);
+    expect(await prisma.user.findUnique({ where: { email } })).toBeNull();
+    expect(output.join('\n')).toMatch(/active Admin account already exists/i);
   });
 
   it('fails without touching the existing account when the email is taken', async () => {
-    const email = uniqueEmail();
-    passwords = [VALID_PASSWORD, VALID_PASSWORD];
-    await run(['--email', email, '--name', 'First']);
-    const before = await prisma.user.findUniqueOrThrow({ where: { email } });
+    const before = await prisma.user.findFirstOrThrow({
+      where: { role: 'ADMIN', status: 'ACTIVE' },
+    });
+    const email = before.email;
 
     passwords = ['Xyz@9876', 'Xyz@9876'];
     const exitCode = await run(['--email', email, '--name', 'Second']);
