@@ -134,6 +134,42 @@ export interface CategoryPersistenceOperations {
   upsertPendingCategoryTranslation(input: PendingCategoryTranslation): Promise<void>;
 }
 
+export type CategoryMutationOperations = Pick<
+  CategoryPersistenceOperations,
+  | 'acquireCategoryLanguageWriteLock'
+  | 'acquireCategoryTreeWriteLock'
+  | 'findCategoryId'
+  | 'findCategoryParentId'
+  | 'findCategoryWithTranslations'
+  | 'findEnabledCategoryLanguages'
+  | 'createCategory'
+  | 'updateCategoryContent'
+>;
+
+export type CategoryTranslationOperations = Pick<
+  CategoryPersistenceOperations,
+  | 'acquireCategoryLanguageWriteLock'
+  | 'lockCategoryForTranslationEdit'
+  | 'listCategoryTranslations'
+  | 'findCategoryLanguage'
+  | 'findCategoryTranslationRevision'
+  | 'updateCategoryTranslationIfCurrent'
+  | 'createCategoryTranslation'
+  | 'findCategoryTranslationResponse'
+>;
+
+export type CategoryLanguageOperations = Pick<
+  CategoryPersistenceOperations,
+  | 'acquireCategoryLanguageWriteLock'
+  | 'findCategoryLanguage'
+  | 'updateCategoryLanguage'
+  | 'updateCategoryTranslationGeneration'
+  | 'findCategorySourceVersions'
+  | 'findCategoryTranslation'
+  | 'updateEditorialCategoryTranslation'
+  | 'upsertPendingCategoryTranslation'
+>;
+
 export type CategoryDataOperations = Pick<
   CategoryPersistenceOperations,
   'findCategoryId' | 'findCategoryParentId' | 'findCategoryWithTranslations' | 'updateCategoryContent'
@@ -159,16 +195,16 @@ export interface CategoryRepository extends CategoryDataOperations, CategoryImag
   countChildCategories(id: string): Promise<number>;
   countProductsInCategory(id: string): Promise<number>;
   deleteCategory(id: string): Promise<CategoryDeleteResult>;
-  transaction<T>(work: (tx: CategoryPersistenceOperations) => Promise<T>): Promise<T>;
+  transaction<T>(work: (tx: CategoryMutationOperations) => Promise<T>): Promise<T>;
 }
 
 export interface CategoryTranslationRepository {
   retryEnglishTranslation(id: string): Promise<CategoryWithTranslations>;
-  transaction<T>(work: (tx: CategoryPersistenceOperations) => Promise<T>): Promise<T>;
+  transaction<T>(work: (tx: CategoryTranslationOperations) => Promise<T>): Promise<T>;
 }
 
 export interface CategoryLanguageRepository {
   findCategoryLanguage(locale: string): Promise<CategoryLanguage | null>;
   findAllCategoryLanguages(enabledOnly: boolean): Promise<CategoryLanguage[]>;
-  transaction<T>(work: (tx: CategoryPersistenceOperations) => Promise<T>): Promise<T>;
+  transaction<T>(work: (tx: CategoryLanguageOperations) => Promise<T>): Promise<T>;
 }
