@@ -191,6 +191,7 @@ modules/catalog/
 │       └── shared/
 ├── category/                              # Category v1.6; own Nest composition root
 │   ├── category.module.ts
+│   ├── category-core.module.ts
 │   ├── domain/
 │   │   ├── models/
 │   │   ├── tree/
@@ -199,16 +200,29 @@ modules/catalog/
 │   │   └── errors/
 │   ├── application/
 │   │   ├── ports/
-│   │   └── services/
-│   │       ├── admin/category|image|translation/
-│   │       ├── shared/localization|translation/
-│   │       └── storefront/category/
-│   ├── controllers/{admin,storefront}/
-│   ├── dto/{admin,shared,storefront}/
-│   ├── presentation/mappers/shared/
+│   │   │   ├── persistence/
+│   │   │   ├── storage/
+│   │   │   └── translation/
+│   │   └── shared/
+│   │       ├── localization/
+│   │       └── translation/
+│   ├── admin/
+│   │   ├── admin-category.module.ts
+│   │   ├── application/{category,image,translation}/
+│   │   ├── controllers/
+│   │   ├── dto/{category,image,localization}/
+│   │   └── presentation/mappers/
+│   ├── storefront/
+│   │   ├── storefront-category.module.ts
+│   │   ├── application/category/
+│   │   ├── controllers/
+│   │   ├── dto/category/
+│   │   └── presentation/mappers/
+│   ├── presentation/                     # shared error mapping
 │   ├── infrastructure/
 │   │   ├── integrations/translation/
-│   │   └── persistence/relational/{queries,adapters}/
+│   │   ├── persistence/relational/{adapters,queries}/
+│   │   └── storage/
 │   └── testing/                           # shared test setup only
 ├── product-option/
 │   ├── controllers/
