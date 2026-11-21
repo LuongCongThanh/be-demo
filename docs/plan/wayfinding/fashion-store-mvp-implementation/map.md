@@ -17,7 +17,9 @@ Một implementation plan có thứ tự và phụ thuộc cho các capability s
 
 - [Lập đường cơ sở độ bao phủ MVP hiện tại](./issues/01-mvp-coverage-baseline.md): catalog/admin đã có nền tảng; các khoảng trống tính năng chính là auth storefront, locale CMS/store và commerce end-to-end.
 - [Xác minh giới hạn API GHN và chu kỳ đối soát](./issues/05-ghn-reconciliation-limits.md): webhook là đường cập nhật chính, polling 15 phút là fallback; tài liệu công khai không cam kết rate limit hay freshness SLA.
+- [Chốt chu kỳ đối soát trạng thái GHN và xử lý ngoại lệ](./issues/10-ghn-reconciliation-cadence.md): giữ polling 15 phút làm fallback; retry có backoff và cảnh báo kỹ thuật khi lỗi kéo dài, không áp dụng trạng thái không hợp lệ hoặc mâu thuẫn.
 - [Khuyến nghị kiểm soát xác thực và chống dò đơn hàng](./issues/06-auth-abuse-control-guidance.md): baseline gồm mật khẩu 15 ký tự, throttling theo account/IP, khóa tạm và credential tra cứu guest khó đoán với phản hồi đồng nhất.
+- [Ngưỡng xác thực và tra cứu đơn guest](./issues/11-auth-and-order-lookup-thresholds.md): đăng nhập khóa tài khoản 15 phút sau 5 lần sai/15 phút, tra cứu guest giới hạn 10 lần sai/IP/15 phút, và quên mật khẩu giới hạn 5 yêu cầu/15 phút với phản hồi chung.
 
 ## Not yet specified
 
