@@ -1,6 +1,6 @@
 # Hướng dẫn tích hợp
 
-CMS tiếp tục gửi name Việt. Cho nhập nameEn để override, đọc translationStatus (PENDING/TRANSLATED/MANUAL/REVIEW/FAILED), nút retry gọi POST translation/retry. Null nameEn xóa override và yêu cầu dịch lại. Store thêm locale vào request categories, dùng name đã resolve; slug luôn giữ nguyên. Ảnh: tạo category trước, presign theo id và slot, upload form thẳng Cloudinary rồi attach storageKey. Gỡ ảnh gửi storageKey:null. Hai consumer cần regenerate API client; BE không tự cập nhật cache ứng dụng.
+CMS tiếp tục gửi name Việt. Có thể dùng contract per-locale bên dưới để đọc/sửa bản dịch; `nameEn` và retry cũ vẫn tương thích với locale `en`. Store thêm locale vào request categories, dùng name đã resolve; slug luôn giữ nguyên và locale phải nằm trong cache key. Ảnh: tạo category trước, presign theo id và slot, upload form thẳng Cloudinary rồi attach storageKey. Gỡ ảnh gửi storageKey:null. Hai consumer cần regenerate API client; BE không tự cập nhật cache ứng dụng.
 
 ## Ví dụ API
 
@@ -40,8 +40,9 @@ cũ ghi vào cùng dòng này. Không cần consumers nhập lại bản dịch.
    đến khi dịch thành công. Không rollback chạy BE cũ vì cột legacy đã ngừng cập nhật;
    phục hồi cần bản BE tương thích bảng mới hoặc kế hoạch khôi phục dữ liệu riêng.
 
-Ticket 01 chỉ chuyển Việt/Anh hiện có. API quản lý ngôn ngữ thuộc ticket 02;
-ticket 03 tiếp tục đặc tả và nghiệm thu chỉnh sửa tay/retry riêng theo locale.
+Ticket 01 chỉ chuyển Việt/Anh hiện có. API quản lý ngôn ngữ thuộc ticket 02.
+Ticket 03 bổ sung API chỉnh sửa tay/retry riêng theo locale như bên dưới; không
+cần nâng cấp schema hoặc bỏ contract `nameEn` cũ.
 
 ## Ngôn ngữ category (ticket 02)
 
@@ -65,3 +66,26 @@ không xóa bản dịch; bật lại giữ `MANUAL`/`REVIEW` và đưa bản m�
 
 Integration test dùng fake provider cho `fr`, `de`, `es`; không gọi Google Cloud
 Translation và không cần API key thật.
+
+## Biên tập bản dịch theo locale (ticket 03)
+
+- `GET /api/v1/admin/categories/:id/translations` trả danh sách
+  `{ locale, name, status, updatedAt }`; STAFF/ADMIN có quyền category view được
+  đọc. Lease, revision, generation và source version là chi tiết worker, không
+  thuộc contract CMS.
+- `PATCH /api/v1/admin/categories/:id/translations/:locale` yêu cầu body có
+  `name`: chuỗi không rỗng (được trim) lưu bản sửa tay/MANUAL; `null` xóa override
+  và xếp hàng dịch lại/PENDING. Thiếu `name`, chuỗi rỗng, `vi`, locale không hỗ
+  trợ hoặc locale đang tắt trả 400.
+- `POST /api/v1/admin/categories/:id/translations/:locale/retry` xếp lại locale
+  đang bật, giữ tên cũ cho tới khi worker hoàn tất và cho phép thay bản sửa tay
+  tại locale đó. Ba route yêu cầu permission category view/manage tương ứng; ID
+  category không tồn tại trả 404.
+- Đổi tên nguồn Việt giữ MANUAL/REVIEW của từng locale và chuyển chúng sang
+  REVIEW; bản máy cũ được xóa và đưa về PENDING. Một edit/retry chỉ tăng revision
+  của locale đích. Cập nhật nameEn/retry endpoint tương thích cũ thao tác đúng
+  dòng `en` này.
+- CMS: hiển thị danh sách locale/trạng thái, chọn một locale cho một ô sửa; gửi
+  đúng `name` hoặc `null`, và chỉ gọi retry khi người dùng muốn dịch đè override.
+  Store tiếp tục gửi locale nội dung category được bật và phải phân tách cache
+  theo locale; BE trả name đã resolve, fallback tiếng Việt nếu bản dịch chưa có.

@@ -48,7 +48,7 @@ describe('AdminCategoryService', () => {
         data: {
           name: 'Shoes',
           slug: 'shoes',
-          translations: { create: { locale: 'en', name: null, status: 'PENDING' } },
+          translations: { create: { locale: 'en', name: null, status: 'PENDING', enableGeneration: 0 } },
         },
         include: categoryTranslations,
       });
@@ -199,10 +199,12 @@ describe('AdminCategoryService', () => {
             name: 'Áo polo',
             sourceVersion: { increment: 1 },
             translations: {
-              update: {
-                where: { categoryId_locale: { categoryId: '1', locale: 'en' }, revision: 2 },
-                data: { status: 'REVIEW', sourceVersion: 4, revision: { increment: 1 }, leaseUntil: null },
-              },
+              update: [
+                {
+                  where: { categoryId_locale: { categoryId: '1', locale: 'en' }, revision: 2 },
+                  data: { status: 'REVIEW', sourceVersion: 4, revision: { increment: 1 }, leaseUntil: null },
+                },
+              ],
             },
           },
         }),
@@ -217,16 +219,18 @@ describe('AdminCategoryService', () => {
             name: 'Áo polo',
             sourceVersion: { increment: 1 },
             translations: {
-              update: {
-                where: { categoryId_locale: { categoryId: '1', locale: 'en' }, revision: 2 },
-                data: {
-                  name,
-                  status: name === null ? 'PENDING' : 'MANUAL',
-                  sourceVersion: 4,
-                  revision: { increment: 1 },
-                  leaseUntil: null,
+              update: [
+                {
+                  where: { categoryId_locale: { categoryId: '1', locale: 'en' }, revision: 2 },
+                  data: {
+                    name,
+                    status: name === null ? 'PENDING' : 'MANUAL',
+                    sourceVersion: 4,
+                    revision: { increment: 1 },
+                    leaseUntil: null,
+                  },
                 },
-              },
+              ],
             },
           },
         }),

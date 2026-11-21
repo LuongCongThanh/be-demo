@@ -65,7 +65,7 @@ Nhiệm vụ 17 vẫn `in-progress` dù PR #83 đã hợp nhất: lệnh CLI `cr
 
 1. **Đã hoàn thành:** nhiệm vụ 01–10, 12–16 và 18–23. Các PR đã hợp nhất; nhiệm vụ 21–23 trước đây chưa có trong bảng nhưng đã được triển khai.
 2. **Việc cần làm trước:** hoàn tất nhiệm vụ 17 bằng cách ngăn CLI `create-admin` tạo Admin thứ hai đang hoạt động, rồi kiểm thử cả CLI lẫn API.
-3. **Tiếp theo:** nhiệm vụ 24, đầu việc 02 (bật ngôn ngữ và bổ sung bản dịch). Đầu việc 01 đã hoàn thành nên đầu việc 02 không còn bị chặn. Sau đó thực hiện đầu việc 03, vốn phụ thuộc đầu việc 02.
+3. **Nhiệm vụ 24:** các ticket BE 01–03 về locale, backfill và biên tập bản dịch đã hoàn tất. Phần tiếp theo là lập kế hoạch riêng cho tích hợp CMS/store và nghiệm thu rollout; task cha vẫn `in-progress`.
 4. **Nhiệm vụ 11 vẫn `todo` và được hoãn:** trước khi bắt đầu cần chọn nhánh triển khai, cách chạy chuyển đổi cơ sở dữ liệu và cấu hình môi trường, đồng thời chuẩn bị thông tin truy cập Render/Neon.
 5. Sau các đầu việc BE của nhiệm vụ 24, cần lập kế hoạch riêng để cập nhật CMS/cửa hàng và triển khai chuyển đổi cơ sở dữ liệu/bản dịch. Đây là phần tích hợp tiếp theo, chưa được tính là hoàn thành trong phạm vi BE hiện tại.
 

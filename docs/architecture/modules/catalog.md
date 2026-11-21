@@ -84,6 +84,19 @@ BR-CAT-01–13; US-101–104, US-801–803, US-805; ADR 0001.
 
 Bản dịch Anh hiện nằm trong `category_translations` (PK categoryId + locale), không còn dùng cột legacy làm nguồn dữ liệu. `nameEn`/`translationStatus` trên mọi response và request cũ là adapter cho `en`, kể cả response gắn ảnh. `categories.name` giữ nguồn Việt, `sourceVersion` tăng khi rename; revision/lease thuộc từng bản dịch. Worker chỉ nhận `en` PENDING, ghi có điều kiện theo sourceVersion/revision/lease, giữ manual/review và bỏ kết quả cũ sau rename/manual/retry/delete. Chưa thêm API quản lý ngôn ngữ trong ticket này. Rollout phải dừng writer cũ trước migration; xem hướng dẫn task category.
 
+### Biên tập bản dịch theo locale — ticket 03
+
+Admin đọc danh sách `{ locale, name, status, updatedAt }`; không trả revision,
+source version, generation hay lease ra contract. PATCH nhận chuỗi không rỗng để
+đặt MANUAL hoặc `name: null` để xóa override và đưa đúng locale về PENDING. Retry
+riêng locale giữ tên hiện có tới khi dịch thành công; endpoint retry cũ và
+`nameEn` vẫn chiếu vào cùng dòng `en`. `vi` không phải locale đích; locale khác
+phải được cấu hình và bật. Ghi biên tập/retry dùng transaction, advisory lock
+chung với enable/disable locale và row lock category, sau đó conditional write
+theo source version, revision và generation. Worker vẫn dùng lease/conditional
+completion, nên kết quả đang chạy không thể ghi đè edit, rename, retry, disable
+hoặc delete đã commit.
+
 ## As-built — triển khai hiện tại (2026-11-21)
 
 Phần này mô tả runtime trong `src/modules/catalog/**`; thiết kế mục tiêu phía trên vẫn là contract dự kiến. `CatalogModule` đăng ký controller/provider cho category, product, product-option và sale price trong cùng Nest module; import `PassportModule.register({})` và `StorageModule`, không export provider/port cho module khác. Các service dùng `PrismaService` trực tiếp. `ProductService` đọc cây hiển thị từ category và giá khuyến mãi qua helper trong pricing; `AdminProductService` tạo inventory row `quantity=0` khi tạo Biến thể và gọi helper khóa/kiểm giá trong pricing khi đổi Giá bán. Đây là các phụ thuộc trực tiếp giữa các phần miền, không phải interface công khai.

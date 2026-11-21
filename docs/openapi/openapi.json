@@ -200,15 +200,46 @@
         ],
         "type": "object"
       },
-      "CategoryTranslationUpdateDto": {
+      "CategoryTranslationResponseDto": {
         "properties": {
+          "locale": {
+            "example": "en",
+            "type": "string"
+          },
           "name": {
-            "maxLength": 150,
+            "example": "T-shirts",
             "nullable": true,
             "type": "object"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CategoryTranslationStatus"
+              }
+            ]
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
           }
         },
+        "required": [
+          "locale",
+          "name",
+          "status",
+          "updatedAt"
+        ],
         "type": "object"
+      },
+      "CategoryTranslationStatus": {
+        "enum": [
+          "PENDING",
+          "TRANSLATED",
+          "MANUAL",
+          "REVIEW",
+          "FAILED"
+        ],
+        "type": "string"
       },
       "CategoryTreeNodeDto": {
         "properties": {
@@ -2036,6 +2067,19 @@
         ],
         "type": "object"
       },
+      "UpdateCategoryTranslationDto": {
+        "properties": {
+          "name": {
+            "example": "T-shirts",
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "UpdateColorDto": {
         "properties": {
           "hex": {
@@ -3294,7 +3338,17 @@
         ],
         "responses": {
           "200": {
-            "description": "Category translations"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryTranslationResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
           },
           "400": {
             "content": {
@@ -3383,7 +3437,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CategoryTranslationUpdateDto"
+                "$ref": "#/components/schemas/UpdateCategoryTranslationDto"
               }
             }
           },
@@ -3391,7 +3445,14 @@
         },
         "responses": {
           "200": {
-            "description": "Updated category translation"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryTranslationResponseDto"
+                }
+              }
+            },
+            "description": ""
           },
           "400": {
             "content": {
@@ -3478,7 +3539,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Queued category translation"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryTranslationResponseDto"
+                }
+              }
+            },
+            "description": ""
           },
           "400": {
             "content": {

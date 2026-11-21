@@ -14,6 +14,13 @@ import { toSlugOrThrow } from '#src/common/utils/slug.util.js';
 import { isCategoryLocale } from '#src/modules/catalog/category/domain/category-locale.js';
 import { acquireCategoryLanguageWriteLock } from '#src/modules/catalog/category/services/shared/category-language-lock.js';
 
+const categoryTranslationResponseSelect = {
+  locale: true,
+  name: true,
+  status: true,
+  updatedAt: true,
+} satisfies Prisma.CategoryTranslationSelect;
+
 /**
  * Back-office danh mục (STAFF đọc, ADMIN ghi). Cây nhiều cấp với hai bất biến
  * (ADR 0001): không có vòng lặp, và không xoá được danh mục còn con hoặc còn
@@ -37,32 +44,24 @@ export class AdminCategoryService {
             typeof tx.categoryLanguage?.findMany === 'function'
               ? await tx.categoryLanguage.findMany({
                   where: { enabled: true },
-                  select: { locale: true },
+                  select: { locale: true, generation: true },
                 })
               : [];
-          const locales = new Set(
-            ['en', ...enabledLocales.map((language) => language.locale)].filter((locale) => locale !== 'vi'),
-          );
+          const locales = new Map<string, number>([['en', 0]]);
+          for (const language of enabledLocales) {
+            if (language.locale !== 'vi') locales.set(language.locale, language.generation);
+          }
+          const translations = [...locales].map(([locale, enableGeneration]) => ({
+            locale,
+            name: locale === 'en' ? (nameEn ?? null) : null,
+            status: locale === 'en' && nameEn ? ('MANUAL' as const) : ('PENDING' as const),
+            enableGeneration,
+          }));
           return tx.category.create({
             data: {
               ...input,
               slug,
-              translations:
-                locales.size === 1
-                  ? {
-                      create: {
-                        locale: 'en',
-                        name: nameEn ?? null,
-                        status: nameEn ? 'MANUAL' : 'PENDING',
-                      },
-                    }
-                  : {
-                      create: [...locales].map((locale) => ({
-                        locale,
-                        name: locale === 'en' ? (nameEn ?? null) : null,
-                        status: locale === 'en' && nameEn ? 'MANUAL' : 'PENDING',
-                      })),
-                    },
+              translations: translations.length === 1 ? { create: translations[0] } : { create: translations },
             },
             include: categoryTranslations,
           });
@@ -115,58 +114,44 @@ export class AdminCategoryService {
     if (renamed) data.sourceVersion = { increment: 1 };
     if (nameEn !== undefined || renamed) {
       const nextSourceVersion = current.sourceVersion + (renamed ? 1 : 0);
-      if (current.translations.length === 1 && current.translations[0].locale === 'en') {
-        const manual = english.status === 'MANUAL' || english.status === 'REVIEW';
-        data.translations = {
-          update: {
-            where: { categoryId_locale: { categoryId: id, locale: 'en' }, revision: english.revision },
-            data: {
-              ...(nameEn !== undefined
-                ? { name: nameEn, status: nameEn === null ? 'PENDING' : 'MANUAL' }
-                : manual
-                  ? { status: 'REVIEW' }
-                  : { name: null, status: 'PENDING' }),
-              sourceVersion: nextSourceVersion,
-              revision: { increment: 1 },
-              leaseUntil: null,
-            },
-          },
-        };
-      } else {
-        data.translations = {
-          update: current.translations.map((translation) => ({
-            where: {
-              categoryId_locale: { categoryId: id, locale: translation.locale },
-              revision: translation.revision,
-            },
-            data:
-              translation.locale === 'en' && nameEn !== undefined
+      const updates = current.translations.flatMap((translation) => {
+        const translationData =
+          translation.locale === 'en' && nameEn !== undefined
+            ? {
+                name: nameEn,
+                status: nameEn === null ? ('PENDING' as const) : ('MANUAL' as const),
+                sourceVersion: nextSourceVersion,
+                revision: { increment: 1 },
+                leaseUntil: null,
+              }
+            : renamed
+              ? translation.status === 'MANUAL' || translation.status === 'REVIEW'
                 ? {
-                    name: nameEn,
-                    status: nameEn === null ? 'PENDING' : 'MANUAL',
+                    status: 'REVIEW' as const,
                     sourceVersion: nextSourceVersion,
                     revision: { increment: 1 },
                     leaseUntil: null,
                   }
-                : renamed
-                  ? translation.status === 'MANUAL' || translation.status === 'REVIEW'
-                    ? {
-                        status: 'REVIEW',
-                        sourceVersion: nextSourceVersion,
-                        revision: { increment: 1 },
-                        leaseUntil: null,
-                      }
-                    : {
-                        name: null,
-                        status: 'PENDING',
-                        sourceVersion: nextSourceVersion,
-                        revision: { increment: 1 },
-                        leaseUntil: null,
-                      }
-                  : {},
-          })),
-        };
-      }
+                : {
+                    name: null,
+                    status: 'PENDING' as const,
+                    sourceVersion: nextSourceVersion,
+                    revision: { increment: 1 },
+                    leaseUntil: null,
+                  }
+              : null;
+        if (!translationData) return [];
+        return [
+          {
+            where: {
+              categoryId_locale: { categoryId: id, locale: translation.locale },
+              revision: translation.revision,
+            },
+            data: translationData,
+          },
+        ];
+      });
+      data.translations = { update: updates };
     }
     // The nested write is atomic. Both source and translation revisions revoke stale edits/results.
     return db.category
@@ -205,50 +190,146 @@ export class AdminCategoryService {
   }
 
   async listTranslations(id: string) {
-    await this.findOne(id);
-    return this.prisma.categoryTranslation.findMany({
-      where: { categoryId: id },
-      orderBy: [{ locale: 'asc' }],
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockCategoryForTranslationEdit(tx, id);
+      return tx.categoryTranslation.findMany({
+        where: { categoryId: id },
+        orderBy: [{ locale: 'asc' }],
+        select: categoryTranslationResponseSelect,
+      });
     });
   }
 
-  async updateTranslation(id: string, locale: string, name: string | null | undefined) {
-    if (!isCategoryLocale(locale) || locale === 'vi') {
-      throw new BadRequestException(`Invalid category translation locale "${locale}"`);
-    }
-    const language = await this.prisma.categoryLanguage.findUnique({ where: { locale }, select: { enabled: true } });
-    if (!language?.enabled) throw new BadRequestException(`Category locale "${locale}" is not enabled`);
-    await this.findOne(id);
-    const status = name === undefined ? 'PENDING' : name === null ? 'PENDING' : 'MANUAL';
-    return this.prisma.categoryTranslation.upsert({
-      where: { categoryId_locale: { categoryId: id, locale } },
-      update: {
-        name: name === undefined ? null : name,
-        status,
-        revision: { increment: 1 },
-        leaseUntil: null,
-      },
-      create: {
-        categoryId: id,
-        locale,
-        name: name === undefined ? null : name,
-        status,
-      },
-      include: { category: false },
+  async updateTranslation(id: string, locale: string, name: string | null) {
+    this.assertEditableTranslationLocale(locale);
+    return this.prisma.$transaction(async (tx) => {
+      const { sourceVersion, generation } = await this.lockTranslationTarget(tx, id, locale);
+      const where = { categoryId_locale: { categoryId: id, locale } };
+      const conditionalWhere = { categoryId: id, locale };
+      const existing = await tx.categoryTranslation.findUnique({
+        where,
+        select: { revision: true, sourceVersion: true, enableGeneration: true },
+      });
+      if (existing) {
+        const updated = await tx.categoryTranslation.updateMany({
+          where: {
+            ...conditionalWhere,
+            revision: existing.revision,
+            sourceVersion,
+            enableGeneration: generation,
+          },
+          data: {
+            name,
+            status: name === null ? 'PENDING' : 'MANUAL',
+            sourceVersion,
+            revision: { increment: 1 },
+            enableGeneration: generation,
+            leaseUntil: null,
+          },
+        });
+        if (updated.count !== 1) {
+          throw new ConflictException('Category translation changed concurrently — reload and retry');
+        }
+      } else {
+        await tx.categoryTranslation.create({
+          data: {
+            categoryId: id,
+            locale,
+            name,
+            status: name === null ? 'PENDING' : 'MANUAL',
+            sourceVersion,
+            enableGeneration: generation,
+          },
+        });
+      }
+      return tx.categoryTranslation.findUniqueOrThrow({
+        where,
+        select: categoryTranslationResponseSelect,
+      });
     });
   }
 
   async retryLocaleTranslation(id: string, locale: string) {
+    this.assertEditableTranslationLocale(locale);
+    return this.prisma.$transaction(async (tx) => {
+      const { sourceVersion, generation } = await this.lockTranslationTarget(tx, id, locale);
+      const where = { categoryId_locale: { categoryId: id, locale } };
+      const conditionalWhere = { categoryId: id, locale };
+      const existing = await tx.categoryTranslation.findUnique({
+        where,
+        select: { revision: true, sourceVersion: true, enableGeneration: true },
+      });
+      if (existing) {
+        const updated = await tx.categoryTranslation.updateMany({
+          where: {
+            ...conditionalWhere,
+            revision: existing.revision,
+            sourceVersion,
+            enableGeneration: generation,
+          },
+          data: {
+            status: 'PENDING',
+            sourceVersion,
+            revision: { increment: 1 },
+            enableGeneration: generation,
+            leaseUntil: null,
+          },
+        });
+        if (updated.count !== 1) {
+          throw new ConflictException('Category translation changed concurrently — reload and retry');
+        }
+      } else {
+        await tx.categoryTranslation.create({
+          data: {
+            categoryId: id,
+            locale,
+            sourceVersion,
+            enableGeneration: generation,
+            status: 'PENDING',
+          },
+        });
+      }
+      return tx.categoryTranslation.findUniqueOrThrow({
+        where,
+        select: categoryTranslationResponseSelect,
+      });
+    });
+  }
+
+  private assertEditableTranslationLocale(locale: string): void {
     if (!isCategoryLocale(locale) || locale === 'vi') {
       throw new BadRequestException(`Invalid category translation locale "${locale}"`);
     }
-    const language = await this.prisma.categoryLanguage.findUnique({ where: { locale }, select: { enabled: true } });
-    if (!language?.enabled) throw new BadRequestException(`Category locale "${locale}" is not enabled`);
-    await this.findOne(id);
-    return this.prisma.categoryTranslation.update({
-      where: { categoryId_locale: { categoryId: id, locale } },
-      data: { status: 'PENDING', revision: { increment: 1 }, leaseUntil: null },
+  }
+
+  private async lockTranslationTarget(
+    tx: Prisma.TransactionClient,
+    id: string,
+    locale: string,
+  ): Promise<{ sourceVersion: number; generation: number }> {
+    await acquireCategoryLanguageWriteLock(tx);
+    const category = await this.lockCategoryForTranslationEdit(tx, id);
+    const language = await tx.categoryLanguage.findUnique({
+      where: { locale },
+      select: { enabled: true, generation: true },
     });
+    if (!language?.enabled) {
+      throw new BadRequestException(`Category locale "${locale}" is not enabled`);
+    }
+    return { sourceVersion: category, generation: language.generation };
+  }
+
+  private async lockCategoryForTranslationEdit(tx: Prisma.TransactionClient, id: string): Promise<number> {
+    const rows = await tx.$queryRaw<{ sourceVersion: number }[]>`
+      SELECT source_version AS "sourceVersion"
+      FROM categories
+      WHERE id = ${id}::uuid
+      FOR UPDATE
+    `;
+    if (!rows[0]) {
+      throw new NotFoundException(`Category #${id} not found`);
+    }
+    return rows[0].sourceVersion;
   }
 
   async remove(id: string): Promise<void> {
