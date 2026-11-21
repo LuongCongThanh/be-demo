@@ -38,7 +38,7 @@ Cây source hiện tại, cây kiến trúc mục tiêu và danh sách module n�
 
 ### 2.1 Gốc module và feature folder theo thực thể
 
-Gốc `modules/<module>/` chứa `<module>.module.ts` làm composition root và các **feature folder theo thực thể**. Feature folder là cách tổ chức source, không mặc nhiên là một Nest module riêng. Module chỉ có một thực thể có thể đặt các thư mục vai trò trực tiếp cạnh `<module>.module.ts`; module có nhiều thực thể tách theo thư mục thực thể. Cả hai trường hợp đều nhóm file theo vai trò (§2.2). Chỉ tạo thư mục module khi bắt đầu có implementation, không dựng trước cây thư mục rỗng theo kiến trúc mục tiêu.
+Thông thường, gốc `modules/<module>/` chứa `<module>.module.ts` làm composition root và các **feature folder theo thực thể**; feature folder không mặc nhiên là một Nest module riêng. Ngoại lệ đã chốt cho Category là `modules/catalog/category/category.module.ts`, làm composition root theo Category v1.6 và được `CatalogModule` import. Module chỉ có một thực thể có thể đặt các thư mục vai trò trực tiếp cạnh `<module>.module.ts`; module có nhiều thực thể tách theo thư mục thực thể. Chỉ tạo thư mục module khi bắt đầu có implementation, không dựng trước cây thư mục rỗng theo kiến trúc mục tiêu.
 
 ### 2.2 Feature folder theo thực thể, file nhóm theo vai trò
 
@@ -86,10 +86,10 @@ Thứ tự ưu tiên khi phân vân hậu tố: có decorator Nest (`@Injectable
 ### 2.3 Ranh giới giữa module
 
 - Cửa ngõ của module là mảng `exports` trong `<module>.module.ts`. Mỗi module export **đúng một** service public; service ruột không export. Module khác `imports: [XModule]` và inject service đó; **không** import file ruột của module khác theo đường dẫn.
-- Interface + token DI chỉ khi có ≥ 2 implementation thật (`PaymentGateway`). Một adapter inject class trực tiếp.
+- Với module thông thường, interface + token DI chỉ khi có ≥ 2 implementation thật (`PaymentGateway`); một adapter inject class trực tiếp. Riêng Category áp dụng quy tắc Port/adapter/DI của Category v1.6 cho dependency outbound cần được đảo chiều.
 - Transaction xuyên module: module điều phối mở `prisma.$transaction` và truyền `Prisma.TransactionClient` xuống service module khác. Không có lớp bọc transaction riêng.
 - `common/` không import `http/`, `security/`, `infrastructure/` hoặc `modules/`; quy tắc chi tiết về các thư mục dùng chung cấp ứng dụng ở §2.5.
-- Giữ `CatalogModule` và `IdentityModule` làm composition root hiện tại; các feature folder bên trong không cần Nest module riêng chỉ để cây thư mục đồng đều. Chỉ cân nhắc feature Nest module khi có nhu cầu độc lập về ownership, lifecycle, kiểm thử hoặc export service; trước khi tách phải xác nhận dependency một chiều, không có vòng import và chỉ export API cần thiết. Không dùng số file/dòng làm ngưỡng tự động.
+- Giữ `CatalogModule` làm composition root bên ngoài cho Catalog; Category là ngoại lệ có `CategoryModule` riêng theo convention v1.6, được import bởi `CatalogModule`. Giữ `IdentityModule` làm composition root hiện tại. Các feature folder còn lại không cần Nest module riêng chỉ để cây thư mục đồng đều. Chỉ cân nhắc tách thêm feature Nest module khi có nhu cầu độc lập về ownership, lifecycle, kiểm thử hoặc export service; trước khi tách phải xác nhận dependency một chiều, không có vòng import và chỉ export API cần thiết. Không dùng số file/dòng làm ngưỡng tự động.
 
 ### 2.4 Test
 
@@ -216,7 +216,7 @@ Theo pattern đã thấy trong code hiện tại: package ngoài (`@nestjs/*`, t
 
 ## 7. Khi nào tách file
 
-Không có ngưỡng dòng cứng, nhưng nếu 1 service/controller vượt quá **~300 dòng** (vd. `auth.service.ts` từng ~480 dòng, đã được tách thành bốn service theo use case ở task 08), cân nhắc tách theo use-case (vd. tách riêng use-case đăng ký/đăng nhập/reset-password thành các service nhỏ hơn nếu chúng đủ độc lập) thay vì để 1 class ôm hết. Đây là gợi ý, không phải rule chặn PR — không tách chỉ vì "đủ số dòng" nếu logic thực sự gắn chặt với nhau.
+Không có ngưỡng dòng cứng, nhưng nếu 1 service/controller vượt quá **~250 dòng** (vd. `auth.service.ts` từng ~480 dòng, đã được tách thành bốn service theo use case ở task 08), cân nhắc tách theo use-case (vd. tách riêng use-case đăng ký/đăng nhập/reset-password thành các service nhỏ hơn nếu chúng đủ độc lập) thay vì để 1 class ôm hết. Đây là gợi ý, không phải rule chặn PR — không tách chỉ vì "đủ số dòng" nếu logic thực sự gắn chặt với nhau.
 
 ## Checklist khi thêm file mới
 

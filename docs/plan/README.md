@@ -54,10 +54,22 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 22  | [Giá khuyến mãi](./tasks/22-sale-prices/spec.md)                                                       | done        | 21-product-slug-gender    | #91 |
 | 23  | [Quản lý voucher](./tasks/23-vouchers/spec.md)                                                         | done        | 22-sale-prices            | #92 |
 | 24  | [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/spec.md)                | in-progress | —                         |     |
+| 25  | [MVP thương mại end-to-end](./tasks/25-mvp-commerce-end-to-end/spec.md)                               | todo        | 17-access-admin-api, 24-category-content | |
+| 26  | [Giỏ hàng Buyer và gộp giỏ](./tasks/26-buyer-cart/spec.md)                                             | todo        | 17-access-admin-api, 24-category-content | |
+| 27  | [Tồn kho và điều chỉnh Staff](./tasks/27-inventory-availability/spec.md)                               | todo        | 26-buyer-cart             |     |
+| 28  | [Tính thử và đặt đơn COD](./tasks/28-cod-checkout/spec.md)                                             | todo        | 26-buyer-cart, 27-inventory-availability | |
+| 29  | [Thanh toán online và đối soát](./tasks/29-online-payment/spec.md)                                     | todo        | 28-cod-checkout           |     |
+| 30  | [Tra cứu và xem đơn Buyer](./tasks/30-buyer-order-access/spec.md)                                      | todo        | 28-cod-checkout           |     |
+| 31  | [Huỷ đơn Buyer và hoàn nghĩa vụ](./tasks/31-buyer-cancellation/spec.md)                                | todo        | 28-cod-checkout, 29-online-payment | |
+| 32  | [Vận đơn GHN và đối soát giao hàng](./tasks/32-ghn-fulfillment/spec.md)                                | todo        | 28-cod-checkout, 29-online-payment | |
+| 33  | [Nghiệp vụ Staff xử lý đơn](./tasks/33-staff-order-operations/spec.md)                                 | todo        | 27-inventory-availability, 32-ghn-fulfillment, 17-access-admin-api | |
+| 34  | [Hoàn hàng, Đổi trả và Hoàn tiền](./tasks/34-returns-refunds/spec.md)                                  | todo        | 29-online-payment, 33-staff-order-operations | |
+| 35  | [Thông báo Email theo vòng đời đơn](./tasks/35-order-notifications/spec.md)                            | todo        | 28-cod-checkout, 29-online-payment, 32-ghn-fulfillment, 34-returns-refunds | |
+| 36  | [Đồng ý dữ liệu, vận hành và báo cáo](./tasks/36-compliance-operations-reporting/spec.md)              | todo        | 17-access-admin-api, 28-cod-checkout, 33-staff-order-operations, 34-returns-refunds | |
 
 Các đầu việc thuộc Giai đoạn B của [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/issues/README.md) nằm trong nhiệm vụ cha; trạng thái và các mối phụ thuộc được theo dõi tại danh sách đó.
 
-Nhiệm vụ 17 vẫn `in-progress` dù PR #83 đã hợp nhất: lệnh CLI `create-admin` hiện vẫn có thể tạo Admin thứ hai, trái với tiêu chí trong [spec](./tasks/17-access-admin-api/spec.md); chi tiết nằm trong [report](./tasks/17-access-admin-api/report.md).
+Nhiệm vụ 17 vẫn `in-progress` tới khi bản sửa CLI được đưa vào PR/merge. PR #83 đã hợp nhất phần API RBAC; bản sửa [report](./tasks/17-access-admin-api/report.md) ngăn `create-admin` tạo Admin thứ hai active trong working tree.
 
 ## Thứ tự tiếp tục công việc
 
