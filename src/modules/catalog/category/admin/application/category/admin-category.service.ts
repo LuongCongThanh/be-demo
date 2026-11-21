@@ -110,7 +110,10 @@ export class AdminCategoryService {
     if (dto.parentId) await this.assertNoCycle(id, dto.parentId, db);
 
     const { nameEn, ...input } = dto;
-    const english = current.translations.find((translation) => translation.locale === 'en')!;
+    const english = current.translations.find((translation) => translation.locale === 'en');
+    if (!english) {
+      throw new CategoryConflictError('Category English translation is missing — reload and retry');
+    }
     const renamed = dto.name !== undefined && dto.name !== current.name;
     const updates: CategoryTranslationContentChange[] = [];
     if (nameEn !== undefined || renamed) {

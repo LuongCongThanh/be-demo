@@ -129,4 +129,17 @@ describe('AdminCategoryService', () => {
       await expect(service.findOne('missing-id')).rejects.toThrow(CategoryNotFoundError);
     });
   });
+
+  describe('update', () => {
+    it('rejects category records that are missing their English translation', async () => {
+      prismaMock.category.findUnique.mockResolvedValue({
+        id: '1',
+        sourceVersion: 0,
+        translations: [],
+      });
+
+      await expect(service.update('1', { nameEn: 'Shoes' })).rejects.toThrow(CategoryConflictError);
+      expect(prismaMock.category.update).not.toHaveBeenCalled();
+    });
+  });
 });
