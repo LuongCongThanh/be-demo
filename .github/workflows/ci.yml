@@ -13,6 +13,28 @@ permissions:
   contents: read
 
 jobs:
+  commit-message-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Check commit messages for AI attribution
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            git show -s --format=%B "$HEAD_SHA" | npx --no -- commitlint
+          else
+            npx --no -- commitlint --from "$BASE_SHA" --to "$HEAD_SHA"
+          fi
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -78,7 +100,7 @@ jobs:
       - run: npm ci
       - run: npm run prisma:generate
       - run: npx prisma migrate deploy --config prisma7.config.ts
-      # Schema đã sửa mà quên tạo migration → fail
+      # Fail if the schema changed without a corresponding migration.
       - name: Check schema/migration drift
         run: npx prisma migrate diff --config prisma7.config.ts --from-config-datasource --to-schema prisma/schema --exit-code
       - run: npm run db:seed
@@ -94,7 +116,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run prisma:generate
-      # docs/openapi/openapi.json phải khớp code: sinh lại rồi so với bản đã commit
+      # Regenerate the contract and compare it with the committed version.
       - run: npm run openapi:write
       - name: Check docs/openapi/openapi.json is up to date
         run: git diff --exit-code -- docs/openapi/openapi.json

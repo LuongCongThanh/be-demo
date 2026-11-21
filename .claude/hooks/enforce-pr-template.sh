@@ -1,7 +1,7 @@
 #!/bin/bash
 # enforce-pr-template.sh — gate `gh pr create`:
 #   1. body follows .github/pull_request_template.md (sections present, Summary filled, exactly one Type)
-#   2. /code-review outcome recorded under "## 💬 Notes"
+#   2. /code-review outcome recorded under "## 💬 12. Notes"
 #   3. `npm run lint`, `typecheck`, `test` are green
 #
 # Why: GitHub only pre-fills the template in the web UI. `gh pr create --body/--fill` bypasses it,
@@ -14,9 +14,14 @@ COMMAND=$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{p
 # Only when `gh pr create` is actually invoked (start of command or after ; & | ( ), not merely mentioned
 [[ "$COMMAND" =~ (^|[\;\&\|\(][[:space:]]*)gh[[:space:]]+pr[[:space:]]+create ]] || exit 0
 
-TEMPLATE=".github/pull_request_template.md"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[[ -n "$REPO_ROOT" && -d "$REPO_ROOT" ]] || {
+  echo "Blocked: could not locate the repository root for PR validation" >&2
+  exit 2
+}
+TEMPLATE="$REPO_ROOT/.github/pull_request_template.md"
 fail() {
-  echo "Blocked: PR body must follow $TEMPLATE — $1. Copy the template to a file, fill every section (write \"Không\" for empty items, never delete sections), then run: gh pr create --base dev --title \"<type>: ...\" --body-file <absolute path>" >&2
+  echo "Blocked: PR body must follow $TEMPLATE — $1. Copy the template to a file, fill every section (write \"N/A\" for items that do not apply; never delete sections), then run: gh pr create --base dev --title \"<type>: ...\" --body-file <absolute path>" >&2
   exit 2
 }
 
@@ -77,7 +82,8 @@ TICKED=$(grep -Ec '^- \[[xX]\] (✨ Feature|🐛 Bug Fix|♻️ Refactor|⚡ Per
 [[ "$TICKED" == 1 ]] || fail "tick exactly one Type checkbox (found $TICKED)"
 
 # No AI attribution (same rule as enforce-git-workflow.sh)
-grep -Eqi "co-authored-by:[[:space:]]*(claude|chatgpt|gpt|ai)|generated (by|with) \[?claude|ai-generated" <<< "$BODY" \
+AI_AGENT_NAMES='(claude|copilot|codex|chatgpt|openai|gpt|gemini|cursor|windsurf|cline|aider|devin|codeium|cody|tabnine|opencode|roo|continue|augment|replit|ai|agent|bot)'
+grep -Eqi "co-authored-by:[[:space:]].*\\b$AI_AGENT_NAMES\\b|generated (by|with) .*\\b$AI_AGENT_NAMES\\b|ai-generated|noreply@anthropic\\.com" <<< "$BODY" \
   && fail "remove AI attribution line"
 
 # /code-review must have been run on the diff: record its outcome under Notes
@@ -88,7 +94,7 @@ grep -Eqi 'code-review.*(chưa|không chạy|bỏ qua|skip|not run)|(chưa|khôn
 
 # Build must be green (SKIP_PR_VERIFY=1 is only for testing this hook)
 if [[ "$SKIP_PR_VERIFY" != 1 ]]; then
-  cd "${CLAUDE_PROJECT_DIR:-.}" || exit 2
+  cd "$REPO_ROOT" || exit 2
   for s in lint typecheck test; do
     if ! OUT=$(npm run -s "$s" 2>&1); then
       echo "Blocked: \`npm run $s\` failed — fix before opening the PR:" >&2

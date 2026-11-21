@@ -17,7 +17,7 @@ fi
 # .env and its variants (.env.local, .env.production...) — but NOT .env.example,
 # which convention requires keeping in sync (see docs/convention/config-environment-conventions.md §5)
 if [[ "$BASENAME" == ".env" || ( "$BASENAME" == .env.* && "$BASENAME" != ".env.example" ) ]]; then
-  echo "Blocked: $FILE_PATH is a secret env file — edit it manually, not via Claude" >&2
+  echo "Blocked: $FILE_PATH is a secret env file — edit it manually, not via an agent" >&2
   exit 2
 fi
 

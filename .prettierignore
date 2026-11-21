@@ -1,1 +1,6 @@
 docs/openapi/openapi.json
+
+# Mirrored Prisma skills are kept byte-identical across harnesses.
+.claude/skills/prisma-*/
+.agents/skills/prisma-*/
+.github/skills/prisma-*/

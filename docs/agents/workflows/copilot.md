@@ -1,0 +1,24 @@
+# GitHub Copilot Workflow
+
+This is the Copilot-specific entrypoint. Follow [`../execution-workflow.md`](../execution-workflow.md) for shared repository behavior.
+
+## Load the right context
+
+1. Follow `.github/copilot-instructions.md` and root `AGENTS.md`.
+2. Read the relevant task, acceptance criteria, business rules, architecture docs, ADRs, and conventions before changing behavior.
+3. Use repository scripts and configuration as the source of truth; for this repository, run npm scripts from `package.json`.
+
+## Work in VS Code
+
+- Use only tools and skills available in the active Copilot surface. Do not assume Claude slash commands or Claude-only skills are available; the shared hook behavior is the explicit compatibility exception below.
+- Project skills are in `.github/skills/`; file-scoped conventions are in `.github/instructions/`. Invoke `feature` for implementation workflows and `ship` only for an explicitly requested PR workflow.
+- `.claude/settings.json` is an additional hook source read by the Copilot harness. Its compatible hooks are shared intentionally; do not add duplicate events under `.github/hooks/`.
+- The project Prisma skills are copied from the Claude skill package. [The Claude skill guide](../../../.claude/skill-guide/) is a user-global inventory reference; it does not mean those global skills or MCP servers are available in Copilot.
+- For code review, follow the [repository review policy](../../../AGENTS.md#shared-ai-code-review) and keep the review read-only.
+- When implementation is requested, complete it and verify it rather than stopping at a plan. Ask only for a consequential unresolved decision, blocker, or separately authorized operation.
+- Before GitHub writes or Git operations that publish or rewrite history, verify the intended account and follow `docs/convention/git-workflow.md`.
+- The PR title/body workflows run in GitHub Actions; report their results only after CI returns them.
+
+## Finish
+
+Inspect the final diff for unrelated changes and unexpected deletions. Report what changed, the exact checks run, and anything blocked or incomplete.

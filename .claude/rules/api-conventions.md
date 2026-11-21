@@ -11,39 +11,39 @@ paths:
   - 'src/main.ts'
 ---
 
-# API conventions — agent-condensed (quy tắc đầy đủ: docs/convention/api-rules.md; code mẫu từng bước: docs/convention/api-crud-walkthrough.md)
+# API conventions — agent-condensed (full rules: docs/convention/api-rules.md; step-by-step examples: docs/convention/api-crud-walkthrough.md)
 
-Đây là bản rút gọn cho agent viết code — chỉ liệt kê điểm hành động/dễ sai. Đọc doc gốc khi cần code mẫu đầy đủ hoặc business rule của 1 resource cụ thể (sống ở doc riêng resource đó, `docs/architecture/modules/<module>.md`).
+This condensed guide lists actionable rules and common pitfalls for code-writing agents. Read the source documents for complete examples or resource-specific business rules in `docs/architecture/modules/<module>.md`.
 
-## Flow tổng quát (20 bước, xem §A trong doc gốc để chi tiết)
+## Overall flow (20 steps; see section A in the source document for details)
 
-Requirement → Business Rules → API Contract → Authorization → Idempotency/Concurrency → DB Impact → Migration → Scaffold → DTO+Validation → Service → Data Access → Transaction (nếu cần) → Controller → Exception Mapping → Response DTO → Logging/Audit → Swagger → Testing → Lint/Build → PR.
-CRUD đơn giản co gọn nhiều bước, nhưng vẫn tư duy từ Requirement xuống DB, không đi ngược.
+Requirement → Business Rules → API Contract → Authorization → Idempotency/Concurrency → DB Impact → Migration → Scaffold → DTO+Validation → Service → Data Access → Transaction (when needed) → Controller → Exception Mapping → Response DTO → Logging/Audit → Swagger → Testing → Lint/Build → PR.
+Simple CRUD may combine several steps, but reason from requirements down to the database, not in reverse.
 
-## Điểm dễ sai / bắt buộc
+## Required rules and common pitfalls
 
-- ESM: mọi import nội bộ có đuôi `.js`, kể cả import từ file `.ts`.
-- **Không tạo `entities/`** (CLI `nest g resource` mặc định sinh) — trả thẳng Prisma type nếu resource không có field nhạy cảm.
-- `PartialType` import từ **`@nestjs/swagger`**, không phải `@nestjs/mapped-types` (bản kia làm lệch metadata OpenAPI).
-- Field server tự sinh (slug, mã đơn tự tăng...) **không** xuất hiện trong `CreateDto` — `ValidationPipe` global (`forbidNonWhitelisted`) sẽ 400 nếu client gửi lên, không âm thầm bỏ qua.
-- **Không pre-fetch chỉ để xác nhận tồn tại** trước `update`/`remove` nếu filter đã map `P2025`→404 — để Prisma tự báo not-found. Chỉ pre-fetch khi cần chính record đó để check business rule (ownership, status...).
-- Pre-check unique/FK trước khi ghi chỉ là UX layer — **không thay thế** DB constraint + exception filter (vẫn có race condition).
-- **Không tạo Repository layer** cho CRUD đơn giản (`prisma.resource.x()` trực tiếp trong Service là đủ). Chỉ tách khi: query phức tạp tái dùng nhiều nơi, nhiều aggregate cùng 1 nghiệp vụ, transaction lớn, hoặc cần cô lập ORM.
-- Transaction (`prisma.$transaction`) chỉ khi **cả 1 business operation** phải cùng thành công/thất bại như 1 đơn vị — không phải "cứ ≥2 write là cần transaction".
-- Auth: dùng `@Authorize(...permissions)` (`#src/security/authorization/permissions/`) — gộp JWT + Quyền + Swagger bearer; không import `PermissionsGuard`/`RequirePermissions` trực tiếp (lint chặn), không tự viết cơ chế phân quyền riêng. `@CurrentUser()` ở `security/authentication/`; kiểm loại tài khoản ở `security/authorization/account-type/`; ownership policy ở `security/authorization/ownership/`.
-- Response DTO: model có field nhạy cảm hoặc hay đổi (`User`, `Order`...) → **allow-list (Response DTO riêng)**, an toàn hơn blacklist `@Exclude()` (field mới mặc định bị lộ nếu quên đánh dấu).
-- Swagger: `@ApiTags()` đặt tên đầy đủ ý nghĩa (không viết tắt trần như `'auth'`), khai `type:` cho response để OpenAPI đúng contract. **Mỗi route bắt buộc `@ApiOperation({ summary: '...' })`** mô tả đúng hành vi (không lặp tên method) — tham khảo `src/modules/identity/auth/controllers/storefront/auth.controller.ts`. **Mỗi field DTO client gửi lên bắt buộc `example:`** trong `@ApiProperty`/`@ApiPropertyOptional` (không bắt buộc cho Response DTO/`PaginationDto`) — tham khảo `src/modules/identity/auth/dto/storefront/*.dto.ts`. **Mỗi module bắt buộc khai tag (`name` + `description`) trong `src/common/swagger/api-tags.ts`**; `src/bootstrap/openapi.ts` tự `addTag` từ đó, và controller dùng `@ApiTags(API_TAGS.X.name)` để `name` khớp chính xác (kể cả module CRUD đơn giản chỉ dùng path số nhiều trần) — gõ chuỗi tay thì lệch dễ khiến Swagger UI hiển thị nhóm route không có mô tả, không báo lỗi build. **Không sửa Postman thủ công** — Swagger (`/api-json`) là nguồn chuẩn, sync bằng `npm run postman:sync`.
-- Pagination: `findAll()` luôn trả envelope `{ data, meta: { page, limit, total, totalPages } }`, `orderBy` **luôn có tie-breaker** (vd. `[{ createdAt: 'desc' }, { id: 'desc' }]`) — thiếu tie-breaker thì thứ tự phân trang không ổn định.
-- `id` kiểu `String @default(uuid())` → `ParseUUIDPipe`; `Int @default(autoincrement())` → `ParseIntPipe` — luôn kiểm tra schema thật, không copy mặc định.
+- ESM: all internal imports, including imports from `.ts` files, must use the `.js` extension.
+- **Do not create `entities/`** (generated by default by `nest g resource`). Return Prisma types directly when the resource has no sensitive fields.
+- `PartialType` must be imported from **`@nestjs/swagger`**, not `@nestjs/mapped-types` (the latter produces incorrect OpenAPI metadata).
+- Server-generated fields (slugs, auto-incrementing order numbers, etc.) **must not** appear in `CreateDto`. The global `ValidationPipe` (`forbidNonWhitelisted`) returns 400 if clients send them; it does not silently discard them.
+- **Do not pre-fetch only to check existence** before `update`/`remove` when the filter already maps `P2025` to 404. Let Prisma report not-found. Pre-fetch only when the record itself is needed for a business-rule check (ownership, status, etc.).
+- Unique/FK pre-checks before writing are only a UX layer; they **do not replace** database constraints and the exception filter (a race condition is still possible).
+- **Do not add a Repository layer** for simple CRUD (`prisma.resource.x()` directly in the service is sufficient). Extract one only for complex reusable queries, multiple aggregates in one business operation, large transactions, or ORM isolation.
+- Use a transaction (`prisma.$transaction`) only when the **entire business operation** must succeed or fail as one unit—not merely because there are two or more writes.
+- Auth: use `@Authorize(...permissions)` (`#src/security/authorization/permissions/`) to combine JWT, permissions, and the Swagger bearer scheme. Do not import `PermissionsGuard`/`RequirePermissions` directly (lint blocks them), or create a separate authorization mechanism. `@CurrentUser()` is in `security/authentication/`; account-type checks are in `security/authorization/account-type/`; ownership policies are in `security/authorization/ownership/`.
+- Response DTOs: for models with sensitive or frequently changing fields (`User`, `Order`, etc.), use an **allow-list (a dedicated Response DTO)**. This is safer than a blacklist with `@Exclude()` because new fields are exposed by default if not explicitly marked.
+- Swagger: use meaningful full names in `@ApiTags()` (not bare abbreviations such as `'auth'`) and declare `type:` for responses so OpenAPI matches the contract. **Every route must have `@ApiOperation({ summary: '...' })`** describing its behavior, not merely repeating the method name; see `src/modules/identity/auth/controllers/storefront/auth.controller.ts`. **Every client-provided DTO field must include `example:`** in `@ApiProperty`/`@ApiPropertyOptional` (not required for Response DTOs or `PaginationDto`); see `src/modules/identity/auth/dto/storefront/*.dto.ts`. **Every module must declare a tag (`name` + `description`) in `src/common/swagger/api-tags.ts`**. `src/bootstrap/openapi.ts` adds tags from that file, and controllers use `@ApiTags(API_TAGS.X.name)` so the name matches exactly, including for simple CRUD modules with a bare plural path. A hand-typed mismatch can make Swagger UI show an undocumented route group without failing the build. **Do not edit Postman manually**—Swagger (`/api-json`) is the source of truth; sync with `npm run postman:sync`.
+- Pagination: `findAll()` always returns `{ data, meta: { page, limit, total, totalPages } }`. `orderBy` **must always include a tie-breaker** (for example, `[{ createdAt: 'desc' }, { id: 'desc' }]`) to keep paginated ordering stable.
+- `String @default(uuid())` IDs use `ParseUUIDPipe`; `Int @default(autoincrement())` IDs use `ParseIntPipe`. Check the actual schema instead of assuming defaults.
 
-## Testing — ưu tiên đảo ngược so với trực giác
+## Testing — prioritize in reverse order of intuition
 
-- Service unit test: **bắt buộc nếu service có business logic** (mock `PrismaService`).
-- API e2e test: **bắt buộc cho endpoint public/quan trọng** (auth, checkout, payment...), khuyến nghị cho mọi CRUD.
-- Controller unit test: **optional** — controller mỏng test kiểu `expect(serviceMock.x).toHaveBeenCalled()` không phát hiện được lỗi route/pipe/validation/filter; e2e cover việc đó tốt hơn.
-- e2e dùng chung `configureApp()` (`src/bootstrap/configure-app.ts`) với `main.ts` — không duplicate cấu hình `ValidationPipe` giữa 2 nơi.
+- Service unit tests are **required when the service contains business logic** (mock `PrismaService`).
+- API e2e tests are **required for public/critical endpoints** (auth, checkout, payment, etc.) and recommended for all CRUD endpoints.
+- Controller unit tests are **optional**. For thin controllers, tests such as `expect(serviceMock.x).toHaveBeenCalled()` do not catch route/pipe/validation/filter issues; e2e tests cover those better.
+- e2e tests share `configureApp()` (`src/bootstrap/configure-app.ts`) with `main.ts`. Do not duplicate `ValidationPipe` configuration in both places.
 
-## Idempotency/Concurrency (API nghiệp vụ — checkout, payment, refund...)
+## Idempotency and concurrency (business APIs such as checkout, payment, and refunds)
 
-- Idempotency: retry có tạo trùng record/side-effect không? Cân nhắc `Idempotency-Key` hoặc unique constraint.
-- Concurrency: 2 request cùng đọc-rồi-ghi có làm sai invariant không (inventory, coupon, balance...)? `read→check→write` kể cả trong transaction chưa chắc đủ — cần atomic update (`UPDATE ... WHERE quantity >= x`) hoặc optimistic lock.
+- Idempotency: can retries create duplicate records or side effects? Consider an `Idempotency-Key` or a unique constraint.
+- Concurrency: can two concurrent read-then-write requests violate an invariant (inventory, coupons, balances, etc.)? `read → check → write` may be insufficient even inside a transaction; use an atomic update (`UPDATE ... WHERE quantity >= x`) or optimistic locking.

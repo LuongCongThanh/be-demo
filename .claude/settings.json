@@ -1,6 +1,11 @@
 {
   "permissions": {
-    "allow": ["Bash(pnpm typecheck)", "Bash(pnpm lint)", "Bash(pnpm test)", "mcp__claude_ai_Figma__get_screenshot"]
+    "allow": [
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)",
+      "Bash(npm run test)",
+      "mcp__claude_ai_Figma__get_screenshot"
+    ]
   },
   "hooks": {
     "PreToolUse": [
@@ -9,7 +14,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protect-files.sh"
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/protect-files.sh\""
           }
         ]
       },
@@ -18,11 +23,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/enforce-git-workflow.sh"
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/enforce-git-workflow.sh\""
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/enforce-pr-template.sh"
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/enforce-pr-template.sh\""
           }
         ]
       }
@@ -33,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-swagger-completeness.sh"
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/check-swagger-completeness.sh\""
           }
         ]
       },
@@ -42,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/after-pr-create.sh"
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/after-pr-create.sh\""
           }
         ]
       }
