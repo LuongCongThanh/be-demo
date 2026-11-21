@@ -1,6 +1,6 @@
 # Vietnam E-commerce Website Notification — MOIT Requirements
 
-**Ticket pointer:** [`04-vietnam-ecommerce-notification.md`](/home/thanhluongcong/Documents/fashion-store/be-demo/docs/plan/wayfinding/fashion-store-mvp-implementation/issues/04-vietnam-ecommerce-notification.md)
+**Ticket pointer:** [Issue #04 in PR #100](https://github.com/LuongCongThanh/be-demo/blob/92d4d5291a3c9fbb715c924f2b9e4f3e5164684d/docs/plan/wayfinding/fashion-store-mvp-implementation/issues/04-vietnam-ecommerce-notification.md)
 
 **Scope date:** 2026-11-21
 **Audience:** Merchant operating a website that directly sells its own goods or services in Vietnam
