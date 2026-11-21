@@ -19,7 +19,7 @@ docs/plan/
 Quy ước:
 
 - `NN` là thứ tự thực hiện. Tên thư mục dùng tiếng Anh theo kiểu kebab-case.
-- Trường `status` trong metadata đầu `spec.md` nhận một trong các giá trị `todo` | `in-progress` | `done`. Cập nhật bảng cùng lúc.
+- Trường `status` trong metadata đầu `spec.md` của nhiệm vụ nhận một trong các giá trị `todo` | `in-progress` | `done`. Tài liệu umbrella chỉ dùng `reference` và không theo dõi trạng thái triển khai. Cập nhật bảng cùng lúc.
 - Chỉ viết đầy đủ nội dung nhiệm vụ khi bắt đầu (sau khi nhiệm vụ trước đã được hợp nhất); trước đó chỉ cần khung `spec.md`. Ngoại lệ: các nhiệm vụ được tạo từ cùng một buổi phân tích/đánh giá kiến trúc (ví dụ 07–08) có thể được viết đầy đủ cùng lúc để lưu lại các quyết định; khi bắt đầu từng nhiệm vụ phải đối chiếu lại với mã hiện tại.
 - Khi phát sinh việc mới: tạo thư mục nhiệm vụ với `spec.md` khung và thêm một dòng vào bảng.
 - `metric.md` ghi số token **đo thực tế** (không ước lượng), chia theo mã nguồn / kiểm thử / tài liệu / khảo sát: `npm run tokens -- <sessionId|latest> [--since <ISO>] [--until <ISO>] --md` (`scripts/token-usage.ts` đọc bản ghi phiên Claude Code tại `~/.claude/projects/`; chỉ phân loại được tệp sửa bằng Write/Edit — sửa bằng Bash được tính vào `explore/chat`).
@@ -54,7 +54,7 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 22  | [Giá khuyến mãi](./tasks/22-sale-prices/spec.md)                                                       | done        | 21-product-slug-gender    | #91 |
 | 23  | [Quản lý voucher](./tasks/23-vouchers/spec.md)                                                         | done        | 22-sale-prices            | #92 |
 | 24  | [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/spec.md)                | in-progress | —                         |     |
-| 25  | [MVP thương mại end-to-end](./tasks/25-mvp-commerce-end-to-end/spec.md)                               | todo        | 17-access-admin-api, 24-category-content | |
+| 25  | [Phạm vi MVP thương mại end-to-end (tài liệu umbrella)](./tasks/25-mvp-commerce-end-to-end/spec.md)    | reference   | —                         | — |
 | 26  | [Giỏ hàng Buyer và gộp giỏ](./tasks/26-buyer-cart/spec.md)                                             | todo        | 17-access-admin-api, 24-category-content | |
 | 27  | [Tồn kho và điều chỉnh Staff](./tasks/27-inventory-availability/spec.md)                               | todo        | 26-buyer-cart             |     |
 | 28  | [Tính thử và đặt đơn COD](./tasks/28-cod-checkout/spec.md)                                             | todo        | 26-buyer-cart, 27-inventory-availability | |
@@ -68,6 +68,8 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 36  | [Đồng ý dữ liệu, vận hành và báo cáo](./tasks/36-compliance-operations-reporting/spec.md)              | todo        | 17-access-admin-api, 28-cod-checkout, 33-staff-order-operations, 34-returns-refunds | |
 
 Các đầu việc thuộc Giai đoạn B của [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/issues/README.md) nằm trong nhiệm vụ cha; trạng thái và các mối phụ thuộc được theo dõi tại danh sách đó.
+
+Tài liệu umbrella số 25 chỉ định hướng phạm vi và các quy tắc xuyên luồng; không sở hữu đầu ra triển khai riêng. Tiêu chí nghiệm thu và trạng thái triển khai thuộc các nhiệm vụ 26–36.
 
 Nhiệm vụ 17 vẫn `in-progress` tới khi bản sửa CLI được đưa vào PR/merge. PR #83 đã hợp nhất phần API RBAC; bản sửa [report](./tasks/17-access-admin-api/report.md) ngăn `create-admin` tạo Admin thứ hai active trong working tree.
 
