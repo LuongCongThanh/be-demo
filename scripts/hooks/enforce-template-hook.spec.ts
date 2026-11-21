@@ -41,6 +41,13 @@ describe('Copilot-compatible command hooks', () => {
     expect(result.stderr).toContain('No Bash command');
   });
 
+  it('fails closed for a whitespace-only Copilot Bash command', () => {
+    const result = runHook('.claude/hooks/enforce-pr-template.sh', copilotPayload('   '));
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('A Bash tool call is missing its command');
+  });
+
   it.each(['.claude/hooks/enforce-pr-template.sh', '.codex/hooks/enforce-pr-template.sh'])(
     '%s blocks PR creation with an unvalidated stdin body',
     (hookPath) => {

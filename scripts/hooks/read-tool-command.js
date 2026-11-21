@@ -31,7 +31,7 @@ process.stdin.on('end', () => {
     : [];
   if (bashCalls.length > 0) {
     const commands = bashCalls.map((call) => call.args?.command);
-    if (commands.some((command) => typeof command !== 'string' || command.length === 0)) {
+    if (commands.some((command) => typeof command !== 'string' || command.trim().length === 0)) {
       process.stderr.write('A Bash tool call is missing its command.\n');
       process.exitCode = 2;
       return;
