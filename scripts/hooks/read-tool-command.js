@@ -21,7 +21,7 @@ process.stdin.on('end', () => {
   }
 
   const toolInputCommand = payload.tool_input?.command;
-  if (typeof toolInputCommand === 'string' && toolInputCommand.length > 0) {
+  if (typeof toolInputCommand === 'string' && toolInputCommand.trim().length > 0) {
     process.stdout.write(toolInputCommand);
     return;
   }
