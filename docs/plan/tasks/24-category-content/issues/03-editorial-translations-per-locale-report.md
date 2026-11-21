@@ -18,17 +18,19 @@
 
 ## Kiểm chứng
 
-- Unit focused: `27/27` test `AdminCategoryService` pass.
-- Toàn bộ unit suite trước sửa: `275/275` pass. Sau các thay đổi cuối, focused
-  service suite và category PostgreSQL E2E được chạy lại riêng.
-- Category E2E trên PostgreSQL 17 Docker cô lập: `14/14` pass, gồm ba locale,
-  quyền, validation, 404, independence, legacy English, rename/review/retry,
-  disable/re-enable và race worker nhiều instance/edit/delete.
+- `npm run lint`: pass; còn một warning `no-explicit-any` tại
+  `src/modules/identity/auth/guards/email-throttler.guard.ts`.
+- `npm run typecheck`: pass.
+- `npm run test`: 275 tests pass across 37 files.
+- `npm run test:e2e`: 190 tests pass, 1 skipped, across 25 passing files and
+  1 skipped file; run against an isolated PostgreSQL 17 database.
+- `npm run build`: pass.
+- `npm run openapi:write`: pass; generated
+  `docs/openapi/openapi.json` matches the committed contract.
 - Provider/storage trong test đều fake; không gọi Google hoặc Cloudinary thật.
-- Còn phải chạy lại unit/type/lint/build/OpenAPI sau bước báo cáo cuối này.
 
 ## Giới hạn chưa nghiệm thu
 
 - Credential Google Translation thật và deploy rollout không được kích hoạt.
 - Không sửa CMS/store UI; tài liệu bàn giao mô tả contract và cache locale.
-- Không PR/push theo quy trình local hiện tại.
+- Theo dõi triển khai trong PR [#98](https://github.com/LuongCongThanh/be-demo/pull/98).
