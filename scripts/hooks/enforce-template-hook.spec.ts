@@ -25,6 +25,22 @@ function copilotPayload(command: string) {
 }
 
 describe('Copilot-compatible command hooks', () => {
+  it('accepts a Claude tool_input command payload', () => {
+    const result = runHook('.claude/hooks/enforce-pr-template.sh', {
+      tool_input: { command: 'git status --short --branch' },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toContain('No Bash command');
+  });
+
+  it('fails closed for a whitespace-only Claude tool_input command', () => {
+    const result = runHook('.claude/hooks/enforce-pr-template.sh', { tool_input: { command: '   ' } });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('No Bash command');
+  });
+
   it.each(['.claude/hooks/enforce-pr-template.sh', '.codex/hooks/enforce-pr-template.sh'])(
     '%s blocks PR creation with an unvalidated stdin body',
     (hookPath) => {
