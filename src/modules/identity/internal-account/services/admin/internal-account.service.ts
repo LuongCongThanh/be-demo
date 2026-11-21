@@ -22,6 +22,7 @@ export interface CreateInternalAccountInput {
 }
 
 export const EMAIL_IN_USE_MESSAGE = 'Email is already in use';
+export const ACTIVE_ADMIN_EXISTS_MESSAGE = 'An active Admin account already exists';
 const STAFF_NOT_FOUND = 'Staff account not found';
 
 /** Mọi response Staff kèm Vai trò được gán (sắp theo tên) để CMS không phải gọi thêm request mỗi dòng. */
@@ -66,6 +67,14 @@ export class InternalAccountService {
     return writeUnique(
       () =>
         this.prisma.$transaction(async (tx) => {
+          if (input.role === 'ADMIN') {
+            await tx.$queryRaw`SELECT id FROM roles WHERE name = 'Admin' AND is_system = true FOR UPDATE`;
+            const activeAdmin = await tx.userRole.findFirst({
+              where: { role: { name: 'Admin', isSystem: true }, user: { status: 'ACTIVE' } },
+              select: { userId: true },
+            });
+            if (activeAdmin) throw new ConflictException(ACTIVE_ADMIN_EXISTS_MESSAGE);
+          }
           const user = await tx.user.create({
             data: {
               email: input.email,
