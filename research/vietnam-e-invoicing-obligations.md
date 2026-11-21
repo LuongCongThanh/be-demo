@@ -2,7 +2,7 @@
 
 **Research date / legal snapshot:** 2026-11-21 (Asia/Ho_Chi_Minh)<br>
 **Question:** May an online goods retailer issue one end-of-day aggregated e-invoice, or must it invoice individual sales; when, subject to what exceptions, and what should an MVP implement?<br>
-**Ticket pointer:** [`docs/plan/wayfinding/fashion-store-mvp-implementation/issues/03-vietnam-e-invoicing-obligations.md`](../docs/plan/wayfinding/fashion-store-mvp-implementation/issues/03-vietnam-e-invoicing-obligations.md)
+**Ticket pointer:** [Issue #03 in PR #100](https://github.com/LuongCongThanh/be-demo/blob/92d4d5291a3c9fbb715c924f2b9e4f3e5164684d/docs/plan/wayfinding/fashion-store-mvp-implementation/issues/03-vietnam-e-invoicing-obligations.md)
 
 > **Bottom line.** For ordinary online retail sales of goods, the prudent reading of the current invoice rules is **do not defer separate customer sales into a general end-of-day consolidated invoice**. The seller must issue an invoice when selling goods, and the timing rule is when ownership or the right to use the goods transfers to the buyer, whether or not payment has been received. The cited rules contain no general end-of-day aggregation permission for ordinary goods sales. This conclusion is an interpretation of the combined statutory duty and timing trigger: the decree does not literally say “one invoice per click/order,” and the exact sale/transfer event can depend on the contract and fulfillment model. A single invoice can describe the line items in one sale; the conclusion is not that every SKU or payment authorization needs its own invoice.
 
