@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { getUniqueConstraintTarget } from '#src/infrastructure/database/prisma-error.util.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
-import { CategorySlugConflictError } from '#src/modules/catalog/category/domain/errors/category-errors.js';
+import {
+  CategoryNotFoundError,
+  CategorySlugConflictError,
+} from '#src/modules/catalog/category/domain/errors/category-errors.js';
 import type {
   CategoryLanguage,
   CategoryTranslation,
@@ -222,6 +225,9 @@ class PrismaCategoryPersistenceOperations implements CategoryPersistenceOperatio
       return 'deleted';
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') return 'restricted';
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new CategoryNotFoundError(`Category #${id} not found`);
+      }
       throw error;
     }
   }

@@ -11,6 +11,7 @@ import {
   Patch,
   Post,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { CategoryImageStorage } from '#src/modules/catalog/category/application/ports/storage/category-image.storage.js';
@@ -29,10 +30,12 @@ import { CategoryResponseDto } from '#src/modules/catalog/category/admin/dto/cat
 import { PaginatedCategoryResponseDto } from '#src/modules/catalog/category/admin/dto/category/paginated-category-response.dto.js';
 import { UpdateCategoryTranslationDto } from '#src/modules/catalog/category/admin/dto/category/update-category-translation.dto.js';
 import { CategoryTranslationResponseDto } from '#src/modules/catalog/category/admin/dto/category/category-translation-response.dto.js';
+import { CategoryErrorMappingInterceptor } from '#src/modules/catalog/category/presentation/category-error-mapping.interceptor.js';
 
 /** Back-office: đọc cho STAFF + ADMIN (kể cả danh mục ẩn), ghi chỉ ADMIN. */
 @ApiTags(API_TAGS.ADMIN_CATEGORIES.name)
 @Authorize(Permission.CATALOG_CATEGORY_VIEW)
+@UseInterceptors(CategoryErrorMappingInterceptor)
 @Controller('admin/categories')
 export class AdminCategoryController {
   constructor(

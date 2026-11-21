@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { Controller, Get, Inject, Param, ParseUUIDPipe, Query, UseInterceptors } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
@@ -13,9 +13,11 @@ import { CategoryLocaleQueryDto } from '#src/modules/catalog/category/storefront
 import { PublicCategoryResponseDto as CategoryResponseDto } from '#src/modules/catalog/category/storefront/dto/category/public-category-response.dto.js';
 import { CategoryTreeNodeDto } from '#src/modules/catalog/category/storefront/dto/category/category-tree-node.dto.js';
 import { CategoryLanguageService } from '#src/modules/catalog/category/application/shared/localization/category-language.service.js';
+import { CategoryErrorMappingInterceptor } from '#src/modules/catalog/category/presentation/category-error-mapping.interceptor.js';
 
 /** Storefront — công khai, chỉ đọc, chỉ danh mục hiển thị. */
 @ApiTags(API_TAGS.STOREFRONT_CATEGORIES.name)
+@UseInterceptors(CategoryErrorMappingInterceptor)
 @Controller('categories')
 export class CategoryController {
   constructor(
