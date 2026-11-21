@@ -1,5 +1,13 @@
 ## Agent skills
 
+### Matt Pocock skill artifacts
+
+For Matt Pocock planning/spec/report/retro/handoff skills, follow the output format defined by the invoked skill. This repository does not maintain a shared Matt Pocock artifact template.
+
+For repository analysis, planning, implementation, documentation, Git, or GitHub tasks, follow [`docs/agents/execution-workflow.md`](docs/agents/execution-workflow.md). It is the source of truth for scope, preserving existing work, verification, and completion reports.
+
+When using Codex, also follow [`docs/agents/workflows/codex.md`](docs/agents/workflows/codex.md). Other agents should follow their platform-specific workflow when one is configured.
+
 ### Issue tracker
 
 Work is tracked as local Markdown tasks in `docs/plan/` (not GitHub Issues). See `docs/agents/issue-tracker.md`.
@@ -41,8 +49,8 @@ Index: `docs/README.md`. Business requirements (`docs/business/`) take priority 
 Whenever any agent is asked to review code, including by slash skill such as `/mattpocock-skills:code-review`, or by phrases such as "review code", "review this PR", "review this branch", "review since X", or "review the current diff":
 
 1. Perform a read-only review.
-2. Read and follow `docs/ai/code-review.md`; it is the single source of truth for review workflow, severity and report format.
-3. If a code-review skill or sub-agent is used, load this repository file before review and merge it with the skill's Standards/Spec workflow. Repository policy overrides the skill where they conflict.
+2. Follow this section as the repository review policy; use the invoked review skill's report format unless it conflicts with this policy.
+3. If a code-review skill or sub-agent is used, apply this section alongside its Standards/Spec workflow. Repository policy overrides the skill where they conflict.
 4. Read the relevant Task/User Story and acceptance criteria under `docs/plan/`, applicable business rules, architecture docs, ADRs and conventions.
 5. Prioritize correctness, security, data integrity, module boundaries, regressions and compatibility.
 6. Report only actionable findings backed by exact code and diff evidence.

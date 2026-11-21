@@ -1,7 +1,7 @@
 name: OpenAPI release
 
-# Push tag `openapi-v*` -> GitHub Release đính kèm đúng docs/openapi/openapi.json
-# của commit được tag. Frontend pin URL asset của tag qua OPENAPI_URL:
+# Pushing an `openapi-v*` tag creates a GitHub Release with the docs/openapi/openapi.json
+# from that tagged commit. The frontend pins the tagged asset URL through OPENAPI_URL:
 #   https://github.com/<owner>/<repo>/releases/download/<tag>/openapi.json
 on:
   push:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag đã có để phát hành lại (vd. openapi-v1.0.0)
+        description: Existing tag to release again (for example, openapi-v1.0.0)
         required: true
 
 permissions:

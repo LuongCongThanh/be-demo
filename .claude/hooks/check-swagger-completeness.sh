@@ -16,7 +16,7 @@ BASENAME="${FILE_PATH##*/}"
 
 emit_reminder() {
   local message="$1"
-  node -e 'let m=process.argv[1];console.log(JSON.stringify({hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:m}}))' "$message"
+  node -e 'let m=process.argv[1];console.log(JSON.stringify({additionalContext:m,hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:m}}))' "$message"
 }
 
 if [[ "$BASENAME" == *.controller.ts ]]; then

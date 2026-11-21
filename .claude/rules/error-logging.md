@@ -3,12 +3,12 @@ paths:
   - 'src/**/*.ts'
 ---
 
-# Error handling & logging (condensed — full rationale: docs/convention/error-logging-conventions.md)
+# Error handling and logging (condensed — full rationale: docs/convention/error-logging-conventions.md)
 
-- `AllExceptionsFilter` (global, `src/http/filters/all-exceptions.filter.ts`) là **safety net cho lỗi không lường trước**, không phải nơi định nghĩa domain error. Domain error đã biết trước (trùng unique, còn record con tham chiếu, sai business rule...) → **ném rõ ràng ở service** bằng `NotFoundException`/`ConflictException`/... kèm message cụ thể, không để rơi xuống filter.
-- Response lỗi shape cố định: `{ statusCode, message, requestId }`. Prisma map sẵn: `P2002`→409, `P2003`→409, `P2025`→404, còn lại→500.
-- Log level: **`5xx` filter tự `.error()` kèm stack — không log lại ở service**. **`4xx` không log** (luồng nghiệp vụ bình thường, log sẽ tạo noise). Business event quan trọng log `.log()` qua `new Logger(ClassName.name)`.
-- **Không bao giờ log secret**: password, token thô (JWT/refresh/reset-code), header `Authorization`.
-- `requestId` tự động gắn vào mọi `Logger` call qua `AppLogger` toàn cục — **không cần tự thêm** vào message khi viết service mới.
-- **Không** `try/catch` chỉ để log rồi throw lại nguyên văn (filter đã tự log 5xx, sẽ tạo log trùng). **Có** `try/catch` khi: (a) dịch lỗi tầng dưới (vd. Prisma `P2002`) thành domain exception cụ thể, hoặc (b) side-effect best-effort được phép fail (vd. gửi email) — trường hợp này **bắt buộc tự log rõ ràng** trước khi nuốt lỗi, không nuốt im lặng.
-- Pre-check (unique/FK) trước khi ghi chỉ là **UX layer** trả message đẹp — **không thay thế** unique constraint/FK constraint ở DB, vẫn có race condition giữa check và write.
+- `AllExceptionsFilter` (global, `src/http/filters/all-exceptions.filter.ts`) is a **safety net for unexpected errors**, not the place to define domain errors. For known domain errors (duplicate unique values, referenced child records, business-rule violations, etc.), **throw explicitly in the service** using `NotFoundException`/`ConflictException`/etc. with a specific message; do not let them fall through to the filter.
+- Error responses always use `{ statusCode, message, requestId }`. Prisma mappings: `P2002` → 409, `P2003` → 409, `P2025` → 404, all others → 500.
+- Logging levels: the filter logs **`5xx` errors with `.error()` and a stack trace—do not log them again in the service**. Do not log **`4xx`** responses (normal business flow; logging adds noise). Log important business events with `.log()` through `new Logger(ClassName.name)`.
+- **Never log secrets**: passwords, raw tokens (JWT/refresh/reset codes), or the `Authorization` header.
+- The global `AppLogger` automatically adds `requestId` to every `Logger` call; **do not add it manually** to messages in new services.
+- **Do not** use `try/catch` only to log and rethrow the same error (the filter already logs 5xx errors, so this duplicates logs). Use `try/catch` to (a) translate a lower-level error (for example, Prisma `P2002`) into a specific domain exception, or (b) handle an allowed-to-fail best-effort side effect (for example, sending email). In the latter case, **log explicitly before swallowing the error**; never fail silently.
+- Unique/FK pre-checks before writing are only a **UX layer** for clear messages; they **do not replace** database unique/FK constraints. A race condition between the check and write is still possible.

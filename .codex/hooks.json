@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/home/thanhluongcong/Documents/be-demo/.codex/hooks/protect-files.sh'"
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/protect-files.sh\""
           }
         ]
       },
@@ -15,11 +15,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/home/thanhluongcong/Documents/be-demo/.codex/hooks/enforce-git-workflow.sh'"
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/enforce-git-workflow.sh\""
           },
           {
             "type": "command",
-            "command": "bash '/home/thanhluongcong/Documents/be-demo/.codex/hooks/enforce-pr-template.sh'"
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/enforce-pr-template.sh\""
           }
         ]
       }
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/home/thanhluongcong/Documents/be-demo/.codex/hooks/check-swagger-completeness.sh'"
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/check-swagger-completeness.sh\""
           }
         ]
       },
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash '/home/thanhluongcong/Documents/be-demo/.codex/hooks/after-pr-create.sh'"
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/after-pr-create.sh\""
           }
         ]
       }
