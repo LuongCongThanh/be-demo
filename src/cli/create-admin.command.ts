@@ -3,7 +3,7 @@ import { parseArgs } from 'node:util';
 import { plainToInstance } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, MaxLength, validate } from 'class-validator';
 import { IsStrongPassword } from '#src/common/validation/is-strong-password.decorator.js';
-import { InternalAccountService } from '#src/modules/identity/internal-account/services/admin/internal-account.service.js';
+import { InternalAccountService } from '#src/modules/identity/internal-account.service.js';
 import { PasswordPrompt } from '#src/cli/password-prompt.js';
 
 export interface CliOutput {

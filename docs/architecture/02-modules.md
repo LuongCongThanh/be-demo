@@ -74,14 +74,14 @@ flowchart TB
 
 - Phụ thuộc một chiều, không vòng. Khi module dưới cần báo ngược lên (ví dụ `payment` báo thanh toán thành công cho `ordering`, `fulfillment` báo đã giao), dùng **domain event** qua outbox — không import ngược ([07-async-events-jobs.md](./07-async-events-jobs.md)).
 - `notification`, `administration` chỉ được gọi tới hoặc lắng nghe event; không module nghiệp vụ nào phụ thuộc vào chúng để hoàn thành transaction.
-- **Cửa ngõ module là `exports` trong `<module>.module.ts`.** Mỗi module export đúng một service public (`InventoryService`, `CartService`, `VoucherService`, `PaymentService`, `FulfillmentService`, `OrderingService`, `CatalogService`, `CustomerService`; `identity` export `InternalAccountService` và `AccessService`). Service ruột không export. Module khác `imports: [XModule]` và inject service đó, không import file ruột theo đường dẫn. Không có file facade riêng.
-- Interface + token DI chỉ khi có ≥ 2 implementation thật (`PaymentGateway`: VNPay, MoMo). Một adapter (Cloudinary, GHN, SMTP) inject class trực tiếp.
+- **Cửa ngõ module là `exports` trong `<module>.module.ts`.** Mỗi module export đúng một service public (`InventoryService`, `CartService`, `VoucherService`, `PaymentService`, `FulfillmentService`, `OrderingService`, `CatalogService`, `CustomerService`; `identity` export `InternalAccountService` và `AccessService`). Service ruột không export. Module khác `imports: [XModule]` và inject service đó, không import file ruột theo đường dẫn. `CategoryModule` là feature module nội bộ của Catalog: `CatalogModule` import module này để sở hữu Category endpoints và composition, không export provider nghiệp vụ ra ngoài Catalog. Category dùng `CategoryCoreModule` cho persistence/Port binding và `AdminCategoryModule` / `StorefrontCategoryModule` cho controllers/providers; chỉ surface mới import Core trực tiếp. Không có file facade riêng.
+- Interface + token DI chỉ khi có ≥ 2 implementation thật (`PaymentGateway`: VNPay, MoMo), ngoại trừ các Port outbound bắt buộc theo Category v1.6. Một adapter (Cloudinary, GHN, SMTP) thường inject class trực tiếp.
 - `common/` là tầng dùng chung ít phụ thuộc: không import `http/`, `security/`, `infrastructure/` hoặc `modules/`. `http/` và `security/` được phép dùng `common/` và adapter cần thiết từ `infrastructure/`, nhưng không import `modules/`. `infrastructure/` có thể dùng thành phần dùng chung từ `common/`, không import `modules/`. Hợp đồng `Permission` và `JwtPayload` dùng chung giữa authentication/authorization nằm ở `security/contracts/` để tránh phụ thuộc vòng giữa hai nhánh.
-- Trong một module: Controller → Service → Prisma. Controller không truy cập DB; không thêm lớp repository mặc định ([../convention/](../convention/)).
+- Các feature Catalog khác giữ flow hiện tại Controller → Service → Prisma, không thêm repository mặc định. Riêng Category tuân thủ hai convention v1.6: Controller → Application → Port ← Infrastructure Adapter, với DI wiring tại `CategoryModule`.
 
 ### 3.1 Composition root và Nest feature modules
 
-Hiện `CatalogModule` và `IdentityModule` là composition root cho các feature folder bên trong; `VoucherModule` tiếp tục là module độc lập. Giữ cách tổ chức này, không tạo `category.module.ts`, `product.module.ts` hoặc các Nest feature module con chỉ để mỗi folder có một module file.
+`CatalogModule` vẫn là composition root bên ngoài cho Catalog và import `CategoryModule` theo Category v1.6; `IdentityModule` vẫn là composition root cho Identity; `VoucherModule` tiếp tục là module độc lập. Không tạo `product.module.ts` hoặc Nest feature module con khác chỉ để mỗi folder có một module file.
 
 Chỉ xem xét tách Nest feature module khi có nhu cầu độc lập thực tế về ownership, lifecycle, kiểm thử hoặc export service. Trước khi tách, lập dependency graph giữa các feature, giữ hướng phụ thuộc một chiều, tránh vòng import và chỉ export API mà feature khác cần. Không dùng số file hay số dòng làm ngưỡng tự động.
 
@@ -113,7 +113,7 @@ src/
 │   │   └── metrics/
 │   └── storage/
 └── modules/
-    ├── catalog/
+    ├── catalog/             # CatalogModule import CategoryModule
     │   ├── category/
     │   ├── pricing/
     │   ├── product/
@@ -175,7 +175,7 @@ Trong một module, giữ các thư mục theo **thực thể**; bên trong mỗ
 
 ```text
 modules/catalog/
-├── catalog.module.ts                      # gốc module chỉ có file này
+├── catalog.module.ts                      # gốc composition cho product, product-option và pricing
 ├── product/
 │   ├── controllers/
 │   │   ├── storefront/
@@ -189,21 +189,27 @@ modules/catalog/
 │       ├── storefront/
 │       ├── admin/
 │       └── shared/
-├── category/
-│   ├── controllers/
-│   │   ├── storefront/                    # public category and language endpoints
-│   │   └── admin/                         # CMS category, language and image endpoints
-│   ├── services/
-│   │   ├── storefront/
-│   │   ├── admin/
-│   │   └── shared/                        # language configuration and translation worker
-│   ├── clients/                           # category-translation.client
-│   ├── domain/                            # category-tree, category-locale, image constants/enum
-│   ├── mappers/shared/                    # public and admin category projections
-│   └── dto/
-│       ├── storefront/
-│       ├── admin/
-│       └── shared/
+├── category/                              # Category v1.6; own Nest composition root
+│   ├── category.module.ts
+│   ├── domain/
+│   │   ├── models/
+│   │   ├── tree/
+│   │   ├── localization/
+│   │   ├── image/
+│   │   └── errors/
+│   ├── application/
+│   │   ├── ports/
+│   │   └── services/
+│   │       ├── admin/category|image|translation/
+│   │       ├── shared/localization|translation/
+│   │       └── storefront/category/
+│   ├── controllers/{admin,storefront}/
+│   ├── dto/{admin,shared,storefront}/
+│   ├── presentation/mappers/shared/
+│   ├── infrastructure/
+│   │   ├── integrations/translation/
+│   │   └── persistence/relational/{queries,adapters}/
+│   └── testing/                           # shared test setup only
 ├── product-option/
 │   ├── controllers/
 │   │   ├── storefront/
@@ -248,7 +254,9 @@ modules/voucher/
 └── dto/admin/
 ```
 
-Trong module có API cho cả Storefront và Admin CMS, nhóm controller và DTO theo `storefront/` hoặc `admin/`; service/mapper riêng cho một phía cũng theo nhóm tương ứng. Logic hoặc DTO dùng chung nằm trong `shared/`; domain và client thuần vẫn ở thư mục vai trò chung. Chỉ tạo nhóm thực sự có file, không để thư mục rỗng. Swagger dùng tag riêng có tiền tố `Storefront —` hoặc `Admin CMS —`. Test `*.spec.ts` đặt cạnh file được test trong nhóm tương ứng.
+Trong module có API cho cả Storefront và Admin CMS, nhóm controller và DTO theo `storefront/` hoặc `admin/`; service/mapper riêng cho một phía cũng theo nhóm tương ứng. Logic hoặc DTO dùng chung nằm trong `shared/`; domain thuần nằm trong `domain/`. Chỉ tạo nhóm thực sự có file, không để thư mục rỗng. Swagger dùng tag riêng có tiền tố `Storefront —` hoặc `Admin CMS —`. Test `*.spec.ts` đặt cạnh file được test trong nhóm tương ứng.
+
+Riêng `category/`, tuân thủ [`refactor/01-category-folder-structure-convention-v1.6.md`](./refactor/01-category-folder-structure-convention-v1.6.md) và [`refactor/02-category-clean-code-quality-convention-v1.6.md`](./refactor/02-category-clean-code-quality-convention-v1.6.md). `CategoryModule` là composition root cho Category và được `CatalogModule` import; các port outbound thuộc Application, adapter công nghệ thuộc Infrastructure. Các module khác không mặc nhiên áp dụng cùng cấu trúc này. Transaction callback giữ một context nội bộ để phối hợp thao tác category/translation theo revision/generation; không làm lộ Prisma transaction client. Tách file theo trách nhiệm, không áp dụng ngưỡng dòng cứng.
 
 ## 5. As-built inventory — shared/runtime
 

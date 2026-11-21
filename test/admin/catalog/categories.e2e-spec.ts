@@ -4,8 +4,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
 import type { AccountType } from '#src/generated/prisma/enums.js';
-import { CategoryTranslationClient } from '#src/modules/catalog/category/clients/category-translation.client.js';
-import { CategoryTranslationService } from '#src/modules/catalog/category/services/shared/category-translation.service.js';
+import { CategoryTranslationClient } from '#src/modules/catalog/category/infrastructure/integrations/translation/category-translation.client.js';
+import { CategoryTranslationService } from '#src/modules/catalog/category/application/shared/translation/category-translation.service.js';
+import { PrismaCategoryRepository } from '#src/modules/catalog/category/infrastructure/persistence/relational/adapters/prisma-category.repository.js';
 import { createTestUser } from '../../support/create-test-user.js';
 import { createTestApp } from '../../support/create-test-app.js';
 
@@ -253,7 +254,10 @@ describe('Categories — Admin CMS (e2e)', () => {
 
         fakeTranslator.enabled = true;
         fakeTranslator.translate.mockClear();
-        const worker = new CategoryTranslationService(prisma, app.get(CategoryTranslationClient));
+        const worker = new CategoryTranslationService(
+          app.get(PrismaCategoryRepository),
+          app.get(CategoryTranslationClient),
+        );
         let translatedRows = translations;
         for (let attempt = 0; attempt < 30; attempt++) {
           await worker.tick();
@@ -369,7 +373,10 @@ describe('Categories — Admin CMS (e2e)', () => {
           }),
         ).toMatchObject({ name: null, status: 'PENDING' });
 
-        const resumedWorker = new CategoryTranslationService(prisma, app.get(CategoryTranslationClient));
+        const resumedWorker = new CategoryTranslationService(
+          app.get(PrismaCategoryRepository),
+          app.get(CategoryTranslationClient),
+        );
         let resumedTranslation = await prisma.categoryTranslation.findUnique({
           where: { categoryId_locale: { categoryId: category.id, locale: 'es' } },
         });
@@ -404,7 +411,10 @@ describe('Categories — Admin CMS (e2e)', () => {
           data: { createdAt: new Date(0) },
         });
         fakeTranslator.enabled = true;
-        const worker = new CategoryTranslationService(prisma, app.get(CategoryTranslationClient));
+        const worker = new CategoryTranslationService(
+          app.get(PrismaCategoryRepository),
+          app.get(CategoryTranslationClient),
+        );
         for (let attempt = 0; attempt < 3; attempt++) {
           await worker.tick();
         }
@@ -582,12 +592,18 @@ describe('Categories — Admin CMS (e2e)', () => {
             return `${targetLocale}: ${name}`;
           });
 
-          const worker = new CategoryTranslationService(prisma, app.get(CategoryTranslationClient));
+          const worker = new CategoryTranslationService(
+            app.get(PrismaCategoryRepository),
+            app.get(CategoryTranslationClient),
+          );
           const tick = worker.tick();
           await started.promise;
           try {
             if (testTwoWorkers) {
-              await new CategoryTranslationService(prisma, app.get(CategoryTranslationClient)).tick();
+              await new CategoryTranslationService(
+                app.get(PrismaCategoryRepository),
+                app.get(CategoryTranslationClient),
+              ).tick();
               expect(
                 fakeTranslator.translate.mock.calls.filter(
                   ([name, targetLocale]) => name === categoryName && targetLocale === locale,

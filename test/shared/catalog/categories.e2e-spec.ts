@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { CategoryTranslationService } from '#src/modules/catalog/category/services/shared/category-translation.service.js';
-import type { CategoryTranslationClient } from '#src/modules/catalog/category/clients/category-translation.client.js';
+import { CategoryTranslationService } from '#src/modules/catalog/category/application/shared/translation/category-translation.service.js';
+import type { CategoryTranslationClient } from '#src/modules/catalog/category/infrastructure/integrations/translation/category-translation.client.js';
+import { PrismaCategoryRepository } from '#src/modules/catalog/category/infrastructure/persistence/relational/adapters/prisma-category.repository.js';
 import type { Prisma } from '#src/generated/prisma/client.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
@@ -96,6 +97,9 @@ describe('Categories — cross-audience flows (e2e)', () => {
 
   function scopedTranslationPrisma(categoryId: string): PrismaService {
     return {
+      categoryLanguage: {
+        findMany: (args: Prisma.CategoryLanguageFindManyArgs) => prisma.categoryLanguage.findMany(args),
+      },
       categoryTranslation: {
         findMany: (args: Prisma.CategoryTranslationFindManyArgs) =>
           prisma.categoryTranslation.findMany({ ...args, where: { ...args.where, categoryId } }),
@@ -297,7 +301,10 @@ describe('Categories — cross-audience flows (e2e)', () => {
             return 'Stale provider result';
           },
         } as unknown as CategoryTranslationClient;
-        await new CategoryTranslationService(scopedTranslationPrisma(category.id), translator).tick();
+        await new CategoryTranslationService(
+          new PrismaCategoryRepository(scopedTranslationPrisma(category.id)),
+          translator,
+        ).tick();
         const response = await request(server()).get(`/api/v1/admin/categories/${category.id}`).set(auth(adminToken));
         const result = response.status === 404 ? null : response.body;
         if (change === 'delete') expect(result).toBeNull();
@@ -311,7 +318,7 @@ describe('Categories — cross-audience flows (e2e)', () => {
 
     it('persists a successful automatic translation and then preserves its slug', async () => {
       const category = await createCategory();
-      await new CategoryTranslationService(scopedTranslationPrisma(category.id), {
+      await new CategoryTranslationService(new PrismaCategoryRepository(scopedTranslationPrisma(category.id)), {
         enabled: true,
         translate: async () => 'T-shirt',
       } as unknown as CategoryTranslationClient).tick();

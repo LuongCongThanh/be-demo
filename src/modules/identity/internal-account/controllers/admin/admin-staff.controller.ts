@@ -7,7 +7,7 @@ import { API_TAGS } from '#src/common/swagger/api-tags.js';
 import { CurrentUser } from '#src/security/authentication/current-user.decorator.js';
 import type { JwtPayload } from '#src/security/contracts/jwt-payload.js';
 import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
-import { InternalAccountService } from '#src/modules/identity/internal-account/services/admin/internal-account.service.js';
+import { InternalAccountService } from '#src/modules/identity/internal-account.service.js';
 import { CreateStaffDto } from '#src/modules/identity/internal-account/dto/admin/create-staff.dto.js';
 import { UpdateStaffDto } from '#src/modules/identity/internal-account/dto/admin/update-staff.dto.js';
 import { StaffResponseDto } from '#src/modules/identity/internal-account/dto/admin/staff-response.dto.js';
