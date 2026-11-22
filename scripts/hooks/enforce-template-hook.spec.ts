@@ -65,11 +65,8 @@ describe('Copilot-compatible command hooks', () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'pr-template-hook-'));
     const bodyPath = join(tempDir, 'body.md');
     const body = readFileSync(resolve(repoRoot, '.github/pull_request_template.md'), 'utf8')
-      .replace('- [ ] 📚 Documentation', '- [x] 📚 Documentation')
-      .replace(
-        '\n-\n---\n\n## 📖 Project References',
-        '\n- code-review: 0 findings (template validation test)\n\n---\n\n## 📖 Project References',
-      );
+      .replace('- [ ] docs', '- [x] docs')
+      .replace('- [ ] Code review:', '- [x] Code review: 0 findings');
 
     try {
       writeFileSync(bodyPath, body);
@@ -84,6 +81,74 @@ describe('Copilot-compatible command hooks', () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('rejects a code-review outcome misplaced outside Verification', () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'pr-template-hook-'));
+    const bodyPath = join(tempDir, 'body.md');
+    const body = readFileSync(resolve(repoRoot, '.github/pull_request_template.md'), 'utf8')
+      .replace('- [ ] docs', '- [x] docs')
+      .replace('- [ ] Code review:', '- [ ] Code review:')
+      .replace('## 6. Reviewer Notes', '## 6. Reviewer Notes\n\n- [x] Code review: 0 findings');
+
+    try {
+      writeFileSync(bodyPath, body);
+      const result = runHook(
+        '.claude/hooks/enforce-pr-template.sh',
+        copilotPayload(`gh pr create --base dev --title "docs: test" --body-file "${bodyPath}"`),
+      );
+
+      expect(result.status).toBe(2);
+      expect(result.stderr).toMatch(/Code review|code-review|Verification/i);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('accepts a CRLF template body', () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'pr-template-hook-'));
+    const bodyPath = join(tempDir, 'body.md');
+    const body = readFileSync(resolve(repoRoot, '.github/pull_request_template.md'), 'utf8')
+      .replace('- [ ] docs', '- [x] docs')
+      .replace('- [ ] Code review:', '- [x] Code review: 0 findings')
+      .replace(/\n/g, '\r\n');
+
+    try {
+      writeFileSync(bodyPath, body);
+      const result = runHook(
+        '.github/hooks/scripts/enforce-pr-template.sh',
+        copilotPayload(`gh pr create --base dev --title "docs: test" --body-file "${bodyPath}"`),
+      );
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe('');
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it.each(['- [ ] Code review: 0 findings', '- [x] Code review: skipped', '- [x] Code review: not run'])(
+    'rejects an invalid code-review outcome: %s',
+    (outcome) => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'pr-template-hook-'));
+      const bodyPath = join(tempDir, 'body.md');
+      const body = readFileSync(resolve(repoRoot, '.github/pull_request_template.md'), 'utf8')
+        .replace('- [ ] docs', '- [x] docs')
+        .replace('- [ ] Code review:', outcome);
+
+      try {
+        writeFileSync(bodyPath, body);
+        const result = runHook(
+          '.claude/hooks/enforce-pr-template.sh',
+          copilotPayload(`gh pr create --base dev --title "docs: test" --body-file "${bodyPath}"`),
+        );
+
+        expect(result.status).toBe(2);
+        expect(result.stderr).toMatch(/Code review|code-review/i);
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    },
+  );
 
   it('fails closed when the Copilot Bash payload has no command', () => {
     const result = runHook('.claude/hooks/enforce-pr-template.sh', {
