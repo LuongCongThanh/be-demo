@@ -1,6 +1,6 @@
 ---
-status: in-progress
-pr:
+status: done
+pr: #98
 blocked-by: []
 ---
 
@@ -38,7 +38,7 @@ Category cũ được thêm nullable content và PENDING, giữ ids/slugs/parent
 
 ## Trạng thái triển khai
 
-Code và kiểm chứng BE hoàn tất tại working tree; xem [report](report.md). Tracker giữ in-progress tới khi có PR/merge theo quy ước repo.
+Code và kiểm chứng BE hoàn tất và đã merge qua [PR #98](https://github.com/LuongCongThanh/be-demo/pull/98); xem [report](report.md).
 
 ## Ngoài phạm vi
 
