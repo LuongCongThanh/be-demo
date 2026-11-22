@@ -7,7 +7,7 @@ labels: [ready-for-agent]
 
 # Spec 09: Tách cổng phân quyền thành `@Authorize` ở `common/auth/`
 
-Branch: `chore/authorize-decorator` · Nguồn: [architecture review 2026-11-06, đề xuất #3](../../../architecture/reviews/architecture-review-2026-11-06.html)
+Branch: `chore/authorize-decorator`
 
 ## Problem Statement
 

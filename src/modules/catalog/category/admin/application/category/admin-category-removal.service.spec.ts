@@ -1,10 +1,7 @@
+import { ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
-import {
-  CategoryConflictError,
-  CategoryNotFoundError,
-} from '#src/modules/catalog/category/domain/errors/category-errors.js';
 import { categoryRepositoryProviders } from '#src/modules/catalog/category/testing/category-test-setup.js';
 import { AdminCategoryService } from '#src/modules/catalog/category/admin/application/category/admin-category.service.js';
 
@@ -49,7 +46,7 @@ describe('AdminCategoryService remove', () => {
   it('rejects categories that still have subcategories', async () => {
     prismaMock.category.count.mockResolvedValue(2);
 
-    await expect(service.remove('1')).rejects.toThrow(CategoryConflictError);
+    await expect(service.remove('1')).rejects.toThrow(ConflictException);
     expect(prismaMock.category.delete).not.toHaveBeenCalled();
   });
 
@@ -65,18 +62,15 @@ describe('AdminCategoryService remove', () => {
   it('rejects categories referenced by products', async () => {
     prismaMock.product.count.mockResolvedValue(3);
 
-    await expect(service.remove('1')).rejects.toThrow(CategoryConflictError);
+    await expect(service.remove('1')).rejects.toThrow(ConflictException);
     expect(prismaMock.category.delete).not.toHaveBeenCalled();
   });
 
-  it('maps a missing category on delete to a domain not-found error', async () => {
-    const notFoundError = new Prisma.PrismaClientKnownRequestError('Record not found', {
-      code: 'P2025',
-      clientVersion: 'test',
-    });
+  it('propagates the delete error when the category does not exist', async () => {
+    const notFoundError = new Error('Record not found');
     prismaMock.category.delete.mockRejectedValue(notFoundError);
 
-    await expect(service.remove('missing-id')).rejects.toThrow(CategoryNotFoundError);
+    await expect(service.remove('missing-id')).rejects.toThrow(notFoundError);
   });
 
   it('maps a foreign-key race during delete to a conflict', async () => {
@@ -87,6 +81,6 @@ describe('AdminCategoryService remove', () => {
       }),
     );
 
-    await expect(service.remove('1')).rejects.toThrow(CategoryConflictError);
+    await expect(service.remove('1')).rejects.toThrow(ConflictException);
   });
 });

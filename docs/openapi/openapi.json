@@ -138,7 +138,6 @@
             "type": "string"
           },
           "nameEn": {
-            "description": "Compatibility projection of the English category translation; null falls back to Vietnamese on the storefront",
             "nullable": true,
             "type": "string"
           },
@@ -146,7 +145,6 @@
             "type": "string"
           },
           "parentId": {
-            "description": "null for a root category",
             "nullable": true,
             "type": "string"
           },
@@ -165,7 +163,6 @@
             "type": "string"
           },
           "translationStatus": {
-            "description": "Compatibility projection of the English translation status",
             "enum": [
               "PENDING",
               "TRANSLATED",
@@ -1496,7 +1493,6 @@
             "type": "string"
           },
           "nameEn": {
-            "description": "Compatibility projection of the English category translation; null falls back to Vietnamese on the storefront",
             "nullable": true,
             "type": "string"
           },
@@ -1504,7 +1500,6 @@
             "type": "string"
           },
           "parentId": {
-            "description": "null for a root category",
             "nullable": true,
             "type": "string"
           },

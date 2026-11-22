@@ -97,7 +97,7 @@ Job chạy bằng BullMQ repeatable job trong worker; mỗi lần chạy giữ m
 | -------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------- |
 | Huỷ đơn `PENDING_PAYMENT` quá 15 phút (T4), giải phóng Giữ hàng            | Mỗi phút                                                | BR-INV-05, T4                      |
 | Đối soát Thanh toán treo với VNPay / MoMo                                  | Mỗi 5 phút                                              | BR-PAY-02, T3                      |
-| Đối soát trạng thái Vận đơn với GHN                                        | Mỗi 15 phút **[Giả định · kiểm chứng hạn mức API GHN]** | T11, T12                           |
+| Đối soát trạng thái Vận đơn với GHN                                        | Mỗi 15 phút (dự phòng; webhook là nguồn cập nhật chính) | T11, T12                           |
 | Chuyển `DELIVERED` quá 7 ngày, không còn Đổi trả đang mở, sang `COMPLETED` | Mỗi giờ                                                 | T13, BR-REV-01                     |
 | Thử lại `shipment_events` chưa áp dụng (`next_attempt_at` tới hạn)         | Mỗi phút                                                | Mục 1.3                            |
 | Quét outbox kẹt `enqueued`                                                 | Mỗi 5 phút                                              | ADR 0007                           |
@@ -105,6 +105,8 @@ Job chạy bằng BullMQ repeatable job trong worker; mỗi lần chạy giữ m
 | Xoá token hết hạn/đã dùng (refresh, reset, verify) và Tính thử hết hạn     | Mỗi ngày                                                | [11-database.md](./11-database.md) |
 | Tính số liệu **bán chạy** 30 ngày                                          | Mỗi đêm                                                 | BR-CAT-12                          |
 | Dọn outbox `done` > 90 ngày, ẩn PII `email_logs` > 90 ngày                 | Mỗi ngày                                                | business/06 mục 5                  |
+
+Webhook GHN là nguồn cập nhật trạng thái chính; job 15 phút là cơ chế dự phòng, không phải cam kết về quota API hay độ mới trạng thái. Khi truy vấn GHN thất bại, giữ nguyên trạng thái đơn và retry có backoff; sau tối đa 10 lần trong 24 giờ thì cảnh báo đội kỹ thuật. Chỉ áp dụng trạng thái hợp lệ theo vòng đời đơn; trạng thái mâu thuẫn chỉ ghi log. Lỗi kỹ thuật tạm thời không tự tạo Cờ cần xử lý vận đơn.
 
 ## 5. Vai trò của Redis/BullMQ và khi Redis lỗi
 

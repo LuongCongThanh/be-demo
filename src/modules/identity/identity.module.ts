@@ -16,8 +16,8 @@ import { AccountProfileService } from '#src/modules/identity/auth/services/store
 import { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
 import { TokenService } from '#src/modules/identity/auth/services/shared/token.service.js';
 import { AdminRoleController } from '#src/modules/identity/access/controllers/admin/admin-role.controller.js';
-import { AccessService } from '#src/modules/identity/access/services/admin/access.service.js';
-import { InternalAccountService } from '#src/modules/identity/internal-account/services/admin/internal-account.service.js';
+import { AccessService } from '#src/modules/identity/access.service.js';
+import { InternalAccountService } from '#src/modules/identity/internal-account.service.js';
 import { JwtStrategy } from '#src/modules/identity/auth/strategies/jwt.strategy.js';
 
 @Module({

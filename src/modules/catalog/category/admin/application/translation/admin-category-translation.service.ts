@@ -1,12 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
-import {
-  CategoryConflictError,
-  CategoryInvalidInputError,
-  CategoryNotFoundError,
-} from '#src/modules/catalog/category/domain/errors/category-errors.js';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { isCategoryLocale } from '#src/modules/catalog/category/domain/localization/category-locale.js';
 import type {
-  CategoryTranslationOperations,
+  CategoryPersistenceOperations,
   CategoryTranslationRepository,
 } from '#src/modules/catalog/category/application/ports/persistence/category.repository.js';
 import { CATEGORY_TRANSLATION_REPOSITORY } from '#src/modules/catalog/category/application/ports/persistence/category.repository.js';
@@ -42,7 +37,7 @@ export class AdminCategoryTranslationService {
           status: name === null ? 'PENDING' : 'MANUAL',
         });
         if (!updated) {
-          throw new CategoryConflictError('Category translation changed concurrently — reload and retry');
+          throw new ConflictException('Category translation changed concurrently — reload and retry');
         }
       } else {
         await tx.createCategoryTranslation({
@@ -73,7 +68,7 @@ export class AdminCategoryTranslationService {
           status: 'PENDING',
         });
         if (!updated) {
-          throw new CategoryConflictError('Category translation changed concurrently — reload and retry');
+          throw new ConflictException('Category translation changed concurrently — reload and retry');
         }
       } else {
         await tx.createCategoryTranslation({
@@ -91,12 +86,12 @@ export class AdminCategoryTranslationService {
 
   private assertEditableLocale(locale: string): void {
     if (!isCategoryLocale(locale) || locale === 'vi') {
-      throw new CategoryInvalidInputError(`Invalid category translation locale "${locale}"`);
+      throw new BadRequestException(`Invalid category translation locale "${locale}"`);
     }
   }
 
   private async lockTranslationTarget(
-    tx: CategoryTranslationOperations,
+    tx: CategoryPersistenceOperations,
     id: string,
     locale: string,
   ): Promise<{ sourceVersion: number; generation: number }> {
@@ -104,15 +99,15 @@ export class AdminCategoryTranslationService {
     const sourceVersion = await this.lockCategoryForTranslationEdit(tx, id);
     const language = await tx.findCategoryLanguage(locale);
     if (!language?.enabled) {
-      throw new CategoryInvalidInputError(`Category locale "${locale}" is not enabled`);
+      throw new BadRequestException(`Category locale "${locale}" is not enabled`);
     }
     return { sourceVersion, generation: language.generation };
   }
 
-  private async lockCategoryForTranslationEdit(tx: CategoryTranslationOperations, id: string): Promise<number> {
+  private async lockCategoryForTranslationEdit(tx: CategoryPersistenceOperations, id: string): Promise<number> {
     const sourceVersion = await tx.lockCategoryForTranslationEdit(id);
     if (sourceVersion === null) {
-      throw new CategoryNotFoundError(`Category #${id} not found`);
+      throw new NotFoundException(`Category #${id} not found`);
     }
     return sourceVersion;
   }

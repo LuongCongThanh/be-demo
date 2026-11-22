@@ -1,8 +1,8 @@
 # Category Clean Code & Code Quality Convention
 
-**Phiên bản:** 1.6
-**Phạm vi:** Code trong NestJS `category` module
-**Trạng thái:** Proposed
+**Phiên bản:** 1.6<br>
+**Phạm vi:** Code trong NestJS `category` module<br>
+**Trạng thái:** Proposed<br>
 **Mục tiêu:** Đảm bảo code dễ đọc, dễ kiểm thử, đúng nghiệp vụ, an toàn khi thay đổi và nhất quán với Category Folder Structure Convention.
 
 ---
@@ -254,16 +254,16 @@ Kiểm tra tương tác thật giữa các thành phần cần xác minh, ví d�
 
 Không áp dụng số dòng tối đa cứng cho mọi file hoặc function. Review sâu khi thấy:
 
-| Dấu hiệu | Hướng xử lý |
-|---|---|
-| Service có nhiều trách nhiệm không liên quan | Xem xét tách theo trách nhiệm nghiệp vụ |
-| Function có nhiều nhánh lồng nhau | Xem xét early return hoặc tách bước có ý nghĩa |
-| Nhiều tham số | Xem xét object parameter hoặc kiểu dữ liệu mô tả rõ ý nghĩa |
-| Nhiều boolean parameter làm thay đổi hành vi | Xem xét tách function hoặc dùng kiểu dữ liệu tường minh |
-| Logic nghiệp vụ bị copy ở nhiều nơi | Xem xét dùng chung nếu cùng ý nghĩa |
-| File có nhiều class/helper không liên quan | Xem xét tách file |
-| Dependency được inject nhưng không sử dụng | Loại bỏ dependency |
-| Function quá dài | Review trách nhiệm và khả năng hiểu, không tự động tách theo số dòng |
+| Dấu hiệu                                     | Hướng xử lý                                                          |
+| -------------------------------------------- | -------------------------------------------------------------------- |
+| Service có nhiều trách nhiệm không liên quan | Xem xét tách theo trách nhiệm nghiệp vụ                              |
+| Function có nhiều nhánh lồng nhau            | Xem xét early return hoặc tách bước có ý nghĩa                       |
+| Nhiều tham số                                | Xem xét object parameter hoặc kiểu dữ liệu mô tả rõ ý nghĩa          |
+| Nhiều boolean parameter làm thay đổi hành vi | Xem xét tách function hoặc dùng kiểu dữ liệu tường minh              |
+| Logic nghiệp vụ bị copy ở nhiều nơi          | Xem xét dùng chung nếu cùng ý nghĩa                                  |
+| File có nhiều class/helper không liên quan   | Xem xét tách file                                                    |
+| Dependency được inject nhưng không sử dụng   | Loại bỏ dependency                                                   |
+| Function quá dài                             | Review trách nhiệm và khả năng hiểu, không tự động tách theo số dòng |
 
 Ưu tiên tách theo trách nhiệm nghiệp vụ, không tách chỉ để đạt một con số dòng code nhất định.
 
@@ -271,17 +271,17 @@ Không áp dụng số dòng tối đa cứng cho mọi file hoặc function. Re
 
 Các quy tắc quan trọng nên được kiểm tra tự động khi dự án có công cụ hỗ trợ.
 
-| Hạng mục | Cách kiểm tra/công cụ tham khảo |
-|---|---|
-| Formatting | Prettier hoặc formatter hiện có |
-| Lint | ESLint |
-| Type safety | TypeScript compiler, strict mode |
-| Unit test | Jest hoặc test runner hiện có |
-| Integration test | Test runner + database/test environment |
+| Hạng mục            | Cách kiểm tra/công cụ tham khảo                                |
+| ------------------- | -------------------------------------------------------------- |
+| Formatting          | Prettier hoặc formatter hiện có                                |
+| Lint                | ESLint                                                         |
+| Type safety         | TypeScript compiler, strict mode                               |
+| Unit test           | Jest hoặc test runner hiện có                                  |
+| Integration test    | Test runner + database/test environment                        |
 | Dependency boundary | ESLint boundaries, dependency-cruiser hoặc công cụ tương đương |
-| Coverage | Coverage report của test runner |
-| Build | Build script của dự án |
-| CI | Pipeline CI hiện có |
+| Coverage            | Coverage report của test runner                                |
+| Build               | Build script của dự án                                         |
+| CI                  | Pipeline CI hiện có                                            |
 
 Quy tắc:
 

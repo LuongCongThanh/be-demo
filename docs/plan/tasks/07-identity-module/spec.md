@@ -6,7 +6,7 @@ blocked-by: [06-catalog-module]
 
 # Spec 07: Gộp `auth` + `staff` thành module identity
 
-Branch: `chore/identity-module` · Nguồn: [architecture review 2026-11-06, đề xuất #2](../../../architecture/reviews/architecture-review-2026-11-06.html)
+Branch: `chore/identity-module`
 
 ## Problem Statement
 

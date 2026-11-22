@@ -1,8 +1,8 @@
-import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import { PrismaCategoryRepository } from '#src/modules/catalog/category/infrastructure/persistence/relational/adapters/prisma-category.repository.js';
 import { AdminCategoryService } from '#src/modules/catalog/category/admin/application/category/admin-category.service.js';
 import { CategoryLanguageService } from '#src/modules/catalog/category/application/shared/localization/category-language.service.js';
-import { categoryRepositoryProviders } from '#src/modules/catalog/category/testing/category-test-setup.js';
 
 function deferred() {
   let resolve!: () => void;
@@ -135,11 +135,9 @@ describe('category creation and language enablement', () => {
       }),
     };
 
-    const moduleRef = await Test.createTestingModule({
-      providers: [AdminCategoryService, CategoryLanguageService, ...categoryRepositoryProviders(prisma)],
-    }).compile();
-    const adminCategories = moduleRef.get(AdminCategoryService);
-    const categoryLanguages = moduleRef.get(CategoryLanguageService);
+    const repository = new PrismaCategoryRepository(prisma as unknown as PrismaService);
+    const adminCategories = new AdminCategoryService(repository);
+    const categoryLanguages = new CategoryLanguageService(repository);
 
     const createPromise = adminCategories.create({ name: 'Concurrent Category' });
     await categoryCreateReached.promise;
@@ -150,6 +148,5 @@ describe('category creation and language enablement', () => {
     await Promise.all([createPromise, enablePromise]);
 
     expect(translations.has('category-1:fr')).toBe(true);
-    await moduleRef.close();
   });
 });

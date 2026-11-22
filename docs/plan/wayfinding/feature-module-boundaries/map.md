@@ -14,6 +14,7 @@ An agreed, implementation-ready refactoring specification for the existing `be-d
 ## Decisions so far
 
 <!-- Decisions are indexed here only after their tickets are resolved. -->
+
 - [01 — Applying Category v1.6 conventions](./issues/01-convention-applicability.md): Category conventions supply shared principles and Category-specific conditional structure; do not copy every Category abstraction or folder mechanically.
 - [02 — Catalog feature-module boundaries](./issues/02-catalog-module-boundaries.md): keep `CatalogModule` as the Nest composition root; `CategoryModule` is internal, and other Catalog folders remain organizational.
 - [03 — Identity and Voucher boundaries](./issues/03-identity-and-voucher-boundaries.md): keep Identity and Voucher as independent composition roots; auth/access/internal-account remain feature areas in Identity.

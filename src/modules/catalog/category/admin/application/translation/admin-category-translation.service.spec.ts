@@ -1,9 +1,6 @@
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  CategoryConflictError,
-  CategoryInvalidInputError,
-} from '#src/modules/catalog/category/domain/errors/category-errors.js';
 import { categoryTranslations } from '#src/modules/catalog/category/infrastructure/persistence/relational/queries/category-prisma-selects.js';
 import { categoryRepositoryProviders } from '#src/modules/catalog/category/testing/category-test-setup.js';
 import { AdminCategoryTranslationService } from '#src/modules/catalog/category/admin/application/translation/admin-category-translation.service.js';
@@ -78,7 +75,7 @@ describe('AdminCategoryTranslationService', () => {
   });
 
   it('rejects source locale edits before opening a transaction', async () => {
-    await expect(service.updateTranslation('1', 'vi', 'Áo thun')).rejects.toThrow(CategoryInvalidInputError);
+    await expect(service.updateTranslation('1', 'vi', 'Áo thun')).rejects.toThrow(BadRequestException);
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
@@ -118,7 +115,7 @@ describe('AdminCategoryTranslationService', () => {
     });
     prismaMock.categoryTranslation.updateMany.mockResolvedValue({ count: 0 });
 
-    await expect(service.updateTranslation('1', 'fr', 'Chemises')).rejects.toThrow(CategoryConflictError);
+    await expect(service.updateTranslation('1', 'fr', 'Chemises')).rejects.toThrow(ConflictException);
   });
 
   it('retries a locale without discarding its current translation', async () => {
