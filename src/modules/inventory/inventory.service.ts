@@ -48,19 +48,26 @@ export class InventoryService {
   }
 
   async createCount(variantId: string, actorUserId: string, dto: CreateStockCountDto) {
-    const inventory = await this.prisma.inventory.findUnique({ where: { variantId } });
-    if (!inventory) throw new NotFoundException('Inventory not found');
-    const count = await this.prisma.inventoryStockCount.create({
-      data: {
-        variantId,
-        actorUserId,
-        physicalCount: dto.physicalCount,
-        onShelfAtCount: inventory.quantity,
-        awaitingAtCount: inventory.reservedQuantity,
-        discrepancy: dto.physicalCount - inventory.quantity,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM inventory WHERE variant_id = ${variantId}::uuid FOR UPDATE`;
+      const inventory = await tx.inventory.findUnique({ where: { variantId } });
+      if (!inventory) throw new NotFoundException('Inventory not found');
+      const awaiting = await tx.awaitingDispatchItem.aggregate({
+        where: { variantId },
+        _sum: { quantity: true },
+      });
+      const awaitingQuantity = awaiting._sum.quantity ?? 0;
+      return tx.inventoryStockCount.create({
+        data: {
+          variantId,
+          actorUserId,
+          physicalCount: dto.physicalCount,
+          onShelfAtCount: inventory.quantity,
+          awaitingAtCount: awaitingQuantity,
+          discrepancy: dto.physicalCount - inventory.quantity - awaitingQuantity,
+        },
+      });
     });
-    return count;
   }
 
   async confirmCount(countId: string, actorUserId: string) {
@@ -72,10 +79,23 @@ export class InventoryService {
       await tx.$queryRaw`SELECT id FROM inventory WHERE variant_id = ${count.variantId}::uuid FOR UPDATE`;
       const inventory = await tx.inventory.findUnique({ where: { variantId: count.variantId } });
       if (!inventory) throw new NotFoundException('Inventory not found');
-      const delta = count.physicalCount - inventory.quantity;
-      if (inventory.quantity + delta < 0) throw new ConflictException('Confirmed count cannot create negative inventory');
+      const awaiting = await tx.awaitingDispatchItem.aggregate({
+        where: { variantId: count.variantId },
+        _sum: { quantity: true },
+      });
+      const expectedQuantity = inventory.quantity + (awaiting._sum.quantity ?? 0);
+      const delta = count.physicalCount - expectedQuantity;
+      const available = inventory.quantity - inventory.reservedQuantity;
+      if (delta < 0 && Math.abs(delta) > available) {
+        throw new ConflictException(`Maximum decrease is ${available}`);
+      }
+      if (inventory.quantity + delta < 0)
+        throw new ConflictException('Confirmed count cannot create negative inventory');
 
-      await tx.inventory.update({ where: { variantId: count.variantId }, data: { quantity: inventory.quantity + delta } });
+      await tx.inventory.update({
+        where: { variantId: count.variantId },
+        data: { quantity: inventory.quantity + delta },
+      });
       await tx.inventoryMovement.create({
         data: {
           variantId: count.variantId,
@@ -88,7 +108,15 @@ export class InventoryService {
           afterReserved: inventory.reservedQuantity,
         },
       });
-      return tx.inventoryStockCount.update({ where: { id: countId }, data: { confirmedAt: new Date() } });
+      return tx.inventoryStockCount.update({
+        where: { id: countId },
+        data: {
+          onShelfAtCount: inventory.quantity,
+          awaitingAtCount: awaiting._sum.quantity ?? 0,
+          discrepancy: delta,
+          confirmedAt: new Date(),
+        },
+      });
     });
   }
 
