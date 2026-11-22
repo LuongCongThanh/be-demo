@@ -1,5 +1,14 @@
 branch=$(git rev-parse --abbrev-ref HEAD)
 
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/dev|refs/heads/master)
+      echo "✖ Không push thẳng vào '$remote_ref' — mở Pull Request."
+      exit 1
+      ;;
+  esac
+done
+
 case "$branch" in
   main|dev|master)
     echo "✖ Không push thẳng lên '$branch' — mở Pull Request (docs/convention/git-workflow.md)."
