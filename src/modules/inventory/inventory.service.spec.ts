@@ -2,7 +2,12 @@ import { ConflictException } from '@nestjs/common';
 import { InventoryService } from '#src/modules/inventory/inventory.service.js';
 
 function setup() {
-  const tx = {
+  const tx: {
+    $queryRaw: ReturnType<typeof vi.fn>;
+    inventory: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+    inventoryMovement: { create: ReturnType<typeof vi.fn> };
+    inventoryStockCount: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  } = {
     $queryRaw: vi.fn(),
     inventory: { findUnique: vi.fn(), update: vi.fn() },
     inventoryMovement: { create: vi.fn() },
@@ -11,7 +16,7 @@ function setup() {
   const prisma = {
     inventory: { findUnique: vi.fn(), update: vi.fn() },
     inventoryStockCount: { create: vi.fn(), findUnique: vi.fn() },
-    $transaction: vi.fn((fn: (tx: typeof tx) => unknown) => fn(tx)),
+    $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(tx)),
   };
   return { service: new InventoryService(prisma as never), prisma, tx };
 }
