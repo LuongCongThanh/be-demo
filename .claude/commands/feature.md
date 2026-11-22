@@ -2,9 +2,7 @@
 description: 'Discover → Specify → (Tickets) → Implement/TDD → Verify a feature or fix using the Matt Pocock skill family, then run /ship (Review → Ship). Use $ARGUMENTS as the request description.'
 ---
 
-Follow the shared repository workflow in `docs/agents/execution-workflow.md`; this command adds Claude-specific skill routing.
-
-If the user says “continue” or “tiếp tục đi”, resume the first unfinished `/feature` phase from the current conversation and worktree. Do not restart completed phases or ask the user to repeat settled requirements.
+Follow the shared repository workflow in `AGENTS.md` and `docs/agents/execution-workflow.md`; this command adds Claude-specific skill routing.
 
 `/feature` uses one skill family—**Matt Pocock** (`grill-with-docs → to-spec → to-tickets → implement → tdd`)—to keep state, artifacts, and naming consistent across phases. Do not mix in the Superpowers methodology. Reuse only **neutral utility skills** from Superpowers that do not compete with a phase: `using-git-worktrees`, `systematic-debugging`, `verification-before-completion`, and `subagent-driven-development`.
 
