@@ -240,12 +240,14 @@ model Inventory {
 
 model Cart {
   id        String     @id @default(uuid()) @db.Uuid
-  userId    String     @map("user_id") @db.Uuid
+  userId    String?    @map("user_id") @db.Uuid
+  sessionId String?    @unique @map("session_id") @db.VarChar(64)
+  expiresAt DateTime?  @map("expires_at") @db.Timestamptz(6)
   status    CartStatus @default(ACTIVE)
   createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   items CartItem[]
 
   @@map("carts")
@@ -256,6 +258,7 @@ model CartItem {
   cartId    String   @map("cart_id") @db.Uuid
   variantId String   @map("variant_id") @db.Uuid
   quantity  Int
+  priceSnapshot BigInt? @map("price_snapshot")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -263,6 +266,7 @@ model CartItem {
   variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
 
   @@index([cartId])
+  @@unique([cartId, variantId])
   @@map("cart_items")
 }
 
