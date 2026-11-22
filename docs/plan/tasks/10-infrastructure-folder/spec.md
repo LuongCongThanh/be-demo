@@ -7,7 +7,7 @@ labels: [ready-for-agent]
 
 # Spec 10: Gom hạ tầng vào `src/infrastructure/`
 
-Branch: `chore/infrastructure-folder` · Nguồn: [architecture review 2026-11-06, đề xuất #4](../../../architecture/reviews/architecture-review-2026-11-06.html)
+Branch: `chore/infrastructure-folder`
 
 ## Problem Statement
 

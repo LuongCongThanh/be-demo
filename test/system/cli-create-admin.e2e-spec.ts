@@ -4,6 +4,7 @@ import { CliModule } from '#src/cli/cli.module.js';
 import { CreateAdminCommand } from '#src/cli/create-admin.command.js';
 import { PasswordPrompt } from '#src/cli/password-prompt.js';
 import { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
+import { InternalAccountService } from '#src/modules/identity/internal-account.service.js';
 
 const TEST_EMAIL_DOMAIN = '@cli-create-admin.e2e-test.local';
 const VALID_PASSWORD = 'Abc@1234';
@@ -42,27 +43,154 @@ describe('CLI — create-admin (application context, prompt stubbed)', () => {
   const run = (args: string[]) =>
     moduleRef.get(CreateAdminCommand).run(args, { log: (m) => output.push(m), error: (m) => output.push(m) });
 
-  it('creates an ADMIN with the prompted password and a system audit row', async () => {
+  it('creates and audits an Admin when no active Admin exists', async () => {
+    const activeAdmins = await prisma.user.findMany({
+      where: {
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        userRoles: { some: { role: { name: 'Admin', isSystem: true } } },
+      },
+      select: { id: true },
+    });
+    const email = uniqueEmail();
+    passwords = [VALID_PASSWORD, VALID_PASSWORD];
+
+    try {
+      await prisma.user.updateMany({
+        where: { id: { in: activeAdmins.map(({ id }) => id) } },
+        data: { status: 'DISABLED' },
+      });
+      expect(
+        await prisma.userRole.findFirst({
+          where: { role: { name: 'Admin', isSystem: true }, user: { status: 'ACTIVE' } },
+          select: { userId: true },
+        }),
+      ).toBeNull();
+
+      const exitCode = await run(['--email', email, '--name', 'Quan Tri']);
+
+      expect(exitCode).toBe(0);
+      const admin = await prisma.user.findUniqueOrThrow({
+        where: { email },
+        include: { userRoles: { select: { role: { select: { name: true, isSystem: true } } } } },
+      });
+      expect(admin).toMatchObject({
+        email,
+        fullName: 'Quan Tri',
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        userRoles: [{ role: { name: 'Admin', isSystem: true } }],
+      });
+      expect(await moduleRef.get(PasswordService).verify(admin.passwordHash, VALID_PASSWORD)).toBe(true);
+
+      const audit = await prisma.auditLog.findFirst({ where: { entityId: admin.id, action: 'admin.create' } });
+      expect(audit).toMatchObject({
+        actorUserId: null,
+        action: 'admin.create',
+        entityType: 'user',
+        entityId: admin.id,
+        after: { email, name: 'Quan Tri', role: 'ADMIN' },
+      });
+    } finally {
+      const createdAdmin = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+      if (createdAdmin) {
+        await prisma.auditLog.deleteMany({ where: { entityId: createdAdmin.id } });
+        await prisma.user.delete({ where: { id: createdAdmin.id } });
+      }
+      if (activeAdmins.length > 0) {
+        await prisma.user.updateMany({
+          where: { id: { in: activeAdmins.map(({ id }) => id) } },
+          data: { status: 'ACTIVE' },
+        });
+      }
+    }
+  });
+  it('rejects creating a second active ADMIN with the prompted password', async () => {
+    const activeAdmin = await prisma.userRole.findFirst({
+      where: { role: { name: 'Admin', isSystem: true }, user: { status: 'ACTIVE' } },
+      select: { userId: true },
+    });
+    expect(activeAdmin).not.toBeNull();
+
     const email = uniqueEmail();
     passwords = [VALID_PASSWORD, VALID_PASSWORD];
 
     const exitCode = await run(['--email', email, '--name', 'Quan Tri']);
 
-    expect(exitCode).toBe(0);
-    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-    expect(user).toMatchObject({ role: 'ADMIN', status: 'ACTIVE', fullName: 'Quan Tri' });
-    expect(user.emailVerifiedAt).not.toBeNull();
-    expect(await moduleRef.get(PasswordService).verify(user.passwordHash, VALID_PASSWORD)).toBe(true);
+    expect(exitCode).not.toBe(0);
+    expect(await prisma.user.findUnique({ where: { email } })).toBeNull();
+    expect(output.join('\n')).toMatch(/active Admin account already exists/i);
+  });
 
-    const audit = await prisma.auditLog.findMany({ where: { entityId: user.id } });
-    expect(audit).toEqual([expect.objectContaining({ action: 'admin.create', actorUserId: null })]);
+  it('creates exactly one active ADMIN when two service calls race', async () => {
+    const activeAdmins = await prisma.user.findMany({
+      where: {
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        userRoles: { some: { role: { name: 'Admin', isSystem: true } } },
+      },
+      select: { id: true },
+    });
+    const emails = [uniqueEmail(), uniqueEmail()];
+
+    try {
+      await prisma.user.updateMany({
+        where: { id: { in: activeAdmins.map(({ id }) => id) } },
+        data: { status: 'DISABLED' },
+      });
+
+      const results = await Promise.allSettled(
+        emails.map((email) =>
+          moduleRef.get(InternalAccountService).create({
+            email,
+            name: 'Concurrent Admin',
+            password: VALID_PASSWORD,
+            role: 'ADMIN',
+            actorUserId: null,
+          }),
+        ),
+      );
+      const created = results.filter((result) => result.status === 'fulfilled');
+      const rejected = results.filter((result) => result.status === 'rejected');
+
+      expect(created).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0]?.reason).toMatchObject({
+        message: expect.stringContaining('An active Admin account already exists'),
+      });
+
+      const activeAdminsAfterRace = await prisma.user.findMany({
+        where: {
+          role: 'ADMIN',
+          status: 'ACTIVE',
+          userRoles: { some: { role: { name: 'Admin', isSystem: true } } },
+        },
+        select: { email: true },
+      });
+      expect(activeAdminsAfterRace).toHaveLength(1);
+      expect(emails).toContain(activeAdminsAfterRace[0]?.email);
+    } finally {
+      const createdUsers = await prisma.user.findMany({
+        where: { email: { in: emails } },
+        select: { id: true },
+      });
+      const createdIds = createdUsers.map(({ id }) => id);
+      await prisma.auditLog.deleteMany({ where: { entityId: { in: createdIds } } });
+      await prisma.user.deleteMany({ where: { id: { in: createdIds } } });
+      if (activeAdmins.length > 0) {
+        await prisma.user.updateMany({
+          where: { id: { in: activeAdmins.map(({ id }) => id) } },
+          data: { status: 'ACTIVE' },
+        });
+      }
+    }
   });
 
   it('fails without touching the existing account when the email is taken', async () => {
-    const email = uniqueEmail();
-    passwords = [VALID_PASSWORD, VALID_PASSWORD];
-    await run(['--email', email, '--name', 'First']);
-    const before = await prisma.user.findUniqueOrThrow({ where: { email } });
+    const before = await prisma.user.findFirstOrThrow({
+      where: { role: 'ADMIN', status: 'ACTIVE' },
+    });
+    const email = before.email;
 
     passwords = ['Xyz@9876', 'Xyz@9876'];
     const exitCode = await run(['--email', email, '--name', 'Second']);

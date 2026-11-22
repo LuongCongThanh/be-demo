@@ -1,4 +1,4 @@
-import { isEffectivelyVisible } from '#src/modules/catalog/category/domain/category-tree.js';
+import { isEffectivelyVisible } from '#src/modules/catalog/category/domain/tree/category-tree.js';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma, Product } from '#src/generated/prisma/client.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';

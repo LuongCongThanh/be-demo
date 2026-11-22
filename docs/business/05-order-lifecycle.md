@@ -135,9 +135,9 @@ GHN báo mất hàng, hư hàng, sự cố, hoặc tự huỷ một Vận đơn 
 
 ## 5. Thời gian và job tự động
 
-| Việc                                           | Tần suất                                                                        | Liên quan |
-| ---------------------------------------------- | ------------------------------------------------------------------------------- | --------- |
-| Huỷ đơn `PENDING_PAYMENT` quá 15 phút          | Mỗi phút                                                                        | T4        |
-| Đối soát Thanh toán treo với VNPay / MoMo      | Mỗi 5 phút                                                                      | T3        |
-| Đối soát trạng thái Vận đơn với GHN | Mỗi 15 phút (dự phòng; webhook là nguồn cập nhật chính) | T11, T12 |
-| Chuyển `DELIVERED` quá 7 ngày sang `COMPLETED` | Mỗi giờ                                                                         | T13       |
+| Việc                                           | Tần suất                                                | Liên quan |
+| ---------------------------------------------- | ------------------------------------------------------- | --------- |
+| Huỷ đơn `PENDING_PAYMENT` quá 15 phút          | Mỗi phút                                                | T4        |
+| Đối soát Thanh toán treo với VNPay / MoMo      | Mỗi 5 phút                                              | T3        |
+| Đối soát trạng thái Vận đơn với GHN            | Mỗi 15 phút (dự phòng; webhook là nguồn cập nhật chính) | T11, T12  |
+| Chuyển `DELIVERED` quá 7 ngày sang `COMPLETED` | Mỗi giờ                                                 | T13       |

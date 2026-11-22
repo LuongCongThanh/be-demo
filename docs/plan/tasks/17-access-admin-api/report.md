@@ -26,7 +26,7 @@
 
 ## Lệch so với spec và rủi ro còn lại
 
-- **CLI `create-admin` vẫn tạo được Admin thứ hai** (và `InternalAccountService.create` gán Vai trò `Admin` cho nó). Bất biến "đúng một Admin active" chỉ được thực thi ở API Vai trò/tài khoản. Chặn ở `create` sẽ làm đổi hành vi `test/cli-create-admin.e2e-spec.ts` (tạo nhiều Admin) nên không làm trong ticket này; cần ticket riêng (CLI từ chối khi đã có Admin, hoặc không gán Vai trò `Admin` cho Admin thứ hai).
+- **Đã xử lý ngày 2026-11-21:** `InternalAccountService.create` khoá dòng Vai trò hệ thống `Admin` trong transaction, rồi từ chối tạo Admin mới nếu đã có tài khoản active đang giữ Vai trò `Admin`. Guard này bao phủ cả CLI và mọi caller của `create`, chặn race đồng thời. Unit test và e2e CLI đã cập nhật và pass.
 - Mô tả "(ADMIN only)" của các route catalog (categories, products, sizes, colors) vẫn còn: ngoài phạm vi module `identity`, ticket chỉ yêu cầu `admin/staff`.
 - Chưa chạy `npm run postman:sync` (cần khoá Postman thật).
 - Danh sách Vai trò phân trang theo `PaginationDto` (mặc định 20).

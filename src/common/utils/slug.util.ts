@@ -7,9 +7,14 @@ import slugify from 'slugify';
  * sau đó bị báo trùng nhau.
  */
 export function toSlugOrThrow(name: string, label: string): string {
-  const slug = slugify(name, { lower: true, locale: 'vi', strict: true });
+  const slug = toSlug(name);
   if (!slug) {
     throw new BadRequestException(`${label} name "${name}" does not produce a valid slug`);
   }
   return slug;
+}
+
+export function toSlug(name: string): string | null {
+  const slug = slugify(name, { lower: true, locale: 'vi', strict: true });
+  return slug || null;
 }

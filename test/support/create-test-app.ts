@@ -5,7 +5,7 @@ import { AppModule } from '#src/app.module.js';
 import { EmailThrottlerGuard } from '#src/modules/identity/auth/guards/email-throttler.guard.js';
 import { configureApp } from '#src/bootstrap/configure-app.js';
 import { CloudinaryClient } from '#src/infrastructure/storage/cloudinary.client.js';
-import { CategoryTranslationClient } from '#src/modules/catalog/category/clients/category-translation.client.js';
+import { CategoryTranslationClient } from '#src/modules/catalog/category/infrastructure/integrations/translation/category-translation.client.js';
 
 const ALWAYS_ALLOW = { canActivate: () => true };
 

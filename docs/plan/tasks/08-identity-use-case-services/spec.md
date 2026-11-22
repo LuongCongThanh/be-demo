@@ -6,7 +6,7 @@ blocked-by: [07-identity-module]
 
 # Spec 08: Tách `AuthService` theo use case
 
-Branch: `refactor/identity-use-case-services` · Nguồn: [architecture review 2026-11-06, đề xuất #2](../../../architecture/reviews/architecture-review-2026-11-06.html)
+Branch: `refactor/identity-use-case-services`
 
 ## Problem Statement
 

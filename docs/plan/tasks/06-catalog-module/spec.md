@@ -6,7 +6,7 @@ blocked-by: []
 
 # Spec 06: Gộp catalog thành một module
 
-Branch: `chore/catalog-module` · Nguồn: [architecture review 2026-11-06, đề xuất #1](../../../architecture/reviews/architecture-review-2026-11-06.html)
+Branch: `chore/catalog-module`
 
 ## Problem Statement
 
