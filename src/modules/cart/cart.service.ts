@@ -13,7 +13,7 @@ export class CartService {
 
   async getGuestCart(sessionId?: string) {
     if (!sessionId) {
-      return this.createGuestCart();
+      return this.serializeCart(await this.createGuestCart());
     }
     let cart = await this.prisma.cart.findFirst({
       where: { sessionId, status: 'ACTIVE', expiresAt: { gt: new Date() } },
