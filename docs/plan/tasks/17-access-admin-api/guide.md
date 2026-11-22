@@ -6,10 +6,10 @@ status: done
 
 ## Điểm sửa
 
-- [InternalAccountService](/home/thanhluongcong/Documents/fashion-store/be-demo/src/modules/identity/internal-account.service.ts): guard `input.role === 'ADMIN'`.
-- [CreateAdminCommand](/home/thanhluongcong/Documents/fashion-store/be-demo/src/cli/create-admin.command.ts): chuyển `ConflictException` thành exit code 1.
-- [Unit test](/home/thanhluongcong/Documents/fashion-store/be-demo/src/modules/identity/internal-account/services/admin/internal-account.service.spec.ts): kiểm tra Admin thứ hai.
-- [CLI E2E](/home/thanhluongcong/Documents/fashion-store/be-demo/test/system/cli-create-admin.e2e-spec.ts): kiểm tra tạo/từ chối/race.
+- [InternalAccountService](../../../../src/modules/identity/internal-account.service.ts): guard `input.role === 'ADMIN'`.
+- [CreateAdminCommand](../../../../src/cli/create-admin.command.ts): chuyển `ConflictException` thành exit code 1.
+- [Unit test](../../../../src/modules/identity/internal-account/services/admin/internal-account.service.spec.ts): kiểm tra Admin thứ hai.
+- [CLI E2E](../../../../test/system/cli-create-admin.e2e-spec.ts): kiểm tra tạo/từ chối/race.
 
 ## Luồng bất biến
 
