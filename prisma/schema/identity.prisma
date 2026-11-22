@@ -28,6 +28,8 @@ model User {
 
   carts                   Cart[]
   orders                  Order[]
+  checkoutQuotes          CheckoutQuote[]
+  voucherUsages           VoucherUsage[]
   refreshTokens           RefreshToken[]
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]

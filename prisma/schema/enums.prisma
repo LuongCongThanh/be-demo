@@ -29,9 +29,20 @@ enum CartStatus {
 }
 
 enum OrderStatus {
-  PENDING
-  PAID
+  PENDING_PAYMENT
+  PLACED
+  CONFIRMED
+  PACKING
+  SHIPPING
+  DELIVERED
+  COMPLETED
   CANCELLED
+  RETURNED_TO_SENDER
+}
+
+enum PaymentMethod {
+  COD
+  ONLINE
 }
 
 // English category names: automatic translation or an editorial override.

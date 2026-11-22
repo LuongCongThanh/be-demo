@@ -130,7 +130,14 @@ export class AdminSalePriceService {
     const now = new Date();
     if (salePriceStatus(current, now) !== 'ACTIVE')
       throw new ConflictException('Only an active sale price can be ended');
-    const updated = await this.prisma.salePrice.update({ where: { id }, data: { endsAt: now } });
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await lockVariants(tx, [current.variantId]);
+      const fresh = await tx.salePrice.findUnique({ where: { id } });
+      if (!fresh) throw new NotFoundException(`Sale price #${id} not found`);
+      if (salePriceStatus(fresh, now) !== 'ACTIVE')
+        throw new ConflictException('Only an active sale price can be ended');
+      return tx.salePrice.update({ where: { id }, data: { endsAt: now } });
+    });
     return toResponse(updated, now);
   }
 

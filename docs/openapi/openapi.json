@@ -284,6 +284,122 @@
         ],
         "type": "object"
       },
+      "CheckoutLineInputDto": {
+        "properties": {
+          "quantity": {
+            "example": 2,
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number"
+          },
+          "variantId": {
+            "example": "0193e4d4-0b53-7a8b-9f2d-c2a4dcab249f",
+            "type": "string"
+          }
+        },
+        "required": [
+          "variantId",
+          "quantity"
+        ],
+        "type": "object"
+      },
+      "CheckoutQuoteLineDto": {
+        "properties": {
+          "availableQuantity": {
+            "type": "number"
+          },
+          "colorName": {
+            "type": "string"
+          },
+          "lineTotal": {
+            "type": "number"
+          },
+          "listPrice": {
+            "type": "number"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "sizeName": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "variantId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "variantId",
+          "productName",
+          "sku",
+          "sizeName",
+          "colorName",
+          "quantity",
+          "listPrice",
+          "unitPrice",
+          "lineTotal",
+          "availableQuantity"
+        ],
+        "type": "object"
+      },
+      "CheckoutQuoteResponseDto": {
+        "properties": {
+          "codAllowed": {
+            "type": "boolean"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CheckoutQuoteLineDto"
+            },
+            "type": "array"
+          },
+          "quoteId": {
+            "type": "string"
+          },
+          "shippingFee": {
+            "type": "number"
+          },
+          "shippingFeeFallback": {
+            "type": "boolean"
+          },
+          "subtotal": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "voucherCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "quoteId",
+          "items",
+          "subtotal",
+          "discount",
+          "shippingFee",
+          "shippingFeeFallback",
+          "total",
+          "codAllowed",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
       "ColorResponseDto": {
         "properties": {
           "code": {
@@ -380,6 +496,59 @@
         },
         "required": [
           "name"
+        ],
+        "type": "object"
+      },
+      "CreateCheckoutQuoteDto": {
+        "properties": {
+          "contactEmail": {
+            "example": "buyer@example.com",
+            "type": "string"
+          },
+          "contactName": {
+            "example": "Nguyen Van A",
+            "type": "string"
+          },
+          "contactPhone": {
+            "example": "0901234567",
+            "type": "string"
+          },
+          "items": {
+            "example": [
+              {
+                "quantity": 2,
+                "variantId": "0193e4d4-0b53-7a8b-9f2d-c2a4dcab249f"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CheckoutLineInputDto"
+            },
+            "type": "array"
+          },
+          "shippingAddress": {
+            "example": "123 Nguyen Hue, Ben Nghe",
+            "type": "string"
+          },
+          "shippingProvinceCode": {
+            "example": "79",
+            "type": "string"
+          },
+          "shippingWardCode": {
+            "example": "26734",
+            "type": "string"
+          },
+          "voucherCode": {
+            "example": "SALE10",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "contactName",
+          "contactPhone",
+          "shippingProvinceCode",
+          "shippingWardCode",
+          "shippingAddress"
         ],
         "type": "object"
       },
@@ -935,6 +1104,20 @@
         ],
         "type": "object"
       },
+      "OrderStatus": {
+        "enum": [
+          "PENDING_PAYMENT",
+          "PLACED",
+          "CONFIRMED",
+          "PACKING",
+          "SHIPPING",
+          "DELIVERED",
+          "COMPLETED",
+          "CANCELLED",
+          "RETURNED_TO_SENDER"
+        ],
+        "type": "string"
+      },
       "PaginatedCategoryResponseDto": {
         "properties": {
           "data": {
@@ -1088,6 +1271,13 @@
         ],
         "type": "object"
       },
+      "PaymentMethod": {
+        "enum": [
+          "COD",
+          "ONLINE"
+        ],
+        "type": "string"
+      },
       "Permission": {
         "description": "Union of the permissions granted by the account roles (empty for customers)",
         "enum": [
@@ -1125,6 +1315,71 @@
         "required": [
           "group",
           "permissions"
+        ],
+        "type": "object"
+      },
+      "PlaceCodOrderDto": {
+        "properties": {
+          "quoteId": {
+            "example": "0193e4d4-0b53-7a8b-9f2d-c2a4dcab249f",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quoteId"
+        ],
+        "type": "object"
+      },
+      "PlacedOrderResponseDto": {
+        "properties": {
+          "discount": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "orderNumber": {
+            "example": "FS2611-7K3QZD",
+            "type": "string"
+          },
+          "paymentMethod": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              }
+            ]
+          },
+          "placedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "shippingFee": {
+            "type": "number"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderStatus"
+              }
+            ]
+          },
+          "subtotal": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "orderNumber",
+          "status",
+          "paymentMethod",
+          "subtotal",
+          "discount",
+          "shippingFee",
+          "total",
+          "placedAt"
         ],
         "type": "object"
       },
@@ -8595,6 +8850,191 @@
         ]
       }
     },
+    "/api/v1/checkout/orders/COD": {
+      "post": {
+        "operationId": "CheckoutController_placeCod_v1",
+        "parameters": [
+          {
+            "description": "Unique key for this placement request; reusing it with a different body returns 409",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "example": "checkout-quote-0193e4d4-0b53-7a8b-9f2d-c2a4dcab249f",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceCodOrderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacedOrderResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Quote not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Quote changed, expired, used, or COD limit exceeded"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "Place a COD order from a valid quote and decrement inventory atomically",
+        "tags": [
+          "Storefront — Checkout"
+        ]
+      }
+    },
+    "/api/v1/checkout/quote": {
+      "post": {
+        "operationId": "CheckoutController_quote_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCheckoutQuoteDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutQuoteResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Variant not found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "Calculate a 15-minute checkout quote without reserving inventory",
+        "tags": [
+          "Storefront — Checkout"
+        ]
+      }
+    },
     "/api/v1/colors": {
       "get": {
         "operationId": "ProductOptionController_listColors_v1",
@@ -9310,6 +9750,10 @@
     {
       "description": "Public product listing, details and variants",
       "name": "Storefront — Products"
+    },
+    {
+      "description": "Short-lived checkout quotes and idempotent COD order placement for guests and customers",
+      "name": "Storefront — Checkout"
     },
     {
       "description": "Product and variant management — writes gated to ADMIN",
