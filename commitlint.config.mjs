@@ -7,7 +7,7 @@ export default {
     'type-enum': [
       2,
       'always',
-      ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'style', 'perf', 'ci', 'build', 'revert', 'security'],
+      ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'style', 'perf', 'ci', 'build', 'revert', 'security', 'architecture'],
     ],
     'header-max-length': [2, 'always', 100],
     'no-ai-attribution': [2, 'always'],

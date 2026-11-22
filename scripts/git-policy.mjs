@@ -2,6 +2,10 @@ import { readFile } from 'node:fs/promises';
 
 const AI_AGENT_NAMES =
   '(claude|copilot|codex|chatgpt|openai|gpt|gemini|cursor|windsurf|cline|aider|devin|codeium|cody|tabnine|opencode|roo|continue|augment|replit|ai|agent|bot)';
+const AI_TOOL_NAME = new RegExp(
+  '\\b(claude|copilot|codex|chatgpt|openai|gpt|gemini|cursor|windsurf|cline|aider|devin|codeium|cody|tabnine|opencode|roo|continue|augment|replit)\\b',
+  'i',
+);
 const AI_ATTRIBUTION = new RegExp(
   `((co-authored-by|assisted-by|reviewed-by|generated-by):\\s*.*\\b${AI_AGENT_NAMES}\\b|generated\\s+(with|by)\\s+.*\\b${AI_AGENT_NAMES}\\b|ai-generated|noreply@anthropic\\.com)`,
   'i',
@@ -23,7 +27,7 @@ const PR_TYPE_VALUES =
 
 export function validateCommitMessage(message) {
   const errors = [];
-  if (AI_ATTRIBUTION.test(message ?? '')) {
+  if (AI_ATTRIBUTION.test(message ?? '') || AI_TOOL_NAME.test(message ?? '')) {
     errors.push(
       'Commit message không được chứa AI/tool/agent attribution',
     );

@@ -11,10 +11,17 @@ fi
 
 # Only care about commands that touch git commit/push
 if [[ "$COMMAND" != *"git commit"* && "$COMMAND" != *"git push"* ]]; then
-  exit 0
+  if [[ "$COMMAND" != *"git worktree"* ]]; then
+    exit 0
+  fi
 fi
 
 CURRENT_BRANCH=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+if [[ "$COMMAND" == *"git worktree"* ]]; then
+  echo "Blocked: git worktree operations require explicit user confirmation (AGENTS.md Git Worktree Policy)" >&2
+  exit 2
+fi
 
 # 1) Never `git push --force` — only --force-with-lease is allowed
 if [[ "$COMMAND" == *"git push"* ]] && [[ "$COMMAND" =~ (^|[[:space:]])--force([[:space:]]|=|$) ]] && [[ "$COMMAND" != *"--force-with-lease"* ]]; then

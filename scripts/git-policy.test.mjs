@@ -22,6 +22,15 @@ test('rejects additional AI attribution trailer variants', () => {
   }
 });
 
+test('rejects AI tool names in commit subjects and bodies', () => {
+  for (const message of [
+    'feat: update Claude integration',
+    'chore: refactor\n\nCopilot implementation notes',
+  ]) {
+    assert.equal(validateCommitMessage(message).valid, false);
+  }
+});
+
 test('rejects a PR body that is missing the template sections', () => {
   const result = validatePullRequestBody('# Summary\n\nInline body');
 
