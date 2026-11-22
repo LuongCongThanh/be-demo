@@ -40,7 +40,14 @@ describe('CartService', () => {
     expect(prisma.cart.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ expiresAt: expect.any(Date) }) }),
     );
-    expect(result.sessionId).toBe('guest-session');
+    expect(result).toMatchObject({
+      id: '11111111-1111-4111-8111-111111111111',
+      sessionId: 'guest-session',
+      status: 'ACTIVE',
+      items: [],
+      subtotal: 0,
+    });
+    expect(result.expiresAt).toBeInstanceOf(Date);
   });
 
   it('rejects quantities above 10', async () => {
@@ -67,8 +74,8 @@ describe('CartService', () => {
     prisma.cart.findFirst.mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222' });
     prisma.cartItem.deleteMany.mockResolvedValue({ count: 0 });
 
-    await expect(
-      service.deleteGuestItem('guest-session', '44444444-4444-4444-8444-444444444444'),
-    ).rejects.toThrow(NotFoundException);
+    await expect(service.deleteGuestItem('guest-session', '44444444-4444-4444-8444-444444444444')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });
