@@ -2,7 +2,9 @@
 
 > 📖 Quy tắc (vì sao, khi nào bắt buộc) nằm ở [api-rules.md](api-rules.md) — file này chỉ là các bước + code mẫu. Thiết kế DB đích: [`../architecture/11-database.md`](../architecture/11-database.md); cách viết schema/Prisma Client: [prisma-conventions.md](prisma-conventions.md).
 
-Dùng placeholder **`Resource`/`resource`** — thay bằng tên thật (class số ít viết hoa `Product`, route/thư mục số nhiều `products`). Business rule cụ thể của resource sống ở `../architecture/modules/<module>.md`.
+Dùng placeholder **`Resource`/`resource`** — class và feature folder dùng số ít (`Product`, `product/`), route dùng số nhiều (`/products`). Business rule cụ thể của resource sống ở `../architecture/modules/<module>.md`.
+
+Các ví dụ trong file này dành cho resource CRUD generic, không áp dụng cho `Category`; kiến trúc Category có nguồn chuẩn riêng tại [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
 
 ## B0. Requirement / Contract (rút gọn cho CRUD)
 
@@ -30,33 +32,27 @@ Schema tách nhiều file: model → `prisma/schema/schema.prisma`, enum → `pr
 
 ## B2. Migration + generate
 
-```bash
-npx prisma migrate dev --name MIGRATION_NAME --config prisma7.config.ts
-npx prisma generate --config prisma7.config.ts
-npx prisma db seed --config prisma7.config.ts   # tuỳ chọn
-```
-
-> ⚠️ Prisma v7: `migrate dev` **không** tự chạy `generate`/seed — phải gọi riêng. Mọi lệnh `prisma` cần `--config prisma7.config.ts`. Chưa migrate thì mọi query lỗi `relation "xxx" does not exist`.
+Thực hiện migration, generate và seed theo [Prisma conventions §3, §5](prisma-conventions.md). Ở Prisma v7, `migrate dev` không tự chạy `generate`/seed. Chỉ dùng `migrate dev` trên database dev.
 
 ## B3. Scaffold
 
 ```bash
-nest g resource RESOURCE_NAME   # chọn REST API, Yes cho "generate CRUD entry points"
+nest g resource modules/resource   # thay resource bằng feature name số ít; chọn REST API + CRUD entry points
 ```
 
-Cấu trúc đích (ESM — **mọi import nội bộ có đuôi `.js`**):
+Cấu trúc đích generic (ESM — **mọi import nội bộ có đuôi `.js`**):
 
 ```
-src/resources/
+src/modules/resource/
   dto/
     create-resource.dto.ts
     update-resource.dto.ts
-  resources.controller.ts
-  resources.service.ts
-  resources.module.ts
+  resource.controller.ts
+  resource.service.ts
+  resource.module.ts
 ```
 
-Chỉnh tay sau CLI: xoá `entities/` + `*.spec.ts` rỗng; thêm validator + `@ApiProperty` vào DTO; thêm decorator Swagger vào controller; sửa import `.js`; dùng `PaginationDto` có sẵn ở `src/common/pagination/` (không tạo bản riêng).
+Nest CLI có thể tạo cấu trúc theo tên resource; đặt các file trong feature folder theo [coding-style-conventions.md](coding-style-conventions.md). Sau CLI, xoá `entities/` và test rỗng; hoàn thiện validation/Swagger; dùng pagination dùng chung thay vì tạo bản riêng.
 
 ## B4. Request DTO
 
@@ -80,26 +76,28 @@ export class CreateResourceDto {
 
 // update-resource.dto.ts
 import { PartialType } from '@nestjs/swagger';
-import { CreateResourceDto } from './create-resource.dto.js';
+import { CreateResourceDto } from '#src/modules/resource/dto/create-resource.dto.js';
 
 export class UpdateResourceDto extends PartialType(CreateResourceDto) {}
 ```
 
-Quy tắc (`example:`, `PartialType` từ `@nestjs/swagger`, field server tự sinh): [api-rules.md §R1](api-rules.md#r1-request-dto--validation). Tham khảo `src/modules/identity/auth/dto/register.dto.ts`.
+Quy tắc validation và DTO: [api-rules.md §R1](api-rules.md#r1-request-dto--validation).
 
 ## B5. Service
 
+Quy tắc về Repository, lỗi và pre-fetch: [api-rules.md §R2–R3](api-rules.md#r2-service--use-case); Prisma Client và transaction: [prisma-conventions.md §4](prisma-conventions.md#4-prisma-client-trong-nestjs).
+
 ```ts
-// resources.service.ts
+// resource.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Resource } from '../generated/prisma/client.js';
+import type { Resource } from '#src/generated/prisma/client.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
-import { CreateResourceDto } from './dto/create-resource.dto.js';
-import { UpdateResourceDto } from './dto/update-resource.dto.js';
-import { PaginationDto } from '../common/pagination/pagination.dto.js';
+import { CreateResourceDto } from '#src/modules/resource/dto/create-resource.dto.js';
+import { UpdateResourceDto } from '#src/modules/resource/dto/update-resource.dto.js';
+import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 
 @Injectable()
-export class ResourcesService {
+export class ResourceService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(createResourceDto: CreateResourceDto): Promise<Resource> {
@@ -127,34 +125,23 @@ export class ResourcesService {
   }
 
   async update(id: string, updateResourceDto: UpdateResourceDto): Promise<Resource> {
-    await this.findOne(id); // xem lưu ý bên dưới về pre-fetch
     return this.prisma.resource.update({ where: { id }, data: updateResourceDto });
   }
 
   async remove(id: string): Promise<void> {
-    await this.findOne(id);
     await this.prisma.resource.delete({ where: { id } });
   }
 }
 ```
 
-> Mẫu trên pre-fetch bằng `findOne` cho dễ đọc. Theo [§R2](api-rules.md#r2-service--use-case), nếu không cần record để kiểm tra business rule thì bỏ pre-fetch, gọi thẳng `update`/`delete` và để `P2025` → 404. Domain error (trùng unique, còn record con) ném `ConflictException` có message ở đây — pre-check chỉ là UX layer, constraint DB vẫn là lớp cuối.
-
-Transaction (khi cần, xem [§R4](api-rules.md#r4-transaction)):
-
-```ts
-return this.prisma.$transaction(async (tx) => {
-  const order = await tx.order.create({ data: orderData });
-  await tx.orderItem.createMany({ data: items });
-  await tx.inventory.updateMany({/* ... */});
-  return order;
-});
-```
+Nếu use case cần atomicity, xác định boundary theo [api-rules.md §R4](api-rules.md#r4-transaction) và [prisma-conventions.md §4.1](prisma-conventions.md#41-transaction).
 
 ## B6. Controller
 
+Ranh giới controller, authorization và response DTO: [api-rules.md §R5, §R7](api-rules.md#r5-authorization-checkpoint).
+
 ```ts
-// resources.controller.ts
+// resource.controller.ts
 import {
   Body,
   Controller,
@@ -170,47 +157,50 @@ import {
 } from '@nestjs/common';
 import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Authorize } from '#src/security/authorization/permissions/authorize.decorator.js';
-import { ResourcesService } from './resources.service.js';
-import { CreateResourceDto } from './dto/create-resource.dto.js';
-import { UpdateResourceDto } from './dto/update-resource.dto.js';
-import { PaginationDto } from '../common/pagination/pagination.dto.js';
+import { Permission } from '#src/security/contracts/permission.enum.js';
+import { API_TAGS } from '#src/common/swagger/api-tags.js';
+import { ResourceService } from '#src/modules/resource/resource.service.js';
+import { CreateResourceDto } from '#src/modules/resource/dto/create-resource.dto.js';
+import { ResourceResponseDto, PaginatedResourceResponseDto } from '#src/modules/resource/dto/resource-response.dto.js';
+import { UpdateResourceDto } from '#src/modules/resource/dto/update-resource.dto.js';
+import { PaginationDto } from '#src/common/pagination/pagination.dto.js';
 
-@ApiTags('resources')
+@ApiTags(API_TAGS.RESOURCES.name)
 @Controller('resources')
-export class ResourcesController {
-  constructor(private readonly resourcesService: ResourcesService) {}
+export class ResourceController {
+  constructor(private readonly resourceService: ResourceService) {}
 
   // Write (create/update/remove) → @Authorize gộp JWT + kiểm Quyền + Swagger bearer
   // khi resource cần bảo vệ (không phải mọi resource là public).
   @Post()
   @Authorize(Permission.RESOURCE_MANAGE)
   @ApiOperation({ summary: 'Create a new resource' })
-  @ApiCreatedResponse({ description: 'Tạo thành công' })
+  @ApiCreatedResponse({ type: ResourceResponseDto })
   create(@Body() createResourceDto: CreateResourceDto) {
-    return this.resourcesService.create(createResourceDto);
+    return this.resourceService.create(createResourceDto);
   }
 
   // Read → public nếu resource không cần bảo vệ, bỏ guard.
   @Get()
   @ApiOperation({ summary: 'List resources (paginated)' })
-  @ApiOkResponse({ description: 'Danh sách resource' })
+  @ApiOkResponse({ type: PaginatedResourceResponseDto })
   findAll(@Query() pagination: PaginationDto) {
-    return this.resourcesService.findAll(pagination);
+    return this.resourceService.findAll(pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a resource by id' })
-  @ApiOkResponse({ description: 'Chi tiết 1 resource' })
+  @ApiOkResponse({ type: ResourceResponseDto })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.resourcesService.findOne(id);
+    return this.resourceService.findOne(id);
   }
 
   @Patch(':id')
   @Authorize(Permission.RESOURCE_MANAGE)
   @ApiOperation({ summary: 'Update a resource' })
-  @ApiOkResponse({ description: 'Cập nhật thành công' })
+  @ApiOkResponse({ type: ResourceResponseDto })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateResourceDto: UpdateResourceDto) {
-    return this.resourcesService.update(id, updateResourceDto);
+    return this.resourceService.update(id, updateResourceDto);
   }
 
   @Delete(':id')
@@ -219,26 +209,16 @@ export class ResourcesController {
   @ApiOperation({ summary: 'Delete a resource' })
   @ApiNoContentResponse({ description: 'Xoá thành công' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.resourcesService.remove(id);
+    return this.resourceService.remove(id);
   }
 }
 ```
 
-| HTTP             | Method                    | Ý nghĩa                                           |
-| ---------------- | ------------------------- | ------------------------------------------------- |
-| POST             | `create()`                | Tạo mới (201)                                     |
-| GET              | `findAll()` / `findOne()` | Đọc danh sách / đọc 1                             |
-| PATCH (hoặc PUT) | `update()`                | PATCH = cập nhật một phần, PUT = thay thế toàn bộ |
-| DELETE           | `remove()`                | Xoá (`204 No Content`, không body)                |
+Chi tiết route/status, authorization, error mapping và ID pipe nằm ở [api-rules.md §R1, §R5–R6](api-rules.md#r1-request-dto--validation).
 
-- Cả controller cần bảo vệ → đặt `@Authorize(Permission.RESOURCE_VIEW)` ở class, method ghi (create/update/remove) khai `@Authorize(Permission.RESOURCE_MANAGE)` (method ghi đè class). Quyền mới = thêm giá trị vào `security/contracts/permission.enum.ts` + migration cấp cho Vai trò `Admin`.
-- Resource public: không gắn `@Authorize` ([§R5](api-rules.md#r5-authorization-checkpoint)); resource có chủ sở hữu dùng `OwnershipGuard` + `@OwnedResource()`.
-- `id Int @default(autoincrement())` → đổi `ParseUUIDPipe` thành `ParseIntPipe`.
-- Lỗi Prisma đã được `AllExceptionsFilter` xử lý global — không viết filter riêng ([§R6](api-rules.md#r6-exception-mapping)).
+## B7. Response DTO
 
-## B7. Response DTO (khi model có field nhạy cảm)
-
-Allow-list (khuyến nghị — [§R7](api-rules.md#r7-response-dto--serialization)):
+Khai báo response DTO allow-list khi contract cần ổn định hoặc model có field không được công khai ([quy tắc §R7](api-rules.md#r7-response-dto--serialization)):
 
 ```ts
 export class ResourceResponseDto {
@@ -246,24 +226,14 @@ export class ResourceResponseDto {
   name: string;
   description: string | null;
 }
-```
 
-Blacklist (chỉ resource nhỏ, ổn định):
-
-```ts
-import { Exclude } from 'class-transformer';
-
-export class ResourceEntity {
-  id: string;
-  name: string;
-
-  @Exclude()
-  internalNote: string;
+export class PaginatedResourceResponseDto {
+  data: ResourceResponseDto[];
+  meta: PaginationMetaDto;
 }
-
-// main.ts
-app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 ```
+
+`PaginationMetaDto` được import từ `#src/common/pagination/pagination-meta.dto.js`.
 
 ## B8. Swagger
 
@@ -277,7 +247,7 @@ export const API_TAGS = {
 
 @ApiTags(API_TAGS.RESOURCES.name)
 @Controller('resources')
-export class ResourcesController { ... }
+export class ResourceController { ... }
 
 @Post('verify-email')
 @ApiOperation({ summary: 'Verify email address using the 6-digit code sent by email' })
@@ -289,30 +259,24 @@ verify(@Body() dto: VerifyEmailDto) { ... }
 findOne(@Param('id', ParseUUIDPipe) id: string) { ... }
 ```
 
-Tham khảo `src/modules/identity/auth/auth.controller.ts`. Sau khi xong: `npm run start:dev` → `npm run postman:sync`.
+Sau khi cập nhật endpoint, đồng bộ Postman theo [api-rules.md §R8](api-rules.md#r8-swagger--openapi).
 
-## B9. Pagination
+## B9. Testing
 
-Dùng `PaginationDto` (query `page`, `limit` 1–100) và `PaginationMetaDto` (response `meta`) dùng chung ở `src/common/pagination/` — **không copy vào module**. Response list: class `PaginatedResourceResponseDto { data: ResourceResponseDto[]; meta: PaginationMetaDto }`.
+Chiến lược và mức test cần có: [api-rules.md §R10](api-rules.md#r10-testing). Các ví dụ dưới đây minh họa cách dựng unit/e2e test trong repository.
 
-Service xem `findAll` ở B5 (`orderBy` có tie-breaker, trả `{ data, meta }`); quy tắc: [§R9](api-rules.md#r9-pagination).
-
-## B10. Testing
-
-Chiến lược: [§R10](api-rules.md#r10-testing).
-
-### a. Service unit test — mock `PrismaService`
+### a. Service unit test
 
 ```ts
-// resources.service.spec.ts
+// resource.service.spec.ts
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ResourcesService } from './resources.service.js';
+import { ResourceService } from '#src/modules/resource/resource.service.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 
-describe('ResourcesService', () => {
-  let service: ResourcesService;
+describe('ResourceService', () => {
+  let service: ResourceService;
   const prismaMock = {
     resource: {
       create: vi.fn(),
@@ -326,10 +290,10 @@ describe('ResourcesService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [ResourcesService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [ResourceService, { provide: PrismaService, useValue: prismaMock }],
     }).compile();
 
-    service = moduleRef.get(ResourcesService);
+    service = moduleRef.get(ResourceService);
     vi.clearAllMocks();
   });
 
@@ -341,7 +305,7 @@ describe('ResourcesService', () => {
   it('create gọi prisma.resource.create với đúng data', async () => {
     const dto = { name: 'Học NestJS' };
     prismaMock.resource.create.mockResolvedValue({ id: '1', ...dto });
-    const result = await service.create(dto as any);
+    const result = await service.create(dto);
     expect(prismaMock.resource.create).toHaveBeenCalledWith({ data: dto });
     expect(result).toEqual({ id: '1', ...dto });
   });
@@ -358,8 +322,8 @@ import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { AppModule } from '../src/app.module.js';
-import { configureApp } from '../src/bootstrap/configure-app.js';
+import { AppModule } from '#src/app.module.js';
+import { configureApp } from '#src/bootstrap/configure-app.js';
 
 describe('Resources (e2e)', () => {
   let app: INestApplication;
@@ -367,7 +331,7 @@ describe('Resources (e2e)', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
-    configureApp(app); // dùng chung config với main.ts — xem lưu ý bên dưới
+    configureApp(app); // dùng chung bootstrap với main.ts
     await app.init();
   });
 
@@ -408,57 +372,25 @@ describe('Resources (e2e)', () => {
 ```
 
 - `adminAccessToken`: login `POST /auth/login` bằng tài khoản ADMIN từ seed, 1 lần trong `beforeAll`.
-- `configureApp()` (`src/bootstrap/configure-app.ts`) đã dùng chung cho `main.ts` và e2e — không khai lại `ValidationPipe` riêng. `AllExceptionsFilter` đăng ký qua `APP_FILTER` trong `app.module.ts` (cần DI để đọc `RequestContext`), không qua `configureApp()`.
+- `configureApp()` đã dùng chung cho `main.ts` và e2e; filter được đăng ký qua `APP_FILTER`. Không lặp bootstrap config trong test.
 
 ---
 
 ## Phụ lục A — Lệnh CLI
 
-### a. Nest CLI
+### Nest CLI
 
-| Lệnh                                                            | Tác dụng                                                                                                                | Khi nào dùng                                                                                                       |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `nest g resource RESOURCE_NAME`                                 | Sinh đủ 4 file (module/controller/service/DTO), tự wiring `@Module`, tự đăng ký vào `AppModule`, sinh sẵn 5 method rỗng | [B3](#b3-scaffold) — **luôn bắt đầu 1 resource CRUD mới bằng lệnh này**, chọn REST API + Yes cho CRUD entry points |
-| `nest g module RESOURCE_NAME`                                   | Chỉ sinh 1 file `RESOURCE_NAME.module.ts` + tự đăng ký vào `AppModule`                                                  | Khi chỉ cần thêm 1 module trống (vd. module hạ tầng), không cần 5 method CRUD mẫu                                  |
-| `nest g controller RESOURCE_NAME --no-spec`                     | Chỉ sinh 1 file controller, bỏ qua file `*.spec.ts` mẫu                                                                 | Khi thêm controller cho API nghiệp vụ — không cần scaffold cả resource CRUD                                        |
-| `nest g service RESOURCE_NAME --no-spec`                        | Chỉ sinh 1 file service, bỏ qua file `*.spec.ts` mẫu                                                                    | Tương tự trên, khi chỉ cần thêm 1 service (vd. tách use-case riêng cho API nghiệp vụ)                              |
-| `nest g class RESOURCE_NAME/dto/create-RESOURCE_NAME --no-spec` | Sinh 1 class DTO rỗng tại đúng path quy ước                                                                             | Khi cần thêm 1 DTO lẻ (vd. request DTO cho API nghiệp vụ không nằm trong resource CRUD)                            |
-| `nest build`                                                    | Build production ra `dist` (chính là lệnh `npm run build` gọi bên trong)                                                | Trước khi deploy, hoặc muốn build tay không qua npm script                                                         |
-| `nest start --watch`                                            | Chạy app ở chế độ dev, tự reload khi sửa code (chính là lệnh `npm run start:dev` gọi bên trong)                         | Trong lúc code, để thấy thay đổi ngay lập tức                                                                      |
+- CRUD scaffold: `nest g resource modules/resource` — thay `resource` bằng tên feature số ít, chọn REST API và CRUD entry points ([B3](#b3-scaffold)).
+- API nghiệp vụ: `nest g controller RESOURCE_NAME --no-spec` hoặc `nest g service RESOURCE_NAME --no-spec`.
+- Chỉ dùng `nest g module RESOURCE_NAME` khi thực sự cần một Nest module mới. Kiểm tra folder/file đích theo [coding-style-conventions.md](coding-style-conventions.md).
 
-### b. Prisma CLI (luôn kèm `--config prisma7.config.ts`)
+### Prisma và npm scripts
 
-| Lệnh                                                                      | Tác dụng                                                                                  | Khi nào dùng                                                                                                                                                                        |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npx prisma format --config prisma7.config.ts`                            | Tự format lại các file `.prisma` trong `prisma/schema` cho đúng convention indent/spacing | Sau khi sửa tay `schema.prisma`/`enums.prisma`, trước khi commit                                                                                                                    |
-| `npx prisma validate --config prisma7.config.ts`                          | Kiểm tra schema hợp lệ (cú pháp, quan hệ, kiểu dữ liệu...), **không đụng vào DB thật**    | Muốn kiểm tra nhanh schema đúng chưa mà chưa cần migrate (vd. trong CI, hoặc trước khi mở PR)                                                                                       |
-| `npx prisma migrate dev --name MIGRATION_NAME --config prisma7.config.ts` | Tạo migration mới + áp dụng lên DB dev + tạo bảng lần đầu / mỗi khi đổi schema            | [B2](#b2-migration--generate) — sau khi sửa model ở [B1](#b1-model-trong-prismaschemaschemaprisma). ⚠️ Chỉ dùng ở **dev**; Prisma v7 **không** tự chạy `generate`/seed sau lệnh này |
-| `npx prisma generate --config prisma7.config.ts`                          | Sinh lại Prisma Client (type TypeScript khớp schema mới) vào `src/generated/prisma`       | **Luôn chạy ngay sau `migrate dev`** ở Prisma v7 — nếu quên, code TypeScript vẫn dùng type Prisma Client cũ, không thấy field mới                                                   |
-| `npx prisma migrate deploy --config prisma7.config.ts`                    | Áp dụng các migration đã có (không tạo migration mới, không hỏi tương tác)                | Khi deploy lên **production/staging** (CI/CD) — không dùng `migrate dev` ở môi trường này                                                                                           |
-| `npx prisma migrate reset --config prisma7.config.ts`                     | Xoá sạch dữ liệu + bảng, chạy lại toàn bộ migration từ đầu + seed                         | ⚠️ Chỉ dùng ở **dev**, khi DB local bị lệch/hỏng và muốn làm lại từ đầu — **mất hết data hiện có**                                                                                  |
-| `npx prisma db seed --config prisma7.config.ts`                           | Chạy `prisma/seed.ts` để tạo dữ liệu mẫu (vd. tài khoản ADMIN bootstrap cho auth)         | Sau khi migrate xong trên DB mới/rỗng, hoặc khi cần seed lại tài khoản test (tương đương `npm run db:seed`)                                                                         |
-| `npx prisma studio --config prisma7.config.ts`                            | Mở GUI trên trình duyệt để xem/sửa data trực tiếp trong DB                                | Khi cần kiểm tra nhanh data thật đang có gì mà không muốn viết query tay                                                                                                            |
+Lệnh Prisma, kể cả `--config prisma7.config.ts`, nằm trong [prisma-conventions.md §7](prisma-conventions.md#7-lệnh-cli-hay-dùng). Các script dự án chuẩn được khai trong `package.json`; thường dùng `npm run test`, `npm run test:e2e`, `npm run lint`, `npm run typecheck` và `npm run build`.
 
-### c. npm scripts
+Sau khi cập nhật Swagger endpoint, đồng bộ Postman bằng `npm run start:dev` rồi `npm run postman:sync` ([api-rules.md §R8](api-rules.md#r8-swagger--openapi)).
 
-| Lệnh                   | Tác dụng                                                                                   | Khi nào dùng                                                                            |
-| ---------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `npm run start:dev`    | Chạy app dev, tự reload khi sửa code                                                       | Trong lúc code hằng ngày                                                                |
-| `npm run start:debug`  | Chạy dev kèm debugger (`--inspect`)                                                        | Khi cần đặt breakpoint, debug logic phức tạp thay vì chỉ đọc log                        |
-| `npm run build`        | Build TypeScript ra `dist`, có kiểm tra type qua quá trình build                           | Trước khi `start:prod`, hoặc để chắc chắn code build sạch trước khi mở PR               |
-| `npm run start:prod`   | Chạy bản đã build (`node dist/main`), giống môi trường production                          | Kiểm tra thử bản build thật chạy đúng trước khi deploy                                  |
-| `npm run typecheck`    | Chạy `tsc --noEmit` — chỉ kiểm tra type, không sinh file build                             | Muốn kiểm tra lỗi type nhanh, không cần đợi build ra `dist`                             |
-| `npm run lint`         | Lint code bằng `oxlint` (`src`, `test/`)                                                   | Trước khi commit/mở PR — theo Definition of Done                                        |
-| `npm run format`       | Tự format code bằng `prettier`                                                             | Trước khi commit, hoặc sau khi code xong 1 file để chuẩn hoá style                      |
-| `npm run test`         | Chạy toàn bộ unit test (`vitest run`)                                                      | [B10](#b10-testing) — sau khi viết/sửa service, trước khi commit                        |
-| `npm run test:watch`   | Chạy unit test ở chế độ watch, tự chạy lại khi sửa file                                    | Trong lúc viết test, muốn thấy kết quả ngay khi lưu file                                |
-| `npm run test:debug`   | Chạy test kèm debugger, tắt chạy song song để dễ debug từng test                           | Khi 1 test fail khó hiểu, cần đặt breakpoint để trace                                   |
-| `npm run test:cov`     | Chạy unit test kèm báo cáo coverage                                                        | Muốn biết phần code nào chưa có test bao phủ                                            |
-| `npm run test:e2e`     | Chạy e2e test (`vitest.config.e2e.ts`, gọi thật qua HTTP)                                  | [B10b](#b-api-e2e--supertest) — sau khi viết xong controller + route thật               |
-| `npm run db:seed`      | Chạy `prisma/seed.ts` (tương đương `prisma db seed`, nhưng qua `tsx` không cần `--config`) | Sau khi migrate DB mới/rỗng, hoặc cần tài khoản ADMIN bootstrap để login trong e2e test |
-| `npm run postman:sync` | Đồng bộ Postman collection từ Swagger spec (`/api-json`) — app phải đang chạy              | [B8](#b8-swagger) — sau khi thêm/sửa decorator Swagger cho endpoint mới                 |
-
-Git/PR: xem [git-workflow.md](git-workflow.md) (branch từ `dev`, PR qua `/ship`, không AI attribution trong commit).
+Git/PR: xem [git-workflow.md](git-workflow.md).
 
 ## Phụ lục B — Ví dụ non-CRUD: `cancelOrder`
 

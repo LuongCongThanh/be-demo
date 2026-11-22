@@ -2,6 +2,8 @@
 
 Thư mục này chứa các convention **chung, generic** cho toàn bộ ecommerce project — mô tả _cách_ viết code (naming, cấu trúc, config, error handling, API flow, schema), không phải business rule của 1 resource cụ thể (business rule nằm ở [`../business/`](../business/), thiết kế từng module ở [`../architecture/modules/`](../architecture/modules/)).
 
+Với module `Category`, [`../architecture/refactor/01-category-folder-structure-convention-v1.6.md`](../architecture/refactor/01-category-folder-structure-convention-v1.6.md) là nguồn chuẩn cho phân tầng, Port/adapter, DI, presentation và transaction boundary. Nếu một convention generic mô tả một hướng khác phù hợp với ứng dụng CRUD đơn giản, quy tắc Category v1.6 được áp dụng cho module này; không tạo quy tắc kiến trúc song song.
+
 Đọc theo đúng thứ tự dưới đây nếu bạn mới vào project — mỗi mục sau dựa trên/tham chiếu ngược lại mục trước:
 
 | #   | File                                                                   | Nội dung                                                                                                                                                                                    | Khi nào cần đọc                                                               |

@@ -2,6 +2,8 @@
 
 Quy tắc chung khi viết `schema.prisma`, tạo migration và gọi Prisma Client trong NestJS. Tài liệu này **không** mô tả schema — nguồn sự thật về bảng, cột, quan hệ, index, CHECK là [`../architecture/11-database.md`](../architecture/11-database.md). Khi hai tài liệu mâu thuẫn, `11-database.md` thắng.
 
+Quy tắc phạm vi module: trong `Category`, Prisma chỉ được dùng tại Infrastructure adapter. Domain/Application không import Prisma Client, Prisma Model, `Prisma.TransactionClient` hoặc Persistence Record; outbound dependency đi qua Application Port và transaction boundary theo [`../architecture/refactor/01-category-folder-structure-convention-v1.6.md`](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
+
 ## 1. Vị trí file
 
 ```
@@ -27,13 +29,7 @@ src/infrastructure/database/ — PrismaService + PrismaModule (@Global)
 | Field      | `camelCase` (`variantId`)             | cột `snake_case` (`variant_id`)                 |
 | Enum       | `PascalCase` (`OrderStatus`)          | giá trị theo `11-database.md`                   |
 
-Kiểu dữ liệu (theo `11-database.md` §3.1):
-
-- PK: `id String @id @db.Uuid` — UUID v7 sinh ở app. Bảng tra cứu có mã tự nhiên (`provinces.code`, `settings.key`) và bảng nối (`@@id([a, b])`) là ngoại lệ.
-- **Tiền: `BigInt` (VND, số nguyên)** — không `Float`, không `Decimal`. Ràng buộc `>= 0` bằng CHECK trong SQL migration.
-- Thời gian: `DateTime @db.Timestamptz(6)`, lưu UTC. Mọi bảng có `createdAt`/`updatedAt` (`@updatedAt`).
-- Enum Prisma cho tập giá trị đóng do code quyết định; danh sách Admin quản lý (size, màu) là **bảng**.
-- `Json` (`jsonb`) chỉ cho payload thô bên ngoài, snapshot, cấu hình.
+Kiểu dữ liệu, khóa, constraint, delete behavior và index theo nguồn schema chuẩn [`11-database.md`](../architecture/11-database.md). Không sao chép các quyết định schema vào tài liệu này.
 
 ```prisma
 model CartItem {
@@ -53,9 +49,8 @@ model CartItem {
 }
 ```
 
-- FK luôn khai theo cặp: cột FK + field quan hệ. **`onDelete` luôn khai rõ** — chọn theo bảng §3.3 của `11-database.md` (tài chính/lịch sử, cây danh mục → `Restrict`; con thuần tuý → `Cascade`).
-- Postgres không tự index FK → mọi FK cần `@@index` riêng hoặc là cột dẫn đầu của composite index.
-- Composite index theo đúng thứ tự cột filter + sort của query listing; kiểm bằng `EXPLAIN ANALYZE`.
+- Khai báo relation/FK rõ ràng; thiết kế `onDelete` và index theo `11-database.md`.
+- Composite index phải phù hợp điều kiện filter/sort của query; xác nhận query quan trọng bằng `EXPLAIN ANALYZE`.
 
 ## 3. Migration
 
@@ -86,7 +81,7 @@ Thay đổi an toàn khi đã có dữ liệu thật:
 
 ## 4. Prisma Client trong NestJS
 
-- `PrismaModule` là `@Global()` → mọi service inject thẳng `PrismaService`, không tạo client riêng, không thêm Repository layer.
+- `PrismaModule` là `@Global()` → service generic có thể inject thẳng `PrismaService`, không tạo client riêng, không thêm Repository layer. Phạm vi Category được nêu ở đầu tài liệu.
 - Chỉ lấy đủ cột cần: `select` khi trả response (tránh lộ `passwordHash`...), `include` khi cần cả quan hệ.
 
 ```ts
@@ -101,7 +96,7 @@ return this.prisma.product.findUnique({
 
 ### 4.1. Transaction
 
-Mọi thao tác nhiều bước phải atomic dùng interactive transaction; bên trong chỉ dùng `tx`, không dùng `this.prisma`:
+Khi business operation cần atomicity, dùng interactive transaction; bên trong callback chỉ dùng `tx`, không dùng `this.prisma`:
 
 ```ts
 await this.prisma.$transaction(async (tx) => {

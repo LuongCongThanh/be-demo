@@ -16,6 +16,13 @@ Use the named Matt Pocock skill when it is available in the active agent. If it 
 - Before any code review and before opening a PR, follow the [repository review policy](../../AGENTS.md#shared-ai-code-review). Treat it as the single source of truth; do not duplicate its checklist here.
 - Identify the requested outcome, scope, and evidence that will prove completion. Use repository instructions and conventions to resolve routine details; ask only when a consequential choice remains ambiguous.
 
+### Preflight for ambiguous or consequential work
+
+- Before a multi-step, high-impact, irreversible, or unclear task, give the user a concise understanding brief before changing files: goal, relevant context and authoritative sources, inputs/data, one correct example when it clarifies expected behavior, in-scope and out-of-scope work, assumptions or open decisions, and observable completion criteria.
+- State what is intentionally not being changed and what remains on hold. For unresolved consequential decisions, ask focused questions and wait for confirmation before acting.
+- For a clear, low-risk task, restate the request in one sentence and proceed without an extra approval round. Pause only if inspection reveals a material conflict or missing decision.
+- Carry forward a relevant context summary, not the entire conversation. Separate verified facts from assumptions, and describe “done” by its acceptance checks rather than an estimated time.
+
 ## 2. Inspect before changing
 
 - Read applicable `AGENTS.md` files, the relevant task or acceptance criteria, and the conventions for the files being changed.
