@@ -27,7 +27,7 @@ CREATE TABLE customer_addresses (
   is_default BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ(6) NOT NULL,
-  CONSTRAINT customer_addresses_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  CONSTRAINT customer_addresses_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX customer_addresses_user_default_idx ON customer_addresses(user_id, is_default);
+CREATE INDEX customer_addresses_user_id_is_default_idx ON customer_addresses(user_id, is_default);
