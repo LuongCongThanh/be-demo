@@ -66,6 +66,7 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 34  | [Hoàn hàng, Đổi trả và Hoàn tiền](./tasks/34-returns-refunds/spec.md)                                  | todo        | 29-online-payment, 33-staff-order-operations                                        |     |
 | 35  | [Thông báo Email theo vòng đời đơn](./tasks/35-order-notifications/spec.md)                            | todo        | 28-cod-checkout, 29-online-payment, 32-ghn-fulfillment, 34-returns-refunds          |     |
 | 36  | [Đồng ý dữ liệu, vận hành và báo cáo](./tasks/36-compliance-operations-reporting/spec.md)              | todo        | 17-access-admin-api, 28-cod-checkout, 33-staff-order-operations, 34-returns-refunds |     |
+| 37  | [Định danh và hồ sơ Khách hàng](./tasks/37-customer-identity-profile/spec.md)                          | todo        | 08-identity-use-case-services, 16-permissions-guard                                  |     |
 
 Các đầu việc thuộc Giai đoạn B của [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/issues/README.md) nằm trong nhiệm vụ cha; trạng thái và các mối phụ thuộc được theo dõi tại danh sách đó.
 
