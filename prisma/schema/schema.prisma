@@ -135,6 +135,8 @@ model ProductVariant {
   orderItems            OrderItem[]
   awaitingDispatchItems AwaitingDispatchItem[]
   salePrices            SalePrice[]
+  inventoryMovements    InventoryMovement[]
+  inventoryStockCounts  InventoryStockCount[]
 
   @@unique([productId, sizeId, colorId])
   @@index([productId, createdAt(sort: Desc)])
@@ -236,6 +238,43 @@ model Inventory {
   variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   @@map("inventory")
+}
+
+model InventoryMovement {
+  id               String   @id @default(uuid()) @db.Uuid
+  variantId        String   @map("variant_id") @db.Uuid
+  actorUserId      String   @map("actor_user_id") @db.Uuid
+  reason           String   @db.VarChar(500)
+  quantityDelta    Int      @map("quantity_delta")
+  beforeQuantity   Int      @map("before_quantity")
+  afterQuantity    Int      @map("after_quantity")
+  beforeReserved   Int      @map("before_reserved")
+  afterReserved    Int      @map("after_reserved")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  actor   User           @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([variantId, createdAt(sort: Desc)])
+  @@map("inventory_movements")
+}
+
+model InventoryStockCount {
+  id                 String   @id @default(uuid()) @db.Uuid
+  variantId          String   @map("variant_id") @db.Uuid
+  actorUserId        String   @map("actor_user_id") @db.Uuid
+  physicalCount      Int      @map("physical_count")
+  onShelfAtCount     Int      @map("on_shelf_at_count")
+  awaitingAtCount    Int      @map("awaiting_at_count")
+  discrepancy        Int
+  confirmedAt        DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  actor   User           @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([variantId, createdAt(sort: Desc)])
+  @@map("inventory_stock_counts")
 }
 
 model Cart {

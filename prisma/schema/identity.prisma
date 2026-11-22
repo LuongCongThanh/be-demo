@@ -46,6 +46,8 @@ model User {
   salePrices              SalePrice[]
   vouchers                Voucher[]
   addresses               CustomerAddress[]
+  inventoryMovements      InventoryMovement[]
+  inventoryStockCounts    InventoryStockCount[]
 
   @@map("users")
 }

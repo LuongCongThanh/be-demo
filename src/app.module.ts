@@ -13,6 +13,7 @@ import { validate } from '#src/config/env.validation.js';
 import { AllExceptionsFilter } from '#src/http/filters/all-exceptions.filter.js';
 import { RequestIdMiddleware } from '#src/http/middleware/request-id.middleware.js';
 import { CartModule } from '#src/modules/cart/cart.module.js';
+import { InventoryModule } from '#src/modules/inventory/inventory.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CartModule } from '#src/modules/cart/cart.module.js';
     VoucherModule,
     CheckoutModule,
     CartModule,
+    InventoryModule,
   ],
   providers: [
     // `useExisting` (not `useClass`) so `ThrottlerGuard` is also reachable as

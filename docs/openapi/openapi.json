@@ -65,6 +65,23 @@
         ],
         "type": "object"
       },
+      "AdjustInventoryDto": {
+        "properties": {
+          "delta": {
+            "example": -5,
+            "type": "number"
+          },
+          "reason": {
+            "example": "Damaged stock count",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delta",
+          "reason"
+        ],
+        "type": "object"
+      },
       "AuthUserResponseDto": {
         "properties": {
           "email": {
@@ -799,6 +816,18 @@
           "email",
           "name",
           "password"
+        ],
+        "type": "object"
+      },
+      "CreateStockCountDto": {
+        "properties": {
+          "physicalCount": {
+            "example": 48,
+            "type": "number"
+          }
+        },
+        "required": [
+          "physicalCount"
         ],
         "type": "object"
       },
@@ -4523,6 +4552,182 @@
         "summary": "Assign a role to an internal account; idempotent (requires ADMINISTRATION_INTERNAL_ACCOUNT_MANAGE). Accounts holding the role must log in again: their access tokens stop working and their refresh tokens are revoked. The Admin role cannot be assigned to a second account.",
         "tags": [
           "Admin CMS — Roles & Permissions"
+        ]
+      }
+    },
+    "/api/v1/admin/inventory/counts/{countId}/confirm": {
+      "post": {
+        "operationId": "InventoryController_confirmCount_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "countId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm a stock count against current inventory",
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/admin/inventory/{variantId}": {
+      "get": {
+        "operationId": "InventoryController_get_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "variantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get variant inventory availability",
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/admin/inventory/{variantId}/adjust": {
+      "post": {
+        "operationId": "InventoryController_adjust_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "variantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdjustInventoryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Adjust variant inventory with an auditable movement",
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/admin/inventory/{variantId}/counts": {
+      "post": {
+        "operationId": "InventoryController_createCount_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "variantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStockCountDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a physical stock count snapshot",
+        "tags": [
+          "Inventory"
         ]
       }
     },
