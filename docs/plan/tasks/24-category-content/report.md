@@ -1,4 +1,6 @@
 # Báo cáo triển khai BE category — 2026-11-19
+#
+# Trạng thái: PR #98 đã hợp nhất; task cha đã đóng cho phạm vi BE.
 
 ## Kết quả
 
@@ -25,4 +27,4 @@ Bản dịch không chặn lưu, không cần Redis/queue service mới. Kết q
 - Chưa gọi Google/Cloudinary thật để nghiệm thu credential/chất lượng dịch/upload. Retry FAILED là chủ động; worker cần tiến trình BE hoạt động.
 - CMS/store cần regenerate client và tích hợp locale/media/trạng thái dịch; UI/caching xuyên ứng dụng chưa nằm trong nghiệm thu BE này.
 - Ảnh tháo/thay không xóa object cũ ngay để tránh race với request gắn lại; dọn object mồ côi là việc vận hành riêng.
-- Không tạo PR/merge theo yêu cầu phiên này; task giữ in-progress trong tracker theo quy ước chỉ done sau merge. Không thay các chỉnh sửa có sẵn của người dùng ở tài liệu module/layout.
+- PR #98 đã hợp nhất toàn bộ ticket BE 01–03; không thay các chỉnh sửa có sẵn của người dùng ở tài liệu module/layout.
