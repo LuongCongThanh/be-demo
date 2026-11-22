@@ -67,7 +67,7 @@ describe('RegistrationService.register', () => {
   function validRegisterDto(overrides: Record<string, unknown> = {}) {
     return {
       email: 'new@example.com',
-      password: 'Abc@1234',
+      password: 'Abcde@123456789',
       fullName: 'Nguyen Van A',
       phone: '0912345678',
       ...overrides,

@@ -13,7 +13,7 @@ import { createTestApp } from '../../support/create-test-app.js';
 const TEST_NAME_PREFIX = 'ProductsStorefrontE2E';
 const TEST_EMAIL_DOMAIN = '@products-storefront.e2e-test.local';
 const CODE_PREFIX = 'E2PS';
-const VALID_PASSWORD = 'Abc@1234';
+const VALID_PASSWORD = 'Abcde@123456789';
 const MISSING_ID = '00000000-0000-0000-0000-000000000000';
 
 describe('Products — Storefront (e2e)', () => {

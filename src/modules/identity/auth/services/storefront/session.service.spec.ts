@@ -4,11 +4,13 @@ import { SessionService } from '#src/modules/identity/auth/services/storefront/s
 import { AccessClaimsService } from '#src/modules/identity/auth/services/shared/access-claims.service.js';
 import { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
 import { TokenService } from '#src/modules/identity/auth/services/shared/token.service.js';
+import { ConfigService } from '@nestjs/config';
 
 function createHarness() {
   const prisma = {
     user: {
       findUnique: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue({}),
     },
     refreshToken: {
       findUnique: vi.fn().mockResolvedValue(null),
@@ -34,6 +36,7 @@ function createHarness() {
   const accessClaims = {
     resolve: vi.fn().mockResolvedValue({ roles: [], permissions: [] }),
   };
+  const config = { get: vi.fn().mockReturnValue(undefined) };
 
   const service = new SessionService(
     prisma as never,
@@ -41,6 +44,7 @@ function createHarness() {
     tokenService as unknown as TokenService,
     jwtService as unknown as JwtService,
     accessClaims as unknown as AccessClaimsService,
+    config as unknown as ConfigService,
   );
 
   return { service, prisma, passwordService, tokenService, jwtService };
@@ -60,6 +64,9 @@ describe('SessionService.login', () => {
       emailVerifiedAt: new Date(),
       sessionVersion: 0,
       role: 'CUSTOMER',
+      failedLoginCount: 0,
+      failedLoginStartedAt: null,
+      lockedUntil: null,
       ...overrides,
     };
   }
@@ -68,7 +75,7 @@ describe('SessionService.login', () => {
     const { service, prisma, passwordService } = createHarness();
     prisma.user.findUnique.mockResolvedValue(null);
 
-    await expect(service.login({ email: 'nobody@example.com', password: 'Abc@1234' })).rejects.toThrow(
+    await expect(service.login({ email: 'nobody@example.com', password: 'Abcde@123456789' })).rejects.toThrow(
       UnauthorizedException,
     );
     expect(passwordService.verify).not.toHaveBeenCalled();
@@ -84,13 +91,35 @@ describe('SessionService.login', () => {
     await expect(service.login({ email: 'user@example.com', password: 'wrong' })).rejects.toThrow(
       new UnauthorizedException('Invalid email or password'),
     );
+    expect(prisma.user.update).toHaveBeenCalled();
+  });
+
+  it('rejects locked customer accounts with the generic credentials error', async () => {
+    const { service, prisma } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(
+      validLoginUser({ lockedUntil: new Date(Date.now() + 60_000) }),
+    );
+
+    await expect(service.login({ email: 'user@example.com', password: 'Abcde@123456789' })).rejects.toThrow(
+      new UnauthorizedException('Invalid email or password'),
+    );
+  });
+
+  it('rejects Staff and Admin storefront login after password verification', async () => {
+    const { service, prisma, passwordService } = createHarness();
+    prisma.user.findUnique.mockResolvedValue(validLoginUser({ role: 'STAFF' }));
+
+    await expect(service.login({ email: 'staff@example.com', password: 'Abcde@123456789' })).rejects.toThrow(
+      new UnauthorizedException('Invalid email or password'),
+    );
+    expect(passwordService.verify).toHaveBeenCalled();
   });
 
   it('throws the generic credentials error, checked only after the password is confirmed correct, when the account is DISABLED', async () => {
     const { service, prisma, passwordService } = createHarness();
     prisma.user.findUnique.mockResolvedValue(validLoginUser({ status: 'DISABLED' }));
 
-    await expect(service.login({ email: 'user@example.com', password: 'Abc@1234' })).rejects.toThrow(
+    await expect(service.login({ email: 'user@example.com', password: 'Abcde@123456789' })).rejects.toThrow(
       new UnauthorizedException('Invalid email or password'),
     );
     expect(passwordService.verify).toHaveBeenCalled();
@@ -100,7 +129,7 @@ describe('SessionService.login', () => {
     const { service, prisma } = createHarness();
     prisma.user.findUnique.mockResolvedValue(validLoginUser({ emailVerifiedAt: null }));
 
-    await expect(service.login({ email: 'user@example.com', password: 'Abc@1234' })).rejects.toThrow(
+    await expect(service.login({ email: 'user@example.com', password: 'Abcde@123456789' })).rejects.toThrow(
       new UnauthorizedException('Email is not verified'),
     );
   });
@@ -111,7 +140,7 @@ describe('SessionService.login', () => {
     tokenService.createRefreshToken.mockResolvedValue('raw-refresh-token-xyz');
     jwtService.sign.mockReturnValue('signed-access-token-xyz');
 
-    const result = await service.login({ email: 'user@example.com', password: 'Abc@1234' });
+    const result = await service.login({ email: 'user@example.com', password: 'Abcde@123456789' });
 
     expect(jwtService.sign).toHaveBeenCalledWith({
       sub: 'user-1',

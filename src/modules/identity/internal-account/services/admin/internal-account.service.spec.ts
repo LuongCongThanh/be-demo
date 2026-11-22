@@ -24,7 +24,7 @@ function setup() {
   return { service, prisma, tx, passwords, audit };
 }
 
-const input = { email: 'a@x.local', name: 'A', password: 'Abc@1234', role: 'ADMIN' as const, actorUserId: null };
+const input = { email: 'a@x.local', name: 'A', password: 'Abcde@123456789', role: 'ADMIN' as const, actorUserId: null };
 
 describe('InternalAccountService.create', () => {
   it('creates a verified ACTIVE account with a hashed password and audits admin.create', async () => {
@@ -132,7 +132,7 @@ describe('InternalAccountService staff management', () => {
     h.accounts.create.mockResolvedValue(staff());
     h.prisma.user.findFirst.mockResolvedValue(staff());
     const result = await h.service.createStaff(
-      { email: 's@x.local', name: 'Nhan Vien', password: 'Abc@1234' },
+      { email: 's@x.local', name: 'Nhan Vien', password: 'Abcde@123456789' },
       'admin-1',
     );
 

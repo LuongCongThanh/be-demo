@@ -4,6 +4,16 @@ function createHarness() {
   const prisma = {
     user: {
       findUniqueOrThrow: vi.fn(),
+      update: vi.fn(),
+    },
+    $transaction: vi.fn(),
+    customerAddress: {
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      findFirst: vi.fn(),
+      deleteMany: vi.fn(),
     },
   };
 
@@ -37,6 +47,34 @@ describe('AccountProfileService.getMe', () => {
       emailVerified: true,
       roles: [],
       permissions: [],
+    });
+  });
+
+  describe('AccountProfileService.addresses', () => {
+    it('creates a default address and clears existing defaults in one transaction', async () => {
+      const { service, prisma } = createHarness();
+      const tx = {
+        customerAddress: {
+          updateMany: vi.fn(),
+          create: vi.fn().mockResolvedValue({ id: 'address-1', isDefault: true }),
+        },
+      };
+      prisma.$transaction.mockImplementation((fn: (tx: unknown) => unknown) => fn(tx));
+
+      const result = await service.createAddress('user-1', {
+        fullName: 'Nguyen Van A',
+        phone: '0912345678',
+        provinceCode: '79',
+        provinceName: 'TP Ho Chi Minh',
+        wardCode: '767',
+        wardName: 'Phuong X',
+        addressLine: '12 Nguyen Trai',
+        isDefault: true,
+      });
+
+      expect(tx.customerAddress.updateMany).toHaveBeenCalled();
+      expect(tx.customerAddress.create).toHaveBeenCalled();
+      expect(result).toMatchObject({ id: 'address-1', isDefault: true });
     });
   });
 });

@@ -15,7 +15,7 @@ export class CreateStaffDto {
   @MaxLength(255)
   name!: string;
 
-  @ApiProperty({ example: 'Abc@1234', description: 'Initial password, same policy as registration' })
+  @ApiProperty({ example: 'Abcde@123456789', description: 'Initial password, same policy as registration' })
   @IsString()
   @IsStrongPassword()
   password!: string;

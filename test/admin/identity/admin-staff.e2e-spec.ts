@@ -7,7 +7,7 @@ import { createTestUser } from '../../support/create-test-user.js';
 import { createTestApp } from '../../support/create-test-app.js';
 
 const TEST_EMAIL_DOMAIN = '@admin-staff.e2e-test.local';
-const VALID_PASSWORD = 'Abc@1234';
+const VALID_PASSWORD = 'Abcde@123456789';
 const MISSING_ID = '00000000-0000-0000-0000-000000000000';
 
 describe('Admin — staff management (e2e)', () => {

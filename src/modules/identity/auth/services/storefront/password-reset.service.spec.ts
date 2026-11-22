@@ -102,8 +102,8 @@ describe('PasswordResetService.resetPassword', () => {
   function validDto(overrides: Record<string, unknown> = {}) {
     return {
       token: 'raw-reset-token',
-      password: 'NewAbc@1234',
-      confirmPassword: 'NewAbc@1234',
+      password: 'NewAbcde@123456789',
+      confirmPassword: 'NewAbcde@123456789',
       ...overrides,
     };
   }
@@ -153,7 +153,7 @@ describe('PasswordResetService.resetPassword', () => {
       where: { id: 'reset-token-1', usedAt: null },
       data: { usedAt: expect.any(Date) },
     });
-    expect(passwordService.hash).toHaveBeenCalledWith('NewAbc@1234');
+    expect(passwordService.hash).toHaveBeenCalledWith('NewAbcde@123456789');
     expect(tx.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: { passwordHash: 'new-hashed-password' },

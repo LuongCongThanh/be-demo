@@ -772,7 +772,7 @@
           },
           "password": {
             "description": "Initial password, same policy as registration",
-            "example": "Abc@1234",
+            "example": "Abcde@123456789",
             "type": "string"
           }
         },
@@ -882,15 +882,75 @@
         ],
         "type": "object"
       },
+      "CustomerAddressDto": {
+        "properties": {
+          "addressLine": {
+            "example": "12 Nguyen Trai",
+            "type": "string"
+          },
+          "fullName": {
+            "example": "Nguyen Van A",
+            "type": "string"
+          },
+          "isDefault": {
+            "default": false,
+            "type": "boolean"
+          },
+          "phone": {
+            "example": "0912345678",
+            "type": "string"
+          },
+          "provinceCode": {
+            "example": "79",
+            "type": "string"
+          },
+          "provinceName": {
+            "example": "TP Ho Chi Minh",
+            "type": "string"
+          },
+          "wardCode": {
+            "example": "767",
+            "type": "string"
+          },
+          "wardName": {
+            "example": "Phuong X",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fullName",
+          "phone",
+          "provinceCode",
+          "provinceName",
+          "wardCode",
+          "wardName",
+          "addressLine"
+        ],
+        "type": "object"
+      },
       "CustomerProfileResponseDto": {
         "properties": {
           "email": {
+            "type": "string"
+          },
+          "emailLocale": {
+            "enum": [
+              "vi",
+              "en"
+            ],
             "type": "string"
           },
           "fullName": {
             "type": "string"
           },
           "id": {
+            "type": "string"
+          },
+          "interfaceLocale": {
+            "enum": [
+              "vi",
+              "en"
+            ],
             "type": "string"
           },
           "phone": {
@@ -901,7 +961,9 @@
           "id",
           "email",
           "fullName",
-          "phone"
+          "phone",
+          "interfaceLocale",
+          "emailLocale"
         ],
         "type": "object"
       },
@@ -960,6 +1022,18 @@
         ],
         "type": "string"
       },
+      "GoogleLoginDto": {
+        "properties": {
+          "idToken": {
+            "description": "Google ID token from GIS/Google OAuth",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idToken"
+        ],
+        "type": "object"
+      },
       "ImageResponseDto": {
         "properties": {
           "altText": {
@@ -1014,7 +1088,7 @@
             "type": "string"
           },
           "password": {
-            "example": "Abc@1234",
+            "example": "Abcde@123456789",
             "type": "string"
           }
         },
@@ -1812,7 +1886,7 @@
             "type": "string"
           },
           "password": {
-            "example": "Abc@1234",
+            "example": "Abcde@123456789",
             "type": "string"
           },
           "phone": {
@@ -1858,11 +1932,11 @@
       "ResetPasswordDto": {
         "properties": {
           "confirmPassword": {
-            "example": "NewAbc@1234",
+            "example": "NewAbcde@123456789",
             "type": "string"
           },
           "password": {
-            "example": "NewAbc@1234",
+            "example": "NewAbcde@123456789",
             "type": "string"
           },
           "token": {
@@ -2345,6 +2419,33 @@
           "name": {
             "example": "Trắng",
             "maxLength": 50,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateCustomerProfileDto": {
+        "properties": {
+          "emailLocale": {
+            "enum": [
+              "vi",
+              "en"
+            ],
+            "type": "string"
+          },
+          "fullName": {
+            "example": "Nguyen Van A",
+            "type": "string"
+          },
+          "interfaceLocale": {
+            "enum": [
+              "vi",
+              "en"
+            ],
+            "type": "string"
+          },
+          "phone": {
+            "example": "0912345678",
             "type": "string"
           }
         },
@@ -8228,6 +8329,58 @@
         ]
       }
     },
+    "/api/v1/auth/google": {
+      "post": {
+        "operationId": "AuthController_googleLogin_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid or unverified Google credentials"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "Sign in or create a Customer using a Google ID token",
+        "tags": [
+          "Storefront — Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "AuthController_login_v1",
@@ -9246,6 +9399,205 @@
           }
         ],
         "summary": "Get the signed-in customer profile (CUSTOMER only)",
+        "tags": [
+          "Storefront — Authentication"
+        ]
+      },
+      "patch": {
+        "operationId": "MeController_updateProfile_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerProfileDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerProfileResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update the signed-in customer profile",
+        "tags": [
+          "Storefront — Authentication"
+        ]
+      }
+    },
+    "/api/v1/me/addresses": {
+      "get": {
+        "operationId": "MeController_listAddresses_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List customer delivery addresses",
+        "tags": [
+          "Storefront — Authentication"
+        ]
+      },
+      "post": {
+        "operationId": "MeController_createAddress_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerAddressDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a customer delivery address",
+        "tags": [
+          "Storefront — Authentication"
+        ]
+      }
+    },
+    "/api/v1/me/addresses/{addressId}": {
+      "delete": {
+        "operationId": "MeController_deleteAddress_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "addressId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a customer delivery address",
+        "tags": [
+          "Storefront — Authentication"
+        ]
+      },
+      "patch": {
+        "operationId": "MeController_updateAddress_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "addressId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerAddressDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a customer delivery address",
         "tags": [
           "Storefront — Authentication"
         ]

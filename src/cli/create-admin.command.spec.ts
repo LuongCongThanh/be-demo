@@ -22,14 +22,14 @@ describe('CreateAdminCommand', () => {
   });
 
   it('creates an ADMIN with no actor and returns 0', async () => {
-    answers = ['Abc@1234', 'Abc@1234'];
+    answers = ['Abcde@123456789', 'Abcde@123456789'];
     accounts.create.mockResolvedValue({ id: 'a1', email: 'a@x.local' });
 
     expect(await command.run(['--email', 'a@x.local', '--name', ' Quan Tri '], out)).toBe(0);
     expect(accounts.create).toHaveBeenCalledWith({
       email: 'a@x.local',
       name: 'Quan Tri',
-      password: 'Abc@1234',
+      password: 'Abcde@123456789',
       role: 'ADMIN',
       actorUserId: null,
     });
@@ -42,7 +42,7 @@ describe('CreateAdminCommand', () => {
   });
 
   it('returns 1 when the confirmation does not match', async () => {
-    answers = ['Abc@1234', 'Xyz@1234'];
+    answers = ['Abcde@123456789', 'Xyz@1234'];
     expect(await command.run(['--email', 'a@x.local', '--name', 'A'], out)).toBe(1);
     expect(errors).toContain('Passwords do not match');
   });
@@ -56,14 +56,14 @@ describe('CreateAdminCommand', () => {
   });
 
   it('returns 1 without overwriting when the email exists', async () => {
-    answers = ['Abc@1234', 'Abc@1234'];
+    answers = ['Abcde@123456789', 'Abcde@123456789'];
     accounts.create.mockRejectedValue(new ConflictException('Email is already in use'));
     expect(await command.run(['--email', 'a@x.local', '--name', 'A'], out)).toBe(1);
     expect(errors[0]).toMatch(/nothing was changed/);
   });
 
   it('rethrows unexpected errors', async () => {
-    answers = ['Abc@1234', 'Abc@1234'];
+    answers = ['Abcde@123456789', 'Abcde@123456789'];
     accounts.create.mockRejectedValue(new Error('db down'));
     await expect(command.run(['--email', 'a@x.local', '--name', 'A'], out)).rejects.toThrow('db down');
   });

@@ -63,7 +63,7 @@ describe('Auth — full register flow (e2e)', () => {
   function validRegisterPayload(email: string) {
     return {
       email,
-      password: 'Abc@1234',
+      password: 'Abcde@123456789',
       fullName: 'Nguyen Van A',
       phone: '0912345678',
     };

@@ -25,6 +25,7 @@ import { RegisterDto } from '#src/modules/identity/auth/dto/storefront/register.
 import { RegisterResponseDto } from '#src/modules/identity/auth/dto/storefront/register-response.dto.js';
 import { CurrentUser } from '#src/security/authentication/current-user.decorator.js';
 import type { JwtPayload } from '#src/security/contracts/jwt-payload.js';
+import { GoogleLoginDto } from '#src/modules/identity/auth/dto/storefront/google-login.dto.js';
 
 // Phải khớp đúng path prefix route auth thực tế của app (với API versioning,
 // route thật là '/api/v1/auth'). Dùng chung cho mọi nơi set/clear cookie
@@ -92,6 +93,21 @@ export class AuthController {
 
     this.setRefreshTokenCookie(response, rawRefreshToken);
 
+    return { accessToken, user };
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sign in or create a Customer using a Google ID token' })
+  @ApiOkResponse({ type: LoginResponseDto })
+  @ApiErrorResponses([401, 'Invalid or unverified Google credentials'])
+  async googleLogin(
+    @Body() dto: GoogleLoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<LoginResponseDto> {
+    const { accessToken, rawRefreshToken, user } = await this.sessionService.googleLogin(dto.idToken);
+    this.setRefreshTokenCookie(response, rawRefreshToken);
     return { accessToken, user };
   }
 

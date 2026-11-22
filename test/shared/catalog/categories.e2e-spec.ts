@@ -15,7 +15,7 @@ import { createTestApp } from '../../support/create-test-app.js';
 // afterAll (startsWith), tránh category test cộng dồn qua các lần chạy.
 const TEST_NAME_PREFIX = 'CategoriesSharedE2E';
 const TEST_EMAIL_DOMAIN = '@categories-shared.e2e-test.local';
-const VALID_PASSWORD = 'Abc@1234';
+const VALID_PASSWORD = 'Abcde@123456789';
 const MISSING_ID = '00000000-0000-0000-0000-000000000000';
 
 describe('Categories — cross-audience flows (e2e)', () => {

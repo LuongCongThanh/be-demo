@@ -36,7 +36,7 @@ describe('Auth — POST /auth/refresh (e2e)', () => {
   });
 
   async function createUser(emailSuffix: string) {
-    const passwordHash = await passwordService.hash('Abc@1234');
+    const passwordHash = await passwordService.hash('Abcde@123456789');
 
     return createTestUser(prisma, {
       emailDomain: TEST_EMAIL_DOMAIN,

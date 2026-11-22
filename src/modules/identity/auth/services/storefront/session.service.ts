@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { AccountType } from '#src/generated/prisma/enums.js';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
@@ -6,6 +6,9 @@ import { LoginDto } from '#src/modules/identity/auth/dto/storefront/login.dto.js
 import { AccessClaimsService } from '#src/modules/identity/auth/services/shared/access-claims.service.js';
 import { PasswordService } from '#src/modules/identity/auth/services/shared/password.service.js';
 import { TokenService } from '#src/modules/identity/auth/services/shared/token.service.js';
+import { ConfigService } from '@nestjs/config';
+import { OAuth2Client } from 'google-auth-library';
+import { randomUUID } from 'node:crypto';
 
 export interface LoginResult {
   accessToken: string;
@@ -20,12 +23,15 @@ export interface RefreshTokenResult {
 
 @Injectable()
 export class SessionService {
+  private readonly logger = new Logger(SessionService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly jwtService: JwtService,
     private readonly accessClaims: AccessClaimsService,
+    private readonly config: ConfigService,
   ) {}
 
   async login(dto: LoginDto): Promise<LoginResult> {
@@ -39,8 +45,16 @@ export class SessionService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
     const passwordValid = await this.passwordService.verify(user.passwordHash, dto.password);
     if (!passwordValid) {
+      await this.recordFailedLogin(user);
+      throw new UnauthorizedException('Invalid email or password');
+    }
+    if (user.role !== 'CUSTOMER') {
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -53,6 +67,13 @@ export class SessionService {
     }
     if (!user.emailVerifiedAt) {
       throw new UnauthorizedException('Email is not verified');
+    }
+
+    if (user.failedLoginCount !== 0 || user.lockedUntil) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginCount: 0, failedLoginStartedAt: null, lockedUntil: null },
+      });
     }
 
     const accessToken = await this.signAccessToken(user);
@@ -69,6 +90,107 @@ export class SessionService {
         // Derive từ dữ liệu thật (không hardcode `true`): tại điểm này chắc
         // chắn email đã verify (đã check ở trên), nhưng derive vẫn an toàn
         // hơn nếu logic check phía trên đổi mà quên sửa dòng này.
+        emailVerified: !!user.emailVerifiedAt,
+      },
+    };
+  }
+
+  private async recordFailedLogin(user: {
+    id: string;
+    failedLoginCount: number;
+    failedLoginStartedAt: Date | null;
+    lockCycles24h: number;
+    lockCyclesStartedAt: Date | null;
+  }) {
+    const now = new Date();
+    const windowStarted =
+      !user.failedLoginStartedAt || user.failedLoginStartedAt.getTime() + 15 * 60_000 < now.getTime()
+        ? now
+        : user.failedLoginStartedAt;
+    const count = windowStarted === now ? 1 : user.failedLoginCount + 1;
+
+    if (count >= 5) {
+      const cyclesWindowActive =
+        user.lockCyclesStartedAt && user.lockCyclesStartedAt.getTime() + 24 * 60 * 60_000 > now.getTime();
+      const cycleCount = cyclesWindowActive ? (user.lockCycles24h ?? 0) + 1 : 1;
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginCount: 0,
+          failedLoginStartedAt: null,
+          lockedUntil: new Date(now.getTime() + 15 * 60_000),
+          lockCycles24h: cycleCount,
+          lockCyclesStartedAt: cyclesWindowActive ? user.lockCyclesStartedAt : now,
+        },
+      });
+      if (cycleCount >= 3) {
+        this.logger.warn(`Account ${user.id} reached repeated login lock cycles`);
+      }
+      return;
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginCount: count, failedLoginStartedAt: windowStarted },
+    });
+  }
+
+  async googleLogin(idToken: string): Promise<LoginResult> {
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientId) throw new UnauthorizedException('Google login is not configured');
+
+    const ticket = await new OAuth2Client(clientId).verifyIdToken({ idToken, audience: clientId }).catch(() => null);
+    const payload = ticket?.getPayload();
+    if (!payload?.sub || !payload.email || payload.email_verified !== true) {
+      throw new UnauthorizedException('Invalid Google credentials');
+    }
+
+    let user = await this.prisma.user.findFirst({
+      where: { OR: [{ googleSubject: payload.sub }, { email: payload.email }] },
+    });
+
+    if (!user) {
+      const randomPassword = await this.passwordService.hash(`Google-${payload.sub}-${randomUUID()}`);
+      user = await this.prisma.user.create({
+        data: {
+          email: payload.email,
+          passwordHash: randomPassword,
+          fullName: payload.name ?? payload.email,
+          phone: '0000000000',
+          role: 'CUSTOMER',
+          status: 'ACTIVE',
+          emailVerifiedAt: new Date(),
+          googleSubject: payload.sub,
+        },
+      });
+    } else {
+      if (user.role !== 'CUSTOMER' || user.status !== 'ACTIVE') {
+        throw new UnauthorizedException('Invalid Google credentials');
+      }
+      if (!user.emailVerifiedAt) {
+        throw new UnauthorizedException('Email is not verified');
+      }
+      if (user.googleSubject && user.googleSubject !== payload.sub) {
+        throw new UnauthorizedException('Invalid Google credentials');
+      }
+      if (!user.googleSubject) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { googleSubject: payload.sub },
+        });
+      }
+    }
+
+    const accessToken = await this.signAccessToken(user);
+    const rawRefreshToken = await this.tokenService.createRefreshToken(user.id);
+    return {
+      accessToken,
+      rawRefreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
         emailVerified: !!user.emailVerifiedAt,
       },
     };
