@@ -14,7 +14,7 @@ export const MIRROR_GROUPS = [
   {
     name: 'Codex/Copilot project skills',
     source: '.agents/skills',
-    roots: ['.agents/skills', '.github/skills'],
+    roots: ['.agents/skills', '.github/skills', 'agent/skills'],
   },
   {
     name: 'Claude Prisma skills',
