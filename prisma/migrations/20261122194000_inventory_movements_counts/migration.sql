@@ -9,12 +9,12 @@ CREATE TABLE inventory_movements (
   before_reserved INTEGER NOT NULL,
   after_reserved INTEGER NOT NULL,
   created_at TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT inventory_movements_variant_fk FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE RESTRICT,
-  CONSTRAINT inventory_movements_actor_fk FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+  CONSTRAINT inventory_movements_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT inventory_movements_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT inventory_movements_quantity_check CHECK (before_quantity >= 0 AND after_quantity >= 0)
 );
 
-CREATE INDEX inventory_movements_variant_created_idx ON inventory_movements(variant_id, created_at DESC);
+CREATE INDEX inventory_movements_variant_id_created_at_idx ON inventory_movements(variant_id, created_at DESC);
 
 CREATE TABLE inventory_stock_counts (
   id UUID PRIMARY KEY,
@@ -26,9 +26,9 @@ CREATE TABLE inventory_stock_counts (
   discrepancy INTEGER NOT NULL,
   confirmed_at TIMESTAMPTZ(6),
   created_at TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT inventory_stock_counts_variant_fk FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE RESTRICT,
-  CONSTRAINT inventory_stock_counts_actor_fk FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+  CONSTRAINT inventory_stock_counts_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT inventory_stock_counts_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT inventory_stock_counts_physical_check CHECK (physical_count >= 0)
 );
 
-CREATE INDEX inventory_stock_counts_variant_created_idx ON inventory_stock_counts(variant_id, created_at DESC);
+CREATE INDEX inventory_stock_counts_variant_id_created_at_idx ON inventory_stock_counts(variant_id, created_at DESC);
