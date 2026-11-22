@@ -78,7 +78,7 @@ Lắng nghe: `ordering.order-cancelled` — huỷ Vận đơn nếu đã tạo.
 
 | Job                                                                                        | Tần suất                                                |
 | ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| Đối soát trạng thái Vận đơn (`creation_unknown` và Vận đơn chưa ở trạng thái cuối) với GHN | Mỗi 15 phút **[Giả định · kiểm chứng hạn mức API GHN]** |
+| Đối soát trạng thái Vận đơn (`creation_unknown` và Vận đơn chưa ở trạng thái cuối) với GHN | Mỗi 15 phút **[Lựa chọn vận hành MVP; không phải cam kết quota API hay SLA độ mới]** |
 | Thử lại `shipment_events` chưa áp dụng (`applied_at IS NULL AND next_attempt_at <= now`)   | Mỗi phút                                                |
 
 ## 8. Bao phủ nghiệp vụ

@@ -2,7 +2,6 @@
 status: todo
 pr:
 blocked-by:
-  - 17-access-admin-api
   - 24-category-content
 ---
 
@@ -10,7 +9,7 @@ blocked-by:
 
 **What to build:** Người mua có thể giữ một Giỏ hàng trên storefront, thêm/sửa/xoá đúng Biến thể size × màu, nhận giá hiện tại và gộp Giỏ hàng vãng lai vào tài khoản sau đăng nhập.
 
-**Blocked by:** 17-access-admin-api, 24-category-content
+**Blocked by:** 24-category-content
 
 **Status:** ready-for-agent
 
