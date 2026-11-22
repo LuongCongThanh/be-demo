@@ -12,7 +12,7 @@ ALTER TABLE carts
 ALTER TABLE cart_items
   ADD COLUMN price_snapshot BIGINT;
 
-CREATE UNIQUE INDEX cart_items_cart_variant_key ON cart_items(cart_id, variant_id);
+CREATE UNIQUE INDEX cart_items_cart_id_variant_id_key ON cart_items(cart_id, variant_id);
 
 ALTER TABLE cart_items
   ADD CONSTRAINT cart_items_quantity_check CHECK (quantity >= 1 AND quantity <= 10);
