@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { chmod, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -74,7 +74,7 @@ async function assertDirectory(path) {
   if (!details.isDirectory()) throw new Error(`Expected a mirror directory: ${path}`);
 }
 
-async function listFiles(directory) {
+async function listFiles(directory, aliasDirectory = directory) {
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
@@ -86,13 +86,24 @@ async function listFiles(directory) {
   const files = [];
   for (const entry of entries) {
     const absolutePath = join(directory, entry.name);
+    const aliasedPath = join(aliasDirectory, entry.name);
     if (entry.isSymbolicLink()) {
-      throw new Error(`Refusing to sync symbolic link: ${absolutePath}`);
+      const resolvedPath = await realpath(absolutePath);
+      const details = await lstat(resolvedPath);
+      if (details.isDirectory()) {
+        files.push(...(await listFiles(resolvedPath, aliasedPath)));
+        continue;
+      }
+      if (details.isFile()) {
+        files.push(aliasedPath);
+        continue;
+      }
+      throw new Error(`Unsupported symbolic link target: ${absolutePath}`);
     }
     if (entry.isDirectory()) {
-      files.push(...(await listFiles(absolutePath)));
+      files.push(...(await listFiles(absolutePath, aliasedPath)));
     } else if (entry.isFile()) {
-      files.push(absolutePath);
+      files.push(aliasedPath);
     }
   }
   return files.sort();

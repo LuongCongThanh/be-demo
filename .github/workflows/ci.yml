@@ -22,6 +22,7 @@ jobs:
           node-version-file: .nvmrc
       - run: npm run agents:test
       - run: npm run agents:check
+      - run: npm run git-policy:test
 
   commit-message-policy:
     runs-on: ubuntu-latest

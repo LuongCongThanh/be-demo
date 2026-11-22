@@ -35,6 +35,7 @@
     "agents:check": "node scripts/sync-agent-configs.mjs check",
     "agents:watch": "node scripts/sync-agent-configs.mjs watch",
     "agents:test": "node scripts/sync-agent-configs.mjs test",
+    "git-policy:test": "node --test scripts/git-policy.test.mjs",
     "prepare": "husky || exit 0",
     "prisma:generate": "prisma generate --config prisma7.config.ts",
     "format:check": "prettier --check ."

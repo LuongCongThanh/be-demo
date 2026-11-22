@@ -1,5 +1,13 @@
 ## Agent skills
 
+### Git, worktree, commit, and PR preflight
+
+Before `git commit`, `git push`, `git worktree`, or `gh pr create`, read:
+
+- `docs/convention/git-workflow.md`
+- `.github/pull_request_template.md`
+- Run `npm run git-policy:test`
+
 ### Matt Pocock skill artifacts
 
 For Matt Pocock planning/spec/report/retro/handoff skills, follow the output format defined by the invoked skill. This repository does not maintain a shared Matt Pocock artifact template.
@@ -20,6 +28,13 @@ Apply this routing to ordinary prompts; the user does not need to type a slash c
 - A bug has an unclear technical root cause → `mattpocock-skills:diagnosing-bugs`.
 - A code review is requested → `mattpocock-skills:code-review`, subject to the read-only policy below.
 - An explicitly requested PR → the repository `ship` workflow (`.agents/skills/ship/` for Codex/Copilot or `.claude/commands/ship.md` for Claude); use the code-review skill as that workflow requires. “Continue” alone never authorizes GitHub writes.
+- NestJS modules, controllers, providers, dependency injection, guards, security, or performance → `nestjs-best-practices`.
+- Prisma CLI, schema validation/formatting, client generation, migration commands, or migration status → `prisma-cli`. Treat `prisma-database-setup` as a legacy compatibility pointer; use current CLI guidance for actual commands.
+- Prisma Client CRUD, filters, relations, transactions, or raw SQL → `prisma-client-api`.
+- Vitest tests, mocks, coverage, configuration, or test selection → `vitest`.
+- Docker Compose services, health checks, dependency order, volumes, networks, environment, or overrides → `docker-compose-patterns`.
+- API authentication/authorization or OWASP API security review → `api-security-review` for read-only code/spec review. Active testing requires explicit authorization and a scoped, controlled test environment.
+- Ambiguous domain terms, entity boundaries, or relationships → Matt Pocock `domain-modeling` when available (`/mattpocock-skills:domain-modeling` in Claude Code); otherwise follow `docs/agents/domain.md`.
 
 Continue the current skill if its phase is still unresolved; otherwise select the next unfinished phase. Skip phases already completed, and skip the full pipeline for quick, well-specified work. If there is no active request, or multiple plausible requests to continue, ask one focused question. Invoke a named skill only if the active agent actually has it; otherwise follow the equivalent repository workflow and do not claim the skill was invoked.
 

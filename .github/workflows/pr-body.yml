@@ -14,44 +14,6 @@ jobs:
       - name: Check body follows .github/pull_request_template.md
         env:
           BODY: ${{ github.event.pull_request.body }}
-          HEAD_REF: ${{ github.head_ref }}
-          AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
         run: |
-          # Release PRs (dev -> main) and bot PRs (Dependabot/Renovate) are exempt
-          if [[ "$HEAD_REF" == "dev" || "$AUTHOR_TYPE" == "Bot" ]]; then
-            echo "Exempt: head=$HEAD_REF author=$AUTHOR_TYPE"
-            exit 0
-          fi
-          # Keep in sync with .claude/hooks/enforce-pr-template.sh
-          required=(
-            "# Pull Request"
-            "## 1. Type"
-            "## 2. Summary"
-            "## 3. Input / Output"
-            "### Input"
-            "### Output"
-            "## 4. Changes"
-            "## 5. Verification"
-          )
-          status=0
-          for h in "${required[@]}"; do
-            if [[ "$BODY" != *"$h"* ]]; then
-              echo "::error::Missing section: $h"
-              status=1
-            fi
-          done
-          ticked=$(grep -Ec '^- \[[xX]\] (feat|fix|refactor|perf|security|chore|docs|test|architecture)$' <<< "${BODY//$'\r'/}" || true)
-          if [[ "$ticked" != 1 ]]; then
-            echo "::error::Tick exactly one Type checkbox (found $ticked)"
-            status=1
-          fi
-          verification=$(sed -n '/^## 5\. Verification$/,/^## 6\./p' <<< "${BODY//$'\r'/}")
-          if ! grep -Eqi '^\- \[[xX]\] Code review: .+' <<< "$verification"; then
-            echo "::error::Record the code-review outcome under ## 5. Verification"
-            status=1
-          fi
-          if grep -Eqi 'Code review:.*(chưa chạy|không chạy|bỏ qua|skip(ped)?|not run|pending)|((chưa|không) chạy).*Code review' <<< "$verification"; then
-            echo "::error::Code review outcome says review was skipped or not run"
-            status=1
-          fi
-          exit $status
+          printf '%s' "$BODY" > "$RUNNER_TEMP/pr-body.md"
+          node scripts/git-policy.mjs pr "$RUNNER_TEMP/pr-body.md"
