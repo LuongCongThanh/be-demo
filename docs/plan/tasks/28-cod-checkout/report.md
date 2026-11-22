@@ -1,6 +1,6 @@
 # Report 28
 
-- **PR:** pending
+- **PR:** [#120](https://github.com/LuongCongThanh/be-demo/pull/120)
 - **Trạng thái:** Hoàn tất vertical slice COD; tiếp tục theo dõi các tích hợp Cart/GHN.
 
 ## Đã làm
