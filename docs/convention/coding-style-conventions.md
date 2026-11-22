@@ -38,7 +38,7 @@ Cây source hiện tại, cây kiến trúc mục tiêu và danh sách module n�
 
 ### 2.1 Gốc module và feature folder theo thực thể
 
-Thông thường, gốc `modules/<module>/` chứa `<module>.module.ts` làm composition root và các **feature folder theo thực thể**; feature folder không mặc nhiên là một Nest module riêng. Ngoại lệ đã chốt cho Category là `modules/catalog/category/category.module.ts`, làm composition root theo Category v1.6 và được `CatalogModule` import. Module chỉ có một thực thể có thể đặt các thư mục vai trò trực tiếp cạnh `<module>.module.ts`; module có nhiều thực thể tách theo thư mục thực thể. Chỉ tạo thư mục module khi bắt đầu có implementation, không dựng trước cây thư mục rỗng theo kiến trúc mục tiêu.
+Thông thường, gốc `modules/<module>/` chứa `<module>.module.ts` làm composition root và các **feature folder theo thực thể**; feature folder không mặc nhiên là một Nest module riêng. Module chỉ có một thực thể có thể đặt các thư mục vai trò trực tiếp cạnh `<module>.module.ts`; module có nhiều thực thể tách theo thư mục thực thể. Chỉ tạo thư mục module khi bắt đầu có implementation, không dựng trước cây thư mục rỗng theo kiến trúc mục tiêu. `Category` là ngoại lệ, có surface module và composition root riêng theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
 
 ### 2.2 Feature folder theo thực thể, file nhóm theo vai trò
 
@@ -85,9 +85,10 @@ Thứ tự ưu tiên khi phân vân hậu tố: có decorator Nest (`@Injectable
 
 ### 2.3 Ranh giới giữa module
 
-- Cửa ngõ của module là mảng `exports` trong `<module>.module.ts`. Mỗi module export **đúng một** service public; service ruột không export. Module khác `imports: [XModule]` và inject service đó; **không** import file ruột của module khác theo đường dẫn.
+- Cửa ngõ của module là mảng `exports` trong `<module>.module.ts`. Chỉ export API/provider cần cho consumer, không export implementation nội bộ; không áp đặt số lượng export giống nhau cho mọi module. Module khác import module cung cấp và **không** import file ruột theo đường dẫn.
 - Với module thông thường, interface + token DI chỉ khi có ≥ 2 implementation thật (`PaymentGateway`); một adapter inject class trực tiếp. Riêng Category áp dụng quy tắc Port/adapter/DI của Category v1.6 cho dependency outbound cần được đảo chiều.
-- Transaction xuyên module: module điều phối mở `prisma.$transaction` và truyền `Prisma.TransactionClient` xuống service module khác. Không có lớp bọc transaction riêng.
+- Với Category, module composition, provider visibility, Port/adapter binding và transaction theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
+- Transaction xuyên module ở các module generic theo transaction conventions trong [prisma-conventions.md](prisma-conventions.md); không để controller quản lý transaction.
 - `common/` không import `http/`, `security/`, `infrastructure/` hoặc `modules/`; quy tắc chi tiết về các thư mục dùng chung cấp ứng dụng ở §2.5.
 - Giữ `CatalogModule` làm composition root bên ngoài cho Catalog; Category là ngoại lệ có `CategoryModule` riêng theo convention v1.6, được import bởi `CatalogModule`. Giữ `IdentityModule` làm composition root hiện tại. Các feature folder còn lại không cần Nest module riêng chỉ để cây thư mục đồng đều. Chỉ cân nhắc tách thêm feature Nest module khi có nhu cầu độc lập về ownership, lifecycle, kiểm thử hoặc export service; trước khi tách phải xác nhận dependency một chiều, không có vòng import và chỉ export API cần thiết. Không dùng số file/dòng làm ngưỡng tự động.
 
@@ -164,7 +165,7 @@ identity/
 
 ## 3. Barrel file (`index.ts`) — **cấm**
 
-Không tạo file `index.ts` để re-export gộp nhiều module con. Mọi import phải trỏ thẳng tới file thật (vd. `from './dto/create-resource.dto.js'`, không phải `from './dto/index.js'`).
+Không tạo file `index.ts` để re-export gộp nhiều module con. Mọi import phải trỏ thẳng tới file thật (vd. `from '#src/modules/resource/dto/create-resource.dto.js'`, không phải `from '#src/modules/resource/dto/index.js'`).
 
 **Lý do**: project dùng ESM (`"type": "module"`) + NestJS DI dựa trên **class reference làm token**. Barrel file (đặc biệt với vòng phụ thuộc giữa các module) là nguồn gây lỗi kinh điển trong ESM — module load theo thứ tự khác dự kiến, hoặc 1 class bị load 2 lần qua 2 đường (trực tiếp và qua barrel) tạo ra 2 object class khác nhau về mặt tham chiếu, khiến NestJS DI báo "cannot resolve dependency" dù code nhìn thì đúng 100% (xem thêm [§4](#4-import-alias-src--dùng-ở-mọi-nơi) — đây là **chính xác loại bug** đã gặp phải khi thử nghiệm alias, chỉ khác là do 2 specifier khác nhau resolve ra thay vì qua barrel).
 
@@ -210,9 +211,9 @@ Ngoài ra: **không chạy dev/build code NestJS bằng `tsx`/esbuild** — esbu
 
 `oxlint.json` bật `@typescript-eslint/no-explicit-any: warn`. Toàn bộ `src/` hiện tại (kể cả test) **không có chỗ nào dùng `any`** — giữ nguyên như vậy. Khi thật sự cần kiểu động (hiếm, vd. tương tác với thư viện thiếu type), ưu tiên `unknown` + type guard hoặc generic thay vì `any`; nếu bắt buộc phải dùng `any`, để nguyên cảnh báo lint (không `// eslint-disable`) trừ khi có lý do rõ ràng ghi lại tại chỗ.
 
-## 6. Thứ tự import (quy ước, không có lint rule ép)
+## 6. Thứ tự import
 
-Theo pattern đã thấy trong code hiện tại: package ngoài (`@nestjs/*`, thư viện npm khác) trước, import nội bộ (relative/alias) sau. Không cần blank line phân tách nhóm nếu file ngắn.
+Package ngoài (`@nestjs/*`, thư viện npm khác) đứng trước import nội bộ dùng alias `#src/*`, theo quy tắc ở §4. Không dùng relative import vào `src/`.
 
 ## 7. Khi nào tách file
 

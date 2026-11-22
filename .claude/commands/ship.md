@@ -2,6 +2,8 @@
 description: Run the complete pre-PR workflow — verify, rebase, review, push, and create a PR (see docs/convention/git-workflow.md and .claude/rules/git-workflow.md)
 ---
 
+Follow the shared repository workflow in `docs/agents/execution-workflow.md`; this command adds Claude-specific GitHub operations.
+
 Run these steps in order. If any step fails, stop and report it; do not skip it or weaken conventions to force it to pass.
 
 1. **Verify the branch**: run `git status` and `git rev-parse --abbrev-ref HEAD`. If the branch is `main` or `dev`, stop and report the issue. Do not create a branch without the user's confirmation of its name.

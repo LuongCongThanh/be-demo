@@ -14,6 +14,7 @@ This is the Codex-specific entrypoint. Follow [`../execution-workflow.md`](../ex
 - Project skills are in `.agents/skills/`; invoke `feature` for implementation workflows and `ship` only for an explicitly requested PR workflow.
 - The project Prisma skills are copied from the Claude skill package. [The Claude skill guide](../../../.claude/skill-guide/) is a user-global inventory reference; it does not mean those global skills or MCP servers are available in Codex.
 - `.codex/config.toml` configures project MCP servers, while `.codex/hooks.json` registers repo hooks. Review and trust project hooks in Codex before relying on them.
+- Follow `AGENTS.md#agent-configuration-synchronization` when changing mirrored skills or hooks; run `npm run agents:watch` for live sync and `npm run agents:check` before finishing.
 - For a code review, follow the [repository review policy](../../../AGENTS.md#shared-ai-code-review) and keep the review read-only.
 - Continue through implementation and verification when implementation was requested. Stop only for a consequential unresolved decision, a blocker, or an operation that needs separate authorization.
 - Treat GitHub writes, commits, pushes, rebases, merges, and PR creation as separate actions: perform them only when requested and follow `docs/convention/git-workflow.md`.

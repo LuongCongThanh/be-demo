@@ -58,7 +58,7 @@ Job **mỗi 5 phút** truy vấn `query()` cho các `payments` còn treo (đã t
 
 ### 2.5. COD
 
-Không qua Cổng. Đặt đơn COD tạo khoản thu COD chờ thu; GHN báo giao thành công thì ghi nhận đã thu (T11). Hạn mức COD mặc định 5.000.000đ, Admin cấu hình (BR-PAY-06). Đối chiếu tiền GHN chuyển về nằm ngoài MVP (BR-REF-04).
+Không qua Cổng. Đặt đơn COD tạo khoản thu COD chờ thu; GHN báo giao thành công thì ghi nhận đã thu (T11). Hạn mức COD mặc định 10.000.000đ, Admin cấu hình (BR-PAY-06). Đối chiếu tiền GHN chuyển về nằm ngoài MVP (BR-REF-04).
 
 ### 2.6. Hoàn tiền
 
@@ -76,7 +76,7 @@ MVP không gọi API hoàn tiền: Staff hoàn trên trang quản trị của C�
 
 | Việc                | Khi nào                     | Quy tắc                                                                                                                                                                                                                                                                                                                |
 | ------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tính phí ship       | Tính thử và đặt đơn         | Theo địa chỉ giao + tổng cân nặng; kích thước gói mặc định cấu hình được (BR-SHP-01). GHN lỗi/timeout → **Phí ship dự phòng** 35.000đ và gắn Cờ "phí ship dự phòng" (BR-SHP-02). Miễn phí ship khi Tạm tính sau Voucher ≥ ngưỡng 500.000đ (BR-SHP-03/04)                                                               |
+| Tính phí ship       | Tính thử và đặt đơn         | Theo địa chỉ giao + tổng cân nặng; kích thước gói mặc định cấu hình được (BR-SHP-01). GHN lỗi/timeout → **Phí ship dự phòng** 30.000đ và gắn Cờ "phí ship dự phòng" (BR-SHP-02). Miễn phí ship khi Tạm tính sau Voucher ≥ ngưỡng 500.000đ (BR-SHP-03/04)                                                               |
 | Tạo Vận đơn         | Staff bàn giao              | Chạy nền qua outbox. Timeout/không rõ kết quả → Vận đơn `creation_unknown`, Đối soát chốt (không coi là thất bại, business/05 §4.5). Thành công → `SHIPPING` (T10); thất bại → giữ `PACKING` + Cờ. Bàn giao lại **dùng lại** Vận đơn đó — idempotency theo Mã đơn (BR-SHP-05). COD: thu hộ = tổng tiền đơn (BR-SHP-07) |
 | Webhook trạng thái  | GHN đẩy                     | Đường cập nhật trạng thái chính: xác minh nguồn (token/IP whitelist theo GHN), lưu sự kiện thô, ánh xạ sang T11/T12 hoặc Cờ sự cố (BR-SHP-06, BR-SHP-08)                                                                                                                                                               |
 | Đối soát trạng thái | Polling GHN mỗi **15 phút** | Cơ chế dự phòng để bù webhook bị mất; không thay thế webhook. Đây là chu kỳ vận hành cố định của MVP, không phải cam kết quota API hay SLA độ mới vì tài liệu công khai của GHN không xác nhận các giới hạn đó.                                                                                                        |

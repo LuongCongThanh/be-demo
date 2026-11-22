@@ -5,3 +5,7 @@ Follow root [`AGENTS.md`](AGENTS.md) for repository conventions, task execution,
 ## Triage labels
 
 Use `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix` as the canonical triage state labels. See [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
+
+## Agent configuration
+
+Follow the [shared agent configuration synchronization policy](AGENTS.md#agent-configuration-synchronization). Run `npm run agents:watch` while editing mirrored skills or hooks; keep Claude settings and commands in their native format.

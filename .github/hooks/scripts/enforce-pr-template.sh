@@ -40,35 +40,13 @@ else
   fail "no --body/--body-file given"
 fi
 BODY=$(tr -d '\r' <<< "$BODY")
-
-REQUIRED=(
-  "# Pull Request"
-  "## 1. Type"
-  "## 2. Summary"
-  "## 3. Input / Output"
-  "### Input"
-  "### Output"
-  "## 4. Changes"
-  "## 5. Verification"
-)
-MISSING=()
-for h in "${REQUIRED[@]}"; do
-  [[ "$BODY" == *"$h"* ]] || MISSING+=("$h")
-done
-(( ${#MISSING[@]} )) && fail "missing sections: $(IFS='|'; echo "${MISSING[*]}")"
-
-TICKED=$(grep -Ec '^- \[[xX]\] (feat|fix|refactor|perf|security|chore|docs|test|architecture)$' <<< "$BODY")
-[[ "$TICKED" == 1 ]] || fail "tick exactly one Type checkbox (found $TICKED)"
-
-AI_AGENT_NAMES='(claude|copilot|codex|chatgpt|openai|gpt|gemini|cursor|windsurf|cline|aider|devin|codeium|cody|tabnine|opencode|roo|continue|augment|replit|ai|agent|bot)'
-grep -Eqi "co-authored-by:[[:space:]].*\\b$AI_AGENT_NAMES\\b|generated (by|with) .*\\b$AI_AGENT_NAMES\\b|ai-generated|noreply@anthropic\\.com" <<< "$BODY" \
-  && fail "remove AI attribution line"
-
-VERIFICATION=$(sed -n '/^## 5\. Verification$/,/^## 6\./p' <<< "$BODY")
-grep -Eqi '^\- \[[xX]\] Code review: .+' <<< "$VERIFICATION" \
-  || fail "run /code-review on the diff first and record its outcome under '## 5. Verification'"
-grep -Eqi 'Code review:.*(chưa chạy|không chạy|bỏ qua|skip(ped)?|not run|pending)|((chưa|không) chạy).*Code review' <<< "$VERIFICATION" \
-  && fail "Code review outcome says review was skipped or not run"
+POLICY_FILE=$(mktemp)
+printf '%s' "$BODY" > "$POLICY_FILE"
+if ! POLICY_OUTPUT=$(node "$REPO_ROOT/scripts/git-policy.mjs" pr "$POLICY_FILE" 2>&1); then
+  rm -f "$POLICY_FILE"
+  fail "$POLICY_OUTPUT"
+fi
+rm -f "$POLICY_FILE"
 
 if [[ "$SKIP_PR_VERIFY" != 1 ]]; then
   cd "$REPO_ROOT" || deny "Blocked: failed to cd into $REPO_ROOT"

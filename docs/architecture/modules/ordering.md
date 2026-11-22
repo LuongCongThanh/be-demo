@@ -51,8 +51,8 @@ Prefix `/api/v1` ([ADR 0002](../../adr/0002-uri-versioned-api-contract.md)). Chi
 
 | Method | Path                                                                      | Actor                  | Ghi chú                                                                                                               |
 | ------ | ------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/checkout/quotes`                                                        | guest, customer        | Tạo Tính thử từ giỏ hiện tại + địa chỉ + Voucher + phương thức                                                        |
-| `POST` | `/orders`                                                                 | guest, customer        | Đặt đơn từ `quoteId`; bắt buộc `Idempotency-Key`                                                                      |
+| `POST` | `/checkout/quote`                                                         | guest, customer        | Tạo Tính thử có hạn từ các dòng hàng + địa chỉ + Voucher; không giữ hàng                                              |
+| `POST` | `/checkout/orders/COD`                                                    | guest, customer        | Đặt đơn COD từ `quoteId`; bắt buộc `Idempotency-Key`                                                                  |
 | `GET`  | `/orders/:code`                                                           | owner / guest có phiên |                                                                                                                       |
 | `POST` | `/orders/lookup`                                                          | guest                  | Mã đơn + SĐT → phiên 30 phút (`guest_order_sessions`, `origin = lookup`, qua `identity`); rate-limit theo IP (US-401) |
 | `POST` | `/orders/:code/cancel`                                                    | owner / guest có phiên | T5, T7                                                                                                                |
@@ -79,6 +79,13 @@ Hai bước theo BR-ORD-07 và [ADR 0013](../../adr/0013-checkout-must-match-con
    8. Giỏ `active → checked_out` qua `cart.markCheckedOut`; ghi history + outbox; với guest gọi `identity.issueGuestOrderSession(orderId, tx)` → `guest_order_sessions` 30 phút (`origin = checkout`).
    9. Commit; lưu response vào bản ghi idempotency.
 3. Online: client gọi `payments` để lấy link VNPay/MoMo (hạn phút 10, không cấp mới từ phút 7 — BR-INV-05).
+
+### 5.1a. Slice nguồn hiện tại (task 28)
+
+- `POST /api/v1/checkout/quote` nhận các dòng Biến thể trực tiếp, địa chỉ hai cấp, thông tin liên hệ và tối đa một Voucher. Dữ liệu giỏ hàng server-side chưa có trong source (task 26 đang chờ); tích hợp cart sẽ thay nguồn `items`, không đổi hợp đồng quote.
+- Giá khuyến mãi đang hiệu lực, tồn kho bán được (`quantity - reserved_quantity`), Voucher, miễn phí ship sau giảm và hạn mức COD được tính ở backend. GHN chưa tích hợp trong source; hiện dùng Phí ship dự phòng 30.000đ và đánh dấu trên quote/đơn.
+- `POST /api/v1/checkout/orders/COD` khoá quote, Biến thể, tồn kho và Voucher; đối chiếu fingerprint trong 15 phút; trong một transaction trừ tồn, ghi `awaiting_dispatch_items`, tạo Order + snapshot dòng + Voucher usage và lưu response idempotency. Chỉ phương thức COD được đặt trong slice này.
+- `quote_id` nullable trong source để giữ tương thích với các Order legacy chưa có quote; mọi Order mới qua checkout có quote duy nhất. Xác thực địa chỉ theo danh mục hành chính và gắn đơn Guest theo email sẽ được nối khi các module fulfillment/customer tương ứng được triển khai.
 
 ```mermaid
 sequenceDiagram

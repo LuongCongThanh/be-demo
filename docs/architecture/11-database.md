@@ -548,6 +548,8 @@ Tính thử có hạn (BR-ORD-07, ADR 0013). Không Giữ hàng.
 | expires_at                                     | timestamptz | NN                     |                                      |
 | created_at                                     | timestamptz | NN                     |                                      |
 
+Source checkout hiện tại (task 28) nhận dòng hàng trực tiếp nên thay `cart_id` bằng `input` JSONB đã chuẩn hoá; `lines` lưu snapshot đủ để so sánh giá, tồn kho và Voucher. Khi task 26 hoàn tất, cart sẽ trở thành nguồn `input`, không làm quote giữ hàng.
+
 #### `orders`
 
 | Cột                                                               | Kiểu                                                                                                                      | Ràng buộc                  | Ghi chú                                             |

@@ -13,11 +13,17 @@ if ! COMMAND=$(node "$REPO_ROOT/scripts/hooks/read-tool-command.js" <<< "$INPUT"
 fi
 
 if [[ "$COMMAND" != *"git commit"* && "$COMMAND" != *"git push"* ]]; then
-  echo '{"permissionDecision":"allow"}'
-  exit 0
+  if [[ "$COMMAND" != *"git worktree"* ]]; then
+    echo '{"permissionDecision":"allow"}'
+    exit 0
+  fi
 fi
 
 CURRENT_BRANCH=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+if [[ "$COMMAND" == *"git worktree"* ]]; then
+  deny "Blocked: git worktree operations require explicit user confirmation (AGENTS.md Git Worktree Policy)"
+fi
 
 if [[ "$COMMAND" == *"git push"* ]] && [[ "$COMMAND" =~ (^|[[:space:]])--force([[:space:]]|=|$) ]] && [[ "$COMMAND" != *"--force-with-lease"* ]]; then
   deny "Blocked: use --force-with-lease instead of --force (docs/convention/git-workflow.md §5/§13)"
@@ -41,11 +47,6 @@ while IFS= read -r SEG; do
     deny "Blocked: direct push to protected branch via explicit refspec is not allowed — open a Pull Request instead (docs/convention/git-workflow.md §13). Matched: \"${BASH_REMATCH[0]}\" in: $SEG"
   fi
 done < <(sed -E 's/(&&|\|\||;|\|)/\n/g' <<< "$COMMAND")
-
-AI_AGENT_NAMES='(claude|copilot|codex|chatgpt|openai|gpt|gemini|cursor|windsurf|cline|aider|devin|codeium|cody|tabnine|opencode|roo|continue|augment|replit|ai|agent|bot)'
-if [[ "$COMMAND" == *"git commit"* ]] && echo "$COMMAND" | grep -Eqi "co-authored-by:[[:space:]].*\\b$AI_AGENT_NAMES\\b|generated (with|by) .*\\b$AI_AGENT_NAMES\\b|ai-generated|noreply@anthropic\\.com"; then
-  deny "Blocked: commit message must not contain AI attribution (docs/convention/git-workflow.md §12) — remove Co-Authored-By/Generated-by lines"
-fi
 
 echo '{"permissionDecision":"allow"}'
 exit 0

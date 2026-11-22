@@ -1,6 +1,6 @@
 # Convention: quy tắc phát triển API (NestJS)
 
-> 📖 Xem [README.md](README.md) để biết vị trí file này trong bộ convention. Code mẫu từng bước cho CRUD: [api-crud-walkthrough.md](api-crud-walkthrough.md). Shape API (prefix, versioning, envelope lỗi, phân nhóm route) do [`../architecture/03-api.md`](../architecture/03-api.md) định nghĩa — file này không lặp lại.
+> 📖 Xem [README.md](README.md) để biết vị trí file này trong bộ convention. Đây là nguồn quy tắc API; [api-crud-walkthrough.md](api-crud-walkthrough.md) chỉ minh họa trình tự và code mẫu. Shape API (prefix, versioning, envelope lỗi, phân nhóm route) do [`../architecture/03-api.md`](../architecture/03-api.md) định nghĩa. Riêng kiến trúc Category theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
 
 Tài liệu cho **dev tự đọc và tự viết code**, không phải ngữ cảnh để agent tự sinh code. Đây là convention **generic** — business rule và trạng thái implement thật của từng resource sống ở `../architecture/modules/<module>.md`.
 
@@ -58,6 +58,7 @@ Các mục dưới đây là quy tắc; code mẫu tương ứng ở [api-crud-w
 - Tên method: CRUD dùng `create/findAll/findOne/update/remove`; API nghiệp vụ dùng tên hành vi (`checkout()`, `cancelOrder()`).
 - Đọc env qua `ConfigService`, không `process.env` — xem [config-environment-conventions.md](config-environment-conventions.md).
 - **Domain error đã biết trước ném rõ ở service** (`NotFoundException`, `ConflictException`, `ForbiddenException`... kèm message nghiệp vụ cụ thể), không phó mặc cho exception filter (message generic).
+- Category là ngoại lệ theo tầng: giữ lỗi nghiệp vụ trong Domain/Application và ánh xạ ở HTTP boundary theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
 - **Không pre-fetch chỉ để xác nhận tồn tại** trước `update`/`delete` — filter đã map `P2025` → 404. Chỉ pre-fetch khi cần chính record đó để kiểm tra business rule (ownership, status, đếm record con...).
 - **Pre-check không thay thế constraint ở DB.** Kiểm tra unique/đếm FK trước khi ghi chỉ là **UX layer** (message đẹp); vẫn có race giữa check và write. Unique/FK constraint ở DB + `AllExceptionsFilter` là lớp bảo vệ cuối — bắt buộc giữ.
 
@@ -65,9 +66,12 @@ Các mục dưới đây là quy tắc; code mẫu tương ứng ở [api-crud-w
 
 CRUD đơn giản gọi Prisma thẳng từ service, **không** tạo `XxxRepository` bọc lại. Chỉ tách Repository khi có: query phức tạp tái dùng nhiều nơi, nhiều aggregate trong 1 nghiệp vụ, transaction lớn, hoặc cần cô lập ORM khỏi business logic.
 
+Ngoại lệ: Category tuân theo Port/adapter boundary ở [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md); không áp dụng hướng dẫn gọi Prisma trực tiếp từ service cho module đó.
+
 ### R4. Transaction
 
 - Không phải "cứ ≥2 write là cần transaction" — dùng `prisma.$transaction` khi **cả business operation phải thành công/thất bại như 1 đơn vị** (vd. `Order` + `OrderItem` + trừ tồn kho). Nhiều write độc lập có thể không cần; 1 write kèm `read → check` lại có thể cần transaction/lock (§05).
+- Với Category, transaction boundary theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
 - Điều kiện trạng thái đặt **trong `WHERE`** của conditional atomic update (`updateMany({ where: { id, status: 'PENDING' } })` + kiểm tra `count === 0` → 409), không tách "đọc status rồi update".
 - **External call (payment gateway, email...) không đặt trong `$transaction`** — giữ lock/connection lâu, và không có gì tự đồng bộ nếu một bên thành công một bên rollback. Gọi ngoài transaction, ghi kết quả vào DB ở bước riêng; khi thật sự cần → outbox/saga qua ADR.
 
@@ -86,7 +90,7 @@ Cần kiểm chủ sở hữu? → có → thêm OwnershipGuard + @OwnedResource
 
 ### R6. Exception mapping
 
-`AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) đã xử lý `HttpException`, Prisma (`P2002` unique → 409, `P2003` FK → 409, `P2025` không tồn tại → 404) và lỗi không lường trước → không viết filter riêng cho resource. Filter là **safety net**, không thay thế domain error ở service (R2). Response shape + quy tắc log: [error-logging-conventions.md](error-logging-conventions.md).
+`AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) đã xử lý `HttpException`, các Prisma error được hỗ trợ và lỗi không lường trước. Không viết filter riêng cho resource. Filter là **safety net**, không thay thế domain error ở service (R2). Riêng Category ánh xạ lỗi nghiệp vụ tại HTTP boundary theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md). Mapping và response shape hiện hành: [error-logging-conventions.md](error-logging-conventions.md).
 
 ### R7. Response DTO / Serialization
 
@@ -96,6 +100,7 @@ Cần kiểm chủ sở hữu? → có → thêm OwnershipGuard + @OwnedResource
 - Model có field nhạy cảm (`User.passwordHash`, các `tokenHash`) hoặc hay thêm field (`User`, `Order`): **allow-list** — Response DTO riêng, map thủ công (field mới không tự lộ ra).
 - Blacklist (`ClassSerializerInterceptor` + `@Exclude()`) chỉ chấp nhận cho resource nhỏ ổn định — field mới mặc định bị lộ.
 - Không dùng thư mục `entities/` do `nest g resource` sinh.
+- Riêng Category, Application Result và Presentation Mapper tuân theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
 
 ### R8. Swagger / OpenAPI
 
@@ -125,7 +130,7 @@ Vitest (`vitest.config.ts` unit, `vitest.config.e2e.ts` e2e) + `supertest`.
 | API e2e test         | **Bắt buộc** cho endpoint public/quan trọng (checkout, auth, payment); khuyến nghị cho mọi CRUD                      |
 | Controller unit test | **Optional** — controller mỏng chỉ xác nhận "có gọi service"; e2e mới cover route/pipe/validation/status/filter thật |
 
-- Unit test mock `PrismaService`, không chạm DB.
+- Unit test mock dependency ở boundary của đơn vị cần kiểm tra, không kết nối DB; Category test mock Port theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
 - e2e gọi `configureApp(app)` — **không duplicate bootstrap config** giữa `main.ts` và e2e (lệch config → test pass nhưng app thật khác).
 - Token ADMIN cho e2e: login 1 lần trong `beforeAll` bằng tài khoản seed (`npm run db:seed`), dùng chung cả file.
 - Chạy: `npm run test` · `npm run test:e2e` · `npm run test:cov`.
@@ -156,17 +161,7 @@ Tên `cancelOrder()` chứ không phải `update()` — đây là hành vi nhi�
 
 ## Definition of Done
 
-Một API **xong** (không phải "code chạy được") khi:
-
-- Requirement + Business Rules rõ, không còn giả định ngầm
-- Authorization đã xác định (kể cả kết luận "public")
-- DTO validate đủ input
-- Lỗi map đúng HTTP status (không `500` cho case biết trước)
-- Response contract rõ — không rò field nhạy cảm
-- Test pass: service unit (nếu có business logic) + e2e (nếu endpoint public/quan trọng)
-- Swagger đúng thực tế: `type:` response, `@ApiOperation({ summary })` mỗi route, `example:` mỗi field client gửi, tag lấy từ `API_TAGS`
-- `npm run lint` + `npm run format` + `npm run build` sạch
-- PR đã mở + review (`/ship`)
+API chỉ hoàn tất khi business rule và authorization đã rõ, contract/documentation khớp implementation, các checklist áp dụng bên dưới đạt, và PR đã được review. Không dùng Definition of Done này thay cho checklist CRUD/non-CRUD cụ thể.
 
 ## Checklist
 
@@ -182,7 +177,7 @@ Một API **xong** (không phải "code chạy được") khi:
 - [ ] Swagger: `type:`, `@ApiOperation`, `@ApiTags(API_TAGS.X.name)` (R8)
 - [ ] Pagination + `@Max(limit)` + `orderBy` tie-breaker cho mọi `findAll()` (R9)
 - [ ] Đã qua Authorization checkpoint (R5)
-- [ ] `npm run test`, `npm run test:e2e` (nếu có), `lint`, `format`, `build` sạch
+- [ ] `npm run test`, `npm run test:e2e` (nếu có), `npm run lint`, `npm run typecheck`, `npm run format:check`, `npm run build` đều đạt
 
 ### API nghiệp vụ (non-CRUD)
 

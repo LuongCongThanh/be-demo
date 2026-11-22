@@ -20,6 +20,10 @@ export const API_TAGS = {
     name: 'Storefront — Products',
     description: 'Public product listing, details and variants',
   },
+  STOREFRONT_CHECKOUT: {
+    name: 'Storefront — Checkout',
+    description: 'Short-lived checkout quotes and idempotent COD order placement for guests and customers',
+  },
   ADMIN_PRODUCTS: {
     name: 'Admin CMS — Products',
     description: 'Product and variant management — writes gated to ADMIN',

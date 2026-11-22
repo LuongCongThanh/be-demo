@@ -2,13 +2,17 @@
 description: 'Discover → Specify → (Tickets) → Implement/TDD → Verify a feature or fix using the Matt Pocock skill family, then run /ship (Review → Ship). Use $ARGUMENTS as the request description.'
 ---
 
+Follow the shared repository workflow in `docs/agents/execution-workflow.md`; this command adds Claude-specific skill routing.
+
+If the user says “continue” or “tiếp tục đi”, resume the first unfinished `/feature` phase from the current conversation and worktree. Do not restart completed phases or ask the user to repeat settled requirements.
+
 `/feature` uses one skill family—**Matt Pocock** (`grill-with-docs → to-spec → to-tickets → implement → tdd`)—to keep state, artifacts, and naming consistent across phases. Do not mix in the Superpowers methodology. Reuse only **neutral utility skills** from Superpowers that do not compete with a phase: `using-git-worktrees`, `systematic-debugging`, `verification-before-completion`, and `subagent-driven-development`.
 
 `/feature` does not replace `/ship`: `/feature` ends with "implemented + verified"; `/ship` starts with review.
 
 ## Escape hatch — engineering execution without new product behavior
 
-If a task has **no new business rules or behavior to clarify** (for example, a repository-wide logger migration, mechanical refactor, architecture cleanup, or library replacement)—the main question is "how can this be executed safely?" rather than "how should the system behave?"—then `/feature` is not appropriate. Run the Superpowers sequence directly instead: `brainstorming → using-git-worktrees → writing-plans → executing-plans → tdd` (or `test-driven-development`) `→ code-review → finishing-a-development-branch`. Do not create a dedicated file or router for this flow until it occurs regularly in the repository.
+If a task has **no new business rules or behavior to clarify** (for example, a mechanical refactor or repository-wide migration), do not force the full `/feature` pipeline. Use the quick path for a clear, local change; for a larger refactor, use `grill-with-docs` only if its goal or scope is unclear, then `to-spec` or `to-tickets` when the size warrants them, followed by `implement` and focused tests. Use `tdd` when behavior or regression risk warrants it. Do not mix in a competing skill family.
 
 ## Skill routing
 

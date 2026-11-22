@@ -8,6 +8,7 @@ import { HealthModule } from '#src/infrastructure/observability/health/health.mo
 import { MetricsModule } from '#src/infrastructure/observability/metrics/metrics.module.js';
 import { CatalogModule } from '#src/modules/catalog/catalog.module.js';
 import { VoucherModule } from '#src/modules/voucher/voucher.module.js';
+import { CheckoutModule } from '#src/modules/checkout/checkout.module.js';
 import { validate } from '#src/config/env.validation.js';
 import { AllExceptionsFilter } from '#src/http/filters/all-exceptions.filter.js';
 import { RequestIdMiddleware } from '#src/http/middleware/request-id.middleware.js';
@@ -24,6 +25,7 @@ import { RequestIdMiddleware } from '#src/http/middleware/request-id.middleware.
     MetricsModule,
     CatalogModule,
     VoucherModule,
+    CheckoutModule,
   ],
   providers: [
     // `useExisting` (not `useClass`) so `ThrottlerGuard` is also reachable as

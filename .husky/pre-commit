@@ -1,1 +1,3 @@
+npm run agents:check
+npm run git-policy:test
 npx lint-staged

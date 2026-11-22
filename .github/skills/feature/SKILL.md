@@ -7,6 +7,8 @@ description: Use when the user asks to implement a feature, behavior change, or 
 
 Follow [`docs/agents/execution-workflow.md`](../../../docs/agents/execution-workflow.md) and the active harness entrypoint: `docs/agents/workflows/codex.md` or `docs/agents/workflows/copilot.md`.
 
+When the user says “continue” or “tiếp tục đi”, resume the first unfinished phase of the active request using the shared continuation rules. Do not restart completed phases or ask for settled requirements again.
+
 ## 1. Classify by risk
 
 - **Quick:** behavior is clear, change is local, and it does not affect public contracts, data, security, permissions, or multiple modules. Implement directly and run focused tests plus relevant lint/typecheck.

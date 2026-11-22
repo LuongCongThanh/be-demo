@@ -106,7 +106,7 @@
 ### US-303 · Xem phí ship · P1
 
 - AC1: Khi Người mua chọn xong phường/xã, hệ thống hiện Phí ship lấy từ GHN (BR-SHP-01).
-- AC2: Cho trước API GHN lỗi, thì hiện Phí ship dự phòng (mặc định 35.000đ) và Người mua vẫn đặt hàng được (BR-SHP-02).
+- AC2: Cho trước API GHN lỗi, thì hiện Phí ship dự phòng (mặc định 30.000đ) và Người mua vẫn đặt hàng được (BR-SHP-02).
 - AC3: Tạm tính sau khi trừ Voucher đạt Ngưỡng miễn phí ship (mặc định 500.000đ) thì Phí ship = 0đ (BR-SHP-03).
 
 ### US-304 · Áp Voucher · P1
@@ -118,7 +118,7 @@
 
 ### US-305 · Đặt đơn COD · P1
 
-- AC1: Cho trước giỏ hợp lệ và tổng tiền ≤ hạn mức COD (mặc định 5.000.000đ), khi chọn COD và đặt hàng, thì đơn ở trạng thái Chờ xác nhận, Tồn kho bị trừ ngay (BR-INV-04), Người mua thấy Mã đơn.
+- AC1: Cho trước giỏ hợp lệ và tổng tiền ≤ hạn mức COD (mặc định 10.000.000đ), khi chọn COD và đặt hàng, thì đơn ở trạng thái Chờ xác nhận, Tồn kho bị trừ ngay (BR-INV-04), Người mua thấy Mã đơn.
 - AC2: Tổng tiền vượt hạn mức COD thì không cho chọn COD (BR-PAY-06).
 - AC3: Có email thì nhận email "Đặt đơn thành công".
 

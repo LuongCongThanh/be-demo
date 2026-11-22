@@ -7,9 +7,10 @@ Tài liệu này dành cho **dev trong team tự đọc và tự viết code**. 
 ## 1. Kiến trúc tổng quan
 
 ```
-Domain error đã biết trước    →  throw NotFoundException/ConflictException/... ở service
-Prisma error (P2002/P2003/P2025) → AllExceptionsFilter tự map sang HTTP status đúng
-Lỗi không lường trước           →  AllExceptionsFilter bắt, trả 500 generic, log stack
+Lỗi nghiệp vụ đã biết trước → module thông thường ném HTTP exception ở service;
+                              Category ánh xạ lỗi Domain/Application tại HTTP boundary
+Prisma error được hỗ trợ    → AllExceptionsFilter tự map sang HTTP status tương ứng
+Lỗi không lường trước       → AllExceptionsFilter bắt, trả 500 generic, log stack
 ```
 
 `AllExceptionsFilter` (`../../src/http/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) là **safety net cho lỗi không lường trước, không phải nơi định nghĩa domain error** — nguyên tắc này giữ nguyên như đã ghi ở `api-rules.md` §R2/§R6, tài liệu này chỉ mô tả phần filter đã được implement thật (trước đây là gap chưa code).
@@ -22,7 +23,7 @@ Lỗi không lường trước           →  AllExceptionsFilter bắt, trả 5
 
 - `message` có thể là `string` (lỗi đơn) hoặc `string[]` (nhiều lỗi validate cùng lúc từ `class-validator`) — giữ nguyên hành vi mặc định của `ValidationPipe`, không ép về 1 string.
 - `requestId` luôn có mặt (trừ khi middleware chưa chạy tới, cực hiếm) — dùng để đối chiếu với dòng log server khi debug/support (xem [§4](#4-request-id--trace-1-request-qua-nhiều-dòng-log)).
-- Prisma error được map: `P2002` → `409` (unique constraint), `P2003` → `409` (foreign key constraint), `P2025` → `404` (record không tồn tại), còn lại → `500`.
+- Prisma error được map: `P2002` → `409` (unique), `P2003` → `409` (foreign key), `P2011` → `400` (required field), `P2014` → `409` (required relation), `P2025` → `404` (record không tồn tại); mã khác → `500`. Mapping implementation nằm tại `src/http/filters/all-exceptions.filter.ts`.
 
 ## 3. Log level — khi nào log gì
 
@@ -35,8 +36,8 @@ Lỗi không lường trước           →  AllExceptionsFilter bắt, trả 5
 
 Mỗi request HTTP được gắn 1 `requestId` (UUID) ngay từ `RequestIdMiddleware` (`../../src/http/middleware/request-id.middleware.ts`, áp dụng cho `'*'` trong `AppModule.configure()`):
 
-- Nếu request đã có header `X-Request-Id` (từ load balancer/gateway phía trước) → giữ nguyên, không tự sinh mới — để trace xuyên suốt nhiều service trong hệ thống lớn hơn.
-- Ngược lại tự sinh bằng `randomUUID()`.
+- Nếu request có header `X-Request-Id` an toàn (1–128 ký tự, chỉ gồm chữ/số, `_`, `.` hoặc `-`) → giữ nguyên để trace xuyên service.
+- Nếu header thiếu hoặc không an toàn → tự sinh bằng `randomUUID()`; không echo nguyên giá trị do client cung cấp.
 - Luôn trả lại trong response header `X-Request-Id` — client/QA có thể lấy giá trị này để báo lỗi kèm log.
 - Lưu vào `AsyncLocalStorage` qua `RequestContext` (`../../src/infrastructure/observability/logging/request-context.ts`) — không cần truyền tay qua tham số hàm.
 
@@ -50,7 +51,9 @@ Mỗi request HTTP được gắn 1 `requestId` (UUID) ngay từ `RequestIdMiddl
 
 ## 5. Khi nào tự ném exception ở service (không dựa vào filter)
 
-Không đổi so với `api-rules.md` §R2: nếu domain error đã biết trước (trùng field unique, còn record con tham chiếu, sai business rule...), ném rõ ràng bằng `NotFoundException`/`ConflictException`/... **ở service**, kèm message cụ thể — không để rơi xuống `AllExceptionsFilter` (message Prisma generic, không nói rõ nghiệp vụ gì). Pre-check (unique, FK) vẫn không thay thế constraint ở DB — filter là lớp bảo vệ cuối cùng, không phải lớp duy nhất.
+Với module thông thường, nếu lỗi nghiệp vụ đã biết trước (trùng field unique, còn record con tham chiếu, sai business rule...), ném rõ ràng bằng `NotFoundException`/`ConflictException`/... **ở service**, kèm message cụ thể — không để rơi xuống `AllExceptionsFilter` (message Prisma generic, không nói rõ nghiệp vụ gì). Pre-check (unique, FK) vẫn không thay thế constraint ở DB — filter là lớp bảo vệ cuối cùng, không phải lớp duy nhất.
+
+`Category` giữ lỗi nghiệp vụ trong Domain/Application và ánh xạ chúng tại HTTP boundary theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md); không đưa NestJS exception vào Domain/Application.
 
 ## 6. Khi nào tự `try/catch` trong service
 

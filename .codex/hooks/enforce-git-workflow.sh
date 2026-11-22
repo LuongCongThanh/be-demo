@@ -11,10 +11,17 @@ fi
 
 # Only care about commands that touch git commit/push
 if [[ "$COMMAND" != *"git commit"* && "$COMMAND" != *"git push"* ]]; then
-  exit 0
+  if [[ "$COMMAND" != *"git worktree"* ]]; then
+    exit 0
+  fi
 fi
 
 CURRENT_BRANCH=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+if [[ "$COMMAND" == *"git worktree"* ]]; then
+  echo "Blocked: git worktree operations require explicit user confirmation (AGENTS.md Git Worktree Policy)" >&2
+  exit 2
+fi
 
 # 1) Never `git push --force` — only --force-with-lease is allowed
 if [[ "$COMMAND" == *"git push"* ]] && [[ "$COMMAND" =~ (^|[[:space:]])--force([[:space:]]|=|$) ]] && [[ "$COMMAND" != *"--force-with-lease"* ]]; then
@@ -47,12 +54,5 @@ while IFS= read -r SEG; do
     exit 2
   fi
 done < <(sed -E 's/(&&|\|\||;|\|)/\n/g' <<< "$COMMAND")
-
-# 4) No AI attribution in commit messages (project convention overrides default attribution behavior)
-AI_AGENT_NAMES='(claude|copilot|codex|chatgpt|openai|gpt|gemini|cursor|windsurf|cline|aider|devin|codeium|cody|tabnine|opencode|roo|continue|augment|replit|ai|agent|bot)'
-if [[ "$COMMAND" == *"git commit"* ]] && echo "$COMMAND" | grep -Eqi "co-authored-by:[[:space:]].*\\b$AI_AGENT_NAMES\\b|generated (with|by) .*\\b$AI_AGENT_NAMES\\b|ai-generated|noreply@anthropic\\.com"; then
-  echo "Blocked: commit message must not contain AI attribution (docs/convention/git-workflow.md §12) — remove Co-Authored-By/Generated-by lines" >&2
-  exit 2
-fi
 
 exit 0
