@@ -99,6 +99,7 @@ Mục tiêu end-state là chuỗi module/backend có thể chạy thử end-to-e
 ## Implementation Decisions
 
 - Build MVP as ordered vertical slices through public API behavior: identity and storefront prerequisites; Cart; Quote and Checkout; inventory and Order state; payment; fulfillment; staff operations; refunds/returns; notifications; reporting/compliance. Catalog/category remains a prerequisite for slices that browse or purchase products.
+- Customer identity stories 38–44 are prerequisites for authenticated Buyer flows. Task 26 consumes the authenticated Customer context for cart merge; Task 30 owns the acceptance for using that identity to access Order history and link eligible Guest Orders. Neither task should infer identity from a phone number.
 - Complete task 17 before relying on the Admin/Staff permission matrix; retain task 24 as the catalog/locale contract for Category and Product. Task 11 and hosting rollout remain separate from feature implementation.
 - Use the existing module boundaries as ownership seams: identity for authentication, customer for addresses, cart for browser/account baskets, inventory for reservations and stock, ordering for Order state and Quotes, payment for gateways, fulfillment for GHN, returns-refunds for returns and refunds, notification for email, and administration for settings, audit, compliance and reporting.
 - Keep the existing one-warehouse constraint. AvailableQuantity, OnShelf and all inventory state remain PostgreSQL-owned; Redis is only cache, rate limit or queue, never the source of commercial truth.
