@@ -46,17 +46,17 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 14  | [Phát hành hợp đồng OpenAPI theo phiên bản](./tasks/14-openapi-contract/spec.md)                       | done        | —                                                                                   | #80  |
 | 15  | [Lược đồ RBAC và chuyển đổi dữ liệu `ADMIN`/`STAFF`](./tasks/15-rbac-schema/spec.md)                   | done        | —                                                                                   | #81  |
 | 16  | [`PermissionsGuard` và `auth/me`](./tasks/16-permissions-guard/spec.md)                                | done        | 15                                                                                  | #82  |
-| 17  | [API quản lý vai trò và quyền](./tasks/17-access-admin-api/spec.md)                                    | in-progress | 16                                                                                  | #83  |
+| 17  | [API quản lý vai trò và quyền](./tasks/17-access-admin-api/spec.md)                                    | done        | 16                                                                                  | #83, #115 |
 | 18  | [Chi tiết tài khoản nội bộ kèm vai trò](./tasks/18-staff-detail-roles/spec.md)                         | done        | 17                                                                                  | #85  |
 | 19  | [Tìm kiếm, sắp xếp, lọc giá Sản phẩm](./tasks/19-catalog-search-sort/spec.md)                          | done        | —                                                                                   | #86  |
 | 20  | [Tải ảnh sản phẩm lên Cloudinary](./tasks/20-product-image-upload/spec.md)                             | done        | 19                                                                                  | #87  |
 | 21  | [Slug sản phẩm, giới tính và lọc danh mục con](./tasks/21-product-slug-gender/spec.md)                 | done        | —                                                                                   | #90  |
 | 22  | [Giá khuyến mãi](./tasks/22-sale-prices/spec.md)                                                       | done        | 21-product-slug-gender                                                              | #91  |
 | 23  | [Quản lý voucher](./tasks/23-vouchers/spec.md)                                                         | done        | 22-sale-prices                                                                      | #92  |
-| 24  | [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/spec.md)                | in-progress | —                                                                                   |      |
+| 24  | [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/spec.md)                | done        | —                                                                                   | #98, #116 |
 | 25  | [MVP thương mại end-to-end](./tasks/25-mvp-commerce-end-to-end/spec.md)                                | todo        | 17-access-admin-api, 24-category-content                                            |      |
-| 26  | [Giỏ hàng Buyer và gộp giỏ](./tasks/26-buyer-cart/spec.md)                                             | todo        | 17-access-admin-api, 24-category-content                                            |      |
-| 27  | [Tồn kho và điều chỉnh Staff](./tasks/27-inventory-availability/spec.md)                               | todo        | 26-buyer-cart                                                                       |      |
+| 26  | [Giỏ hàng Buyer và gộp giỏ](./tasks/26-buyer-cart/spec.md)                                             | done        | 17-access-admin-api, 24-category-content                                            | #118 |
+| 27  | [Tồn kho và điều chỉnh Staff](./tasks/27-inventory-availability/spec.md)                               | done        | 26-buyer-cart                                                                       | #119 |
 | 28  | [Tính thử và đặt đơn COD](./tasks/28-cod-checkout/spec.md)                                             | done        | —                                                                                   | #120 |
 | 29  | [Thanh toán online và đối soát](./tasks/29-online-payment/spec.md)                                     | todo        | 28-cod-checkout                                                                     |      |
 | 30  | [Tra cứu và xem đơn Buyer](./tasks/30-buyer-order-access/spec.md)                                      | todo        | 28-cod-checkout                                                                     |      |
@@ -66,22 +66,26 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 34  | [Hoàn hàng, Đổi trả và Hoàn tiền](./tasks/34-returns-refunds/spec.md)                                  | todo        | 29-online-payment, 33-staff-order-operations                                        |      |
 | 35  | [Thông báo Email theo vòng đời đơn](./tasks/35-order-notifications/spec.md)                            | todo        | 28-cod-checkout, 29-online-payment, 32-ghn-fulfillment, 34-returns-refunds          |      |
 | 36  | [Đồng ý dữ liệu, vận hành và báo cáo](./tasks/36-compliance-operations-reporting/spec.md)              | todo        | 17-access-admin-api, 28-cod-checkout, 33-staff-order-operations, 34-returns-refunds |      |
-| 37  | [Định danh và hồ sơ Khách hàng](./tasks/37-customer-identity-profile/spec.md)                          | todo        | 08-identity-use-case-services, 16-permissions-guard                                 |      |
+| 37  | [Định danh và hồ sơ Khách hàng](./tasks/37-customer-identity-profile/spec.md)                          | done        | 08-identity-use-case-services, 16-permissions-guard                                 | #117 |
 
 Các đầu việc thuộc Giai đoạn B của [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/issues/README.md) nằm trong nhiệm vụ cha; trạng thái và các mối phụ thuộc được theo dõi tại danh sách đó.
 
-Nhiệm vụ 17 vẫn `in-progress` tới khi bản sửa CLI được đưa vào PR/merge. PR #83 đã hợp nhất phần API RBAC; bản sửa [report](./tasks/17-access-admin-api/report.md) ngăn `create-admin` tạo Admin thứ hai active trong working tree.
+Nhiệm vụ 17 đã hoàn tất closure: PR #83 đã hợp nhất phần API RBAC, PR #115 theo dõi closure tài liệu và guard CLI ngăn tạo Admin thứ hai active.
 
 ## Thứ tự tiếp tục công việc
 
-Đối chiếu theo báo cáo nhiệm vụ và các commit trong nhánh `dev` hiện tại vào ngày 2026-11-20:
+Đối chiếu theo báo cáo nhiệm vụ và các PR hiện tại vào ngày 2026-11-22:
 
-1. **Đã hoàn thành:** nhiệm vụ 01–10, 12–16 và 18–23. Các PR đã hợp nhất; nhiệm vụ 21–23 trước đây chưa có trong bảng nhưng đã được triển khai.
-2. **Việc cần làm trước:** hoàn tất nhiệm vụ 17 bằng cách ngăn CLI `create-admin` tạo Admin thứ hai đang hoạt động, rồi kiểm thử cả CLI lẫn API.
-3. **Nhiệm vụ 24:** các ticket BE 01–03 về locale, backfill và biên tập bản dịch đã hoàn tất. Phần tiếp theo là lập kế hoạch riêng cho tích hợp CMS/store và nghiệm thu rollout; task cha vẫn `in-progress`.
-4. **Nhiệm vụ 11 vẫn `todo` và được hoãn:** trước khi bắt đầu cần chọn nhánh triển khai, cách chạy chuyển đổi cơ sở dữ liệu và cấu hình môi trường, đồng thời chuẩn bị thông tin truy cập Render/Neon.
-5. Sau các đầu việc BE của nhiệm vụ 24, cần lập kế hoạch riêng để cập nhật CMS/cửa hàng và triển khai chuyển đổi cơ sở dữ liệu/bản dịch. Đây là phần tích hợp tiếp theo, chưa được tính là hoàn thành trong phạm vi BE hiện tại.
-6. Task 28 đã triển khai như một vertical slice độc lập: quote nhận danh sách dòng trực tiếp; tích hợp Cart từ task 26, GHN và cấu hình vận hành tiếp tục là phần mở rộng.
+1. **Đã hoàn thành:** nhiệm vụ 01–10, 12–16, 18–24, 26–28 và 37. Các PR/closure được ghi riêng theo từng nhiệm vụ.
+2. **Nhiệm vụ 17:** đã hoàn tất closure tạo Admin duy nhất; PR API #83 và PR tài liệu/closure #115.
+3. **Nhiệm vụ 24:** ticket BE 01–03 về locale, backfill và biên tập bản dịch đã hoàn tất; PR #98 đã hợp nhất, PR tài liệu closure #116 đang mở.
+4. **Nhiệm vụ 26:** Giỏ hàng Guest/Customer, effective price và gộp giỏ đã được triển khai trong PR #118.
+5. **Nhiệm vụ 27:** tồn kho, movement và kiểm kê đã được triển khai trong PR #119.
+6. **Nhiệm vụ 28:** quote COD, idempotency và đặt đơn atomic đã được triển khai trong PR #120.
+7. **Nhiệm vụ 37:** profile/địa chỉ/locale/Google login đã được triển khai trong PR #117.
+8. **Nhiệm vụ 11 vẫn `todo` và được hoãn:** trước khi bắt đầu cần chọn nhánh triển khai, cách chạy chuyển đổi cơ sở dữ liệu và cấu hình môi trường, đồng thời chuẩn bị thông tin truy cập Render/Neon.
+9. Sau các đầu việc BE của nhiệm vụ 24, cần lập kế hoạch riêng để cập nhật CMS/cửa hàng và triển khai chuyển đổi cơ sở dữ liệu/bản dịch. Đây là phần tích hợp tiếp theo, chưa được tính là hoàn thành trong phạm vi BE hiện tại.
+10. Task 28 đã triển khai như một vertical slice độc lập: quote nhận danh sách dòng trực tiếp; tích hợp Cart từ task 26, GHN và cấu hình vận hành tiếp tục là phần mở rộng.
 
 ### Mức độ xác nhận
 
