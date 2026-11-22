@@ -1,23 +1,20 @@
 ---
-status: todo
-pr:
-blocked-by:
-  - 17-access-admin-api
-  - 24-category-content
-triage: ready-for-agent
+status: reference
 ---
 
-# MVP thương mại end-to-end
+# Phạm vi MVP thương mại end-to-end (tài liệu umbrella)
+
+**Vai trò của tài liệu:** Đây là tài liệu tham chiếu về phạm vi, thứ tự và quy tắc xuyên luồng; không phải nhiệm vụ triển khai và không sở hữu đầu ra nghiệm thu riêng. Các đặc tả nhiệm vụ 26–36 là nguồn có thẩm quyền cho tiêu chí nghiệm thu và trạng thái triển khai từng lát cắt.
 
 ## Problem Statement
 
-Backend đã có nền tảng cho danh mục, sản phẩm, voucher, định danh và hạ tầng; tuy nhiên Người mua chưa thể hoàn thành toàn bộ hành trình mua sắm từ Giỏ hàng đến nhận hàng, huỷ hoặc Đổi trả theo nghiệp vụ Việt Nam. Staff và Admin cũng chưa có chuỗi thao tác thống nhất cho tồn kho, thanh toán, giao hàng, hoàn tiền, báo cáo và tuân thủ dữ liệu cá nhân. Các khả năng còn tách rời hoặc chỉ nằm trong tài liệu, nên cần một kế hoạch implementation theo từng vertical slice có thứ tự phụ thuộc, tránh xây dựng trùng task 17 và task 24.
+Backend đã có nền tảng cho danh mục, sản phẩm, voucher, định danh và hạ tầng; tuy nhiên Người mua chưa thể hoàn thành toàn bộ hành trình mua sắm từ Giỏ hàng đến nhận hàng, huỷ hoặc Đổi trả theo nghiệp vụ Việt Nam. Staff và Admin cũng chưa có chuỗi thao tác thống nhất cho tồn kho, thanh toán, giao hàng, hoàn tiền, báo cáo và vận hành. Các khả năng còn tách rời hoặc chỉ nằm trong tài liệu, nên cần một kế hoạch implementation theo từng vertical slice có thứ tự phụ thuộc, tránh xây dựng trùng task 17 và task 24.
 
 ## Solution
 
-Hoàn thiện backend MVP như một cửa hàng thời trang B2C Việt Nam: Người mua có thể duyệt catalog, giữ Giỏ hàng, đăng nhập hoặc mua như Khách vãng lai, xác nhận Tính thử, đặt đơn COD hoặc online, theo dõi/huỷ đơn, tra cứu đơn và quản lý sổ địa chỉ. Staff xử lý xác nhận, đóng gói, bàn giao GHN, tồn kho, Đổi trả và ghi nhận Hoàn tiền. Admin quản lý cấu hình vận hành, nhân sự, báo cáo và dữ liệu khách hàng. Các chuyển trạng thái và side effect phải nhất quán với `GLOSSARY.md`, business rules và ADR.
+Định hướng backend MVP cho cửa hàng thời trang B2C Việt Nam: Người mua có thể duyệt catalog, giữ Giỏ hàng, đăng nhập hoặc mua như Khách vãng lai, xác nhận Tính thử, đặt đơn COD hoặc online, theo dõi/huỷ đơn, tra cứu đơn và quản lý sổ địa chỉ. Staff xử lý xác nhận, đóng gói, bàn giao GHN, tồn kho, Đổi trả và ghi nhận Hoàn tiền. Admin quản lý cấu hình vận hành, nhân sự và báo cáo. Các chuyển trạng thái và side effect phải nhất quán với `GLOSSARY.md`, business rules và ADR; từng lát cắt triển khai được đặc tả ở nhiệm vụ 26–36.
 
-Tài sản giao nộp là một chuỗi module/backend có thể chạy thử end-to-end qua API: identity, customer, cart, inventory, ordering, payment, fulfillment, returns-refunds, notification và administration. Catalog/category và authorization nền đã phải được hoàn thiện trước hoặc tái sử dụng trực tiếp.
+Mục tiêu end-state là chuỗi module/backend có thể chạy thử end-to-end qua API: identity, customer, cart, inventory, ordering, payment, fulfillment, returns-refunds, notification và administration. Catalog/category và authorization nền là các điều kiện tiên quyết hoặc được tái sử dụng trực tiếp.
 
 ## User Stories
 
@@ -96,9 +93,8 @@ Tài sản giao nộp là một chuỗi module/backend có thể chạy thử en
 73. As a Buyer, I want email-marketing consent stored separately from operational Consent, so that the company does not infer marketing permission from purchase consent.
 74. As a Buyer or Guest, I want checkout registration to present unchecked, separate operational and marketing consent choices, so that consent evidence is explicit.
 75. As a Buyer, I want consent evidence to include policy version, timestamp and channel, so that compliance audits can be supported.
-76. As a Customer or Staff, I want personal-data erasure requests handled only after eligible Orders are final and no refunds are pending, so that accountability and legal records are preserved.
-77. As a Staff or Admin, I want personal-data views and searches recorded without logging routine list access, so that access auditing is proportional.
-78. As an implementation agent, I want the public API and state changes to return stable domain errors, so that frontend, workers and retries do not guess behavior.
+76. As a Staff or Admin, I want personal-data views and searches recorded without logging routine list access, so that access auditing is proportional.
+77. As an implementation agent, I want the public API and state changes to return stable domain errors, so that frontend, workers and retries do not guess behavior.
 
 ## Implementation Decisions
 
@@ -113,7 +109,7 @@ Tài sản giao nộp là một chuỗi module/backend có thể chạy thử en
 - Preserve outbox delivery semantics, stable idempotency keys and domain event exchange. External email, GHN and gateway effects happen after database commit and are retried through idempotent workers.
 - Treat Order state transitions as the central commercial state machine. Apply only valid transitions, serialize competing payment/expiration/job actions on the Order, and route unexpected money to explicit Refund Requests and Flags.
 - Track AwaitingDispatch separately and remove it when Shipment succeeds. Cancellation before dispatch returns it to Stock; cancellation during delivery follows the documented loss/restock and refund branches.
-- Record every Staff mutation and access-sensitive personal-data view according to audit and compliance rules. Mask or anonymize requested personal data while retaining records required for accounting and audit.
+- Record every Staff mutation and access-sensitive personal-data view according to the applicable audit requirements.
 - Keep public and internal policies in configuration only where already specified. Do not add a second Warehouse, multi-currency, electronic-invoice integration, e-invoice providers, native mobile apps, SMS/Zalo notifications or marketing automation.
 - Use the existing API conventions, module export boundaries, pagination, Swagger/OpenAPI, audit infrastructure, SMTP transport and error handling. No module may write another module's owned tables or bypass public module services.
 
@@ -132,7 +128,7 @@ Tài sản giao nộp là một chuỗi module/backend có thể chạy thử en
   - Staff confirmation, packing, handover and delivery completion.
   - Refund, unexpected payment, cancellation and Return with restock/no-restock choices.
   - Stock adjustment, StockCount discrepancy and concurrent reconciliation.
-  - Locale, consent evidence, personal-data erasure and audit access.
+  - Locale, consent evidence and audit access.
 - Test the exact race boundaries rather than timing sleep: overlap Checkout and cancellation, IPN and expiration, Quote and price/stock changes, payment and shipment status callbacks, and retry/reconciliation duplicates.
 - Each implementation slice must run the smallest relevant test command before integration. Before final completion, run Prisma generate, lint, typecheck, unit tests, targeted e2e tests and build; report explicitly if database-backed or external-gateway conditions prevent a check.
 
@@ -151,12 +147,12 @@ Tài sản giao nộp là một chuỗi module/backend có thể chạy thử en
 - Multi-language Product content; only the Vietnamese and English storefront/admin/Category contract where already specified.
 - Customer-facing exchange that does not reduce to accepted Return plus a new Order.
 - Legal, accounting or go-live decisions not already fixed in repository business documents.
-- Data-retention durations still marked as requiring legal/accounting verification.
+- Customer-data retention, erasure and anonymization policy; this umbrella specifies no lifecycle rules or retention durations.
 - Cache invalidation and CMS/store rollout beyond the backend contract; task 24 integration remains separate from completing its backend contract.
 
 ## Further Notes
 
 - The seams are deliberately one API-facing slice at a time. The single highest-value seam is the public HTTP scenario end-to-end; private module tests are subordinate and should be used only for race and calculation edges that cannot be proven through API behavior.
-- Dependencies: complete task 17's Admin permission and `create-admin` closure and task 24's category/locale contract before their capabilities are declared complete in this task. Existing task 23 Voucher and task 22 sale-price work should be reused rather than reimplemented.
-- This spec is a delivery coordinate, not a substitute for module plans. The implementation should split into separate tasks only where a vertical dependency boundary produces a clear, reviewable result.
-- The order of implementation remains: identity/Customer prerequisites → catalog reuse → Cart → Quote/Checkout/Inventory/Ordering → payment and outbox → fulfillment → Staff operations → Refund/Return → notification/administration/compliance.
+- Task 17's Admin permission and `create-admin` closure and task 24's category/locale contract remain prerequisites for dependent slices; tasks 26–36 own their completion status. Reuse task 23 Voucher and task 22 sale-price work rather than reimplementing them.
+- This document is a non-authoritative umbrella reference, not a delivery coordinate or substitute for slice specs. The implementation tasks 26–36 own their acceptance criteria and delivery.
+- The high-level sequence is identity/Customer prerequisites → catalog reuse → Cart → Quote/Checkout/Inventory/Ordering → payment and outbox → fulfillment → Staff operations → Refund/Return → notification/administration. Task dependencies in the plan table are authoritative.
