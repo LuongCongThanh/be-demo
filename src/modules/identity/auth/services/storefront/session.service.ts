@@ -54,10 +54,6 @@ export class SessionService {
       await this.recordFailedLogin(user);
       throw new UnauthorizedException('Invalid email or password');
     }
-    if (user.role !== 'CUSTOMER') {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
     // Kiểm tra CẢ HAI trục trạng thái (quyết định #15) — SAU khi đã xác nhận
     // password đúng, để không lộ thêm thông tin cho kẻ đoán sai password.
     // Lỗi chung, giống sai mật khẩu: không lộ việc tài khoản (vd. Staff đã

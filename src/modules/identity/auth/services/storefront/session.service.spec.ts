@@ -96,23 +96,21 @@ describe('SessionService.login', () => {
 
   it('rejects locked customer accounts with the generic credentials error', async () => {
     const { service, prisma } = createHarness();
-    prisma.user.findUnique.mockResolvedValue(
-      validLoginUser({ lockedUntil: new Date(Date.now() + 60_000) }),
-    );
+    prisma.user.findUnique.mockResolvedValue(validLoginUser({ lockedUntil: new Date(Date.now() + 60_000) }));
 
     await expect(service.login({ email: 'user@example.com', password: 'Abcde@123456789' })).rejects.toThrow(
       new UnauthorizedException('Invalid email or password'),
     );
   });
 
-  it('rejects Staff and Admin storefront login after password verification', async () => {
+  it.each(['STAFF', 'ADMIN'] as const)('allows %s login through the shared credential flow', async (role) => {
     const { service, prisma, passwordService } = createHarness();
-    prisma.user.findUnique.mockResolvedValue(validLoginUser({ role: 'STAFF' }));
+    prisma.user.findUnique.mockResolvedValue(validLoginUser({ role }));
 
-    await expect(service.login({ email: 'staff@example.com', password: 'Abcde@123456789' })).rejects.toThrow(
-      new UnauthorizedException('Invalid email or password'),
-    );
+    const result = await service.login({ email: `${role.toLowerCase()}@example.com`, password: 'Abcde@123456789' });
+
     expect(passwordService.verify).toHaveBeenCalled();
+    expect(result.user.role).toBe(role);
   });
 
   it('throws the generic credentials error, checked only after the password is confirmed correct, when the account is DISABLED', async () => {
