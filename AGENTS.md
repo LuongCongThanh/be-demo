@@ -16,6 +16,16 @@ Work is tracked as local Markdown tasks in `docs/plan/` (not GitHub Issues). See
 
 Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
+### Specialized routing
+
+- NestJS modules, controllers, providers, dependency injection, guards, security, or performance -> `nestjs-best-practices`.
+- Prisma CLI, schema validation/formatting, client generation, migration commands, or migration status -> `prisma-cli`. Treat `prisma-database-setup` as a legacy compatibility pointer.
+- Prisma Client CRUD, filters, relations, transactions, or raw SQL -> `prisma-client-api`.
+- Vitest tests, mocks, coverage, configuration, or test selection -> `vitest`.
+- Docker Compose services, health checks, dependency order, volumes, networks, environment, or overrides -> `docker-compose-patterns`.
+- API authentication/authorization or OWASP API security review -> `api-security-review` for read-only review.
+- Ambiguous domain terms, entity boundaries, or relationships -> Matt Pocock `domain-modeling` when available; otherwise follow `docs/agents/domain.md`.
+
 ### Conventions (coding style, config, error handling, API, schema)
 
 Top-down index and reading order for all convention docs: `docs/convention`.
