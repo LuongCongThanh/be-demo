@@ -12,6 +12,16 @@ test('rejects AI attribution in commit messages', () => {
   assert.match(result.errors.join('\n'), /AI\/tool\/agent attribution/);
 });
 
+test('rejects additional AI attribution trailer variants', () => {
+  for (const trailer of [
+    'Assisted-by: Copilot',
+    'Reviewed-by: Claude',
+    'Generated-by: Codex',
+  ]) {
+    assert.equal(validateCommitMessage(`chore(agent): improve guardrails\n\n${trailer}\n`).valid, false);
+  }
+});
+
 test('rejects a PR body that is missing the template sections', () => {
   const result = validatePullRequestBody('# Summary\n\nInline body');
 

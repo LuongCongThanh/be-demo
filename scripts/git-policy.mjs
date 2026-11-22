@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 const AI_AGENT_NAMES =
   '(claude|copilot|codex|chatgpt|openai|gpt|gemini|cursor|windsurf|cline|aider|devin|codeium|cody|tabnine|opencode|roo|continue|augment|replit|ai|agent|bot)';
 const AI_ATTRIBUTION = new RegExp(
-  `(co-authored-by:\\s*.*\\b${AI_AGENT_NAMES}\\b|generated\\s+(with|by)\\s+.*\\b${AI_AGENT_NAMES}\\b|ai-generated|noreply@anthropic\\.com)`,
+  `((co-authored-by|assisted-by|reviewed-by|generated-by):\\s*.*\\b${AI_AGENT_NAMES}\\b|generated\\s+(with|by)\\s+.*\\b${AI_AGENT_NAMES}\\b|ai-generated|noreply@anthropic\\.com)`,
   'i',
 );
 

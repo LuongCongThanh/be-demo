@@ -2,7 +2,7 @@
 
 Quy ước branching strategy và cách làm việc với Git áp dụng cho repository này.
 
-> Lưu ý: đây là dự án cá nhân (học NestJS), không phải team lớn. Tài liệu này mô tả **những gì thực sự áp dụng ngay** và đánh dấu rõ phần nào là **mục tiêu/TODO** (CI, branch protection) chưa được thiết lập tại thời điểm viết.
+> CI và local hooks được cấu hình trong repository. Branch protection là cấu hình phía GitHub; cần kiểm tra trực tiếp trong repository settings thay vì suy ra từ tài liệu này.
 
 Mục tiêu của workflow:
 
@@ -30,7 +30,7 @@ docs/*    ─┘                       │
 - **`dev`**: nhánh integration cho development, checkout ra từ `main`.
 - **`feature/*`, `fix/*`, `chore/*`, `docs/*`**: checkout ra từ `dev`, merge ngược lại `dev`.
 - **`hotfix/*`**: checkout trực tiếp từ `main` để xử lý lỗi production khẩn cấp (xem mục 9 — chỉ áp dụng khi dự án đã có môi trường production thật).
-- **`master`**: nhánh legacy, xem mục 16.
+- **`master`**: nhánh legacy, xem mục 15.
 
 ---
 
@@ -67,9 +67,7 @@ feature/user-authentication → Pull Request → dev
 
 ## 3. Development Branches
 
-Các branch phát triển thông thường (`feature/*`, `fix/*`, `chore/*`, `docs/*`) đều được tạo từ `dev`.
-
-Luồng chung:
+Các branch phát triển thông thường (`feature/*`, `fix/*`, `chore/*`, `docs/*`) đều được tạo từ `dev`:
 
 ```text
 dev → working branch → development → commit → push → Pull Request → review → merge → dev
@@ -81,14 +79,14 @@ dev → working branch → development → commit → push → Pull Request → 
 
 Tên branch sử dụng: tiếng Anh, lowercase, `kebab-case`, ngắn gọn nhưng mô tả đúng mục đích.
 
-> Dự án cá nhân này không dùng Jira/ticket tracker, nên **không cần** gắn task ID vào tên nhánh — chỉ cần mô tả ngắn gọn nội dung thay đổi.
+Tên branch không yêu cầu task ID; pre-push hook kiểm tra prefix và định dạng kebab-case.
 
 | Loại công việc    | Prefix     | Ví dụ                             |
 | ----------------- | ---------- | --------------------------------- |
 | Feature mới       | `feature/` | `feature/user-authentication`     |
 | Bug fix           | `fix/`     | `fix/login-redirect-error`        |
 | Maintenance       | `chore/`   | `chore/update-eslint-config`      |
-| Documentation     | `..`       | `docs/update-readme`              |
+| Documentation     | `docs/`    | `docs/update-readme`              |
 | Production hotfix | `hotfix/`  | `hotfix/payment-processing-error` |
 
 Không nên sử dụng:
@@ -161,17 +159,13 @@ Không dùng `git push --force` nếu không thực sự cần thiết — `--fo
 feature/* → Pull Request → dev
 ```
 
-Pull Request nên:
+Pull Request phải:
 
 - Mô tả rõ thay đổi.
 - Không còn unresolved conflict.
-- Được review trước khi merge (khi có từ 2 người trở lên tham gia repo).
+- Có kết quả review được ghi nhận; với repository có nhiều contributor, cần approval theo branch protection.
 - Không chứa code/debug không cần thiết.
 - Tất cả CI check bắt buộc phải pass trước khi merge.
-
-```text
-Feature Branch → Push → Pull Request → Code Review → (CI) → Approve → Merge → dev
-```
 
 ---
 
@@ -208,13 +202,13 @@ Khi `dev` đã ổn định và sẵn sàng release:
 dev → Pull Request → (CI) → Review → Approve → main → Production
 ```
 
-Không merge `dev` vào `main` nếu có lỗi rõ ràng hoặc review chưa xong. Khi CI đã được thiết lập (mục 14), không merge nếu CI fail. Production chỉ được deploy từ `main`.
+Không merge `dev` vào `main` nếu có lỗi rõ ràng, review chưa xong hoặc CI thất bại. Production chỉ được deploy từ `main`.
 
 ---
 
 ## 9. Hotfix Workflow
 
-> **Chỉ áp dụng khi dự án có môi trường production thật đang chạy.** Hiện tại đây là dự án học tập, chưa có production — mục này để sẵn cho tương lai.
+> Chỉ áp dụng khi có môi trường production thật đang chạy.
 
 `hotfix/*` dùng cho bug nghiêm trọng đang xảy ra trên production. Tạo trực tiếp từ `main` (không tạo từ `dev`):
 
@@ -253,7 +247,7 @@ git branch -d feature/user-authentication
 
 ## 11. Commit Message Convention
 
-Commit message ngắn gọn, mô tả đúng thay đổi. Khuyến nghị dùng Conventional Commits:
+Commit message ngắn gọn, mô tả đúng thay đổi, theo Conventional Commits. Các type hiện được `commitlint.config.mjs` cho phép:
 
 ```text
 feat: implement user authentication
@@ -274,6 +268,10 @@ chore: update eslint configuration
 | `chore`    | Maintenance/configuration              |
 | `style`    | Formatting/style không ảnh hưởng logic |
 | `perf`     | Performance improvement                |
+| `ci`       | Thay đổi CI                            |
+| `build`    | Thay đổi build system/dependency       |
+| `revert`   | Revert commit trước                    |
+| `security` | Thay đổi liên quan đến bảo mật         |
 
 ---
 
@@ -311,9 +309,8 @@ Co-Authored-By: Copilot
 
 ## 13. General Rules
 
-- Không commit trực tiếp vào `main`, `dev`. Mọi thay đổi đi qua branch riêng và Pull Request.
-- Không dùng `git push --force` trên `main`/`dev`.
-- Không merge Pull Request nếu: conflict chưa resolve, review yêu cầu sửa, test/build fail.
+- Không dùng `git push --force`; nếu cần cập nhật branch đã push sau rebase, dùng `--force-with-lease`.
+- Không merge Pull Request nếu conflict chưa resolve, review còn yêu cầu thay đổi hoặc CI thất bại.
 - Không gom nhiều feature không liên quan vào cùng một branch (vd. tránh `feature/auth-and-dashboard-and-payment`, nên tách riêng từng branch).
 
 ---
@@ -322,28 +319,27 @@ Co-Authored-By: Copilot
 
 ### Hook local (husky)
 
-| Hook         | Chạy                                                   | Chặn khi                                                                   |
-| ------------ | ------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `pre-commit` | `lint-staged`: oxlint + prettier trên file đang staged | Lint lỗi                                                                   |
-| `commit-msg` | `commitlint` (`commitlint.config.mjs`)                 | Sai Conventional Commits, header > 100 ký tự, có AI attribution (mục 12)   |
-| `pre-push`   | Kiểm tra branch, `typecheck`, `test`                   | Push thẳng `main`/`dev`/`master`; tên branch sai mục 4; typecheck/test lỗi |
+| Hook         | Chạy                                                        | Chặn khi                                                                   |
+| ------------ | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `pre-commit` | `npm run agents:check`, `npm run git-policy:test` và `lint-staged` | Agent config không đồng bộ, Git/PR policy lỗi, hoặc staged file không qua lint/format |
+| `commit-msg` | `commitlint` (`commitlint.config.mjs`)                      | Sai Conventional Commits, header > 100 ký tự, có AI attribution (mục 12)   |
+| `pre-push`   | Kiểm tra branch, `typecheck`, `test`                        | Push thẳng `main`/`dev`/`master`; tên branch sai mục 4; typecheck/test lỗi |
 
 Node theo `.nvmrc` (`nvm use`).
 
 ### CI (`.github/workflows/`)
 
-- `ci.yml` — chạy trên mọi PR và push vào `dev`/`main`: commit-message policy (`commitlint` trên toàn bộ commit range), lint, typecheck, unit test + ngưỡng coverage (`vitest.config.ts`), e2e trên Postgres kèm kiểm tra schema ↔ migration drift, kiểm tra link markdown (lychee), build + Docker build.
+- `ci.yml` — chạy trên mọi PR và push vào `dev`/`main`: kiểm tra agent config, commit-message policy, lint, typecheck, unit test + coverage, e2e trên Postgres và schema/migration drift, OpenAPI contract, Markdown link, build và Docker build.
 - `pr-title.yml` — tiêu đề PR phải theo Conventional Commits, vì Squash and Merge dùng nó làm commit message.
+- `pr-body.yml` — kiểm tra cấu trúc PR body và yêu cầu ghi kết quả code review.
 
-Template: `.github/pull_request_template.md`. Không dùng GitHub Issues — task theo dõi ở `docs/plan/`.
+Template: `.github/pull_request_template.md`. Task theo dõi ở `docs/plan/`.
 
-### Branch Protection (thiết lập thủ công trên GitHub)
+### Branch Protection (cấu hình phía GitHub)
 
-**`main`**: Require Pull Request, Require approval, Require status checks (`commit-message-policy`, `lint`, `typecheck`, `unit-test`, `e2e-test`, `docs-links`, `build`, `conventional-title`), Block force push.
+Branch protection không được kiểm chứng từ file trong repository. Trong GitHub settings, xác nhận `main`/`dev` yêu cầu Pull Request, block force push và require các check thích hợp từ `ci.yml`, `pr-title.yml`, `pr-body.yml` (bao gồm `agent-config`, `commit-message-policy`, `lint`, `typecheck`, `unit-test`, `e2e-test`, `openapi-contract`, `docs-links`, `build`, `conventional-title`, `template-sections`).
 
-**`dev`**: Require Pull Request, Require status checks như trên, Block force push.
-
-Hook local có thể bị bỏ qua bằng `--no-verify`; Branch Protection mới là lớp chặn thật.
+Hook local có thể bị bỏ qua bằng `--no-verify`; branch protection là lớp chặn phía remote nếu đã bật.
 
 ---
 
@@ -351,37 +347,4 @@ Hook local có thể bị bỏ qua bằng `--no-verify`; Branch Protection mới
 
 `master` là branch legacy, được giữ lại để tránh phá vỡ CI/CD pipeline cũ, external integration, link/automation cũ, và historical reference. **Không dùng `master` cho development mới.**
 
-Branch trunk chính thức của repository là `main`. Default branch trên GitHub hiện vẫn là `master` — cân nhắc đổi sang `main` sau khi flow này đã chạy ổn định.
-
----
-
-## 16. Complete Workflow Summary
-
-| Branch      | Tạo từ            | Merge vào           | Mục đích                                            |
-| ----------- | ----------------- | ------------------- | --------------------------------------------------- |
-| `main`      | —                 | —                   | Production                                          |
-| `dev`       | `main` (khởi tạo) | `main`              | Development integration                             |
-| `feature/*` | `dev`             | `dev`               | Feature mới                                         |
-| `fix/*`     | `dev`             | `dev`               | Bug trong development                               |
-| `chore/*`   | `dev`             | `dev`               | Maintenance                                         |
-| `docs/*`    | `dev`             | `dev`               | Documentation                                       |
-| `hotfix/*`  | `main`            | `main` + sync `dev` | Production emergency fix (TODO — khi có production) |
-
-```text
-feature/* ─┐
-fix/*     ─┼──────> dev ───────> main ───────> Production
-chore/*   ─┤                       ▲
-docs/*    ─┘                       │
-                               hotfix/*
-```
-
-**Nguyên tắc cốt lõi:**
-
-```text
-main     = Production
-dev      = Integration
-feature/fix/chore/docs = Development
-hotfix   = Emergency Production Fix (khi có production thật)
-
-No Direct Push + Pull Request + Code Review + (CI khi có) = Safe Merge
-```
+Branch trunk là `main`; xác nhận default branch và branch protection trực tiếp trong GitHub settings.
