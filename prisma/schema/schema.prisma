@@ -250,6 +250,7 @@ model Cart {
   user  User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   items CartItem[]
 
+  @@index([status, expiresAt], map: "carts_guest_expiry_idx")
   @@map("carts")
 }
 
