@@ -19,7 +19,7 @@ fi
 
 TEMPLATE="$REPO_ROOT/.github/pull_request_template.md"
 fail() {
-  deny "Blocked: PR body must follow $TEMPLATE — $1. Copy the template to a file, fill every section (write \"N/A\" for items that do not apply; never delete sections), then run: gh pr create --base dev --title \"<type>: ...\" --body-file <absolute path>"
+  deny "Blocked: PR body must follow $TEMPLATE — $1. Copy the template to a file, keep required sections, remove sections that do not apply, then run: gh pr create --base dev --title \"<type>: ...\" --body-file <absolute path>"
 }
 
 if [[ "$COMMAND" =~ [[:space:]](--fill|--fill-first|--fill-verbose|-f)([[:space:]]|$) ]]; then
@@ -39,27 +39,17 @@ elif [[ "$COMMAND" =~ [[:space:]](--body|-b)([[:space:]=]|\") ]]; then
 else
   fail "no --body/--body-file given"
 fi
+BODY=$(tr -d '\r' <<< "$BODY")
 
 REQUIRED=(
   "# Pull Request"
-  "## 🏷️ 1. Type"
-  "## 📌 2. Summary"
-  "### 2.1. Làm gì?"
-  "### 2.2. Vì sao?"
-  "### 2.3. Giải pháp"
-  "### 2.4. Kết quả thực tế"
-  "### 2.5. Scope & Traceability"
-  "## 📋 3. Changes"
-  "## 🔌 4. API Contract"
-  "## 🗄️ 5. Database / Migration / Configuration"
-  "## 🧪 6. Testing & Verification"
-  "## 🔒 7. Security / Performance / Data Integrity"
-  "## ⚠️ 8. Gap / Risks / Reviewer Attention"
-  "## 🚀 9. Deployment / Rollback"
-  "## 🏛️ 10. Architecture / Documentation"
-  "## ✅ 11. Definition of Done"
-  "## 💬 12. Notes"
-  "## 📖 Project References"
+  "## 1. Type"
+  "## 2. Summary"
+  "## 3. Input / Output"
+  "### Input"
+  "### Output"
+  "## 4. Changes"
+  "## 5. Verification"
 )
 MISSING=()
 for h in "${REQUIRED[@]}"; do
@@ -67,22 +57,18 @@ for h in "${REQUIRED[@]}"; do
 done
 (( ${#MISSING[@]} )) && fail "missing sections: $(IFS='|'; echo "${MISSING[*]}")"
 
-SUMMARY=$(sed -n '/^## 📌 2\. Summary$/,/^---$/p' <<< "$BODY")
-for marker in "### 2.1. Làm gì?" "### 2.2. Vì sao?" "### 2.3. Giải pháp" "### 2.4. Kết quả thực tế"; do
-  grep -Fq "$marker" <<< "$SUMMARY" || fail "missing summary heading: $marker"
-done
-
-TICKED=$(grep -Ec '^- \[[xX]\] (✨ Feature|🐛 Bug Fix|♻️ Refactor|⚡ Performance|🔒 Security|🧹 Chore|📚 Documentation|🧪 Test|🏗️ Architecture)' <<< "$BODY")
+TICKED=$(grep -Ec '^- \[[xX]\] (feat|fix|refactor|perf|security|chore|docs|test|architecture)$' <<< "$BODY")
 [[ "$TICKED" == 1 ]] || fail "tick exactly one Type checkbox (found $TICKED)"
 
 AI_AGENT_NAMES='(claude|copilot|codex|chatgpt|openai|gpt|gemini|cursor|windsurf|cline|aider|devin|codeium|cody|tabnine|opencode|roo|continue|augment|replit|ai|agent|bot)'
 grep -Eqi "co-authored-by:[[:space:]].*\\b$AI_AGENT_NAMES\\b|generated (by|with) .*\\b$AI_AGENT_NAMES\\b|ai-generated|noreply@anthropic\\.com" <<< "$BODY" \
   && fail "remove AI attribution line"
 
-grep -qi 'code-review' <<< "${BODY#*## 💬 12. Notes}" \
-  || fail "run /code-review on the diff first and record its outcome under '## 💬 12. Notes' (e.g. 'code-review: 3 findings, all fixed')"
-grep -Eqi 'code-review.*(chưa|không chạy|bỏ qua|skip|not run)|(chưa|không) chạy.*code-review' <<< "${BODY#*## 💬 12. Notes}" \
-  && fail "Notes say /code-review was not run — run it on the diff and record the real outcome"
+VERIFICATION=$(sed -n '/^## 5\. Verification$/,/^## 6\./p' <<< "$BODY")
+grep -Eqi '^\- \[[xX]\] Code review: .+' <<< "$VERIFICATION" \
+  || fail "run /code-review on the diff first and record its outcome under '## 5. Verification'"
+grep -Eqi 'Code review:.*(chưa chạy|không chạy|bỏ qua|skip(ped)?|not run|pending)|((chưa|không) chạy).*Code review' <<< "$VERIFICATION" \
+  && fail "Code review outcome says review was skipped or not run"
 
 if [[ "$SKIP_PR_VERIFY" != 1 ]]; then
   cd "$REPO_ROOT" || deny "Blocked: failed to cd into $REPO_ROOT"

@@ -21,7 +21,7 @@ Before opening a PR, follow the [repository review policy](../../../AGENTS.md#sh
 
 ## 3. Prepare the PR
 
-Read `.github/pull_request_template.md`, `.github/workflows/pr-title.yml`, and `.github/workflows/pr-body.yml`. Preserve every required heading and field, write `N/A` for inapplicable content, select exactly one PR type, and record the actual code-review outcome in `## 💬 12. Notes`.
+Read `.github/pull_request_template.md`, `.github/workflows/pr-title.yml`, and `.github/workflows/pr-body.yml`. Preserve required sections, remove inapplicable optional sections, select exactly one PR type, and record the actual code-review outcome under `## 5. Verification`.
 
 Use an allowed Conventional Commit title and validate the body against the repository workflow. Never use `--fill` in place of the required template.
 
