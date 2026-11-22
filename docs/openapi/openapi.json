@@ -46,6 +46,25 @@
         ],
         "type": "object"
       },
+      "AddCartItemDto": {
+        "properties": {
+          "quantity": {
+            "default": 1,
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number"
+          },
+          "variantId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "variantId",
+          "quantity"
+        ],
+        "type": "object"
+      },
       "AuthUserResponseDto": {
         "properties": {
           "email": {
@@ -2336,6 +2355,19 @@
           "updatedAt",
           "effectivePrice",
           "salePrice"
+        ],
+        "type": "object"
+      },
+      "UpdateCartItemDto": {
+        "properties": {
+          "quantity": {
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "quantity"
         ],
         "type": "object"
       },
@@ -8851,6 +8883,328 @@
         "summary": "Verify email address using the 6-digit code sent by email",
         "tags": [
           "Storefront — Authentication"
+        ]
+      }
+    },
+    "/api/v1/cart": {
+      "get": {
+        "operationId": "CartController_getGuest_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "Get or create a guest cart",
+        "tags": [
+          "Cart"
+        ]
+      }
+    },
+    "/api/v1/cart/items": {
+      "post": {
+        "operationId": "CartController_addGuest_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "Add a variant to a guest cart",
+        "tags": [
+          "Cart"
+        ]
+      }
+    },
+    "/api/v1/cart/items/{itemId}": {
+      "delete": {
+        "operationId": "CartController_deleteGuest_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "Remove a guest cart item",
+        "tags": [
+          "Cart"
+        ]
+      },
+      "patch": {
+        "operationId": "CartController_updateGuest_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "Update a guest cart item quantity",
+        "tags": [
+          "Cart"
+        ]
+      }
+    },
+    "/api/v1/cart/me": {
+      "get": {
+        "operationId": "CartController_getCustomer_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the signed-in Customer cart",
+        "tags": [
+          "Cart"
+        ]
+      }
+    },
+    "/api/v1/cart/me/items": {
+      "post": {
+        "operationId": "CartController_addCustomer_v1",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a variant to the signed-in Customer cart",
+        "tags": [
+          "Cart"
+        ]
+      }
+    },
+    "/api/v1/cart/me/items/{itemId}": {
+      "delete": {
+        "operationId": "CartController_deleteCustomer_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a signed-in Customer cart item",
+        "tags": [
+          "Cart"
+        ]
+      },
+      "patch": {
+        "operationId": "CartController_updateCustomer_v1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a signed-in Customer cart item quantity",
+        "tags": [
+          "Cart"
+        ]
+      }
+    },
+    "/api/v1/cart/merge": {
+      "post": {
+        "operationId": "CartController_merge_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Merge a guest cart into the signed-in Customer cart",
+        "tags": [
+          "Cart"
         ]
       }
     },

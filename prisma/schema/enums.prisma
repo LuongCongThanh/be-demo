@@ -26,6 +26,7 @@ enum VariantStatus {
 enum CartStatus {
   ACTIVE
   CHECKED_OUT
+  MERGED
 }
 
 enum OrderStatus {
