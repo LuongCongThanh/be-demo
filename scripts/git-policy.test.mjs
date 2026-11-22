@@ -63,3 +63,28 @@ test('accepts a template-shaped PR body', () => {
 
   assert.deepEqual(validatePullRequestBody(body), { valid: true, errors: [] });
 });
+
+test('accepts the template without an optional section 6', () => {
+  const body = `# Pull Request
+
+## 1. Type
+- [x] fix
+
+## 2. Summary
+- **Thay đổi:** Sửa validator.
+
+## 3. Input / Output
+### Input
+- PR body.
+### Output
+- Validation result.
+
+## 4. Changes
+- **Other:** Validator.
+
+## 5. Verification
+- [x] Code review: no findings
+`;
+
+  assert.deepEqual(validatePullRequestBody(body), { valid: true, errors: [] });
+});

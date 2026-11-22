@@ -50,13 +50,15 @@ export function validatePullRequestBody(body) {
     errors.push(`Tick exactly one PR Type checkbox (found ${ticked})`);
   }
 
-  const verification = normalized.match(
-    /^## 5\. Verification$([\s\S]*?)(?=^## 6\.)/m,
-  );
-  if (!verification) {
+  const verificationStart = normalized.indexOf('## 5. Verification');
+  if (verificationStart === -1) {
     errors.push('Missing PR verification section');
   } else {
-    const text = verification[1];
+    const nextSectionStart = normalized.indexOf('\n## 6.', verificationStart);
+    const text =
+      nextSectionStart === -1
+        ? normalized.slice(verificationStart)
+        : normalized.slice(verificationStart, nextSectionStart);
     if (!/^- \[[xX]\] Code review: .+/m.test(text)) {
       errors.push('Record the code-review outcome under ## 5. Verification');
     }

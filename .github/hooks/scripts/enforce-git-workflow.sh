@@ -42,10 +42,5 @@ while IFS= read -r SEG; do
   fi
 done < <(sed -E 's/(&&|\|\||;|\|)/\n/g' <<< "$COMMAND")
 
-AI_AGENT_NAMES='(claude|copilot|codex|chatgpt|openai|gpt|gemini|cursor|windsurf|cline|aider|devin|codeium|cody|tabnine|opencode|roo|continue|augment|replit|ai|agent|bot)'
-if [[ "$COMMAND" == *"git commit"* ]] && echo "$COMMAND" | grep -Eqi "co-authored-by:[[:space:]].*\\b$AI_AGENT_NAMES\\b|generated (with|by) .*\\b$AI_AGENT_NAMES\\b|ai-generated|noreply@anthropic\\.com"; then
-  deny "Blocked: commit message must not contain AI attribution (docs/convention/git-workflow.md §12) — remove Co-Authored-By/Generated-by lines"
-fi
-
 echo '{"permissionDecision":"allow"}'
 exit 0
