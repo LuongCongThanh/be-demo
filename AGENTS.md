@@ -8,6 +8,21 @@ For repository analysis, planning, implementation, documentation, Git, or GitHub
 
 When using Codex, also follow [`docs/agents/workflows/codex.md`](docs/agents/workflows/codex.md). Other agents should follow their platform-specific workflow when one is configured.
 
+### Natural-language skill routing and continuation
+
+Apply this routing to ordinary prompts; the user does not need to type a slash command. If the user says “continue”, “tiếp tục đi”, “go on”, or similar, resume the latest active request at its first unfinished phase. Use the conversation and current worktree as state; do not restart completed phases or ask the user to repeat settled requirements.
+
+- Unclear requirements or behavior → `mattpocock-skills:grill-with-docs`.
+- Requirements clarified but a medium/large change still needs a single spec → `mattpocock-skills:to-spec`.
+- A large change needs several vertical slices → `mattpocock-skills:to-tickets`.
+- Implementation is authorized and ready → `mattpocock-skills:implement`, using `mattpocock-skills:tdd` for behavior-changing work.
+- A refactor is requested → first preserve the existing behavior and classify its scope. For a clear, local refactor, use the quick execution path; use `implement` and focused tests for larger changes, adding `tdd` when behavior or regression risk warrants it. Use `grill-with-docs`/`to-spec` only when the goal or scope is genuinely unclear or consequential.
+- A bug has an unclear technical root cause → `mattpocock-skills:diagnosing-bugs`.
+- A code review is requested → `mattpocock-skills:code-review`, subject to the read-only policy below.
+- An explicitly requested PR → the repository `ship` workflow (`.agents/skills/ship/` for Codex/Copilot or `.claude/commands/ship.md` for Claude); use the code-review skill as that workflow requires. “Continue” alone never authorizes GitHub writes.
+
+Continue the current skill if its phase is still unresolved; otherwise select the next unfinished phase. Skip phases already completed, and skip the full pipeline for quick, well-specified work. If there is no active request, or multiple plausible requests to continue, ask one focused question. Invoke a named skill only if the active agent actually has it; otherwise follow the equivalent repository workflow and do not claim the skill was invoked.
+
 ### Issue tracker
 
 Work is tracked as local Markdown tasks in `docs/plan/` (not GitHub Issues). See `docs/agents/issue-tracker.md`.
@@ -44,6 +59,16 @@ Schema/migration/Prisma Client rules (naming & mapping, hand-written SQL migrati
 
 Index: `docs/README.md`. Business requirements (`docs/business/`) take priority over `docs/architecture/`, `docs/architecture/11-database.md` and `docs/adr/` when they conflict.
 
+## Agent configuration synchronization
+
+Shared repository policy lives in this file and `docs/agents/` / `docs/convention/`; platform files are entrypoints or adapters. Edit the shared source instead of duplicating a rule in a platform file.
+
+- `.agents/skills/` is canonical for project skills mirrored byte-for-byte to `.github/skills/` and the matching Prisma skills in `.claude/skills/`.
+- `.claude/hooks/` is canonical for the byte-for-byte `.codex/hooks/` mirror. `.github/hooks/scripts/` is a Copilot-native adapter and its event registrations are checked against the other agents; do not overwrite it with Claude/Codex scripts.
+- `.claude/settings.json`, `.codex/config.toml`, hook registries, commands, and `.github/instructions/` keep their native formats. Do not copy agent-specific permissions, MCP servers, or settings such as `.claude/settings.local.json` between agents.
+- Run `npm run agents:watch` to propagate a single edit in a mirrored file immediately. If two copies of that file change differently, the watcher stops with a conflict; resolve it and run `npm run agents:sync -- --from <mirror-root>` to choose the intended copy. `npm run agents:check` detects drift, and `npm run agents:test` verifies sync and conflict behavior.
+- The pre-commit hook and CI run `agents:check`; CI also runs `agents:test`. This enforces mirrored-file and hook-registration consistency, not every natural-language decision made by an agent.
+
 ## Shared AI Code Review
 
 Whenever any agent is asked to review code, including by slash skill such as `/mattpocock-skills:code-review`, or by phrases such as "review code", "review this PR", "review this branch", "review since X", or "review the current diff":
@@ -56,6 +81,10 @@ Whenever any agent is asked to review code, including by slash skill such as `/m
 6. Report only actionable findings backed by exact code and diff evidence.
 7. Separate confirmed defects from verification gaps.
 8. Do not edit, create, delete, commit, push, merge or rebase during review.
+
+## Git Worktree Policy
+
+Agents MUST NOT create, add, remove, or switch to a new Git worktree unless the user explicitly requests it or confirms after being asked. A request to create a separate branch or PR does not imply permission to create a worktree. Prefer the current checkout; if its state makes the task unsafe, explain the constraint and ask before isolating the work. Never remove an existing worktree unless the user explicitly requests removal.
 
 ## Git Commit Identity & AI Attribution Policy
 
