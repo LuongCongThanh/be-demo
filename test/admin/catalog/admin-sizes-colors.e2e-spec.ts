@@ -9,7 +9,7 @@ import { createTestApp } from '../../support/create-test-app.js';
 const CODE_PREFIX = 'E2ESC';
 const NAME_PREFIX = 'SizesColorsE2E';
 const TEST_EMAIL_DOMAIN = '@sizes-colors.e2e-test.local';
-const VALID_PASSWORD = 'Abc@1234';
+const VALID_PASSWORD = 'Abcde@123456789';
 
 describe('Admin — sizes & colors (e2e)', () => {
   let app: INestApplication;

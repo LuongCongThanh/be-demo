@@ -7,7 +7,7 @@ export class RegisterDto {
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ example: 'Abc@1234' })
+  @ApiProperty({ example: 'Abcde@123456789' })
   @IsString()
   @IsStrongPassword()
   password!: string;

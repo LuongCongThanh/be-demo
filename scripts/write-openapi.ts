@@ -19,7 +19,7 @@ const placeholders: Record<string, string> = {
   DATABASE_URL: 'postgresql://openapi:openapi@localhost:5432/openapi',
   JWT_ACCESS_SECRET: 'openapi-contract-placeholder-secret-32-chars',
   ADMIN_BOOTSTRAP_EMAIL: 'admin@example.com',
-  ADMIN_BOOTSTRAP_PASSWORD: 'ChangeMe123!',
+  ADMIN_BOOTSTRAP_PASSWORD: 'ChangeMe123456789!',
 };
 for (const [key, value] of Object.entries(placeholders)) process.env[key] ||= value;
 // Hợp đồng không phụ thuộc môi trường chạy script.

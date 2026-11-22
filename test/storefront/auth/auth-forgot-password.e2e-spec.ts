@@ -6,7 +6,7 @@ import { createTestUser } from '../../support/create-test-user.js';
 import { createTestApp } from '../../support/create-test-app.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-forgot-password.e2e-test.local';
-const VALID_PASSWORD = 'Abc@1234';
+const VALID_PASSWORD = 'Abcde@123456789';
 
 describe('Auth — POST /auth/forgot-password (e2e)', () => {
   let app: INestApplication;

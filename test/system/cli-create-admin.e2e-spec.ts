@@ -7,7 +7,7 @@ import { PasswordService } from '#src/modules/identity/auth/services/shared/pass
 import { InternalAccountService } from '#src/modules/identity/internal-account.service.js';
 
 const TEST_EMAIL_DOMAIN = '@cli-create-admin.e2e-test.local';
-const VALID_PASSWORD = 'Abc@1234';
+const VALID_PASSWORD = 'Abcde@123456789';
 
 describe('CLI — create-admin (application context, prompt stubbed)', () => {
   let moduleRef: TestingModule;

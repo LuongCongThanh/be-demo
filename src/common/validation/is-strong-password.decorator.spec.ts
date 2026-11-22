@@ -13,8 +13,8 @@ async function validatePassword(password: string) {
 }
 
 describe('IsStrongPassword', () => {
-  it('accepts a password with upper, lower, digit, special char, and 8+ length', async () => {
-    const errors = await validatePassword('Abc@1234');
+  it('accepts a password with upper, lower, digit, special char, and 15+ length', async () => {
+    const errors = await validatePassword('Abcde@123456789');
 
     expect(errors).toHaveLength(0);
   });
@@ -43,14 +43,14 @@ describe('IsStrongPassword', () => {
     expect(errors).not.toHaveLength(0);
   });
 
-  it('rejects a password shorter than 8 characters, even if it meets every other rule', async () => {
-    const errors = await validatePassword('Ab1@xyz'); // 7 chars, all 4 character classes present
+  it('rejects a password shorter than 15 characters, even if it meets every other rule', async () => {
+    const errors = await validatePassword('Ab1@xyz1234567'); // 14 chars, all 4 character classes present
 
     expect(errors).not.toHaveLength(0);
   });
 
-  it('accepts a password at the 8-character boundary', async () => {
-    const errors = await validatePassword('Ab1@wxyz'); // exactly 8 chars, all 4 classes present
+  it('accepts a password at the 15-character boundary', async () => {
+    const errors = await validatePassword('Ab1@wxyz1234567'); // exactly 15 chars, all 4 classes present
 
     expect(errors).toHaveLength(0);
   });

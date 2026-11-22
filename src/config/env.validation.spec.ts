@@ -5,7 +5,7 @@ const base = {
   DATABASE_URL: 'postgresql://u:p@localhost:5432/db',
   JWT_ACCESS_SECRET: 'a'.repeat(32),
   ADMIN_BOOTSTRAP_EMAIL: 'admin@example.com',
-  ADMIN_BOOTSTRAP_PASSWORD: 'Abc@12345678',
+  ADMIN_BOOTSTRAP_PASSWORD: 'Abcde@123456789',
 };
 
 describe('validate() — SWAGGER_ENABLED', () => {

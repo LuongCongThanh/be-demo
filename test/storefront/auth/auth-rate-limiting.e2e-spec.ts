@@ -8,7 +8,7 @@ import { configureApp } from '#src/bootstrap/configure-app.js';
 import { createTestUser } from '../../support/create-test-user.js';
 
 const TEST_EMAIL_DOMAIN = '@auth-rate-limiting.e2e-test.local';
-const VALID_PASSWORD = 'Abc@1234';
+const VALID_PASSWORD = 'Abcde@123456789';
 
 // Unlike every other e2e spec, this file does NOT stub out the throttler
 // guards (see test/support/create-test-app.ts) — it exists specifically to

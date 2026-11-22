@@ -10,7 +10,7 @@ const TEST_EMAIL_DOMAIN = '@auth-register.e2e-test.local';
 // overrides (the part that actually matters) visible at a glance.
 function validRegisterPayload(overrides: Record<string, unknown> = {}) {
   return {
-    password: 'Abc@1234',
+    password: 'Abcde@123456789',
     fullName: 'Nguyen Van A',
     phone: '0912345678',
     ...overrides,
@@ -54,7 +54,7 @@ describe('Auth — POST /auth/register (e2e)', () => {
     expect(res.body).not.toHaveProperty('passwordHash');
 
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-    expect(user.passwordHash).not.toBe('Abc@1234');
+    expect(user.passwordHash).not.toBe('Abcde@123456789');
 
     expect(user.role).toBe('CUSTOMER');
 
@@ -96,7 +96,7 @@ describe('Auth — POST /auth/register (e2e)', () => {
       .post('/api/v1/auth/register')
       .send({
         email: `nofullname${Date.now()}${TEST_EMAIL_DOMAIN}`,
-        password: 'Abc@1234',
+        password: 'Abcde@123456789',
         phone: '0912345678',
       })
       .expect(400);
@@ -107,7 +107,7 @@ describe('Auth — POST /auth/register (e2e)', () => {
       .post('/api/v1/auth/register')
       .send({
         email: `nophone${Date.now()}${TEST_EMAIL_DOMAIN}`,
-        password: 'Abc@1234',
+        password: 'Abcde@123456789',
         fullName: 'Nguyen Van A',
       })
       .expect(400);

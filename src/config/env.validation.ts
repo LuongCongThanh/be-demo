@@ -77,6 +77,10 @@ export class EnvironmentVariables {
   @IsString()
   GOOGLE_TRANSLATE_API_KEY?: string;
 
+  @IsOptional()
+  @IsString()
+  GOOGLE_CLIENT_ID?: string;
+
   // Kho ảnh Sản phẩm. Thiếu thì upload/gắn ảnh trả 503, ảnh không có `url`.
   @IsOptional()
   @IsString()

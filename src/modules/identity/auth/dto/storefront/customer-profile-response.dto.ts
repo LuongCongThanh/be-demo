@@ -12,4 +12,10 @@ export class CustomerProfileResponseDto {
 
   @ApiProperty()
   phone: string;
+
+  @ApiProperty({ enum: ['vi', 'en'] })
+  interfaceLocale: 'vi' | 'en';
+
+  @ApiProperty({ enum: ['vi', 'en'] })
+  emailLocale: 'vi' | 'en';
 }

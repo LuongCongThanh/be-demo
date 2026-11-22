@@ -27,12 +27,12 @@ export class ResetPasswordDto {
   @IsString()
   token: string;
 
-  @ApiProperty({ example: 'NewAbc@1234' })
+  @ApiProperty({ example: 'NewAbcde@123456789' })
   @IsString()
   @IsStrongPassword()
   password: string;
 
-  @ApiProperty({ example: 'NewAbc@1234' })
+  @ApiProperty({ example: 'NewAbcde@123456789' })
   @IsString()
   @Validate(MatchesPasswordConstraint)
   confirmPassword: string;

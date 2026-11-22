@@ -12,19 +12,27 @@ enum UserStatus {
 }
 
 model User {
-  id              String      @id @default(uuid()) @db.Uuid
-  email           String      @unique @db.VarChar(255)
-  passwordHash    String      @map("password_hash")
-  fullName        String      @map("full_name") @db.VarChar(255)
-  phone           String      @db.VarChar(30)
+  id                   String      @id @default(uuid()) @db.Uuid
+  email                String      @unique @db.VarChar(255)
+  passwordHash         String      @map("password_hash")
+  fullName             String      @map("full_name") @db.VarChar(255)
+  phone                String      @db.VarChar(30)
   // Loại tài khoản (CUSTOMER / STAFF / ADMIN), không phải Vai trò RBAC. Giữ tới slice F;
   // quyền thật nằm ở user_roles → roles → role_permissions.
-  role            AccountType
-  status          UserStatus  @default(ACTIVE)
-  sessionVersion  Int         @default(0) @map("session_version")
-  emailVerifiedAt DateTime?   @map("email_verified_at") @db.Timestamptz(6)
-  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  role                 AccountType
+  status               UserStatus  @default(ACTIVE)
+  sessionVersion       Int         @default(0) @map("session_version")
+  emailVerifiedAt      DateTime?   @map("email_verified_at") @db.Timestamptz(6)
+  interfaceLocale      String      @default("vi") @map("interface_locale") @db.VarChar(2)
+  emailLocale          String      @default("vi") @map("email_locale") @db.VarChar(2)
+  googleSubject        String?     @unique @map("google_subject") @db.VarChar(255)
+  failedLoginCount     Int         @default(0) @map("failed_login_count")
+  failedLoginStartedAt DateTime?   @map("failed_login_started_at") @db.Timestamptz(6)
+  lockedUntil          DateTime?   @map("locked_until") @db.Timestamptz(6)
+  lockCycles24h        Int         @default(0) @map("lock_cycles_24h")
+  lockCyclesStartedAt  DateTime?   @map("lock_cycles_started_at") @db.Timestamptz(6)
+  createdAt            DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   carts                   Cart[]
   orders                  Order[]
@@ -37,8 +45,29 @@ model User {
   userRoles               UserRole[]
   salePrices              SalePrice[]
   vouchers                Voucher[]
+  addresses               CustomerAddress[]
 
   @@map("users")
+}
+
+model CustomerAddress {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  fullName     String   @map("full_name") @db.VarChar(255)
+  phone        String   @db.VarChar(30)
+  provinceCode String   @map("province_code") @db.VarChar(20)
+  provinceName String   @map("province_name") @db.VarChar(255)
+  wardCode     String   @map("ward_code") @db.VarChar(20)
+  wardName     String   @map("ward_name") @db.VarChar(255)
+  addressLine  String   @map("address_line") @db.VarChar(500)
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isDefault])
+  @@map("customer_addresses")
 }
 
 model RefreshToken {

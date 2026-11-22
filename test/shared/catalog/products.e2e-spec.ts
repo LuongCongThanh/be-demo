@@ -12,7 +12,7 @@ import { createTestApp } from '../../support/create-test-app.js';
 const TEST_NAME_PREFIX = 'ProductsSharedE2E';
 const TEST_EMAIL_DOMAIN = '@products-shared.e2e-test.local';
 const CODE_PREFIX = 'E2PX';
-const VALID_PASSWORD = 'Abc@1234';
+const VALID_PASSWORD = 'Abcde@123456789';
 
 describe('Products — cross-audience contract (e2e)', () => {
   let app: INestApplication;
