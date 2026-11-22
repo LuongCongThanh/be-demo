@@ -42,6 +42,9 @@ Không có test mới.
 ## Kiểm tra
 
 - `npm run typecheck`, `npm run lint` (chỉ còn warning cũ `no-explicit-any`), `npm run test` (240 pass), `npm run openapi:write` pass; Prettier sạch trên file đã đổi.
+- Ngày 2026-11-22: Unit task 17 — 21/21 pass.
+- Ngày 2026-11-22: E2E CLI `create-admin` — 7/7 pass.
+- Ngày 2026-11-22: E2E RBAC/internal-account — 28/29 pass. Một assertion của role E2E nhận 500 thay vì 404 vì DB E2E hiện tại thiếu cột `categories.source_version`; lỗi nằm ngoài closure Admin và cần migration DB trước khi chạy lại bộ category.
 
 ## Acceptance criteria: chạy tay trên API local
 
