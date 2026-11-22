@@ -1,3 +1,5 @@
+import fs from 'fs';
+
 let input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (chunk) => {
@@ -20,9 +22,10 @@ process.stdin.on('end', () => {
     return;
   }
 
-  const toolInputCommand = payload.tool_input?.command;
-  if (typeof toolInputCommand === 'string' && toolInputCommand.trim().length > 0) {
-    process.stdout.write(toolInputCommand);
+  const directCommands = [payload.toolArgs?.command, payload.toolArgs?.cmd, payload.tool_input?.command];
+  const directCommand = directCommands.find((command) => typeof command === 'string' && command.trim().length > 0);
+  if (typeof directCommand === 'string') {
+    process.stdout.write(directCommand);
     return;
   }
 

@@ -1,8 +1,8 @@
 # Category Folder Structure Convention
 
-**Phiên bản:** 1.6
-**Phạm vi:** NestJS `category` module
-**Trạng thái:** Proposed
+**Phiên bản:** 1.6<br>
+**Phạm vi:** NestJS `category` module<br>
+**Trạng thái:** Proposed<br>
 **Mục tiêu:** Chuẩn hóa vị trí file, trách nhiệm từng tầng, quy tắc phụ thuộc và cách tổ chức code cho module Category theo Clean Architecture kết hợp Repository Pattern.
 
 ---
@@ -53,11 +53,11 @@ Các từ khóa trong tài liệu được hiểu như sau:
 
 Không dùng lẫn ba nhóm dữ liệu sau:
 
-| Dạng dữ liệu | Quyền sở hữu | Mục đích | Ví dụ |
-|---|---|---|---|
-| **Domain Model** | `domain/` | Biểu diễn khái niệm/trạng thái và quy tắc thuộc nghiệp vụ; không phụ thuộc database hoặc API | `Category` trong `category.model.ts` |
-| **Application Result** | `application/` (thường là kiểu export từ use case/service) | Hợp đồng đầu ra của use case, chứa dữ liệu mà caller cần; không phải HTTP DTO và không chứa kiểu Prisma | `GetCategoryResult`, `CategorySummaryResult` |
-| **Persistence Record** | `infrastructure/persistence/` | Biểu diễn dữ liệu theo schema/cách lưu trữ, có thể mang field hoặc kiểu riêng của Prisma/database | `CategoryPersistenceRecord` hoặc Prisma model |
+| Dạng dữ liệu           | Quyền sở hữu                                               | Mục đích                                                                                                | Ví dụ                                         |
+| ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| **Domain Model**       | `domain/`                                                  | Biểu diễn khái niệm/trạng thái và quy tắc thuộc nghiệp vụ; không phụ thuộc database hoặc API            | `Category` trong `category.model.ts`          |
+| **Application Result** | `application/` (thường là kiểu export từ use case/service) | Hợp đồng đầu ra của use case, chứa dữ liệu mà caller cần; không phải HTTP DTO và không chứa kiểu Prisma | `GetCategoryResult`, `CategorySummaryResult`  |
+| **Persistence Record** | `infrastructure/persistence/`                              | Biểu diễn dữ liệu theo schema/cách lưu trữ, có thể mang field hoặc kiểu riêng của Prisma/database       | `CategoryPersistenceRecord` hoặc Prisma model |
 
 Quy tắc:
 
@@ -156,13 +156,13 @@ category/
 
 Chứa mô hình, kiểu dữ liệu, quy tắc và logic nghiệp vụ độc lập với framework và công nghệ lưu trữ.
 
-| Folder | Trách nhiệm | Ví dụ |
-|---|---|---|
-| `models/` | Mô hình dữ liệu thuộc Domain, không phải bản ghi database | `category.model.ts` |
-| `tree/` | Logic dựng cây, kiểm tra quan hệ cây và điều kiện hiển thị theo tổ tiên | `category-tree.ts` |
-| `localization/` | Locale hợp lệ và quy tắc locale thuần nghiệp vụ | `category-locale.ts` |
-| `image/` | Quy tắc, slot và hằng số nghiệp vụ của ảnh | `category-image-slot.enum.ts` |
-| `errors/` | Lỗi nghiệp vụ có ý nghĩa trong miền Category | `category-errors.ts` |
+| Folder          | Trách nhiệm                                                             | Ví dụ                         |
+| --------------- | ----------------------------------------------------------------------- | ----------------------------- |
+| `models/`       | Mô hình dữ liệu thuộc Domain, không phải bản ghi database               | `category.model.ts`           |
+| `tree/`         | Logic dựng cây, kiểm tra quan hệ cây và điều kiện hiển thị theo tổ tiên | `category-tree.ts`            |
+| `localization/` | Locale hợp lệ và quy tắc locale thuần nghiệp vụ                         | `category-locale.ts`          |
+| `image/`        | Quy tắc, slot và hằng số nghiệp vụ của ảnh                              | `category-image-slot.enum.ts` |
+| `errors/`       | Lỗi nghiệp vụ có ý nghĩa trong miền Category                            | `category-errors.ts`          |
 
 **Không đặt tại Domain:**
 
@@ -182,12 +182,12 @@ Application điều phối các bước để thực hiện một mục tiêu ng
 
 Port là hợp đồng mô tả khả năng mà Application cần từ một dependency nằm ngoài Application.
 
-| Folder | Trách nhiệm |
-|---|---|
-| `persistence/` | Hợp đồng đọc/ghi dữ liệu; có thể bao gồm transaction capability khi use case cần phối hợp nhiều thao tác persistence |
-| `transaction/` (chỉ khi cần) | Hợp đồng điều phối một transaction qua nhiều persistence Port |
-| `translation/` | Hợp đồng yêu cầu dịch thuật hoặc giao tiếp với khả năng dịch bên ngoài |
-| `storage/` (chỉ khi cần) | Hợp đồng lưu trữ/truy xuất/xóa tài nguyên bên ngoài khi Application cần capability storage riêng |
+| Folder                       | Trách nhiệm                                                                                                          |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `persistence/`               | Hợp đồng đọc/ghi dữ liệu; có thể bao gồm transaction capability khi use case cần phối hợp nhiều thao tác persistence |
+| `transaction/` (chỉ khi cần) | Hợp đồng điều phối một transaction qua nhiều persistence Port                                                        |
+| `translation/`               | Hợp đồng yêu cầu dịch thuật hoặc giao tiếp với khả năng dịch bên ngoài                                               |
+| `storage/` (chỉ khi cần)     | Hợp đồng lưu trữ/truy xuất/xóa tài nguyên bên ngoài khi Application cần capability storage riêng                     |
 
 Quy tắc:
 
@@ -244,13 +244,13 @@ Hợp đồng hành vi tối thiểu của `TransactionPort`:
 
 Use case theo từng surface được đặt trong `admin/application/` hoặc `storefront/application/`; chỉ Application logic thực sự dùng chung mới nằm trong `application/shared/`.
 
-| Folder | Trách nhiệm |
-|---|---|
-| `admin/application/category/` | Use case quản trị Category: tạo, sửa, liệt kê, xóa, kiểm tra slug và quan hệ cây |
-| `admin/application/image/` | Use case quản trị hình ảnh Category |
-| `admin/application/translation/` | Use case quản trị nội dung/bản dịch và yêu cầu dịch lại |
-| `application/shared/localization/` | Nghiệp vụ locale thực sự dùng chung trong phạm vi Category |
-| `storefront/application/category/` | Use case truy vấn Category công khai theo locale và điều kiện hiển thị |
+| Folder                             | Trách nhiệm                                                                      |
+| ---------------------------------- | -------------------------------------------------------------------------------- |
+| `admin/application/category/`      | Use case quản trị Category: tạo, sửa, liệt kê, xóa, kiểm tra slug và quan hệ cây |
+| `admin/application/image/`         | Use case quản trị hình ảnh Category                                              |
+| `admin/application/translation/`   | Use case quản trị nội dung/bản dịch và yêu cầu dịch lại                          |
+| `application/shared/localization/` | Nghiệp vụ locale thực sự dùng chung trong phạm vi Category                       |
+| `storefront/application/category/` | Use case truy vấn Category công khai theo locale và điều kiện hiển thị           |
 
 **Quy tắc tổ chức Service và Use Case:**
 
@@ -272,9 +272,9 @@ Use case theo từng surface được đặt trong `admin/application/` hoặc `
 
 Controller thuộc surface tương ứng: `admin/controllers/` hoặc `storefront/controllers/`; không đăng ký controllers của cả hai surface tại một module duy nhất.
 
-| Folder | Trách nhiệm |
-|---|---|
-| `admin/controllers/` | Endpoint dành cho quản trị viên |
+| Folder                    | Trách nhiệm                            |
+| ------------------------- | -------------------------------------- |
+| `admin/controllers/`      | Endpoint dành cho quản trị viên        |
 | `storefront/controllers/` | Endpoint công khai dành cho người dùng |
 
 Controller chịu trách nhiệm:
@@ -297,12 +297,12 @@ Controller không nên:
 
 DTO thuộc surface sở hữu hợp đồng API đó; cây tham chiếu không tạo một thư mục DTO dùng chung ở root.
 
-| Folder | Trách nhiệm |
-|---|---|
-| `admin/dto/category/` | Request/response cho CRUD và quản trị Category |
-| `admin/dto/image/` | Request/response cho thao tác ảnh quản trị |
-| `admin/dto/localization/` | Request/response cấu hình ngôn ngữ |
-| `storefront/dto/category/` | Query/response dành cho API công khai |
+| Folder                     | Trách nhiệm                                    |
+| -------------------------- | ---------------------------------------------- |
+| `admin/dto/category/`      | Request/response cho CRUD và quản trị Category |
+| `admin/dto/image/`         | Request/response cho thao tác ảnh quản trị     |
+| `admin/dto/localization/`  | Request/response cấu hình ngôn ngữ             |
+| `storefront/dto/category/` | Query/response dành cho API công khai          |
 
 Quy tắc:
 
@@ -357,13 +357,13 @@ Quy tắc:
 
 ### 4.6. `infrastructure/` — Adapter công nghệ cụ thể
 
-| Folder | Trách nhiệm |
-|---|---|
-| `integrations/translation/` | Client giao tiếp với nhà cung cấp/dịch vụ dịch thuật |
-| `persistence/relational/queries/` | Prisma select/include hoặc cấu hình truy vấn dùng chung |
-| `persistence/relational/adapters/` | Hiện thực Repository Port bằng Prisma |
-| `persistence/relational/` | Module đăng ký dependency công nghệ và export các adapter persistence cụ thể cần thiết |
-| `storage/` (chỉ khi cần) | Adapter hiện thực Storage Port riêng của Category, nếu có |
+| Folder                             | Trách nhiệm                                                                            |
+| ---------------------------------- | -------------------------------------------------------------------------------------- |
+| `integrations/translation/`        | Client giao tiếp với nhà cung cấp/dịch vụ dịch thuật                                   |
+| `persistence/relational/queries/`  | Prisma select/include hoặc cấu hình truy vấn dùng chung                                |
+| `persistence/relational/adapters/` | Hiện thực Repository Port bằng Prisma                                                  |
+| `persistence/relational/`          | Module đăng ký dependency công nghệ và export các adapter persistence cụ thể cần thiết |
+| `storage/` (chỉ khi cần)           | Adapter hiện thực Storage Port riêng của Category, nếu có                              |
 
 Quy tắc:
 
@@ -387,12 +387,12 @@ Chứa fixture, factory, helper hoặc cấu hình test được nhiều test tr
 
 Category được lắp ghép qua các module có ranh giới riêng:
 
-| Module | Trách nhiệm |
-|---|---|
-| `CategoryCoreModule` (`category-core.module.ts`) | Import persistence Infrastructure module; bind Application Port token sang concrete adapter; export các Port/provider dùng chung cần thiết; đăng ký shared Application provider nếu có |
-| `AdminCategoryModule` (`admin/admin-category.module.ts`) | Import trực tiếp `CategoryCoreModule`; đăng ký Admin controllers và Application providers |
-| `StorefrontCategoryModule` (`storefront/storefront-category.module.ts`) | Import trực tiếp `CategoryCoreModule`; đăng ký Storefront controllers và Application providers |
-| `CategoryModule` (`category.module.ts`) | Chỉ aggregate `AdminCategoryModule` và `StorefrontCategoryModule`; không thay thế việc từng surface import `CategoryCoreModule` |
+| Module                                                                  | Trách nhiệm                                                                                                                                                                            |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CategoryCoreModule` (`category-core.module.ts`)                        | Import persistence Infrastructure module; bind Application Port token sang concrete adapter; export các Port/provider dùng chung cần thiết; đăng ký shared Application provider nếu có |
+| `AdminCategoryModule` (`admin/admin-category.module.ts`)                | Import trực tiếp `CategoryCoreModule`; đăng ký Admin controllers và Application providers                                                                                              |
+| `StorefrontCategoryModule` (`storefront/storefront-category.module.ts`) | Import trực tiếp `CategoryCoreModule`; đăng ký Storefront controllers và Application providers                                                                                         |
+| `CategoryModule` (`category.module.ts`)                                 | Chỉ aggregate `AdminCategoryModule` và `StorefrontCategoryModule`; không thay thế việc từng surface import `CategoryCoreModule`                                                        |
 
 `CategoryRelationalPersistenceModule` thuộc Infrastructure và đăng ký/export Prisma Client cùng concrete persistence adapter. Binding Port-to-adapter thuộc `CategoryCoreModule`, không thuộc Persistence module hoặc aggregate `CategoryModule`.
 
@@ -481,17 +481,17 @@ Quy tắc bắt buộc:
 
 ## 7. Quy ước đặt tên
 
-| Thành phần | Quy ước | Ví dụ |
-|---|---|---|
-| File | `kebab-case` | `admin-category.service.ts` |
-| Class | `PascalCase` | `AdminCategoryService` |
-| Interface/Type | `PascalCase` | `CategoryRepository` |
-| Enum | `PascalCase` | `CategoryImageSlot` |
-| Constant | `UPPER_SNAKE_CASE` | `CATEGORY_IMAGE_LIMIT` |
-| DTO | Hậu tố `.dto.ts` | `create-category.dto.ts` |
-| Service | Hậu tố `.service.ts` | `category.service.ts` |
-| Adapter | Tên công nghệ + khả năng | `prisma-category.repository.ts` |
-| Test | Hậu tố `.spec.ts` | `category.service.spec.ts` |
+| Thành phần     | Quy ước                  | Ví dụ                           |
+| -------------- | ------------------------ | ------------------------------- |
+| File           | `kebab-case`             | `admin-category.service.ts`     |
+| Class          | `PascalCase`             | `AdminCategoryService`          |
+| Interface/Type | `PascalCase`             | `CategoryRepository`            |
+| Enum           | `PascalCase`             | `CategoryImageSlot`             |
+| Constant       | `UPPER_SNAKE_CASE`       | `CATEGORY_IMAGE_LIMIT`          |
+| DTO            | Hậu tố `.dto.ts`         | `create-category.dto.ts`        |
+| Service        | Hậu tố `.service.ts`     | `category.service.ts`           |
+| Adapter        | Tên công nghệ + khả năng | `prisma-category.repository.ts` |
+| Test           | Hậu tố `.spec.ts`        | `category.service.spec.ts`      |
 
 Quy tắc bổ sung:
 
@@ -502,26 +502,26 @@ Quy tắc bổ sung:
 
 ## 8. Ánh xạ từ cấu trúc hiện tại
 
-| Vị trí hiện tại | Vị trí đích |
-|---|---|
-| `category/domain/category-record.ts` | `domain/models/category.model.ts` (đổi tên để tránh nhầm với persistence record) |
-| `category/domain/category-tree.ts` | `domain/tree/category-tree.ts` |
-| `category/domain/category-locale.ts` | `domain/localization/category-locale.ts` |
-| `category/domain/category-image-*` | `domain/image/` |
-| `category/domain/category-errors.ts` | `domain/errors/category-errors.ts` |
-| `category/repositories/category.repository.ts` | `application/ports/persistence/category.repository.ts` |
-| `category/services/admin/` | `admin/application/`, phân nhóm category/image/translation |
-| `category/services/shared/` | `application/shared/`, chỉ giữ logic thực sự dùng chung |
-| `category/services/storefront/` | `storefront/application/`, phân nhóm theo capability |
-| `category/controllers/admin/` | `admin/controllers/` |
-| `category/controllers/storefront/` | `storefront/controllers/` |
-| `category/dto/admin/` | `admin/dto/` |
-| `category/dto/storefront/` | `storefront/dto/` |
-| `category/dto/shared/` | Đưa về DTO của surface sở hữu hợp đồng; chỉ chia sẻ nếu cùng ngữ nghĩa API |
-| `category/clients/` | `infrastructure/integrations/translation/` |
-| `category/infrastructure/persistence/relational/` | Giữ tầng, phân loại `queries/` và `adapters/` |
-| `category/mappers/` | `admin/presentation/mappers/` hoặc `storefront/presentation/mappers/` theo API sở hữu |
-| `category/services/admin/category-test-setup.ts` | `testing/category-test-setup.ts` |
+| Vị trí hiện tại                                                           | Vị trí đích                                                                                                                           |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `category/domain/category-record.ts`                                      | `domain/models/category.model.ts` (đổi tên để tránh nhầm với persistence record)                                                      |
+| `category/domain/category-tree.ts`                                        | `domain/tree/category-tree.ts`                                                                                                        |
+| `category/domain/category-locale.ts`                                      | `domain/localization/category-locale.ts`                                                                                              |
+| `category/domain/category-image-*`                                        | `domain/image/`                                                                                                                       |
+| `category/domain/category-errors.ts`                                      | `domain/errors/category-errors.ts`                                                                                                    |
+| `category/repositories/category.repository.ts`                            | `application/ports/persistence/category.repository.ts`                                                                                |
+| `category/services/admin/`                                                | `admin/application/`, phân nhóm category/image/translation                                                                            |
+| `category/services/shared/`                                               | `application/shared/`, chỉ giữ logic thực sự dùng chung                                                                               |
+| `category/services/storefront/`                                           | `storefront/application/`, phân nhóm theo capability                                                                                  |
+| `category/controllers/admin/`                                             | `admin/controllers/`                                                                                                                  |
+| `category/controllers/storefront/`                                        | `storefront/controllers/`                                                                                                             |
+| `category/dto/admin/`                                                     | `admin/dto/`                                                                                                                          |
+| `category/dto/storefront/`                                                | `storefront/dto/`                                                                                                                     |
+| `category/dto/shared/`                                                    | Đưa về DTO của surface sở hữu hợp đồng; chỉ chia sẻ nếu cùng ngữ nghĩa API                                                            |
+| `category/clients/`                                                       | `infrastructure/integrations/translation/`                                                                                            |
+| `category/infrastructure/persistence/relational/`                         | Giữ tầng, phân loại `queries/` và `adapters/`                                                                                         |
+| `category/mappers/`                                                       | `admin/presentation/mappers/` hoặc `storefront/presentation/mappers/` theo API sở hữu                                                 |
+| `category/services/admin/category-test-setup.ts`                          | `testing/category-test-setup.ts`                                                                                                      |
 | Một `category.module.ts` vừa khai báo controllers/providers vừa bind Port | Tách thành `CategoryCoreModule`, `AdminCategoryModule`, `StorefrontCategoryModule`; `CategoryModule` chỉ aggregate hai surface module |
 
 Việc chuyển file phải đi kèm:

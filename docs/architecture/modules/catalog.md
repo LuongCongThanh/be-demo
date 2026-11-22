@@ -101,13 +101,13 @@ hoặc delete đã commit.
 
 Phần này mô tả runtime trong `src/modules/catalog/**`. `CatalogModule` đăng ký product, product-option và sale price, đồng thời import `CategoryModule`; `CategoryModule` sở hữu Category controllers, Application services/ports và DI composition. Category persistence, translation và image storage được nối qua các adapter Infrastructure; các feature Catalog còn lại vẫn dùng `PrismaService` trực tiếp. `ProductService` đọc cây hiển thị từ helper thuần của Category và giá khuyến mãi qua helper trong pricing; `AdminProductService` tạo inventory row `quantity=0` khi tạo Biến thể và gọi helper khóa/kiểm giá trong pricing.
 
-| File                                             | Trách nhiệm, symbol chính và phụ thuộc đáng kể                                                                                                          |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/modules/catalog/catalog.module.ts`          | `CatalogModule`: composition root cho product, product-option và sale price; import `CategoryModule`, `PassportModule` và `StorageModule`.                |
-| `src/modules/catalog/category/category.module.ts` | `CategoryModule`: wiring Category HTTP adapters, Application providers và các Application Port sang concrete Infrastructure adapters.                  |
-| `src/modules/catalog/category/category-core.module.ts` | `CategoryCoreModule`: import persistence/Storage infrastructure, bind Category Port/adapter và export shared application providers. |
-| `src/modules/catalog/category/admin/admin-category.module.ts` | `AdminCategoryModule`: import `CategoryCoreModule` trực tiếp, đăng ký Admin controllers và Admin application providers. |
-| `src/modules/catalog/category/storefront/storefront-category.module.ts` | `StorefrontCategoryModule`: import `CategoryCoreModule` trực tiếp, đăng ký Storefront controllers và Storefront application providers. |
+| File                                                                    | Trách nhiệm, symbol chính và phụ thuộc đáng kể                                                                                             |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/modules/catalog/catalog.module.ts`                                 | `CatalogModule`: composition root cho product, product-option và sale price; import `CategoryModule`, `PassportModule` và `StorageModule`. |
+| `src/modules/catalog/category/category.module.ts`                       | `CategoryModule`: wiring Category HTTP adapters, Application providers và các Application Port sang concrete Infrastructure adapters.      |
+| `src/modules/catalog/category/category-core.module.ts`                  | `CategoryCoreModule`: import persistence/Storage infrastructure, bind Category Port/adapter và export shared application providers.        |
+| `src/modules/catalog/category/admin/admin-category.module.ts`           | `AdminCategoryModule`: import `CategoryCoreModule` trực tiếp, đăng ký Admin controllers và Admin application providers.                    |
+| `src/modules/catalog/category/storefront/storefront-category.module.ts` | `StorefrontCategoryModule`: import `CategoryCoreModule` trực tiếp, đăng ký Storefront controllers và Storefront application providers.     |
 
 ### API hiện tại
 
@@ -136,39 +136,35 @@ Các đường dẫn dưới đây kiểm kê các file TypeScript chính trong 
 
 #### Category
 
-| File                                                                                   | Trách nhiệm, symbol chính và phụ thuộc đáng kể                                                                                                                           |
-| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/modules/catalog/category/infrastructure/integrations/translation/category-translation.client.ts` | `CategoryTranslationClient`: adapter dịch ngoài; dùng `ConfigService`, được worker gọi. |
-| `src/modules/catalog/category/admin/controllers/admin-category.controller.ts` | `AdminCategoryController`: CRUD, translation retry/list/update; gọi application services và mapper. |
-| `src/modules/catalog/category/admin/controllers/admin-category-image.controller.ts` | `AdminCategoryImageController`: presign/attach ảnh category theo slot; gọi image service và storage port. |
-| `src/modules/catalog/category/admin/controllers/admin-category-language.controller.ts` | `AdminCategoryLanguageController`: list và bật/tắt locale; dùng shared language service. |
-| `src/modules/catalog/category/storefront/controllers/category.controller.ts` | `CategoryController`: `GET /categories` và `/:id`; kiểm locale, lấy nội dung từ `CategoryService`. |
-| `src/modules/catalog/category/storefront/controllers/category-language.controller.ts` | `CategoryLanguageController`: storefront đọc ngôn ngữ được hỗ trợ; dùng shared language service. |
-| `src/modules/catalog/category/domain/errors/category-errors.ts` | Domain errors cho input không hợp lệ, conflict, not-found và nội dung ảnh upload không hợp lệ. |
-| `src/modules/catalog/category/domain/image/category-image.constants.ts` | `CATEGORY_IMAGE_FORMATS`, `CATEGORY_IMAGE_MAX_BYTES`, `categoryImagePrefix`, `isCategoryImageKey`: quy tắc và kiểm tra storage key. |
-| `src/modules/catalog/category/domain/image/category-image-slot.enum.ts` | `CategoryImageSlot`: tập slot ảnh thumbnail/banner. |
-| `src/modules/catalog/category/domain/localization/category-locale.ts` | `CATEGORY_SUPPORTED_LOCALES`, `CategoryLocale`, `isCategoryLocale`: kiểu và kiểm tra locale. |
-| `src/modules/catalog/category/domain/tree/category-tree.ts` | `buildVisibleTree`, `isEffectivelyVisible`: dựng cây và xét ẩn theo tổ tiên bằng Category model thuần. |
-| `src/modules/catalog/category/admin/dto/image/category-image.dto.ts` | `PresignCategoryImageDto`, `SetCategoryImageDto`: input upload/gắn ảnh. |
-| `src/modules/catalog/category/admin/dto/localization/category-language.dto.ts` | `UpdateCategoryLanguageDto`: input bật/tắt locale. |
-| `src/modules/catalog/category/admin/dto/category/create-category.dto.ts` | `CreateCategoryDto`: input tạo Danh mục; dùng validator/Swagger. |
-| `src/modules/catalog/category/admin/dto/category/paginated-category-response.dto.ts` | `PaginatedCategoryResponseDto`: response phân trang admin. |
-| `src/modules/catalog/category/admin/dto/category/update-category.dto.ts` | `UpdateCategoryDto`: input sửa Danh mục, mở rộng `CreateCategoryDto`. |
-| `src/modules/catalog/category/admin/dto/category/category-response.dto.ts` | `CategoryResponseDto`: response danh mục admin. |
-| `src/modules/catalog/category/admin/dto/category/category-translation-response.dto.ts` | `CategoryTranslationResponseDto`: response bản dịch theo locale. |
-| `src/modules/catalog/category/admin/dto/localization/category-language-response.dto.ts` | `CategoryLanguageResponseDto`: response locale/enabled/generation và timestamp cho Admin. |
-| `src/modules/catalog/category/storefront/dto/category/category-locale-query.dto.ts` | `CategoryLocaleQueryDto`: query locale storefront; kiểm với `CategoryLocale`. |
-| `src/modules/catalog/category/storefront/dto/category/category-tree-node.dto.ts` | `CategoryTreeNodeDto`: node cây storefront và nội dung locale/ảnh/con. |
-| `src/modules/catalog/category/storefront/dto/category/public-category-response.dto.ts` | `PublicCategoryResponseDto`: response public. |
-| `src/modules/catalog/category/admin/presentation/mappers/category-response.mapper.ts` | Admin response mapping; chuyển application result thành DTO và URL ảnh qua storage port. |
-| `src/modules/catalog/category/storefront/presentation/mappers/category-response.mapper.ts` | Storefront response mapping; chuyển application result thành cây/chi tiết public và URL ảnh. |
-| `src/modules/catalog/category/presentation/category-error-mapping.interceptor.ts` | Ánh xạ Category domain errors thành HTTP exceptions; global `AllExceptionsFilter` giữ response shape thống nhất. |
-| `src/modules/catalog/category/admin/application/image/admin-category-image.service.ts` | `AdminCategoryImageService`: presign, kiểm ảnh/slot/key và gắn/gỡ ảnh; dùng Application ports. |
-| `src/modules/catalog/category/admin/application/category/admin-category.service.ts` | `AdminCategoryService`: quản lý cây, slug, xóa rỗng, nội dung và bản dịch qua repository port. |
-| `src/modules/catalog/category/application/shared/localization/category-language.service.ts` | `CategoryLanguageService`: liệt kê, bật/tắt và xác nhận locale qua repository port. |
-| `src/modules/catalog/category/application/shared/translation/category-translation.service.ts` | `CategoryTranslationService`: worker poll/lease batch, dịch và ghi kết quả có điều kiện qua ports. |
-| `src/modules/catalog/category/admin/application/translation/admin-category-translation.service.ts` | `AdminCategoryTranslationService`: sửa/list/retry bản dịch theo locale qua repository port. |
-| `src/modules/catalog/category/storefront/application/category/category.service.ts` | `CategoryService`: trả cây/chi tiết hiển thị theo locale qua repository port và tree helpers. |
+| File                                                                                                   | Trách nhiệm, symbol chính và phụ thuộc đáng kể                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/modules/catalog/category/infrastructure/integrations/translation/category-translation.client.ts`  | `CategoryTranslationClient`: adapter dịch ngoài; dùng `ConfigService`, được worker gọi.                                                                                  |
+| `src/modules/catalog/category/controllers/admin/admin-category.controller.ts`                          | `AdminCategoryController`: CRUD, translation retry/list/update; gọi `AdminCategoryService`, mapper và `CloudinaryClient`; bảo vệ bằng permission category.               |
+| `src/modules/catalog/category/controllers/admin/admin-category-image.controller.ts`                    | `AdminCategoryImageController`: presign/attach ảnh category theo slot; gọi `AdminCategoryImageService`, dùng DTO/enum và response ảnh presign dùng chung với product.    |
+| `src/modules/catalog/category/controllers/admin/admin-category-language.controller.ts`                 | `AdminCategoryLanguageController`: list và bật/tắt locale; gọi `CategoryLanguageService`, permission view/manage và khai báo response qua `CategoryLanguageResponseDto`. |
+| `src/modules/catalog/category/controllers/storefront/category.controller.ts`                           | `CategoryController`: `GET /categories` và `/:id`; kiểm locale qua `CategoryLanguageService`, lấy nội dung từ `CategoryService`.                                         |
+| `src/modules/catalog/category/controllers/storefront/category-language.controller.ts`                  | `CategoryLanguageController`: storefront đọc locale/ngôn ngữ được hỗ trợ; gọi `CategoryLanguageService`, response dùng `CategoryLanguageResponseDto`.                    |
+| `src/modules/catalog/category/domain/image/category-image.constants.ts`                                | `CATEGORY_IMAGE_FORMATS`, `CATEGORY_IMAGE_MAX_BYTES`, `categoryImagePrefix`, `isCategoryImageKey`: quy tắc và kiểm tra storage key; phụ thuộc `CategoryImageSlot`.       |
+| `src/modules/catalog/category/domain/image/category-image-slot.enum.ts`                                | `CategoryImageSlot`: tập slot ảnh thumbnail/banner.                                                                                                                      |
+| `src/modules/catalog/category/domain/localization/category-locale.ts`                                  | `CATEGORY_SUPPORTED_LOCALES`, `CategoryLocale`, `isCategoryLocale`: kiểu và kiểm tra locale.                                                                             |
+| `src/modules/catalog/category/domain/tree/category-tree.ts`                                            | `buildVisibleTree`, `isEffectivelyVisible`: dựng cây và xét ẩn theo tổ tiên; dùng kiểu Prisma `Category` và `CategoryTreeNodeDto`.                                       |
+| `src/modules/catalog/category/dto/admin/image/category-image.dto.ts`                                   | `PresignCategoryImageDto`, `SetCategoryImageDto`: input upload/gắn ảnh; dùng quy tắc image key.                                                                          |
+| `src/modules/catalog/category/dto/admin/localization/category-language.dto.ts`                         | `UpdateCategoryLanguageDto`: input bật/tắt locale.                                                                                                                       |
+| `src/modules/catalog/category/dto/admin/category/create-category.dto.ts`                               | `CreateCategoryDto`: input tạo Danh mục; dùng validator/Swagger.                                                                                                         |
+| `src/modules/catalog/category/dto/admin/category/paginated-category-response.dto.ts`                   | `PaginatedCategoryResponseDto`: response phân trang admin, ghép DTO danh mục và pagination metadata.                                                                     |
+| `src/modules/catalog/category/dto/admin/category/update-category.dto.ts`                               | `UpdateCategoryDto`: input sửa Danh mục, mở rộng `CreateCategoryDto`.                                                                                                    |
+| `src/modules/catalog/category/dto/shared/category-response.dto.ts`                                     | `CategoryResponseDto`: schema response category dùng chung/admin.                                                                                                        |
+| `src/modules/catalog/category/dto/shared/category-language-response.dto.ts`                            | `CategoryLanguageResponseDto`: response locale/enabled/generation và timestamp cho storefront/admin.                                                                     |
+| `src/modules/catalog/category/dto/storefront/category-locale-query.dto.ts`                             | `CategoryLocaleQueryDto`: query locale storefront; kiểm với `CategoryLocale`.                                                                                            |
+| `src/modules/catalog/category/dto/storefront/category-tree-node.dto.ts`                                | `CategoryTreeNodeDto`: node cây storefront và nội dung locale/ảnh/con.                                                                                                   |
+| `src/modules/catalog/category/dto/storefront/public-category-response.dto.ts`                          | `PublicCategoryResponseDto`: response public mở rộng DTO shared.                                                                                                         |
+| `src/modules/catalog/category/admin/presentation/mappers/category-response.mapper.ts`                  | Map category và translation thành admin response DTO.                                                                                                                    |
+| `src/modules/catalog/category/storefront/presentation/mappers/category-response.mapper.ts`             | Resolve locale và media URL thành storefront response DTO.                                                                                                               |
+| `src/modules/catalog/category/application/services/admin/image/admin-category-image.service.ts`        | `AdminCategoryImageService`: presign, kiểm ảnh/slot/key và gắn/gỡ ảnh; dùng Prisma và Cloudinary.                                                                        |
+| `src/modules/catalog/category/application/services/admin/category/admin-category.service.ts`           | `AdminCategoryService`: quản lý cây, slug, xóa rỗng, nội dung và bản dịch; Prisma, pagination, slug utility, Prisma error mapping.                                       |
+| `src/modules/catalog/category/application/services/shared/localization/category-language.service.ts`   | `CategoryLanguageService`: liệt kê, bật/tắt và xác nhận locale; dùng Prisma và `CategoryLocale`.                                                                         |
+| `src/modules/catalog/category/application/services/shared/translation/category-translation.service.ts` | `CategoryTranslationService`: worker poll/lease batch, dịch và ghi kết quả có điều kiện; lifecycle Nest, Prisma và translation client.                                   |
+| `src/modules/catalog/category/application/services/storefront/category/category.service.ts`            | `CategoryService`: trả cây/chi tiết hiển thị theo locale; dùng Prisma, tree helpers, mapper và Cloudinary.                                                               |
 
 #### Product
 
@@ -224,37 +220,32 @@ Các đường dẫn dưới đây kiểm kê các file TypeScript chính trong 
 
 Các file dưới đây là unit/integration spec trong module và e2e thuộc đúng các thư mục catalog đã thống nhất; không bao gồm test identity hoặc test cross-cutting ngoài scope.
 
-| File test                                                                            | Mục đích được kiểm chứng                                                                           |
-| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `src/modules/catalog/category/infrastructure/integrations/translation/category-translation.client.spec.ts` | Gọi dịch khi có credential; dịch Việt→Anh; không lộ lỗi provider/credential. |
-| `src/modules/catalog/category/domain/tree/category-tree.spec.ts` | Dựng cây có thứ tự, loại nhánh ẩn và xử lý ancestor thiếu/vòng lặp an toàn. |
-| `src/modules/catalog/category/admin/dto/category/create-category.dto.spec.ts` | Validation tên bắt buộc, độ dài, trim và description tùy chọn. |
-| `src/modules/catalog/category/admin/dto/category/update-category.dto.spec.ts` | Validation patch tùy chọn, trim và từ chối tên null/rỗng. |
-| `src/modules/catalog/category/admin/application/image/admin-category-image.service.spec.ts` | Xác minh ảnh trước khi gắn; kiểm tra storage key và category không tồn tại. |
-| `src/modules/catalog/category/admin/application/category/admin-category.service.spec.ts` | CRUD/slug/phân trang và lỗi domain cho not-found/conflict/invalid input. |
-| `src/modules/catalog/category/admin/application/category/admin-category-content.service.spec.ts` | Nội dung, tree moves, concurrency và vòng đời bản dịch. |
-| `src/modules/catalog/category/admin/application/category/admin-category-removal.service.spec.ts` | Xóa lá, từ chối category còn con/sản phẩm và xử lý FK race. |
-| `src/modules/catalog/category/admin/application/translation/admin-category-translation.service.spec.ts` | Sửa, retry và phát hiện xung đột revision bản dịch. |
-| `src/modules/catalog/category/application/shared/localization/category-language-race.spec.ts` | Tranh chấp ghi locale được serialize. |
-| `src/modules/catalog/category/application/shared/translation/category-translation.service.spec.ts` | Worker xử lý PENDING, lease/hết lease, thiếu credential, lỗi và retry rõ ràng. |
-| `src/modules/catalog/category/storefront/application/category/category.service.spec.ts` | Cây/chi tiết chỉ hiện category visible; not-found là domain error. |
-| `src/modules/catalog/category/presentation/category-error-mapping.interceptor.spec.ts` | Domain errors được ánh xạ sang HTTP status tương ứng. |
-| `src/modules/catalog/product/dto/admin/admin-list-products-query.dto.spec.ts`        | Mặc định phân trang và validation UUID/status của query admin.                                     |
-| `src/modules/catalog/product/dto/admin/create-product.dto.spec.ts`                   | Validation tên, category UUID và dữ liệu tạo sản phẩm.                                             |
-| `src/modules/catalog/product/dto/admin/update-product.dto.spec.ts`                   | Validation patch, trim, null và enum trạng thái.                                                   |
-| `src/modules/catalog/product-option/services/shared/product-option.service.spec.ts`  | Ẩn/hiện option theo audience, chuẩn hóa hex, duplicate code và patch Size.                         |
-| `src/modules/catalog/product/services/admin/admin-product-image.service.spec.ts`     | Primary theo màu, xử lý collision và giới hạn ảnh theo product/color.                              |
-| `src/modules/catalog/product/services/admin/admin-product.service-lifecycle.spec.ts` | Publish/archive, lọc admin, tạo inventory cùng variant và quy tắc variant/SKU.                     |
-| `src/modules/catalog/product/services/admin/admin-product.service.spec.ts`           | Tạo/đọc/sửa product, slug, category tồn tại và lỗi xung đột.                                       |
-| `src/modules/catalog/product/services/storefront/product.service.spec.ts`            | Chỉ đọc product/variant ACTIVE; mapping variant và 404 khi ẩn/không thuộc product.                 |
-| `test/admin/catalog/admin-sizes-colors.e2e-spec.ts`                                  | CRUD Size/Bảng màu qua API, quyền STAFF/ADMIN, hidden options, mã và FREESIZE.                     |
-| `test/admin/catalog/categories.e2e-spec.ts`                                          | Admin tree/move/list, quyền, kiểm tra cycle và xóa category theo ADR 0001.                         |
-| `test/admin/catalog/products.e2e-spec.ts`                                            | Admin product/variant/image lifecycle, validation, quyền, SKU/option và inventory row.             |
-| `test/shared/catalog/categories.e2e-spec.ts`                                         | Contract category giữa audience: quyền/validation, locale, ảnh, translation và move đồng thời.     |
-| `test/shared/catalog/products.e2e-spec.ts`                                           | Không có hard-delete route và FK RESTRICT khi product còn variant.                                 |
-| `test/storefront/catalog/categories.e2e-spec.ts`                                     | Public tree thứ tự ổn định và ẩn toàn bộ nhánh khi ancestor bị ẩn.                                 |
-| `test/storefront/catalog/products.e2e-spec.ts`                                       | Public visibility, variant/ảnh, option/filter và lọc category descendants/hidden ancestors.        |
-| `test/system/catalog/category-locale-migration.e2e-spec.ts`                          | Migration locale giữ editorial state tiếng Anh cũ và identity category.                            |
+| File test                                                                                                   | Mục đích được kiểm chứng                                                                           |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `src/modules/catalog/category/infrastructure/integrations/translation/category-translation.client.spec.ts`  | Gọi dịch khi có credential; dịch Việt→Anh; không lộ lỗi provider/credential.                       |
+| `src/modules/catalog/category/domain/category-tree.spec.ts`                                                 | Dựng cây có thứ tự, loại nhánh ẩn và xử lý ancestor thiếu/vòng lặp an toàn.                        |
+| `src/modules/catalog/category/dto/admin/category/create-category.dto.spec.ts`                               | Validation tên bắt buộc, độ dài, trim và description tùy chọn.                                     |
+| `src/modules/catalog/category/dto/admin/category/update-category.dto.spec.ts`                               | Validation patch tùy chọn, trim và từ chối tên null/rỗng.                                          |
+| `src/modules/catalog/category/application/services/admin/image/admin-category-image.service.spec.ts`        | Chỉ trả URL sau xác minh ảnh; xóa slot không phụ thuộc storage; thiếu category không được presign. |
+| `src/modules/catalog/category/application/services/admin/category/admin-category.service.spec.ts`           | CRUD/slug/phân trang, bất biến cây, concurrency và vòng đời bản dịch/xóa.                          |
+| `src/modules/catalog/category/application/services/shared/translation/category-translation.service.spec.ts` | Worker xử lý PENDING, lease/hết lease, thiếu credential, lỗi và retry rõ ràng.                     |
+| `src/modules/catalog/category/application/services/storefront/category/category.service.spec.ts`            | Cây/chi tiết chỉ hiện category visible, truy vấn cây và nội dung Anh giữ identity/slug.            |
+| `src/modules/catalog/product/dto/admin/admin-list-products-query.dto.spec.ts`                               | Mặc định phân trang và validation UUID/status của query admin.                                     |
+| `src/modules/catalog/product/dto/admin/create-product.dto.spec.ts`                                          | Validation tên, category UUID và dữ liệu tạo sản phẩm.                                             |
+| `src/modules/catalog/product/dto/admin/update-product.dto.spec.ts`                                          | Validation patch, trim, null và enum trạng thái.                                                   |
+| `src/modules/catalog/product-option/services/shared/product-option.service.spec.ts`                         | Ẩn/hiện option theo audience, chuẩn hóa hex, duplicate code và patch Size.                         |
+| `src/modules/catalog/product/services/admin/admin-product-image.service.spec.ts`                            | Primary theo màu, xử lý collision và giới hạn ảnh theo product/color.                              |
+| `src/modules/catalog/product/services/admin/admin-product.service-lifecycle.spec.ts`                        | Publish/archive, lọc admin, tạo inventory cùng variant và quy tắc variant/SKU.                     |
+| `src/modules/catalog/product/services/admin/admin-product.service.spec.ts`                                  | Tạo/đọc/sửa product, slug, category tồn tại và lỗi xung đột.                                       |
+| `src/modules/catalog/product/services/storefront/product.service.spec.ts`                                   | Chỉ đọc product/variant ACTIVE; mapping variant và 404 khi ẩn/không thuộc product.                 |
+| `test/admin/catalog/admin-sizes-colors.e2e-spec.ts`                                                         | CRUD Size/Bảng màu qua API, quyền STAFF/ADMIN, hidden options, mã và FREESIZE.                     |
+| `test/admin/catalog/categories.e2e-spec.ts`                                                                 | Admin tree/move/list, quyền, kiểm tra cycle và xóa category theo ADR 0001.                         |
+| `test/admin/catalog/products.e2e-spec.ts`                                                                   | Admin product/variant/image lifecycle, validation, quyền, SKU/option và inventory row.             |
+| `test/shared/catalog/categories.e2e-spec.ts`                                                                | Contract category giữa audience: quyền/validation, locale, ảnh, translation và move đồng thời.     |
+| `test/shared/catalog/products.e2e-spec.ts`                                                                  | Không có hard-delete route và FK RESTRICT khi product còn variant.                                 |
+| `test/storefront/catalog/categories.e2e-spec.ts`                                                            | Public tree thứ tự ổn định và ẩn toàn bộ nhánh khi ancestor bị ẩn.                                 |
+| `test/storefront/catalog/products.e2e-spec.ts`                                                              | Public visibility, variant/ảnh, option/filter và lọc category descendants/hidden ancestors.        |
+| `test/system/catalog/category-locale-migration.e2e-spec.ts`                                                 | Migration locale giữ editorial state tiếng Anh cũ và identity category.                            |
 
 ### Target so với hiện tại
 

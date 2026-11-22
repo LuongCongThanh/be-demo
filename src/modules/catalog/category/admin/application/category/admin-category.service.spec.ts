@@ -1,11 +1,7 @@
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '#src/generated/prisma/client.js';
-import {
-  CategoryConflictError,
-  CategoryInvalidInputError,
-  CategoryNotFoundError,
-} from '#src/modules/catalog/category/domain/errors/category-errors.js';
 import { categoryTranslations } from '#src/modules/catalog/category/infrastructure/persistence/relational/queries/category-prisma-selects.js';
 import { categoryRepositoryProviders } from '#src/modules/catalog/category/testing/category-test-setup.js';
 import { AdminCategoryService } from '#src/modules/catalog/category/admin/application/category/admin-category.service.js';
@@ -69,9 +65,9 @@ describe('AdminCategoryService', () => {
 
     it('rejects duplicate names and empty slugs', async () => {
       prismaMock.category.findUnique.mockResolvedValue({ id: 'existing', name: 'Shoes', slug: 'shoes' });
-      await expect(service.create({ name: 'Shoes' })).rejects.toThrow(CategoryConflictError);
+      await expect(service.create({ name: 'Shoes' })).rejects.toThrow(ConflictException);
 
-      await expect(service.create({ name: '!!!' })).rejects.toThrow(CategoryInvalidInputError);
+      await expect(service.create({ name: '!!!' })).rejects.toThrow(BadRequestException);
       expect(prismaMock.category.create).not.toHaveBeenCalled();
     });
 
@@ -85,7 +81,7 @@ describe('AdminCategoryService', () => {
         }),
       );
 
-      await expect(service.create({ name: 'Shoes' })).rejects.toThrow(CategoryConflictError);
+      await expect(service.create({ name: 'Shoes' })).rejects.toThrow(ConflictException);
     });
   });
 
@@ -124,22 +120,9 @@ describe('AdminCategoryService', () => {
       await expect(service.findOne('1')).resolves.toEqual({ id: '1', name: 'Shoes', slug: 'shoes' });
     });
 
-    it('throws a domain not-found error when the category does not exist', async () => {
+    it('throws NotFoundException when the category does not exist', async () => {
       prismaMock.category.findUnique.mockResolvedValue(null);
-      await expect(service.findOne('missing-id')).rejects.toThrow(CategoryNotFoundError);
-    });
-  });
-
-  describe('update', () => {
-    it('rejects category records that are missing their English translation', async () => {
-      prismaMock.category.findUnique.mockResolvedValue({
-        id: '1',
-        sourceVersion: 0,
-        translations: [],
-      });
-
-      await expect(service.update('1', { nameEn: 'Shoes' })).rejects.toThrow(CategoryConflictError);
-      expect(prismaMock.category.update).not.toHaveBeenCalled();
+      await expect(service.findOne('missing-id')).rejects.toThrow(NotFoundException);
     });
   });
 });

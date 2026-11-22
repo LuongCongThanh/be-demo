@@ -1,5 +1,5 @@
+import { NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
-import { CategoryNotFoundError } from '#src/modules/catalog/category/domain/errors/category-errors.js';
 import { CategoryService } from '#src/modules/catalog/category/storefront/application/category/category.service.js';
 
 const base = {
@@ -39,7 +39,7 @@ describe('CategoryService (storefront)', () => {
 
   it('findVisible returns a visible category and 404s a hidden one', async () => {
     await expect(service.findVisible('root')).resolves.toMatchObject({ id: 'root' });
-    await expect(service.findVisible('hidden')).rejects.toThrow(CategoryNotFoundError);
+    await expect(service.findVisible('hidden')).rejects.toThrow(NotFoundException);
   });
   it('uses stored English names without changing the URL identity', async () => {
     repository.findAllCategoriesWithTranslations.mockResolvedValueOnce([

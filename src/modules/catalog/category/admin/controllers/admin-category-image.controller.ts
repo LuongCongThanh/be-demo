@@ -1,14 +1,4 @@
-import {
-  Body,
-  Controller,
-  Inject,
-  Param,
-  ParseEnumPipe,
-  ParseUUIDPipe,
-  Patch,
-  Post,
-  UseInterceptors,
-} from '@nestjs/common';
+import { Body, Controller, Inject, Param, ParseEnumPipe, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Authorize } from '#src/security/authorization/permissions/authorize.decorator.js';
 import { Permission } from '#src/security/contracts/permission.enum.js';
@@ -25,11 +15,9 @@ import {
 } from '#src/modules/catalog/category/admin/dto/image/category-image.dto.js';
 import { CategoryResponseDto } from '#src/modules/catalog/category/admin/dto/category/category-response.dto.js';
 import { PresignedImageUploadResponseDto } from '#src/modules/catalog/product/dto/admin/presigned-image-upload-response.dto.js';
-import { CategoryErrorMappingInterceptor } from '#src/modules/catalog/category/presentation/category-error-mapping.interceptor.js';
 
 @ApiTags(API_TAGS.ADMIN_CATEGORIES.name)
 @Authorize(Permission.CATALOG_CATEGORY_MANAGE)
-@UseInterceptors(CategoryErrorMappingInterceptor)
 @Controller('admin/categories/:id/images/:slot')
 export class AdminCategoryImageController {
   constructor(
