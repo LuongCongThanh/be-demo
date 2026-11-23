@@ -382,3 +382,48 @@ test('file-scoped rule check rejects a scoped rule no Copilot instruction refere
   const errors = await checkFileScopedRules(root);
   assert.ok(errors.some((error) => error.includes('.claude/rules/api.md') && error.includes('.github/instructions')));
 });
+
+test('MCP check reads quoted, commented, and indented Codex server tables', async (context) => {
+  const root = await createMcpFixture(['context7', 'my.server']);
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(
+    root,
+    '.codex/config.toml',
+    '  [mcp_servers.context7] # docs\ncommand = "npx"\n\n[mcp_servers."my.server"]\ncommand = "npx"\n\n[mcp_servers.context7.env]\nA = "1"\n',
+  );
+  assert.deepEqual(await checkMcpServers(root), []);
+});
+
+test('MCP check names the file whose JSON is invalid', async (context) => {
+  const root = await createMcpFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, '.vscode/mcp.json', '{ not json');
+  const errors = await checkMcpServers(root);
+  assert.ok(errors.some((error) => error.includes('Invalid .vscode/mcp.json')));
+});
+
+test('MCP check rejects configs that declare no servers at all', async (context) => {
+  const root = await createMcpFixture([]);
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const errors = await checkMcpServers(root);
+  assert.ok(errors.some((error) => error.includes('no MCP servers')));
+});
+
+test('file-scoped rule check requires the link in the AGENTS.md of every directory the rule covers', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, 'src/AGENTS.md', 'No rule links here.\n');
+  await writeFixture(root, 'test/AGENTS.md', 'Read [rules](../.claude/rules/api.md).\n');
+  const errors = await checkFileScopedRules(root);
+  assert.ok(errors.some((error) => error.includes('.claude/rules/api.md') && error.includes('src/AGENTS.md')));
+});
+
+test('file-scoped rule check ignores paths: outside the frontmatter and reads CRLF frontmatter', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, '.claude/rules/body-only.md', '---\ndescription: x\n---\n\npaths: not frontmatter\n');
+  await writeFixture(root, '.claude/rules/crlf.md', "---\r\npaths:\r\n  - 'prisma/**/*'\r\n---\r\n\r\nRule\r\n");
+  const errors = await checkFileScopedRules(root);
+  assert.ok(!errors.some((error) => error.includes('body-only.md')));
+  assert.ok(errors.some((error) => error.includes('.claude/rules/crlf.md') && error.includes('prisma/AGENTS.md')));
+});
