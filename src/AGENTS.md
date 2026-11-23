@@ -9,3 +9,4 @@ Codex entrypoint for file-scoped rules; the same rule files are applied by Claud
 | Every `*.ts`                                                                                                                  | [errors and logging](../.claude/rules/error-logging.md)          |
 | `*.controller.ts`, `*.service.ts`, `*.dto.ts`, `*.module.ts`, `*.guard.ts`, `*.decorator.ts`, `http/`, `security/`, `main.ts` | [API conventions](../.claude/rules/api-conventions.md)           |
 | `*.service.ts` (Prisma Client usage)                                                                                          | [Prisma](../.claude/rules/prisma-schema.md)                      |
+| `src/modules/**`, `src/infrastructure/**/*.port.ts`                                                                           | [module architecture](../.claude/rules/module-architecture.md)   |
