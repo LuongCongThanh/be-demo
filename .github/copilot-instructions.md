@@ -9,4 +9,4 @@ For Copilot-specific workflow in VS Code, follow [`docs/agents/workflows/copilot
 Use project skills from `.github/skills/`. File-scoped conventions are in `.github/instructions/`.
 Follow [`AGENTS.md`](../AGENTS.md#agent-configuration-synchronization) when changing shared skills, rules, or hooks; run `npm run agents:check` before finishing.
 
-The Copilot harness also reads `.claude/settings.json`; its hook definitions are intentionally shared there. Do not register duplicate copies in `.github/hooks/`.
+Repository hooks are registered once in `.claude/settings.json`, which Copilot in VS Code runs through its Claude-compatible hook events. Do not add `.github/hooks/*.json`: those hooks would run a second time, and `agents:check` rejects them.

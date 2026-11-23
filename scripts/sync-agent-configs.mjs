@@ -38,12 +38,6 @@ const HOOK_CONFIGS = [
     events: { PreToolUse: 'preToolUse', PostToolUse: 'postToolUse' },
     getScript: (hook) => hook.command,
   },
-  {
-    path: '.github/hooks/hooks.json',
-    scriptRoot: '.github/hooks/scripts',
-    events: { preToolUse: 'preToolUse', postToolUse: 'postToolUse' },
-    getScript: (hook) => hook.bash,
-  },
 ];
 
 function isIncluded(group, path) {
@@ -389,6 +383,25 @@ export async function checkHookRegistrations(root = REPO_ROOT) {
   return errors;
 }
 
+// Copilot in VS Code already runs the hooks in `.claude/settings.json` through its
+// Claude-compatible events, so any `.github/hooks/*.json` registration would run
+// the same checks twice. ADR 0014: one registry per harness.
+export async function checkCopilotHookSource(root = REPO_ROOT) {
+  let entries;
+  try {
+    entries = await readdir(resolve(root, '.github/hooks'));
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+  return entries
+    .filter((name) => name.endsWith('.json'))
+    .map(
+      (name) =>
+        `.github/hooks/${name} duplicates hooks Copilot already runs from .claude/settings.json; register hooks there instead`,
+    );
+}
+
 async function readOptional(path) {
   try {
     return await readFile(path, 'utf8');
@@ -449,6 +462,7 @@ async function runCheck(root) {
   const errors = [
     ...(await checkMirrors(root)),
     ...(await checkHookRegistrations(root)),
+    ...(await checkCopilotHookSource(root)),
     ...(await checkSharedFlows(root)),
   ];
   if (errors.length) {
