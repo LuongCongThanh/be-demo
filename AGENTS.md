@@ -81,7 +81,7 @@ Shared repository policy lives in this file and `docs/agents/` / `docs/conventio
 - `.agents/skills/` is canonical for project skills mirrored byte-for-byte to `.github/skills/` and the matching Prisma skills in `.claude/skills/`.
 - `.claude/hooks/` is canonical for the byte-for-byte `.codex/hooks/` mirror. `.github/hooks/scripts/` is a Copilot-native adapter and its event registrations are checked against the other agents; do not overwrite it with Claude/Codex scripts.
 - `.claude/settings.json`, `.codex/config.toml`, hook registries, commands, and `.github/instructions/` keep their native formats. Do not copy agent-specific permissions, MCP servers, or settings such as `.claude/settings.local.json` between agents.
-- Run `npm run agents:watch` to propagate a single edit in a mirrored file immediately. If two copies of that file change differently, the watcher stops with a conflict; resolve it and run `npm run agents:sync -- --from <mirror-root>` to choose the intended copy. `npm run agents:check` detects drift, and `npm run agents:test` verifies sync and conflict behavior.
+- Run `npm run agents:watch` to propagate a single edit in a mirrored file immediately. If two copies of that file change differently, the watcher stops with a conflict; resolve it and run `npm run agents:sync -- --from <mirror-root>` to choose the intended copy. `npm run agents:sync -- --force` explicitly overwrites target files from the canonical source. `npm run agents:check` detects drift, and `npm run agents:test` verifies sync and conflict behavior.
 - The pre-commit hook and CI run `agents:check`; CI also runs `agents:test`. This enforces mirrored-file and hook-registration consistency, not every natural-language decision made by an agent.
 
 ## Shared AI Code Review

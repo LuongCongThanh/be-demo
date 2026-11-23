@@ -4,7 +4,7 @@ description: Deprecated compatibility name for prisma-orm-setup. Use only when a
 license: MIT
 metadata:
   author: prisma
-  version: "8.0.0"
+  version: '8.0.0'
 ---
 
 # Deprecated: prisma-database-setup

@@ -1,10 +1,6 @@
 ---
 name: api-security-review
-description: Comprehensive API security review against OWASP API Security Top 10
-  (2023). Use when reviewing OpenAPI/Swagger specs, auditing REST/GraphQL/gRPC
-  implementations, testing authentication mechanisms, or checking API gateway
-  configurations. Covers BOLA/IDOR, broken auth, mass assignment, rate limiting,
-  SSRF, and more with real-world attack scenarios.
+description: Comprehensive API security review against OWASP API Security Top 10 (2023). Use when reviewing OpenAPI/Swagger specs, auditing REST/GraphQL/gRPC implementations, testing authentication mechanisms, or checking API gateway configurations. Covers BOLA/IDOR, broken auth, mass assignment, rate limiting, SSRF, and more with real-world attack scenarios.
 license: CC-BY-4.0
 ---
 

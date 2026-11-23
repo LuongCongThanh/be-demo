@@ -14,7 +14,7 @@ export const MIRROR_GROUPS = [
   {
     name: 'Codex/Copilot project skills',
     source: '.agents/skills',
-    roots: ['.agents/skills', '.github/skills'],
+    roots: ['.agents/skills', '.github/skills', 'agent/skills'],
   },
   {
     name: 'Claude Prisma skills',
@@ -191,8 +191,11 @@ function resolveSelectedSource(root, group, fromPath) {
   return matched ? selected : null;
 }
 
-export async function syncMirrors(root = REPO_ROOT, { groups = MIRROR_GROUPS, fromPath } = {}) {
+export async function syncMirrors(root = REPO_ROOT, { groups = MIRROR_GROUPS, fromPath, force = false } = {}) {
   const copied = [];
+  const conflicts = [];
+  const operations = [];
+  const targetRootsToCreate = new Set();
   for (const group of groups) {
     const sourceRoot = resolveSelectedSource(root, group, fromPath);
     if (!sourceRoot) continue;
@@ -207,7 +210,7 @@ export async function syncMirrors(root = REPO_ROOT, { groups = MIRROR_GROUPS, fr
     for (const mirrorRoot of group.roots) {
       const targetRoot = resolve(root, mirrorRoot);
       if (targetRoot === sourceRoot) continue;
-      await mkdir(targetRoot, { recursive: true });
+      targetRootsToCreate.add(targetRoot);
 
       const targetFiles = await listFiles(targetRoot);
       const targetByRelativeName = new Map(
@@ -221,16 +224,42 @@ export async function syncMirrors(root = REPO_ROOT, { groups = MIRROR_GROUPS, fr
         const sourceState = await fileState(sourcePath);
         const targetState = await fileState(targetPath);
         if (!equalStates(sourceState, targetState)) {
-          await writeAtomic(sourcePath, targetPath);
-          copied.push(relative(root, targetPath));
+          if (targetState && !fromPath && !force) {
+            conflicts.push(`${relative(root, targetPath)} differs from ${relative(root, sourcePath)}`);
+          } else {
+            operations.push({ type: 'write', sourcePath, targetPath });
+          }
         }
         targetByRelativeName.delete(relativePath);
       }
 
       for (const stalePath of targetByRelativeName.values()) {
-        await rm(stalePath);
-        copied.push(`${relative(root, stalePath)} (removed)`);
+        if (!fromPath && !force) {
+          conflicts.push(`${relative(root, stalePath)} exists only in the target mirror`);
+        } else {
+          operations.push({ type: 'remove', targetPath: stalePath });
+        }
       }
+    }
+  }
+
+  if (conflicts.length) {
+    throw new Error(
+      `Sync conflict; no files were changed:\n${conflicts.join('\n')}\nResolve the files manually, or rerun with --from <mirror-root> to choose a source mirror, or --force to use the canonical source and overwrite/remove target files.`,
+    );
+  }
+
+  for (const targetRoot of targetRootsToCreate) {
+    await mkdir(targetRoot, { recursive: true });
+  }
+
+  for (const operation of operations) {
+    if (operation.type === 'write') {
+      await writeAtomic(operation.sourcePath, operation.targetPath);
+      copied.push(relative(root, operation.targetPath));
+    } else {
+      await rm(operation.targetPath);
+      copied.push(`${relative(root, operation.targetPath)} (removed)`);
     }
   }
 
@@ -410,7 +439,9 @@ async function runCheck(root) {
 function usage() {
   console.log(`Usage: node scripts/sync-agent-configs.mjs <sync|check|watch|test> [options]
 
-  sync [--from <mirror-root>]  Copy canonical files, or import from one mirror root.
+  sync [--from <mirror-root>] [--force]
+                               Copy canonical files; --from selects a mirror as the source.
+                               Conflicts are preserved unless an explicit source or --force is used.
   check                         Fail when mirrored files or hook registrations drift.
   watch [--interval-ms <n>]     Propagate a single-file edit while this process runs.
   test                          Run the sync behavior tests.
@@ -421,10 +452,12 @@ async function main(args) {
   const [command, ...options] = args;
   const fromIndex = options.indexOf('--from');
   const fromPath = fromIndex >= 0 ? options[fromIndex + 1] : undefined;
+  const force = options.includes('--force');
   if (fromIndex >= 0 && !fromPath) throw new Error('--from requires a mirror root path.');
+  if (fromIndex >= 0 && force) throw new Error('--from and --force cannot be combined.');
 
   if (command === 'sync') {
-    const copied = await syncMirrors(REPO_ROOT, { fromPath });
+    const copied = await syncMirrors(REPO_ROOT, { fromPath, force });
     console.log(
       copied.length ? `Synchronized ${copied.length} file(s).` : 'All mirrored files were already synchronized.',
     );

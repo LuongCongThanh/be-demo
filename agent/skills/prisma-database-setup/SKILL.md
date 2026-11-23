@@ -1,12 +1,10 @@
 ---
 name: prisma-database-setup
-description: Deprecated compatibility name for prisma-orm-setup. Use only when a
-  user or existing integration explicitly invokes prisma-database-setup;
-  otherwise select prisma-orm-setup.
+description: Deprecated compatibility name for prisma-orm-setup. Use only when a user or existing integration explicitly invokes prisma-database-setup; otherwise select prisma-orm-setup.
 license: MIT
 metadata:
   author: prisma
-  version: 8.0.0
+  version: '8.0.0'
 ---
 
 # Deprecated: prisma-database-setup
