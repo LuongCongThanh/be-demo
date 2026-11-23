@@ -24,3 +24,24 @@ describe('validate() — SWAGGER_ENABLED', () => {
     expect(() => validate({ ...base, SWAGGER_ENABLED: raw })).toThrow(/SWAGGER_ENABLED/);
   });
 });
+
+describe('validate() — payment gateway configuration', () => {
+  it('keeps gateway credentials optional and treats empty example values as unset', () => {
+    const config = validate({
+      ...base,
+      PUBLIC_API_URL: '',
+      VNPAY_TMN_CODE: '',
+      VNPAY_HASH_SECRET: '',
+      MOMO_PARTNER_CODE: '',
+      MOMO_ACCESS_KEY: '',
+      MOMO_SECRET_KEY: '',
+    });
+
+    expect(config.PUBLIC_API_URL).toBeUndefined();
+    expect(config.VNPAY_TMN_CODE).toBeUndefined();
+    expect(config.VNPAY_HASH_SECRET).toBeUndefined();
+    expect(config.MOMO_PARTNER_CODE).toBeUndefined();
+    expect(config.MOMO_ACCESS_KEY).toBeUndefined();
+    expect(config.MOMO_SECRET_KEY).toBeUndefined();
+  });
+});

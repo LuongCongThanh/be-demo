@@ -46,6 +46,52 @@ enum PaymentMethod {
   ONLINE
 }
 
+enum PaymentGateway {
+  VNPAY
+  MOMO
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  EXPIRED
+}
+
+enum PaymentConfirmationSource {
+  IPN
+  RECONCILIATION
+}
+
+enum InventoryReservationStatus {
+  ACTIVE
+  CONVERTED
+  RELEASED
+  EXPIRED
+}
+
+enum RefundReason {
+  AMOUNT_MISMATCH
+  UNEXPECTED_PAYMENT
+}
+
+enum RefundStatus {
+  REQUESTED
+  REFUNDED
+}
+
+enum OrderFlagType {
+  AMOUNT_MISMATCH
+  UNEXPECTED_PAYMENT
+}
+
+enum OutboxEventStatus {
+  PENDING
+  ENQUEUED
+  DONE
+  FAILED
+}
+
 // English category names: automatic translation or an editorial override.
 enum CategoryTranslationStatus {
   PENDING

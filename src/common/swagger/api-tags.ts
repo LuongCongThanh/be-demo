@@ -22,7 +22,11 @@ export const API_TAGS = {
   },
   STOREFRONT_CHECKOUT: {
     name: 'Storefront — Checkout',
-    description: 'Short-lived checkout quotes and idempotent COD order placement for guests and customers',
+    description: 'Short-lived checkout quotes and idempotent COD/online order placement for guests and customers',
+  },
+  STOREFRONT_PAYMENTS: {
+    name: 'Storefront — Payments',
+    description: 'VNPay/MoMo payment attempts, verified provider notifications and reconciliation',
   },
   ADMIN_PRODUCTS: {
     name: 'Admin CMS — Products',

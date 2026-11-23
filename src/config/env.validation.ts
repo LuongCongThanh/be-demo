@@ -98,6 +98,51 @@ export class EnvironmentVariables {
   @IsString()
   FRONTEND_URL?: string;
 
+  @emptyStringToUndefined()
+  @IsOptional()
+  @IsString()
+  PUBLIC_API_URL?: string;
+
+  @emptyStringToUndefined()
+  @IsOptional()
+  @IsString()
+  VNPAY_TMN_CODE?: string;
+
+  @emptyStringToUndefined()
+  @IsOptional()
+  @IsString()
+  VNPAY_HASH_SECRET?: string;
+
+  @emptyStringToUndefined()
+  @IsOptional()
+  @IsString()
+  VNPAY_PAYMENT_URL?: string;
+
+  @emptyStringToUndefined()
+  @IsOptional()
+  @IsString()
+  VNPAY_API_URL?: string;
+
+  @emptyStringToUndefined()
+  @IsOptional()
+  @IsString()
+  MOMO_PARTNER_CODE?: string;
+
+  @emptyStringToUndefined()
+  @IsOptional()
+  @IsString()
+  MOMO_ACCESS_KEY?: string;
+
+  @emptyStringToUndefined()
+  @IsOptional()
+  @IsString()
+  MOMO_SECRET_KEY?: string;
+
+  @emptyStringToUndefined()
+  @IsOptional()
+  @IsString()
+  MOMO_ENDPOINT?: string;
+
   // Đọc chuỗi gốc `obj[key]`: `enableImplicitConversion` biến mọi chuỗi khác
   // rỗng (kể cả 'false') thành `true`. Giá trị lạ giữ nguyên để @IsBoolean() báo lỗi.
   @Transform(({ obj, key }: { obj: Record<string, unknown>; key: string }) => {

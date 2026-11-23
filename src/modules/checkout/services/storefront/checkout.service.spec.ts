@@ -35,6 +35,8 @@ describe('CheckoutService', () => {
     voucher: { findUnique: vi.fn(), update: vi.fn() },
     voucherUsage: { count: vi.fn(), create: vi.fn() },
     inventory: { updateMany: vi.fn() },
+    inventoryReservation: { createMany: vi.fn() },
+    inventoryMovement: { createMany: vi.fn() },
     awaitingDispatchItem: { createMany: vi.fn() },
     order: { create: vi.fn(), findUnique: vi.fn() },
   };
@@ -84,6 +86,7 @@ describe('CheckoutService', () => {
       placedAt: new Date(),
     });
     tx.awaitingDispatchItem.createMany.mockResolvedValue({ count: 1 });
+    tx.inventoryMovement.createMany.mockResolvedValue({ count: 1 });
     prismaMock.idempotencyKey.findFirst.mockResolvedValue(null);
     prismaMock.$transaction.mockImplementation(
       async (callback: (transaction: Prisma.TransactionClient) => Promise<unknown>) =>
@@ -149,6 +152,64 @@ describe('CheckoutService', () => {
       data: [{ orderId: 'order-1', variantId: 'variant-1', quantity: 2 }],
     });
     expect(tx.idempotencyKey.update).toHaveBeenCalledOnce();
+  });
+
+  it('places an online order by reserving stock for fifteen minutes without decrementing it', async () => {
+    await service.quote(request);
+    const quoteData = prismaMock.checkoutQuote.create.mock.calls[0][0].data;
+    tx.checkoutQuote.findUnique.mockResolvedValue({
+      id: 'quote-1',
+      userId: null,
+      input: quoteData.input,
+      fingerprint: quoteData.fingerprint,
+      expiresAt: quoteData.expiresAt,
+    });
+    tx.order.create.mockResolvedValue({
+      id: 'order-1',
+      orderNumber: 'FS2611-7K3QZD',
+      status: 'PENDING_PAYMENT',
+      paymentMethod: 'ONLINE',
+      subtotal: 200_000n,
+      discountAmount: 0n,
+      shippingFee: 30_000n,
+      total: 230_000n,
+      placedAt: new Date('2026-11-22T12:00:00.000Z'),
+    });
+
+    const result = await service.placeOnline({ quoteId: 'quote-1' }, 'online-key-1');
+
+    expect(result).toMatchObject({ id: 'order-1', status: 'PENDING_PAYMENT', paymentMethod: 'ONLINE' });
+    expect(tx.inventory.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { variantId: 'variant-1', quantity: { gte: 3 } },
+        data: { reservedQuantity: { increment: 2 } },
+      }),
+    );
+    expect(tx.inventoryReservation.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          orderId: 'order-1',
+          variantId: 'variant-1',
+          quantity: 2,
+          expiresAt: new Date('2026-11-22T12:15:00.000Z'),
+        },
+      ],
+    });
+    expect(tx.inventoryMovement.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          variantId: 'variant-1',
+          actorUserId: null,
+          reason: 'Giữ hàng cho đơn online: FS2611-7K3QZD',
+          quantityDelta: 0,
+          beforeQuantity: 5,
+          afterQuantity: 5,
+          beforeReserved: 1,
+          afterReserved: 3,
+        },
+      ],
+    });
+    expect(tx.awaitingDispatchItem.createMany).not.toHaveBeenCalled();
   });
 
   it('rejects a stale quote when the current sale price changes', async () => {
