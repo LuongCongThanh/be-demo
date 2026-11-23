@@ -402,6 +402,78 @@ export async function checkCopilotHookSource(root = REPO_ROOT) {
     );
 }
 
+const MCP_CONFIGS = [
+  { path: '.mcp.json', names: (text) => Object.keys(JSON.parse(text).mcpServers ?? {}) },
+  { path: '.vscode/mcp.json', names: (text) => Object.keys(JSON.parse(text).servers ?? {}) },
+  {
+    path: '.codex/config.toml',
+    names: (text) => [...text.matchAll(/^\[mcp_servers\.([A-Za-z0-9_-]+)\]\s*$/gm)].map((match) => match[1]),
+  },
+];
+
+// Every agent gets the same project MCP servers; each file keeps its native format,
+// so only the server names are compared.
+export async function checkMcpServers(root = REPO_ROOT) {
+  const errors = [];
+  const configured = [];
+  for (const config of MCP_CONFIGS) {
+    const text = await readOptional(resolve(root, config.path));
+    if (text === null) {
+      errors.push(`Missing MCP config: ${config.path}`);
+      continue;
+    }
+    configured.push({ path: config.path, names: new Set(config.names(text)) });
+  }
+  const all = new Set(configured.flatMap(({ names }) => [...names]));
+  for (const { path, names } of configured) {
+    const missing = [...all].filter((name) => !names.has(name)).sort();
+    if (missing.length) errors.push(`${path} is missing MCP server(s) other agents configure: ${missing.join(', ')}`);
+  }
+  return errors;
+}
+
+async function listMarkdown(directory) {
+  try {
+    return (await readdir(directory)).filter((name) => name.endsWith('.md')).sort();
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+}
+
+async function nestedAgentsFiles(root) {
+  const files = [];
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+    const candidate = join(root, entry.name, 'AGENTS.md');
+    if (await fileState(candidate)) files.push(candidate);
+  }
+  return files;
+}
+
+// A Claude rule scoped with `paths:` must also reach Copilot (a `.github/instructions/`
+// file) and Codex (a nested `AGENTS.md`), each linking the same rule file.
+export async function checkFileScopedRules(root = REPO_ROOT) {
+  const errors = [];
+  const instructionsDir = resolve(root, '.github/instructions');
+  const instructions = await Promise.all(
+    (await listMarkdown(instructionsDir)).map((name) => readFile(join(instructionsDir, name), 'utf8')),
+  );
+  const agentsFiles = await Promise.all((await nestedAgentsFiles(resolve(root))).map((path) => readFile(path, 'utf8')));
+  for (const name of await listMarkdown(resolve(root, '.claude/rules'))) {
+    const rule = await readFile(resolve(root, '.claude/rules', name), 'utf8');
+    if (!/^---\n[\s\S]*?^paths:/m.test(rule)) continue;
+    const link = `.claude/rules/${name}`;
+    if (!instructions.some((text) => text.includes(link))) {
+      errors.push(`${link} is not referenced by any .github/instructions/*.instructions.md (Copilot)`);
+    }
+    if (!agentsFiles.some((text) => text.includes(link))) {
+      errors.push(`${link} is not referenced by any nested AGENTS.md (Codex)`);
+    }
+  }
+  return errors;
+}
+
 async function readOptional(path) {
   try {
     return await readFile(path, 'utf8');
@@ -463,6 +535,8 @@ async function runCheck(root) {
     ...(await checkMirrors(root)),
     ...(await checkHookRegistrations(root)),
     ...(await checkCopilotHookSource(root)),
+    ...(await checkMcpServers(root)),
+    ...(await checkFileScopedRules(root)),
     ...(await checkSharedFlows(root)),
   ];
   if (errors.length) {
@@ -470,7 +544,9 @@ async function runCheck(root) {
     process.exitCode = 1;
     return;
   }
-  console.log('Agent configuration mirrors, hook registrations, and shared flows are consistent.');
+  console.log(
+    'Agent configuration mirrors, hook registrations, shared flows, MCP servers, and file-scoped rules are consistent.',
+  );
 }
 
 function usage() {

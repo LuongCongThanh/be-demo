@@ -47,16 +47,6 @@ Work is tracked as local Markdown tasks in `docs/plan/` (not GitHub Issues). See
 
 Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
-### Specialized routing
-
-- NestJS modules, controllers, providers, dependency injection, guards, security, or performance -> `nestjs-best-practices`.
-- Prisma CLI, schema validation/formatting, client generation, migration commands, or migration status -> `prisma-cli`. Treat `prisma-database-setup` as a legacy compatibility pointer.
-- Prisma Client CRUD, filters, relations, transactions, or raw SQL -> `prisma-client-api`.
-- Vitest tests, mocks, coverage, configuration, or test selection -> `vitest`.
-- Docker Compose services, health checks, dependency order, volumes, networks, environment, or overrides -> `docker-compose-patterns`.
-- API authentication/authorization or OWASP API security review -> `api-security-review` for read-only review.
-- Ambiguous domain terms, entity boundaries, or relationships -> `domain-modeling`, with `docs/agents/domain.md` for this repository's layout.
-
 ### Conventions (coding style, config, error handling, API, schema)
 
 Top-down index and reading order for all convention docs: `docs/convention`.
@@ -92,9 +82,11 @@ Shared repository policy lives in this file and `docs/agents/` / `docs/conventio
 - `.agents/skills/` is canonical for every project skill, mirrored byte-for-byte to `.github/skills/` (Copilot) and `.claude/skills/` (Claude Code); Codex reads `.agents/skills/` directly. Vendored skills are pinned in `skills-lock.json` and must not be edited locally.
 - `feature` and `ship` are defined once in `docs/agents/flows/`; their entry skills only point there. A shared flow may name only skills vendored in `.agents/skills/`, and no agent keeps a private copy of a flow (for example a Claude `.claude/commands/` file). See [ADR 0014](docs/adr/0014-shared-agent-flow-native-adapters.md).
 - `.claude/hooks/` is canonical for the byte-for-byte `.codex/hooks/` mirror. Claude Code and Copilot in VS Code both run them from `.claude/settings.json`; Codex runs the mirror from `.codex/hooks.json`. Do not add `.github/hooks/*.json` (Copilot would run every hook twice). `scripts/hooks/hook-parity.spec.ts` checks that all three agents reach the same allow/block decision for the same action.
-- `.claude/settings.json`, `.codex/config.toml`, hook registries, and `.github/instructions/` keep their native formats. Do not copy agent-specific permissions, MCP servers, or settings such as `.claude/settings.local.json` between agents.
+- `.claude/settings.json`, `.codex/config.toml`, hook registries, and `.github/instructions/` keep their native formats. Do not copy agent-specific permissions or settings such as `.claude/settings.local.json` between agents.
+- Project MCP servers are the same for every agent, each in its native file: `.mcp.json` (Claude Code), `.codex/config.toml` (Codex), and `.vscode/mcp.json` (Copilot in VS Code). Add or remove a server in all three; `agents:check` compares the server names.
+- File-scoped rules live in `.claude/rules/` (Claude Code `paths:`). Each scoped rule is also linked from a `.github/instructions/*.instructions.md` file (Copilot `applyTo`) and from the nested `AGENTS.md` for its directory (`src/`, `prisma/`, `test/`) for Codex; `agents:check` rejects a scoped rule either adapter misses.
 - Run `npm run agents:watch` to propagate a single edit in a mirrored file immediately. If two copies of that file change differently, the watcher stops with a conflict; resolve it and run `npm run agents:sync -- --from <mirror-root>` to choose the intended copy. `npm run agents:sync -- --force` explicitly overwrites target files from the canonical source. `npm run agents:check` detects drift, and `npm run agents:test` verifies sync and conflict behavior.
-- The pre-commit hook and CI run `agents:check`; CI also runs `agents:test`. This enforces mirrored-file, hook-registration, and shared-flow consistency, not every natural-language decision made by an agent.
+- The pre-commit hook and CI run `agents:check`; CI also runs `agents:test`. This enforces mirrored-file, hook-registration, shared-flow, MCP-server, and file-scoped-rule consistency, not every natural-language decision made by an agent.
 
 ## Shared AI Code Review
 
