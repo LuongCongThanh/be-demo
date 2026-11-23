@@ -44,4 +44,4 @@ Confirm GitHub returned a PR number, run `gh pr checks <number> --watch`, and re
 
 ## Step 8 — After merge
 
-When the user reports the merge (or `gh pr view --json state` returns `MERGED`) and asks for cleanup, use `finishing-a-development-branch` to delete the local and remote branches for the squash-merge flow.
+When the user reports the merge (or `gh pr view --json state` returns `MERGED`) and asks for cleanup, use `finishing-a-development-branch` only to delete the local and remote branches for the squash-merge flow. Skip its worktree-removal steps unless the user asks for them (`AGENTS.md#git-worktree-policy`).

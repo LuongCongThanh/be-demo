@@ -420,7 +420,7 @@ export async function checkSharedFlows(root = REPO_ROOT) {
       }
       const skills = flowSkills(flow);
       if (skills.length === 0) {
-        errors.push(`${flowPath} must declare its skills in a \`skills: [...]\` frontmatter list`);
+        errors.push(`${flowPath} must declare its skills in an inline \`skills: [...]\` frontmatter list`);
       }
       for (const skill of skills) {
         if (!(await fileState(resolve(root, '.agents/skills', skill, 'SKILL.md')))) {
