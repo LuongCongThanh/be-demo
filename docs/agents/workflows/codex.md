@@ -12,7 +12,7 @@ This is the Codex-specific entrypoint. Follow [`../execution-workflow.md`](../ex
 
 - Use only tools, skills, and subagents available in the active Codex environment. Check availability instead of assuming Claude slash commands or hooks can run.
 - Project skills are in `.agents/skills/`; invoke `feature` for implementation workflows and `ship` only for an explicitly requested PR workflow.
-- The project Prisma skills are copied from the Claude skill package. [The Claude skill guide](../../../.claude/skill-guide/) is a user-global inventory reference; it does not mean those global skills or MCP servers are available in Codex.
+- Every skill named by the shared flows is vendored in the repository, so Codex can call it by name. [The Claude skill guide](../../../.claude/skill-guide/) is a user-global inventory reference; it does not mean other global skills or MCP servers are available in Codex.
 - `.codex/config.toml` configures project MCP servers, while `.codex/hooks.json` registers repo hooks. Review and trust project hooks in Codex before relying on them.
 - Follow `AGENTS.md#agent-configuration-synchronization` when changing mirrored skills or hooks; run `npm run agents:watch` for live sync and `npm run agents:check` before finishing.
 - For a code review, follow the [repository review policy](../../../AGENTS.md#shared-ai-code-review) and keep the review read-only.

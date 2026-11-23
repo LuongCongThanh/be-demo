@@ -12,15 +12,9 @@ export const MIRROR_GROUPS = [
     roots: ['.claude/hooks', '.codex/hooks'],
   },
   {
-    name: 'Codex/Copilot project skills',
+    name: 'Project skills',
     source: '.agents/skills',
-    roots: ['.agents/skills', '.github/skills', 'agent/skills'],
-  },
-  {
-    name: 'Claude Prisma skills',
-    source: '.agents/skills',
-    roots: ['.agents/skills', '.claude/skills'],
-    include: (path) => path.startsWith('prisma-'),
+    roots: ['.agents/skills', '.github/skills', '.claude/skills'],
   },
 ];
 
@@ -29,14 +23,7 @@ const REQUIRED_HOOKS = {
   postToolUse: ['after-pr-create.sh', 'check-swagger-completeness.sh'],
 };
 
-const SHARED_WORKFLOW_ENTRYPOINTS = [
-  '.claude/commands/feature.md',
-  '.claude/commands/ship.md',
-  '.agents/skills/feature/SKILL.md',
-  '.agents/skills/ship/SKILL.md',
-  '.github/skills/feature/SKILL.md',
-  '.github/skills/ship/SKILL.md',
-];
+const SHARED_FLOWS = ['feature', 'ship'];
 
 const HOOK_CONFIGS = [
   {
@@ -402,21 +389,57 @@ export async function checkHookRegistrations(root = REPO_ROOT) {
   return errors;
 }
 
-export async function checkSharedWorkflowEntrypoints(root = REPO_ROOT) {
+async function readOptional(path) {
+  try {
+    return await readFile(path, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+function flowSkills(content) {
+  const frontmatter = content.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
+  const list = frontmatter.match(/^skills:\s*\[([^\]]*)\]/m)?.[1] ?? '';
+  return list
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+export async function checkSharedFlows(root = REPO_ROOT) {
   const errors = [];
-  for (const path of SHARED_WORKFLOW_ENTRYPOINTS) {
-    let content;
-    try {
-      content = await readFile(resolve(root, path), 'utf8');
-    } catch (error) {
-      if (error.code === 'ENOENT') {
-        errors.push(`Missing workflow entrypoint: ${path}`);
-        continue;
+  for (const name of SHARED_FLOWS) {
+    const flowPath = `docs/agents/flows/${name}.md`;
+    const flow = await readOptional(resolve(root, flowPath));
+    if (flow === null) {
+      errors.push(`Missing shared flow: ${flowPath}`);
+    } else {
+      if (!flow.includes('docs/agents/execution-workflow.md')) {
+        errors.push(`${flowPath} must reference docs/agents/execution-workflow.md`);
       }
-      throw error;
+      const skills = flowSkills(flow);
+      if (skills.length === 0) {
+        errors.push(`${flowPath} must declare its skills in an inline \`skills: [...]\` frontmatter list`);
+      }
+      for (const skill of skills) {
+        if (!(await fileState(resolve(root, '.agents/skills', skill, 'SKILL.md')))) {
+          errors.push(`${flowPath} names skill ${skill}, which is not vendored in .agents/skills/`);
+        }
+      }
     }
-    if (!content.includes('docs/agents/execution-workflow.md')) {
-      errors.push(`${path} must reference docs/agents/execution-workflow.md`);
+
+    const entryPath = `.agents/skills/${name}/SKILL.md`;
+    const entry = await readOptional(resolve(root, entryPath));
+    if (entry === null) {
+      errors.push(`Missing flow entry skill: ${entryPath}`);
+    } else if (!entry.includes(flowPath)) {
+      errors.push(`${entryPath} must reference ${flowPath}`);
+    }
+
+    const commandPath = `.claude/commands/${name}.md`;
+    if (await fileState(resolve(root, commandPath))) {
+      errors.push(`${commandPath} shadows the shared ${name} skill; remove the Claude-only command`);
     }
   }
   return errors;
@@ -426,14 +449,14 @@ async function runCheck(root) {
   const errors = [
     ...(await checkMirrors(root)),
     ...(await checkHookRegistrations(root)),
-    ...(await checkSharedWorkflowEntrypoints(root)),
+    ...(await checkSharedFlows(root)),
   ];
   if (errors.length) {
     console.error(`Agent configuration drift detected:\n- ${errors.join('\n- ')}`);
     process.exitCode = 1;
     return;
   }
-  console.log('Agent configuration mirrors, hook registrations, and workflow entrypoints are consistent.');
+  console.log('Agent configuration mirrors, hook registrations, and shared flows are consistent.');
 }
 
 function usage() {

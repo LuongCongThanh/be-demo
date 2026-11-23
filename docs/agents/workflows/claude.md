@@ -10,14 +10,14 @@ This is the Claude-specific entrypoint. Follow [`../execution-workflow.md`](../e
 
 ## Choose the workflow
 
-- Use `/feature` for a new feature or fix whose behavior needs discovery and specification. Continue through implementation and verification when the user requested implementation; ask only for unresolved consequential decisions.
-- Use `/ship` only when the user asks to prepare or publish a PR. It includes Git operations such as rebase and push; an implementation request alone does not authorize those actions.
+- Use the `feature` skill (`/feature`) for a feature, behavior change, or fix; it runs [`../flows/feature.md`](../flows/feature.md).
+- Use the `ship` skill (`/ship`) only when the user asks to ship or open a PR; it runs [`../flows/ship.md`](../flows/ship.md), including its authorization rule.
 - For code review, follow the [repository review policy](../../../AGENTS.md#shared-ai-code-review) and keep the review read-only.
-- Invoke a skill or slash command only when it is available in this Claude environment. Do not treat Claude commands as available to other agents.
+- Call project skills by their plain names (`tdd`, `to-spec`, …). Prefer them over user-global plugin copies such as `mattpocock-skills:tdd`, so Claude runs the same pinned version as Codex and Copilot.
 
 ## Use Claude controls accurately
 
-- `.claude/commands/` provides `/feature` and `/ship`; `.claude/skills/` contains project Prisma skills; `.claude/rules/` applies file-scoped conventions.
+- `.claude/skills/` mirrors every project skill from `.agents/skills/`, including `feature` and `ship`; `.claude/rules/` applies file-scoped conventions.
 - `.claude/skill-guide/` is an inventory of this user's global Claude skills and MCP setup, not a guarantee that another machine or harness has those tools installed.
 - `.claude/settings.json` registers hooks for specific tool events. Follow a blocking hook and report the blocker; do not bypass it to force completion.
 - Hooks are not proof that unrelated checks passed and do not protect every file or every command path. Inspect the final diff yourself.
