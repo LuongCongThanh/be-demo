@@ -115,7 +115,7 @@ describe('Copilot-compatible command hooks', () => {
     try {
       writeFileSync(bodyPath, body);
       const result = runHook(
-        '.github/hooks/scripts/enforce-pr-template.sh',
+        '.claude/hooks/enforce-pr-template.sh',
         copilotPayload(`gh pr create --base dev --title "docs: test" --body-file "${bodyPath}"`),
       );
 

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
+  checkCopilotHookSource,
   checkHookRegistrations,
   checkMirrors,
   checkSharedFlows,
@@ -48,6 +49,7 @@ async function waitFor(predicate, timeoutMs = 3000) {
 test('checked-in agent mirrors and native hook registrations are consistent', async () => {
   assert.deepEqual(await checkMirrors(repoRoot), []);
   assert.deepEqual(await checkHookRegistrations(repoRoot), []);
+  assert.deepEqual(await checkCopilotHookSource(repoRoot), []);
   assert.deepEqual(await checkSharedFlows(repoRoot), []);
 });
 
@@ -75,7 +77,6 @@ test('check rejects a hook registration removed from one native config', async (
   const configurations = [
     { path: '.claude/settings.json', hooks: '.claude/hooks' },
     { path: '.codex/hooks.json', hooks: '.codex/hooks' },
-    { path: '.github/hooks/hooks.json', hooks: '.github/hooks/scripts' },
   ];
   const hookNames = [
     'after-pr-create.sh',
@@ -279,4 +280,19 @@ test('shared flows reject a flow without a skills frontmatter list', async (cont
   await write('docs/agents/flows/ship.md', '# Ship\n\ndocs/agents/execution-workflow.md\n');
   const errors = await checkSharedFlows(root);
   assert.ok(errors.some((error) => error.includes('docs/agents/flows/ship.md must declare its skills')));
+});
+
+test('check rejects repository hooks under .github/hooks because Copilot already runs .claude/settings.json', async (context) => {
+  const root = await createTestRoot('copilot-hooks');
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(join(root, '.github/hooks'), { recursive: true });
+  await writeFile(join(root, '.github/hooks/hooks.json'), '{"version":1,"hooks":{}}');
+  const errors = await checkCopilotHookSource(root);
+  assert.ok(errors.some((error) => error.includes('.github/hooks/hooks.json')));
+});
+
+test('check accepts a repository without .github/hooks', async (context) => {
+  const root = await createTestRoot('copilot-hooks-none');
+  context.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await checkCopilotHookSource(root), []);
 });
