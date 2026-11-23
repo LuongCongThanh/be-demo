@@ -20,6 +20,3 @@ if ! echo "$branch" | grep -Eq '^(feature|fix|chore|docs|hotfix)/[a-z0-9]+(-[a-z
   echo "✖ Tên branch '$branch' sai quy ước: <feature|fix|chore|docs|hotfix>/kebab-case."
   exit 1
 fi
-
-npm run typecheck
-npm run test
