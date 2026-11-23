@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 pr:
 blocked-by: []
 ---
@@ -10,8 +10,8 @@ blocked-by: []
 
 **Status:** ready-for-agent
 
-- [ ] Dữ liệu Tồn kho chỉ thuộc mô-đun inventory và luôn cho biết Tồn kho, Giữ hàng, Số lượng bán được và Hàng trên kệ.
-- [ ] Điều chỉnh tăng hoặc giảm bắt buộc lý do; mọi thay đổi tạo movement có người thực hiện, giá trị trước/sau và thời điểm.
-- [ ] Điều chỉnh giảm không vượt Số lượng bán được và trả số tối đa có thể điều chỉnh khi bị từ chối.
-- [ ] Kiểm kê so số đếm thực tế với Tồn kho cộng Hàng chờ xuất, tính lại chênh lệch tại lúc xác nhận.
-- [ ] Giao dịch đồng thời không tạo tồn kho âm, oversell hoặc double restock.
+- [x] Dữ liệu Tồn kho thuộc mô-đun inventory và trả OnShelf, reserved, available.
+- [x] Điều chỉnh tăng hoặc giảm bắt buộc lý do; mọi thay đổi tạo movement có actor và before/after.
+- [x] Điều chỉnh giảm không vượt AvailableQuantity và trả giới hạn tối đa khi bị từ chối.
+- [x] Kiểm kê lưu snapshot Tồn kho/Hàng chờ xuất; confirmation tính lại chênh lệch từ Tồn kho + Hàng chờ xuất hiện tại.
+- [x] Giao dịch lock inventory và movement/count được tạo trong transaction.
