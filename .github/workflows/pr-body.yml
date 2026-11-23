@@ -9,6 +9,8 @@ permissions:
 
 jobs:
   template-sections:
+    # Dependabot không điền PR template; title vẫn bị pr-title.yml kiểm tra.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
