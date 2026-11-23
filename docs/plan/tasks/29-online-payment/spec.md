@@ -1,6 +1,6 @@
 ---
 status: done
-pr:
+pr: https://github.com/LuongCongThanh/be-demo/pull/129
 blocked-by:
   - 28-cod-checkout
 ---
