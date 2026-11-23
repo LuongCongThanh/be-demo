@@ -8,4 +8,4 @@ Use `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `won
 
 ## Agent configuration
 
-Follow the [shared agent configuration synchronization policy](AGENTS.md#agent-configuration-synchronization). Run `npm run agents:watch` while editing mirrored skills or hooks; keep Claude settings and commands in their native format.
+Follow the [shared agent configuration synchronization policy](AGENTS.md#agent-configuration-synchronization). Run `npm run agents:watch` while editing mirrored skills or hooks; keep Claude settings in their native format. `/feature` and `/ship` are the shared project skills in `.claude/skills/`, not Claude-only commands.

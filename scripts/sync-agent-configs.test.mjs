@@ -7,7 +7,7 @@ import test from 'node:test';
 import {
   checkHookRegistrations,
   checkMirrors,
-  checkSharedWorkflowEntrypoints,
+  checkSharedFlows,
   syncMirrors,
   watchMirrors,
 } from './sync-agent-configs.mjs';
@@ -48,7 +48,7 @@ async function waitFor(predicate, timeoutMs = 3000) {
 test('checked-in agent mirrors and native hook registrations are consistent', async () => {
   assert.deepEqual(await checkMirrors(repoRoot), []);
   assert.deepEqual(await checkHookRegistrations(repoRoot), []);
-  assert.deepEqual(await checkSharedWorkflowEntrypoints(repoRoot), []);
+  assert.deepEqual(await checkSharedFlows(repoRoot), []);
 });
 
 test('watch starts only when the checked-in native hook registrations match', async () => {
@@ -211,4 +211,72 @@ test('watch refuses conflicting simultaneous edits without overwriting either', 
   assert.equal(await readFile(source, 'utf8'), 'source edit\n');
   assert.equal(await readFile(codex, 'utf8'), 'different Codex edit\n');
   assert.equal(await readFile(github, 'utf8'), 'initial policy\n');
+});
+
+async function createFlowFixture() {
+  const root = await createTestRoot('flows');
+  const write = async (path, content) => {
+    await mkdir(dirname(join(root, path)), { recursive: true });
+    await writeFile(join(root, path), content);
+  };
+  for (const name of ['feature', 'ship']) {
+    await write(
+      `docs/agents/flows/${name}.md`,
+      `---\nskills: [tdd]\n---\n\nFollow docs/agents/execution-workflow.md, then call \`tdd\`.\n`,
+    );
+    await write(`.agents/skills/${name}/SKILL.md`, `Follow docs/agents/flows/${name}.md.\n`);
+  }
+  await write('.agents/skills/tdd/SKILL.md', 'tdd\n');
+  return { root, write };
+}
+
+test('shared flows pass when every entry skill points at its flow and named skills are vendored', async (context) => {
+  const { root } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await checkSharedFlows(root), []);
+});
+
+test('shared flows reject a flow that names a skill missing from .agents/skills', async (context) => {
+  const { root, write } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await write(
+    'docs/agents/flows/feature.md',
+    '---\nskills: [tdd, grill-with-docs]\n---\n\ndocs/agents/execution-workflow.md\n',
+  );
+  const errors = await checkSharedFlows(root);
+  assert.ok(errors.some((error) => error.includes('docs/agents/flows/feature.md names skill grill-with-docs')));
+});
+
+test('shared flows reject an entry skill that does not reference its flow', async (context) => {
+  const { root, write } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await write('.agents/skills/ship/SKILL.md', 'Do the shipping steps here.\n');
+  const errors = await checkSharedFlows(root);
+  assert.ok(
+    errors.some((error) => error.includes('.agents/skills/ship/SKILL.md must reference docs/agents/flows/ship.md')),
+  );
+});
+
+test('shared flows reject a missing flow document', async (context) => {
+  const { root } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await rm(join(root, 'docs/agents/flows/ship.md'));
+  const errors = await checkSharedFlows(root);
+  assert.ok(errors.some((error) => error.includes('Missing shared flow: docs/agents/flows/ship.md')));
+});
+
+test('shared flows reject a Claude-only command that would shadow the shared skill', async (context) => {
+  const { root, write } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await write('.claude/commands/feature.md', 'Claude-only feature workflow\n');
+  const errors = await checkSharedFlows(root);
+  assert.ok(errors.some((error) => error.includes('.claude/commands/feature.md')));
+});
+
+test('shared flows reject a flow without a skills frontmatter list', async (context) => {
+  const { root, write } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await write('docs/agents/flows/ship.md', '# Ship\n\ndocs/agents/execution-workflow.md\n');
+  const errors = await checkSharedFlows(root);
+  assert.ok(errors.some((error) => error.includes('docs/agents/flows/ship.md must declare its skills')));
 });

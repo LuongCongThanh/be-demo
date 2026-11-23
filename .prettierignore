@@ -1,6 +1,14 @@
 docs/openapi/openapi.json
 
-# Mirrored Prisma skills are kept byte-identical across harnesses.
-.claude/skills/prisma-*/
-.agents/skills/prisma-*/
-.github/skills/prisma-*/
+# Vendored skills stay byte-identical to their upstream release (see skills-lock.json)
+# and across the .agents/.github/.claude mirrors. Only the repository-owned
+# flow entry skills are formatted.
+.agents/skills/*/
+.github/skills/*/
+.claude/skills/*/
+!.agents/skills/feature/
+!.github/skills/feature/
+!.claude/skills/feature/
+!.agents/skills/ship/
+!.github/skills/ship/
+!.claude/skills/ship/

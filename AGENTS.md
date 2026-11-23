@@ -20,21 +20,22 @@ When using Codex, also follow [`docs/agents/workflows/codex.md`](docs/agents/wor
 
 Apply this routing to ordinary prompts; the user does not need to type a slash command. If the user says “continue”, “tiếp tục đi”, “go on”, or similar, resume the latest active request at its first unfinished phase. Use the conversation and current worktree as state; do not restart completed phases or ask the user to repeat settled requirements.
 
-- Unclear requirements or behavior → `mattpocock-skills:grill-with-docs`.
-- Requirements clarified but a medium/large change still needs a single spec → `mattpocock-skills:to-spec`.
-- A large change needs several vertical slices → `mattpocock-skills:to-tickets`.
-- Implementation is authorized and ready → `mattpocock-skills:implement`, using `mattpocock-skills:tdd` for behavior-changing work.
+- Unclear requirements or behavior → `grill-with-docs`.
+- Requirements clarified but a medium/large change still needs a single spec → `to-spec`.
+- A large change needs several vertical slices → `to-tickets`.
+- Implementation is authorized and ready → `implement`, using `tdd` for behavior-changing work.
 - A refactor is requested → first preserve the existing behavior and classify its scope. For a clear, local refactor, use the quick execution path; use `implement` and focused tests for larger changes, adding `tdd` when behavior or regression risk warrants it. Use `grill-with-docs`/`to-spec` only when the goal or scope is genuinely unclear or consequential.
-- A bug has an unclear technical root cause → `mattpocock-skills:diagnosing-bugs`.
-- A code review is requested → `mattpocock-skills:code-review`, subject to the read-only policy below.
-- An explicitly requested PR → the repository `ship` workflow (`.agents/skills/ship/` for Codex/Copilot or `.claude/commands/ship.md` for Claude); use the code-review skill as that workflow requires. “Continue” alone never authorizes GitHub writes.
+- A bug has an unclear technical root cause → `diagnosing-bugs`.
+- A code review is requested → `code-review`, subject to the read-only policy below.
+- Implementing a feature, behavior change, or fix → the `feature` skill, which runs [`docs/agents/flows/feature.md`](docs/agents/flows/feature.md).
+- An explicitly requested PR → the `ship` skill, which runs [`docs/agents/flows/ship.md`](docs/agents/flows/ship.md). “Continue” alone never authorizes GitHub writes.
 - NestJS modules, controllers, providers, dependency injection, guards, security, or performance → `nestjs-best-practices`.
 - Prisma CLI, schema validation/formatting, client generation, migration commands, or migration status → `prisma-cli`. Treat `prisma-database-setup` as a legacy compatibility pointer; use current CLI guidance for actual commands.
 - Prisma Client CRUD, filters, relations, transactions, or raw SQL → `prisma-client-api`.
 - Vitest tests, mocks, coverage, configuration, or test selection → `vitest`.
 - Docker Compose services, health checks, dependency order, volumes, networks, environment, or overrides → `docker-compose-patterns`.
 - API authentication/authorization or OWASP API security review → `api-security-review` for read-only code/spec review. Active testing requires explicit authorization and a scoped, controlled test environment.
-- Ambiguous domain terms, entity boundaries, or relationships → Matt Pocock `domain-modeling` when available (`/mattpocock-skills:domain-modeling` in Claude Code); otherwise follow `docs/agents/domain.md`.
+- Ambiguous domain terms, entity boundaries, or relationships → `domain-modeling`, with `docs/agents/domain.md` for this repository's layout.
 
 Continue the current skill if its phase is still unresolved; otherwise select the next unfinished phase. Skip phases already completed, and skip the full pipeline for quick, well-specified work. If there is no active request, or multiple plausible requests to continue, ask one focused question. Invoke a named skill only if the active agent actually has it; otherwise follow the equivalent repository workflow and do not claim the skill was invoked.
 
@@ -54,7 +55,7 @@ Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/d
 - Vitest tests, mocks, coverage, configuration, or test selection -> `vitest`.
 - Docker Compose services, health checks, dependency order, volumes, networks, environment, or overrides -> `docker-compose-patterns`.
 - API authentication/authorization or OWASP API security review -> `api-security-review` for read-only review.
-- Ambiguous domain terms, entity boundaries, or relationships -> Matt Pocock `domain-modeling` when available; otherwise follow `docs/agents/domain.md`.
+- Ambiguous domain terms, entity boundaries, or relationships -> `domain-modeling`, with `docs/agents/domain.md` for this repository's layout.
 
 ### Conventions (coding style, config, error handling, API, schema)
 
@@ -88,15 +89,16 @@ Index: `docs/README.md`. Business requirements (`docs/business/`) take priority 
 
 Shared repository policy lives in this file and `docs/agents/` / `docs/convention/`; platform files are entrypoints or adapters. Edit the shared source instead of duplicating a rule in a platform file.
 
-- `.agents/skills/` is canonical for project skills mirrored byte-for-byte to `.github/skills/` and the matching Prisma skills in `.claude/skills/`.
+- `.agents/skills/` is canonical for every project skill, mirrored byte-for-byte to `.github/skills/` (Copilot) and `.claude/skills/` (Claude Code); Codex reads `.agents/skills/` directly. Vendored skills are pinned in `skills-lock.json` and must not be edited locally.
+- `feature` and `ship` are defined once in `docs/agents/flows/`; their entry skills only point there. A shared flow may name only skills vendored in `.agents/skills/`, and no agent keeps a private copy of a flow (for example a Claude `.claude/commands/` file). See [ADR 0014](docs/adr/0014-shared-agent-flow-native-adapters.md).
 - `.claude/hooks/` is canonical for the byte-for-byte `.codex/hooks/` mirror. `.github/hooks/scripts/` is a Copilot-native adapter and its event registrations are checked against the other agents; do not overwrite it with Claude/Codex scripts.
-- `.claude/settings.json`, `.codex/config.toml`, hook registries, commands, and `.github/instructions/` keep their native formats. Do not copy agent-specific permissions, MCP servers, or settings such as `.claude/settings.local.json` between agents.
+- `.claude/settings.json`, `.codex/config.toml`, hook registries, and `.github/instructions/` keep their native formats. Do not copy agent-specific permissions, MCP servers, or settings such as `.claude/settings.local.json` between agents.
 - Run `npm run agents:watch` to propagate a single edit in a mirrored file immediately. If two copies of that file change differently, the watcher stops with a conflict; resolve it and run `npm run agents:sync -- --from <mirror-root>` to choose the intended copy. `npm run agents:sync -- --force` explicitly overwrites target files from the canonical source. `npm run agents:check` detects drift, and `npm run agents:test` verifies sync and conflict behavior.
-- The pre-commit hook and CI run `agents:check`; CI also runs `agents:test`. This enforces mirrored-file and hook-registration consistency, not every natural-language decision made by an agent.
+- The pre-commit hook and CI run `agents:check`; CI also runs `agents:test`. This enforces mirrored-file, hook-registration, and shared-flow consistency, not every natural-language decision made by an agent.
 
 ## Shared AI Code Review
 
-Whenever any agent is asked to review code, including by slash skill such as `/mattpocock-skills:code-review`, or by phrases such as "review code", "review this PR", "review this branch", "review since X", or "review the current diff":
+Whenever any agent is asked to review code, including by a slash skill such as `/code-review`, or by phrases such as "review code", "review this PR", "review this branch", "review since X", or "review the current diff":
 
 1. Perform a read-only review.
 2. Follow this section as the repository review policy; use the invoked review skill's report format unless it conflicts with this policy.
