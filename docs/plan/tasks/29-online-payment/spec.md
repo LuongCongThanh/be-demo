@@ -3,13 +3,14 @@ status: todo
 pr:
 blocked-by:
   - 28-cod-checkout
+  - 46-migrate-checkout
 ---
 
 # Thanh toán online và đối soát
 
 **What to build:** Buyer có thể đặt đơn online qua VNPay hoặc MoMo, nhận xác nhận chỉ từ IPN/đối soát và có trạng thái tiền/đơn nhất quán khi hết hạn, trùng thông báo hoặc sai số tiền.
 
-**Blocked by:** 28-cod-checkout
+**Blocked by:** 28-cod-checkout, 46-migrate-checkout
 
 **Status:** ready-for-agent
 

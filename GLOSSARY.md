@@ -26,6 +26,14 @@ _Tránh_: MASTER_ADMIN, superadmin, quản lý
 
 _Ghi chú_: Khách hàng, Staff, Admin là ba loại Tài khoản. Staff và Admin đồng thời là hai Vai trò hệ thống; Khách hàng không phải Vai trò. Các mục "Tránh" ở trên nhắm vào tên vai trò cũ (`ORDER_STAFF`, `STORE_MANAGER`, `MASTER_ADMIN`).
 
+**Storefront** (`Storefront`):
+Bề mặt công khai nơi Người mua xem hàng, quản lý Giỏ hàng và đặt đơn.
+_Tránh_: client site, frontend, shop
+
+**Back-office** (`BackOffice`):
+Bề mặt nội bộ nơi Staff và Admin vận hành cửa hàng; ai thao tác được gì do Quyền quyết định, không do bề mặt.
+_Tránh_: admin site, Admin CMS (khi muốn nói bề mặt, không phải Vai trò Admin)
+
 **Tài khoản** (`Account`):
 Danh tính đăng nhập gắn với đúng một email, thuộc một trong ba loại: Khách hàng, Staff hoặc Admin.
 _Tránh_: user (khi nói về nghiệp vụ), profile
