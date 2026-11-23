@@ -7,6 +7,8 @@ import test from 'node:test';
 import {
   checkCopilotHookSource,
   checkHookRegistrations,
+  checkFileScopedRules,
+  checkMcpServers,
   checkMirrors,
   checkSharedFlows,
   syncMirrors,
@@ -50,6 +52,8 @@ test('checked-in agent mirrors and native hook registrations are consistent', as
   assert.deepEqual(await checkMirrors(repoRoot), []);
   assert.deepEqual(await checkHookRegistrations(repoRoot), []);
   assert.deepEqual(await checkCopilotHookSource(repoRoot), []);
+  assert.deepEqual(await checkMcpServers(repoRoot), []);
+  assert.deepEqual(await checkFileScopedRules(repoRoot), []);
   assert.deepEqual(await checkSharedFlows(repoRoot), []);
 });
 
@@ -295,4 +299,131 @@ test('check accepts a repository without .github/hooks', async (context) => {
   const root = await createTestRoot('copilot-hooks-none');
   context.after(() => rm(root, { recursive: true, force: true }));
   assert.deepEqual(await checkCopilotHookSource(root), []);
+});
+
+async function writeFixture(root, path, content) {
+  await mkdir(dirname(join(root, path)), { recursive: true });
+  await writeFile(join(root, path), content);
+}
+
+async function createMcpFixture(names = ['context7', 'playwright']) {
+  const root = await createTestRoot('mcp');
+  await writeFixture(
+    root,
+    '.mcp.json',
+    JSON.stringify({ mcpServers: Object.fromEntries(names.map((name) => [name, { command: 'npx' }])) }),
+  );
+  await writeFixture(
+    root,
+    '.vscode/mcp.json',
+    JSON.stringify({ servers: Object.fromEntries(names.map((name) => [name, { type: 'stdio', command: 'npx' }])) }),
+  );
+  await writeFixture(
+    root,
+    '.codex/config.toml',
+    names.map((name) => `[mcp_servers.${name}]\ncommand = "npx"\n`).join('\n'),
+  );
+  return root;
+}
+
+test('MCP check passes when every agent configures the same servers', async (context) => {
+  const root = await createMcpFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await checkMcpServers(root), []);
+});
+
+test('MCP check rejects a server missing from one agent', async (context) => {
+  const root = await createMcpFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, '.vscode/mcp.json', JSON.stringify({ servers: { context7: { type: 'stdio' } } }));
+  const errors = await checkMcpServers(root);
+  assert.ok(errors.some((error) => error.includes('.vscode/mcp.json') && error.includes('playwright')));
+});
+
+test('MCP check rejects a missing agent MCP config', async (context) => {
+  const root = await createMcpFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await rm(join(root, '.codex/config.toml'));
+  const errors = await checkMcpServers(root);
+  assert.ok(errors.some((error) => error.includes('.codex/config.toml')));
+});
+
+async function createRulesFixture() {
+  const root = await createTestRoot('rules');
+  await writeFixture(root, '.claude/rules/api.md', "---\npaths:\n  - 'src/**/*.ts'\n---\n\nAPI rules\n");
+  await writeFixture(root, '.claude/rules/git.md', 'Always-on rule without paths\n');
+  await writeFixture(
+    root,
+    '.github/instructions/api.instructions.md',
+    "---\napplyTo: 'src/**/*.ts'\n---\n\nRead [rules](../../.claude/rules/api.md).\n",
+  );
+  await writeFixture(root, 'src/AGENTS.md', 'Read [rules](../.claude/rules/api.md).\n');
+  return root;
+}
+
+test('file-scoped rule check passes when every scoped rule reaches Copilot and Codex', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await checkFileScopedRules(root), []);
+});
+
+test('file-scoped rule check rejects a scoped rule no nested AGENTS.md references', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, 'src/AGENTS.md', 'No rule links here.\n');
+  const errors = await checkFileScopedRules(root);
+  assert.ok(errors.some((error) => error.includes('.claude/rules/api.md') && error.includes('AGENTS.md')));
+});
+
+test('file-scoped rule check rejects a scoped rule no Copilot instruction references', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await rm(join(root, '.github/instructions/api.instructions.md'));
+  const errors = await checkFileScopedRules(root);
+  assert.ok(errors.some((error) => error.includes('.claude/rules/api.md') && error.includes('.github/instructions')));
+});
+
+test('MCP check reads quoted, commented, and indented Codex server tables', async (context) => {
+  const root = await createMcpFixture(['context7', 'my.server']);
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(
+    root,
+    '.codex/config.toml',
+    '  [mcp_servers.context7] # docs\ncommand = "npx"\n\n[mcp_servers."my.server"]\ncommand = "npx"\n\n[mcp_servers.context7.env]\nA = "1"\n',
+  );
+  assert.deepEqual(await checkMcpServers(root), []);
+});
+
+test('MCP check names the file whose JSON is invalid', async (context) => {
+  const root = await createMcpFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, '.vscode/mcp.json', '{ not json');
+  const errors = await checkMcpServers(root);
+  assert.ok(errors.some((error) => error.includes('Invalid .vscode/mcp.json')));
+});
+
+test('MCP check rejects configs that declare no servers at all', async (context) => {
+  const root = await createMcpFixture([]);
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const errors = await checkMcpServers(root);
+  assert.ok(errors.some((error) => error.includes('no MCP servers')));
+});
+
+test('file-scoped rule check requires the link in the AGENTS.md of every directory the rule covers', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, 'src/AGENTS.md', 'No rule links here.\n');
+  await writeFixture(root, 'test/AGENTS.md', 'Read [rules](../.claude/rules/api.md).\n');
+  const errors = await checkFileScopedRules(root);
+  assert.ok(errors.some((error) => error.includes('.claude/rules/api.md') && error.includes('src/AGENTS.md')));
+});
+
+test('file-scoped rule check ignores paths: outside the frontmatter and reads CRLF frontmatter', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, '.claude/rules/body-only.md', '---\ndescription: x\n---\n\npaths: not frontmatter\n');
+  await writeFixture(root, '.claude/rules/crlf.md', "---\r\npaths:\r\n  - 'prisma/**/*'\r\n---\r\n\r\nRule\r\n");
+  const errors = await checkFileScopedRules(root);
+  assert.ok(!errors.some((error) => error.includes('body-only.md')));
+  assert.ok(errors.some((error) => error.includes('.claude/rules/crlf.md') && error.includes('prisma/AGENTS.md')));
 });

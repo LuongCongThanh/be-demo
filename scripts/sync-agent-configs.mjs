@@ -402,6 +402,94 @@ export async function checkCopilotHookSource(root = REPO_ROOT) {
     );
 }
 
+// Codex config is TOML; the repository has no TOML parser, so read only the
+// `[mcp_servers.<name>]` table headers (bare or quoted names; sub-tables such as
+// `[mcp_servers.<name>.env]` are not separate servers).
+function codexMcpServerNames(text) {
+  const header = /^\s*\[mcp_servers\.(?:"([^"]+)"|([A-Za-z0-9_-]+))\]\s*(?:#.*)?$/gm;
+  return [...text.matchAll(header)].map((match) => match[1] ?? match[2]);
+}
+
+const MCP_CONFIGS = [
+  { path: '.mcp.json', serverNames: (text) => Object.keys(JSON.parse(text).mcpServers ?? {}) },
+  { path: '.vscode/mcp.json', serverNames: (text) => Object.keys(JSON.parse(text).servers ?? {}) },
+  { path: '.codex/config.toml', serverNames: codexMcpServerNames },
+];
+
+// Every agent gets the same project MCP servers; each file keeps its native format,
+// so only the server names are compared.
+export async function checkMcpServers(root = REPO_ROOT) {
+  const errors = [];
+  const serversByConfig = [];
+  for (const config of MCP_CONFIGS) {
+    const text = await readOptional(resolve(root, config.path));
+    if (text === null) {
+      errors.push(`Missing MCP config: ${config.path}`);
+      continue;
+    }
+    try {
+      serversByConfig.push({ path: config.path, servers: new Set(config.serverNames(text)) });
+    } catch (error) {
+      errors.push(`Invalid ${config.path}: ${error.message}`);
+    }
+  }
+  const allServers = new Set(serversByConfig.flatMap(({ servers }) => [...servers]));
+  if (serversByConfig.length && allServers.size === 0) {
+    errors.push('The agent MCP configs declare no MCP servers at all');
+  }
+  for (const { path, servers } of serversByConfig) {
+    const missing = [...allServers].filter((name) => !servers.has(name)).sort();
+    if (missing.length) errors.push(`${path} is missing MCP server(s) other agents configure: ${missing.join(', ')}`);
+  }
+  return errors;
+}
+
+async function readMarkdownFiles(directory) {
+  let names;
+  try {
+    names = (await readdir(directory)).filter((name) => name.endsWith('.md')).sort();
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+  return Promise.all(
+    names.map(async (name) => ({ name, text: (await readFile(join(directory, name), 'utf8')).replace(/\r\n/g, '\n') })),
+  );
+}
+
+// Top-level directories a rule's frontmatter `paths:` globs cover, e.g. `src/**/*.ts` -> `src`.
+function ruleScopeDirectories(rule) {
+  const frontmatter = rule.match(/^---\n([\s\S]*?)\n---(?:\n|$)/)?.[1];
+  const block = frontmatter?.match(/^paths:\s*\n((?:[ \t]+-.*\n?)+)/m)?.[1];
+  if (!block) return [];
+  const globs = [...block.matchAll(/-\s*['"]?([^'"\n]+)['"]?/g)].map((match) => match[1].trim());
+  return [...new Set(globs.map((glob) => glob.split('/')[0]))].sort();
+}
+
+// A Claude rule scoped with `paths:` must also reach Copilot (a `.github/instructions/`
+// file) and Codex (the `AGENTS.md` of every top-level directory the rule covers),
+// each linking the same rule file. Nested AGENTS.md files live one level deep.
+export async function checkFileScopedRules(root = REPO_ROOT) {
+  const errors = [];
+  const instructions = await readMarkdownFiles(resolve(root, '.github/instructions'));
+  for (const { name, text } of await readMarkdownFiles(resolve(root, '.claude/rules'))) {
+    const directories = ruleScopeDirectories(text);
+    if (directories.length === 0) continue;
+    const link = `.claude/rules/${name}`;
+    if (!instructions.some((instruction) => instruction.text.includes(link))) {
+      errors.push(`${link} is not referenced by any .github/instructions/*.instructions.md (Copilot)`);
+    }
+    for (const directory of directories) {
+      const agentsPath = `${directory}/AGENTS.md`;
+      const agents = await readOptional(resolve(root, agentsPath));
+      if (agents === null || !agents.includes(link)) {
+        errors.push(`${link} covers ${directory}/ but ${agentsPath} does not link it (Codex)`);
+      }
+    }
+  }
+  return errors;
+}
+
 async function readOptional(path) {
   try {
     return await readFile(path, 'utf8');
@@ -463,6 +551,8 @@ async function runCheck(root) {
     ...(await checkMirrors(root)),
     ...(await checkHookRegistrations(root)),
     ...(await checkCopilotHookSource(root)),
+    ...(await checkMcpServers(root)),
+    ...(await checkFileScopedRules(root)),
     ...(await checkSharedFlows(root)),
   ];
   if (errors.length) {
@@ -470,7 +560,9 @@ async function runCheck(root) {
     process.exitCode = 1;
     return;
   }
-  console.log('Agent configuration mirrors, hook registrations, and shared flows are consistent.');
+  console.log(
+    'Agent configuration mirrors, hook registrations, shared flows, MCP servers, and file-scoped rules are consistent.',
+  );
 }
 
 function usage() {

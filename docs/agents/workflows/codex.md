@@ -4,7 +4,7 @@ This is the Codex-specific entrypoint. Follow [`../execution-workflow.md`](../ex
 
 ## Load the right context
 
-1. Read root `AGENTS.md` and any nested `AGENTS.md` that applies to changed files.
+1. Read root `AGENTS.md` and the nested `AGENTS.md` for every directory you change (`src/`, `prisma/`, `test/`); they link the file-scoped rules in `.claude/rules/` that Claude Code and Copilot apply automatically.
 2. Read the relevant task, acceptance criteria, business rules, architecture docs, ADRs, and conventions before changing behavior.
 3. Use repository scripts and configuration as the source of truth; for this repository, run npm scripts from `package.json`.
 
