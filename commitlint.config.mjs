@@ -1,13 +1,29 @@
 // Conventional Commits + chặn AI attribution (docs/convention/git-workflow.md).
-import { validateCommitMessage } from './scripts/git-policy.mjs';
+import { isDependabotCommit, validateCommitMessage } from './scripts/git-policy.mjs';
 
 export default {
   extends: ['@commitlint/config-conventional'],
+  // Commit Dependabot mang release notes của bên thứ ba (dòng dài, tên công cụ AI).
+  ignores: [isDependabotCommit],
   rules: {
     'type-enum': [
       2,
       'always',
-      ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'style', 'perf', 'ci', 'build', 'revert', 'security', 'architecture'],
+      [
+        'feat',
+        'fix',
+        'refactor',
+        'test',
+        'docs',
+        'chore',
+        'style',
+        'perf',
+        'ci',
+        'build',
+        'revert',
+        'security',
+        'architecture',
+      ],
     ],
     'header-max-length': [2, 'always', 100],
     'no-ai-attribution': [2, 'always'],

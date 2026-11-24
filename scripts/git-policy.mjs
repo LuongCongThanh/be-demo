@@ -22,17 +22,25 @@ const REQUIRED_PR_SECTIONS = [
   '## 5. Verification',
 ];
 
-const PR_TYPE_VALUES =
-  '(feat|fix|refactor|perf|security|chore|docs|test|architecture)';
+const PR_TYPE_VALUES = '(feat|fix|refactor|perf|security|chore|docs|test|architecture)';
 
 export function validateCommitMessage(message) {
   const errors = [];
   if (AI_ATTRIBUTION.test(message ?? '') || AI_TOOL_NAME.test(message ?? '')) {
-    errors.push(
-      'Commit message không được chứa AI/tool/agent attribution',
-    );
+    errors.push('Commit message không được chứa AI/tool/agent attribution');
   }
   return { valid: errors.length === 0, errors };
+}
+
+// Commit do Dependabot tạo (kể cả sau khi squash-merge vào `dev`): header `bump`
+// với scope deps và trailer ký tên của Dependabot. Body chứa release notes của
+// bên thứ ba nên có thể vượt độ dài dòng hoặc nhắc tên công cụ AI.
+const DEPENDABOT_HEADER = /^(chore|ci)\(deps(-dev)?\): bump /;
+const DEPENDABOT_SIGNOFF = /^Signed-off-by: dependabot\[bot\] <support@github\.com>$/m;
+
+export function isDependabotCommit(message) {
+  const normalized = (message ?? '').replace(/\r/g, '');
+  return DEPENDABOT_HEADER.test(normalized) && DEPENDABOT_SIGNOFF.test(normalized);
 }
 
 export function validatePullRequestBody(body) {
@@ -47,9 +55,7 @@ export function validatePullRequestBody(body) {
 
   const ticked = normalized
     .split('\n')
-    .filter((line) =>
-      new RegExp(`^- \\[[xX]\\] ${PR_TYPE_VALUES}$`).test(line),
-    ).length;
+    .filter((line) => new RegExp(`^- \\[[xX]\\] ${PR_TYPE_VALUES}$`).test(line)).length;
   if (ticked !== 1) {
     errors.push(`Tick exactly one PR Type checkbox (found ${ticked})`);
   }
@@ -66,19 +72,13 @@ export function validatePullRequestBody(body) {
     if (!/^- \[[xX]\] Code review: .+/m.test(text)) {
       errors.push('Record the code-review outcome under ## 5. Verification');
     }
-    if (
-      /Code review:.*(chưa chạy|không chạy|bỏ qua|skip(ped)?|not run|pending)/i.test(
-        text,
-      )
-    ) {
+    if (/Code review:.*(chưa chạy|không chạy|bỏ qua|skip(ped)?|not run|pending)/i.test(text)) {
       errors.push('Code review outcome says review was skipped or not run');
     }
   }
 
   if (AI_ATTRIBUTION.test(normalized)) {
-    errors.push(
-      'PR body không được chứa AI/tool/agent attribution',
-    );
+    errors.push('PR body không được chứa AI/tool/agent attribution');
   }
 
   return { valid: errors.length === 0, errors };
@@ -100,11 +100,7 @@ async function main() {
   }
 
   const result =
-    kind === 'pr'
-      ? validatePullRequestBody(content)
-      : kind === 'commit'
-        ? validateCommitMessage(content)
-        : null;
+    kind === 'pr' ? validatePullRequestBody(content) : kind === 'commit' ? validateCommitMessage(content) : null;
 
   if (!result) {
     console.error(`Unknown policy kind: ${kind}`);
