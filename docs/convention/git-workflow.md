@@ -332,6 +332,7 @@ Node theo `.nvmrc` (`nvm use`).
 - `ci.yml` — chạy trên mọi PR và push vào `dev`/`main`: kiểm tra agent config, commit-message policy, lint, typecheck, unit test + coverage, e2e trên Postgres và schema/migration drift, OpenAPI contract, Markdown link, build và Docker build.
 - `pr-title.yml` — tiêu đề PR phải theo Conventional Commits, vì Squash and Merge dùng nó làm commit message.
 - `pr-body.yml` — kiểm tra cấu trúc PR body và yêu cầu ghi kết quả code review.
+- `openapi-version.yml` — khi `docs/openapi/openapi.json` thay đổi trên `dev`, tự gắn tag `openapi-vX.Y.Z` rồi gọi `openapi-release.yml` để phát hành. `scripts/next-contract-version.sh` chọn số: thay đổi breaking (theo `oasdiff`) tăng minor, thay đổi khác tăng patch. **Không gắn tag `openapi-v*` bằng tay sau khi merge**; chỉ dùng `workflow_dispatch` của `openapi-release.yml` để phát hành lại một tag có sẵn.
 - Dependabot (`.github/dependabot.yml`) — mở PR cập nhật `npm`, GitHub Actions, `Dockerfile`, Docker Compose vào `dev` hằng tuần. `pr-body.yml` bỏ qua PR do `dependabot[bot]` tạo. `commitlint` bỏ qua commit Dependabot (header `chore|ci(deps…): bump` kèm trailer `Signed-off-by: dependabot[bot]`, xem `isDependabotCommit` trong `scripts/git-policy.mjs`), kể cả sau khi squash-merge; khi sửa message squash, giữ nguyên header và trailer đó.
 
 Template: `.github/pull_request_template.md`. Task theo dõi ở `docs/plan/`.
