@@ -18,7 +18,7 @@ const POSTMAN_API = 'https://api.getpostman.com';
 
 // SWAGGER_PATH trong src/bootstrap/openapi.ts quyết định path này — JSON
 // spec luôn nằm ở `{path}-json`, không phải `/api-json` mặc định của Nest.
-const OPENAPI_URL = process.env.OPENAPI_URL || 'http://localhost:3000/docs-json';
+const OPENAPI_URL = process.env.OPENAPI_URL || 'http://localhost:8080/docs-json';
 const POSTMAN_API_KEY = process.env.POSTMAN_API_KEY;
 const POSTMAN_COLLECTION_ID = process.env.POSTMAN_COLLECTION_ID;
 // Tuỳ chọn: workspace chứa collection tạm. Bỏ trống → Postman dùng workspace
