@@ -27,8 +27,6 @@ jobs:
       - run: npm run git-policy:test
 
   commit-message-policy:
-    # Commit body của Dependabot vượt body-max-line-length (link release notes).
-    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

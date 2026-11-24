@@ -40,5 +40,5 @@ Vui lòng không công khai chi tiết lỗ hổng trước khi bản vá đư�
 
 ## Dependency Updates
 
-Dependabot theo dõi `npm`, GitHub Actions và Docker; bản cập nhật được mở
-thành PR vào nhánh `dev`.
+Dependabot theo dõi `npm`, GitHub Actions, `Dockerfile` và Docker Compose;
+bản cập nhật được mở thành PR vào nhánh `dev`.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { validateCommitMessage, validatePullRequestBody } from './git-policy.mjs';
+import { isDependabotCommit, validateCommitMessage, validatePullRequestBody } from './git-policy.mjs';
 
 test('rejects AI attribution in commit messages', () => {
   const result = validateCommitMessage(
@@ -13,20 +13,13 @@ test('rejects AI attribution in commit messages', () => {
 });
 
 test('rejects additional AI attribution trailer variants', () => {
-  for (const trailer of [
-    'Assisted-by: Copilot',
-    'Reviewed-by: Claude',
-    'Generated-by: Codex',
-  ]) {
+  for (const trailer of ['Assisted-by: Copilot', 'Reviewed-by: Claude', 'Generated-by: Codex']) {
     assert.equal(validateCommitMessage(`chore(agent): improve guardrails\n\n${trailer}\n`).valid, false);
   }
 });
 
 test('rejects AI tool names in commit subjects and bodies', () => {
-  for (const message of [
-    'feat: update Claude integration',
-    'chore: refactor\n\nCopilot implementation notes',
-  ]) {
+  for (const message of ['feat: update Claude integration', 'chore: refactor\n\nCopilot implementation notes']) {
     assert.equal(validateCommitMessage(message).valid, false);
   }
 });
@@ -96,4 +89,27 @@ test('accepts the template without an optional section 6', () => {
 `;
 
   assert.deepEqual(validatePullRequestBody(body), { valid: true, errors: [] });
+});
+
+const DEPENDABOT_SIGNOFF = 'Signed-off-by: dependabot[bot] <support@github.com>';
+
+test('recognises Dependabot commits, including squash-merged ones', () => {
+  for (const message of [
+    `chore(deps): bump openai from 4.52.0 to 4.53.0\n\nBumps openai.\n\n${DEPENDABOT_SIGNOFF}\n`,
+    `chore(deps-dev): bump vitest from 3.0.0 to 3.1.0 (#140)\r\n\r\n${DEPENDABOT_SIGNOFF}\r\n`,
+    `ci(deps): bump the actions-minor-patch group with 2 updates\n\n${DEPENDABOT_SIGNOFF}`,
+  ]) {
+    assert.equal(isDependabotCommit(message), true, message);
+  }
+});
+
+test('does not treat other commits as Dependabot commits', () => {
+  for (const message of [
+    'chore(deps): bump openai from 4.52.0 to 4.53.0',
+    `feat: update Claude integration\n\n${DEPENDABOT_SIGNOFF}`,
+    `chore(deps): update lockfile\n\n${DEPENDABOT_SIGNOFF}`,
+    '',
+  ]) {
+    assert.equal(isDependabotCommit(message), false, message);
+  }
 });
