@@ -98,6 +98,7 @@
     "deepmerge-ts": "^8.0.2",
     "mysql2": "^3.24.3",
     "multer": "^2.3.0",
+    "effect": "^3.22.1",
     "@nestjs/cli": {
       "minimatch": "^11.0.1"
     }
