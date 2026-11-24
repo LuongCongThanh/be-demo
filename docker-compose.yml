@@ -34,7 +34,7 @@ services:
   api:
     build: .
     ports:
-      - '3000:3000'
+      - '8080:8080'
     environment:
       DATABASE_URL: postgresql://nestjs_demo:nestjs_demo@postgres:5432/nestjs_demo
       JWT_ACCESS_SECRET: local-dev-secret-change-me-32-chars-min
