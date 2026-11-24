@@ -78,7 +78,7 @@ function outcome(agent: Agent, event: Event, { toolName, payload }: ToolCall): O
     const result = spawnSync('bash', ['-c', command], {
       cwd: repoRoot,
       encoding: 'utf8',
-      env: { ...process.env, SKIP_PR_VERIFY: '1' },
+      env: { ...process.env, SKIP_PR_VERIFY: '1', ...FEATURE_BRANCH_GIT_ENV },
       input: JSON.stringify({ hook_event_name: event, cwd: repoRoot, ...(payload as object) }),
     });
     if (result.status === 2 || isDenyOutput(result.stdout)) return 'block';
@@ -114,6 +114,37 @@ function edit(agent: Agent, ...filePaths: string[]): ToolCall {
 
 const fixtureDir = mkdtempSync(join(tmpdir(), 'hook-parity-'));
 afterAll(() => rmSync(fixtureDir, { recursive: true, force: true }));
+
+// The git-workflow hook blocks every commit/push while the checkout is on a
+// protected branch, so CI on a push to `dev` would see `block` where a feature
+// branch sees `allow`. Pin the branch the hooks observe: GIT_DIR points at a
+// throwaway repo on `chore/test`, GIT_WORK_TREE keeps the real repository files.
+const featureBranchRepo = join(fixtureDir, 'feature-branch-repo');
+// Git hooks (e.g. pre-push from a linked worktree) export GIT_DIR; drop it so
+// the fixture repo is created where intended.
+const gitEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+for (const args of [
+  ['init', '-q', '-b', 'chore/test', featureBranchRepo],
+  [
+    '-C',
+    featureBranchRepo,
+    '-c',
+    'user.name=hook-parity',
+    '-c',
+    'user.email=hook-parity@example.com',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-q',
+    '--allow-empty',
+    '-m',
+    'init',
+  ],
+]) {
+  const result = spawnSync('git', args, { encoding: 'utf8', env: gitEnv });
+  if (result.status !== 0) throw new Error(`git ${args.join(' ')} failed: ${result.stderr}`);
+}
+const FEATURE_BRANCH_GIT_ENV = { GIT_DIR: join(featureBranchRepo, '.git'), GIT_WORK_TREE: repoRoot };
 
 const controllerWithoutSummary = join(fixtureDir, 'widgets.controller.ts');
 writeFileSync(
