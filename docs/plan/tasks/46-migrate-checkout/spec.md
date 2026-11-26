@@ -19,6 +19,8 @@ blocked-by:
 
 **Hình đích minh họa:** [cây toàn `src/modules`](../../wayfinding/src-wide-architecture-standard/assets/02-src-modules-target-tree.md). Đây là minh họa; tên file chính xác chốt theo code lúc làm.
 
+> **Lưu ý:** Task 29 (thanh toán online, PR #129) đã hợp nhất trước task này. Đo lại số dòng của `checkout.service.ts` và chuyển luôn luồng đặt đơn online (`place-online-order`, giữ hàng, gọi module `payment`) theo cùng kiến trúc. Module `payment` chưa có task chuyển đổi riêng trong 38–49.
+
 ## Đọc trước khi làm (bắt buộc với mọi agent: Claude Code, Codex, Copilot)
 
 1. Rule kiến trúc: [`.claude/rules/module-architecture.md`](../../../../.claude/rules/module-architecture.md) và quyết định [ADR 0015](../../../adr/0015-one-layered-architecture-for-every-module.md).

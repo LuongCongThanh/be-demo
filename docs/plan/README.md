@@ -58,7 +58,7 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 26  | [Giỏ hàng Buyer và gộp giỏ](./tasks/26-buyer-cart/spec.md)                                                                              | done       | 17-access-admin-api, 24-category-content                                                 | #118      |
 | 27  | [Tồn kho và điều chỉnh Staff](./tasks/27-inventory-availability/spec.md)                                                                | done       | 26-buyer-cart                                                                            | #119      |
 | 28  | [Tính thử và đặt đơn COD](./tasks/28-cod-checkout/spec.md)                                                                              | done       | —                                                                                        | #120      |
-| 29  | [Thanh toán online và đối soát](./tasks/29-online-payment/spec.md)                                                                      | todo       | 28-cod-checkout, 46-migrate-checkout                                                     |           |
+| 29  | [Thanh toán online và đối soát](./tasks/29-online-payment/spec.md)                                                                      | done       | 28-cod-checkout                                                                          | #129      |
 | 30  | [Tra cứu và xem đơn Buyer](./tasks/30-buyer-order-access/spec.md)                                                                       | todo       | 28-cod-checkout                                                                          |           |
 | 31  | [Huỷ đơn Buyer và hoàn nghĩa vụ](./tasks/31-buyer-cancellation/spec.md)                                                                 | todo       | 28-cod-checkout, 29-online-payment                                                       |           |
 | 32  | [Vận đơn GHN và đối soát giao hàng](./tasks/32-ghn-fulfillment/spec.md)                                                                 | todo       | 28-cod-checkout, 29-online-payment                                                       |           |
@@ -86,11 +86,11 @@ Nhiệm vụ 17 đã hoàn tất closure: PR #83 đã hợp nhất phần API RB
 
 ## Thứ tự tiếp tục công việc
 
-**Chuyển đổi kiến trúc (task 38–49)** theo map [Chuẩn kiến trúc thống nhất cho toàn `src/modules`](./wayfinding/src-wide-architecture-standard/map.md) và [ADR 0015](../adr/0015-one-layered-architecture-for-every-module.md): làm trước các task tính năng đụng tới module đó (task 29 chờ 46, task 33 chờ 41). Thứ tự: 38 → 39 → 40 → (41, 42, 43, 47 song song) → 44 → (45, 46, 48) → 49.
+**Chuyển đổi kiến trúc (task 38–49)** theo map [Chuẩn kiến trúc thống nhất cho toàn `src/modules`](./wayfinding/src-wide-architecture-standard/map.md) và [ADR 0015](../adr/0015-one-layered-architecture-for-every-module.md): làm trước các task tính năng đụng tới module đó (task 33 chờ 41). Task 29 đã hợp nhất trước qua PR #129, nên task 46 phải chuyển cả phần thanh toán online trong `checkout` và module `payment`. Thứ tự: 38 → 39 → 40 → (41, 42, 43, 47 song song) → 44 → (45, 46, 48) → 49.
 
-Đối chiếu theo báo cáo nhiệm vụ và các PR hiện tại vào ngày 2026-11-22:
+Đối chiếu theo báo cáo nhiệm vụ và các PR hiện tại vào ngày 2026-11-23:
 
-1. **Đã hoàn thành:** nhiệm vụ 01–10, 12–16, 18–24, 26–28 và 37. Các PR/closure được ghi riêng theo từng nhiệm vụ.
+1. **Đã hoàn thành:** nhiệm vụ 01–10, 12–16, 18–24, 26–29 và 37. Các PR/closure được ghi riêng theo từng nhiệm vụ.
 2. **Nhiệm vụ 17:** đã hoàn tất closure tạo Admin duy nhất; PR API #83 và PR tài liệu/closure #115.
 3. **Nhiệm vụ 24:** ticket BE 01–03 về locale, backfill và biên tập bản dịch đã hoàn tất; PR #98 đã hợp nhất, PR tài liệu closure #116 đang mở.
 4. **Nhiệm vụ 26:** Giỏ hàng Guest/Customer, effective price và gộp giỏ đã được triển khai trong PR #118.
@@ -100,6 +100,7 @@ Nhiệm vụ 17 đã hoàn tất closure: PR #83 đã hợp nhất phần API RB
 8. **Nhiệm vụ 11 vẫn `todo` và được hoãn:** trước khi bắt đầu cần chọn nhánh triển khai, cách chạy chuyển đổi cơ sở dữ liệu và cấu hình môi trường, đồng thời chuẩn bị thông tin truy cập Render/Neon.
 9. Sau các đầu việc BE của nhiệm vụ 24, cần lập kế hoạch riêng để cập nhật CMS/cửa hàng và triển khai chuyển đổi cơ sở dữ liệu/bản dịch. Đây là phần tích hợp tiếp theo, chưa được tính là hoàn thành trong phạm vi BE hiện tại.
 10. Task 28 đã triển khai như một vertical slice độc lập: quote nhận danh sách dòng trực tiếp; tích hợp Cart từ task 26, GHN và cấu hình vận hành tiếp tục là phần mở rộng.
+11. Task 29 đã triển khai thanh toán VNPay/MoMo, IPN, đối soát định kỳ và xử lý giữ hàng/hoàn tiền; UAT sandbox chưa chạy vì chưa có merchant credentials hợp lệ.
 
 ### Mức độ xác nhận
 

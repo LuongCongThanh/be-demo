@@ -655,6 +655,27 @@
         ],
         "type": "object"
       },
+      "CreatePaymentAttemptDto": {
+        "properties": {
+          "gateway": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentGateway"
+              }
+            ],
+            "example": "VNPAY"
+          },
+          "quoteId": {
+            "example": "0193e4d4-0b53-7a8b-9f2d-c2a4dcab249f",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quoteId",
+          "gateway"
+        ],
+        "type": "object"
+      },
       "CreateProductDto": {
         "properties": {
           "categoryId": {
@@ -1393,6 +1414,41 @@
         ],
         "type": "object"
       },
+      "PaymentGateway": {
+        "enum": [
+          "VNPAY",
+          "MOMO"
+        ],
+        "type": "string"
+      },
+      "PaymentLinkResponseDto": {
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "gateway": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentGateway"
+              }
+            ]
+          },
+          "paymentId": {
+            "type": "string"
+          },
+          "paymentUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "paymentId",
+          "gateway",
+          "paymentUrl",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
       "PaymentMethod": {
         "enum": [
           "COD",
@@ -1441,6 +1497,18 @@
         "type": "object"
       },
       "PlaceCodOrderDto": {
+        "properties": {
+          "quoteId": {
+            "example": "0193e4d4-0b53-7a8b-9f2d-c2a4dcab249f",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quoteId"
+        ],
+        "type": "object"
+      },
+      "PlaceOnlineOrderDto": {
         "properties": {
           "quoteId": {
             "example": "0193e4d4-0b53-7a8b-9f2d-c2a4dcab249f",
@@ -9665,6 +9733,211 @@
         ]
       }
     },
+    "/api/v1/checkout/orders/ONLINE": {
+      "post": {
+        "operationId": "CheckoutController_placeOnline_v1",
+        "parameters": [
+          {
+            "description": "Unique key for this placement request; reusing it with a different body returns 409",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceOnlineOrderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacedOrderResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Quote not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Quote changed, expired, or stock unavailable"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "Place an online order and reserve inventory for fifteen minutes",
+        "tags": [
+          "Storefront — Checkout"
+        ]
+      }
+    },
+    "/api/v1/checkout/payments": {
+      "post": {
+        "operationId": "CheckoutController_createPaymentAttempt_v1",
+        "parameters": [
+          {
+            "description": "Reusing a key with a different quote or gateway returns 409",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentAttemptDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentLinkResponseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Invalid input (validation failed or malformed id)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Missing, invalid, or expired access token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Authenticated user lacks the required permission or account type"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Online order not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Order is not payable or retry window closed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            },
+            "description": "Rate limit exceeded — retry after the window resets"
+          }
+        },
+        "summary": "Create or replay an idempotent VNPay or MoMo payment attempt for a placed online order",
+        "tags": [
+          "Storefront — Checkout",
+          "Storefront — Payments"
+        ]
+      }
+    },
     "/api/v1/checkout/quote": {
       "post": {
         "operationId": "CheckoutController_quote_v1",
@@ -10663,8 +10936,12 @@
       "name": "Storefront — Products"
     },
     {
-      "description": "Short-lived checkout quotes and idempotent COD order placement for guests and customers",
+      "description": "Short-lived checkout quotes and idempotent COD/online order placement for guests and customers",
       "name": "Storefront — Checkout"
+    },
+    {
+      "description": "VNPay/MoMo payment attempts, verified provider notifications and reconciliation",
+      "name": "Storefront — Payments"
     },
     {
       "description": "Product and variant management — writes gated to ADMIN",

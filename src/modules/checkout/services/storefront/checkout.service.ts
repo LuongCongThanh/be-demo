@@ -22,9 +22,12 @@ import type { CreateCheckoutQuoteDto } from '#src/modules/checkout/dto/storefron
 import type { CheckoutQuoteResponseDto } from '#src/modules/checkout/dto/storefront/checkout-quote-response.dto.js';
 import type { PlacedOrderResponseDto } from '#src/modules/checkout/dto/storefront/placed-order-response.dto.js';
 import type { PlaceCodOrderDto } from '#src/modules/checkout/dto/storefront/place-cod-order.dto.js';
+import type { PlaceOnlineOrderDto } from '#src/modules/checkout/dto/storefront/place-online-order.dto.js';
 
-const IDEMPOTENCY_SCOPE = 'checkout.place-order';
+const COD_IDEMPOTENCY_SCOPE = 'checkout.place-order';
+const ONLINE_IDEMPOTENCY_SCOPE = 'checkout.place-online-order';
 const ORDER_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ONLINE_RESERVATION_TTL_MS = 15 * 60 * 1000;
 
 interface CheckoutInput {
   items: { variantId: string; quantity: number }[];
@@ -114,17 +117,35 @@ export class CheckoutService {
     idempotencyKey: string | undefined,
     userId?: string,
   ): Promise<PlacedOrderResponseDto> {
+    return this.placeOrder(dto, idempotencyKey, userId, PaymentMethod.COD);
+  }
+
+  async placeOnline(
+    dto: PlaceOnlineOrderDto,
+    idempotencyKey: string | undefined,
+    userId?: string,
+  ): Promise<PlacedOrderResponseDto> {
+    return this.placeOrder(dto, idempotencyKey, userId, PaymentMethod.ONLINE);
+  }
+
+  private async placeOrder(
+    dto: PlaceCodOrderDto | PlaceOnlineOrderDto,
+    idempotencyKey: string | undefined,
+    userId: string | undefined,
+    paymentMethod: PaymentMethod,
+  ): Promise<PlacedOrderResponseDto> {
     const key = normalizeIdempotencyKey(idempotencyKey);
     const requestHash = fingerprint({ body: dto, userId: userId ?? null });
+    const idempotencyScope = paymentMethod === PaymentMethod.COD ? COD_IDEMPOTENCY_SCOPE : ONLINE_IDEMPOTENCY_SCOPE;
     const previous = await this.prisma.idempotencyKey.findFirst({
-      where: { scope: IDEMPOTENCY_SCOPE, key },
+      where: { scope: idempotencyScope, key },
     });
     if (previous) return this.replay(previous.requestHash, requestHash, previous.response);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
         await tx.idempotencyKey.create({
-          data: { scope: IDEMPOTENCY_SCOPE, key, requestHash },
+          data: { scope: idempotencyScope, key, requestHash },
         });
 
         const quoteLocks = await tx.$queryRaw<{ id: string }[]>`
@@ -152,18 +173,28 @@ export class CheckoutService {
           throw new ConflictException('Price, stock, voucher, or shipping changed; request a new quote');
         }
         if (calculation.total <= 0) throw new ConflictException('Order total must be greater than zero');
-        if (calculation.total > DEFAULT_COD_LIMIT) {
+        if (paymentMethod === PaymentMethod.COD && calculation.total > DEFAULT_COD_LIMIT) {
           throw new ConflictException(`COD is unavailable above ${DEFAULT_COD_LIMIT} VND`);
         }
 
+        const placedAt = new Date();
         for (const line of calculation.lines) {
-          const updated = await tx.inventory.updateMany({
-            where: {
-              variantId: line.variantId,
-              quantity: { gte: line.quantity + line.reservedQuantity },
-            },
-            data: { quantity: { decrement: line.quantity } },
-          });
+          const updated =
+            paymentMethod === PaymentMethod.COD
+              ? await tx.inventory.updateMany({
+                  where: {
+                    variantId: line.variantId,
+                    quantity: { gte: line.quantity + line.reservedQuantity },
+                  },
+                  data: { quantity: { decrement: line.quantity } },
+                })
+              : await tx.inventory.updateMany({
+                  where: {
+                    variantId: line.variantId,
+                    quantity: { gte: line.quantity + line.reservedQuantity },
+                  },
+                  data: { reservedQuantity: { increment: line.quantity } },
+                });
           if (updated.count !== 1) throw new ConflictException(`Insufficient stock for variant ${line.variantId}`);
         }
 
@@ -172,8 +203,8 @@ export class CheckoutService {
             orderNumber: newOrderNumber(),
             quoteId: quote.id,
             userId: quote.userId,
-            status: OrderStatus.PLACED,
-            paymentMethod: PaymentMethod.COD,
+            status: paymentMethod === PaymentMethod.COD ? OrderStatus.PLACED : OrderStatus.PENDING_PAYMENT,
+            paymentMethod,
             contactName: input.contactName,
             contactPhone: input.contactPhone,
             contactEmail: input.contactEmail ?? null,
@@ -186,6 +217,7 @@ export class CheckoutService {
             shippingFeeFallback: calculation.shippingFeeFallback,
             total: BigInt(calculation.total),
             totalWeightGrams: calculation.totalWeightGrams,
+            placedAt,
             items: {
               create: buildOrderItems(calculation.lines, calculation.discount),
             },
@@ -202,13 +234,36 @@ export class CheckoutService {
             placedAt: true,
           },
         });
-        await tx.awaitingDispatchItem.createMany({
-          data: calculation.lines.map((line) => ({
-            orderId: order.id,
-            variantId: line.variantId,
-            quantity: line.quantity,
-          })),
-        });
+        if (paymentMethod === PaymentMethod.COD) {
+          await tx.awaitingDispatchItem.createMany({
+            data: calculation.lines.map((line) => ({
+              orderId: order.id,
+              variantId: line.variantId,
+              quantity: line.quantity,
+            })),
+          });
+        } else {
+          await tx.inventoryReservation.createMany({
+            data: calculation.lines.map((line) => ({
+              orderId: order.id,
+              variantId: line.variantId,
+              quantity: line.quantity,
+              expiresAt: new Date(placedAt.getTime() + ONLINE_RESERVATION_TTL_MS),
+            })),
+          });
+          await tx.inventoryMovement.createMany({
+            data: calculation.lines.map((line) => ({
+              variantId: line.variantId,
+              actorUserId: null,
+              reason: `Giữ hàng cho đơn online: ${order.orderNumber}`,
+              quantityDelta: 0,
+              beforeQuantity: line.availableQuantity + line.reservedQuantity,
+              afterQuantity: line.availableQuantity + line.reservedQuantity,
+              beforeReserved: line.reservedQuantity,
+              afterReserved: line.reservedQuantity + line.quantity,
+            })),
+          });
+        }
 
         if (calculation.voucher) {
           await tx.voucher.update({
@@ -228,7 +283,7 @@ export class CheckoutService {
 
         const response = toOrderResponse(order);
         await tx.idempotencyKey.update({
-          where: { scope_key: { scope: IDEMPOTENCY_SCOPE, key } },
+          where: { scope_key: { scope: idempotencyScope, key } },
           data: { responseStatus: 201, response: asJson(response) },
         });
         return response;
@@ -236,7 +291,7 @@ export class CheckoutService {
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         const idempotencyRecord = await this.prisma.idempotencyKey.findFirst({
-          where: { scope: IDEMPOTENCY_SCOPE, key },
+          where: { scope: idempotencyScope, key },
         });
         if (idempotencyRecord)
           return this.replay(idempotencyRecord.requestHash, requestHash, idempotencyRecord.response);
@@ -374,6 +429,7 @@ async function findVoucher(
     const usageCount = await db.voucherUsage.count({
       where: {
         voucherId: voucher.id,
+        releasedAt: null,
         OR: [{ phone: input.contactPhone }, ...(userId ? [{ userId }] : [])],
       },
     });
