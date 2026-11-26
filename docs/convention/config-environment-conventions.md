@@ -78,12 +78,12 @@ ConfigModule.forRoot({ isGlobal: true, validate });
 
 Kết quả: **thiếu hoặc sai định dạng 1 biến bắt buộc → app throw ngay lúc `NestFactory.create()`, không boot lên được** — thay vì boot thành công rồi lỗi `undefined`/`500` khi có request đầu tiên chạm tới biến đó (thường là ở production, lúc dở khóc dở cười nhất).
 
-> `enableImplicitConversion: true` khiến `class-transformer` tự chuyển kiểu theo type khai trong class (vd. `PORT?: number` → chuỗi `"3000"` từ `../../.env` được convert thành số `3000`) — nhờ vậy `ConfigService.get('PORT', 3000)` trả về `number` thật, không phải string.
+> `enableImplicitConversion: true` khiến `class-transformer` tự chuyển kiểu theo type khai trong class (vd. `PORT?: number` → chuỗi `"8080"` từ `../../.env` được convert thành số `8080`) — nhờ vậy `ConfigService.get('PORT', 8080)` trả về `number` thật, không phải string.
 
 ## 4. Biến bắt buộc vs biến optional
 
 - **Bắt buộc** (không có `@IsOptional()` trong `EnvironmentVariables`): app **không có cách nào chạy đúng** nếu thiếu — vd. `DATABASE_URL`, `JWT_ACCESS_SECRET`, `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD`.
-- **Optional có default** (`@IsOptional()` trong class + `config.get(key, defaultValue)` ở nơi dùng): app chạy được nếu thiếu, dùng default hợp lý — vd. `PORT` (default `3000`), `SMTP_*` (thiếu cả 4 → mail service tự chuyển sang chế độ chỉ log, không gửi thật), `FRONTEND_URL` (default `http://localhost:3000`).
+- **Optional có default** (`@IsOptional()` trong class + `config.get(key, defaultValue)` ở nơi dùng): app chạy được nếu thiếu, dùng default hợp lý — vd. `PORT` (default `8080`), `SMTP_*` (thiếu cả 4 → mail service tự chuyển sang chế độ chỉ log, không gửi thật), `FRONTEND_URL` (default `http://localhost:3000`).
 - **Không thuộc `EnvironmentVariables`**: biến chỉ dùng bởi script/tool chạy **ngoài** vòng đời NestJS app, không qua `ConfigModule` — vd. `POSTMAN_API_KEY`/`POSTMAN_COLLECTION_ID` (chỉ dùng trong `../../scripts/sync-postman-collection.ts`, script tự đọc `.env` riêng qua `dotenv`, không phải `ConfigService`).
 
 Khi thêm biến mới, tự hỏi: "Thiếu biến này thì app có chạy sai/crash ở nhánh code quan trọng không?" — có thì bắt buộc, không thì optional + default rõ ràng tại nơi dùng.

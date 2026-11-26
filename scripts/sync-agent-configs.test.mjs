@@ -5,9 +5,12 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
+  checkCopilotHookSource,
   checkHookRegistrations,
+  checkFileScopedRules,
+  checkMcpServers,
   checkMirrors,
-  checkSharedWorkflowEntrypoints,
+  checkSharedFlows,
   syncMirrors,
   watchMirrors,
 } from './sync-agent-configs.mjs';
@@ -48,7 +51,10 @@ async function waitFor(predicate, timeoutMs = 3000) {
 test('checked-in agent mirrors and native hook registrations are consistent', async () => {
   assert.deepEqual(await checkMirrors(repoRoot), []);
   assert.deepEqual(await checkHookRegistrations(repoRoot), []);
-  assert.deepEqual(await checkSharedWorkflowEntrypoints(repoRoot), []);
+  assert.deepEqual(await checkCopilotHookSource(repoRoot), []);
+  assert.deepEqual(await checkMcpServers(repoRoot), []);
+  assert.deepEqual(await checkFileScopedRules(repoRoot), []);
+  assert.deepEqual(await checkSharedFlows(repoRoot), []);
 });
 
 test('watch starts only when the checked-in native hook registrations match', async () => {
@@ -75,7 +81,6 @@ test('check rejects a hook registration removed from one native config', async (
   const configurations = [
     { path: '.claude/settings.json', hooks: '.claude/hooks' },
     { path: '.codex/hooks.json', hooks: '.codex/hooks' },
-    { path: '.github/hooks/hooks.json', hooks: '.github/hooks/scripts' },
   ];
   const hookNames = [
     'after-pr-create.sh',
@@ -211,4 +216,214 @@ test('watch refuses conflicting simultaneous edits without overwriting either', 
   assert.equal(await readFile(source, 'utf8'), 'source edit\n');
   assert.equal(await readFile(codex, 'utf8'), 'different Codex edit\n');
   assert.equal(await readFile(github, 'utf8'), 'initial policy\n');
+});
+
+async function createFlowFixture() {
+  const root = await createTestRoot('flows');
+  const write = async (path, content) => {
+    await mkdir(dirname(join(root, path)), { recursive: true });
+    await writeFile(join(root, path), content);
+  };
+  for (const name of ['feature', 'ship']) {
+    await write(
+      `docs/agents/flows/${name}.md`,
+      `---\nskills: [tdd]\n---\n\nFollow docs/agents/execution-workflow.md, then call \`tdd\`.\n`,
+    );
+    await write(`.agents/skills/${name}/SKILL.md`, `Follow docs/agents/flows/${name}.md.\n`);
+  }
+  await write('.agents/skills/tdd/SKILL.md', 'tdd\n');
+  return { root, write };
+}
+
+test('shared flows pass when every entry skill points at its flow and named skills are vendored', async (context) => {
+  const { root } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await checkSharedFlows(root), []);
+});
+
+test('shared flows reject a flow that names a skill missing from .agents/skills', async (context) => {
+  const { root, write } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await write(
+    'docs/agents/flows/feature.md',
+    '---\nskills: [tdd, grill-with-docs]\n---\n\ndocs/agents/execution-workflow.md\n',
+  );
+  const errors = await checkSharedFlows(root);
+  assert.ok(errors.some((error) => error.includes('docs/agents/flows/feature.md names skill grill-with-docs')));
+});
+
+test('shared flows reject an entry skill that does not reference its flow', async (context) => {
+  const { root, write } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await write('.agents/skills/ship/SKILL.md', 'Do the shipping steps here.\n');
+  const errors = await checkSharedFlows(root);
+  assert.ok(
+    errors.some((error) => error.includes('.agents/skills/ship/SKILL.md must reference docs/agents/flows/ship.md')),
+  );
+});
+
+test('shared flows reject a missing flow document', async (context) => {
+  const { root } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await rm(join(root, 'docs/agents/flows/ship.md'));
+  const errors = await checkSharedFlows(root);
+  assert.ok(errors.some((error) => error.includes('Missing shared flow: docs/agents/flows/ship.md')));
+});
+
+test('shared flows reject a Claude-only command that would shadow the shared skill', async (context) => {
+  const { root, write } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await write('.claude/commands/feature.md', 'Claude-only feature workflow\n');
+  const errors = await checkSharedFlows(root);
+  assert.ok(errors.some((error) => error.includes('.claude/commands/feature.md')));
+});
+
+test('shared flows reject a flow without a skills frontmatter list', async (context) => {
+  const { root, write } = await createFlowFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await write('docs/agents/flows/ship.md', '# Ship\n\ndocs/agents/execution-workflow.md\n');
+  const errors = await checkSharedFlows(root);
+  assert.ok(errors.some((error) => error.includes('docs/agents/flows/ship.md must declare its skills')));
+});
+
+test('check rejects repository hooks under .github/hooks because Copilot already runs .claude/settings.json', async (context) => {
+  const root = await createTestRoot('copilot-hooks');
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(join(root, '.github/hooks'), { recursive: true });
+  await writeFile(join(root, '.github/hooks/hooks.json'), '{"version":1,"hooks":{}}');
+  const errors = await checkCopilotHookSource(root);
+  assert.ok(errors.some((error) => error.includes('.github/hooks/hooks.json')));
+});
+
+test('check accepts a repository without .github/hooks', async (context) => {
+  const root = await createTestRoot('copilot-hooks-none');
+  context.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await checkCopilotHookSource(root), []);
+});
+
+async function writeFixture(root, path, content) {
+  await mkdir(dirname(join(root, path)), { recursive: true });
+  await writeFile(join(root, path), content);
+}
+
+async function createMcpFixture(names = ['context7', 'playwright']) {
+  const root = await createTestRoot('mcp');
+  await writeFixture(
+    root,
+    '.mcp.json',
+    JSON.stringify({ mcpServers: Object.fromEntries(names.map((name) => [name, { command: 'npx' }])) }),
+  );
+  await writeFixture(
+    root,
+    '.vscode/mcp.json',
+    JSON.stringify({ servers: Object.fromEntries(names.map((name) => [name, { type: 'stdio', command: 'npx' }])) }),
+  );
+  await writeFixture(
+    root,
+    '.codex/config.toml',
+    names.map((name) => `[mcp_servers.${name}]\ncommand = "npx"\n`).join('\n'),
+  );
+  return root;
+}
+
+test('MCP check passes when every agent configures the same servers', async (context) => {
+  const root = await createMcpFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await checkMcpServers(root), []);
+});
+
+test('MCP check rejects a server missing from one agent', async (context) => {
+  const root = await createMcpFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, '.vscode/mcp.json', JSON.stringify({ servers: { context7: { type: 'stdio' } } }));
+  const errors = await checkMcpServers(root);
+  assert.ok(errors.some((error) => error.includes('.vscode/mcp.json') && error.includes('playwright')));
+});
+
+test('MCP check rejects a missing agent MCP config', async (context) => {
+  const root = await createMcpFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await rm(join(root, '.codex/config.toml'));
+  const errors = await checkMcpServers(root);
+  assert.ok(errors.some((error) => error.includes('.codex/config.toml')));
+});
+
+async function createRulesFixture() {
+  const root = await createTestRoot('rules');
+  await writeFixture(root, '.claude/rules/api.md', "---\npaths:\n  - 'src/**/*.ts'\n---\n\nAPI rules\n");
+  await writeFixture(root, '.claude/rules/git.md', 'Always-on rule without paths\n');
+  await writeFixture(
+    root,
+    '.github/instructions/api.instructions.md',
+    "---\napplyTo: 'src/**/*.ts'\n---\n\nRead [rules](../../.claude/rules/api.md).\n",
+  );
+  await writeFixture(root, 'src/AGENTS.md', 'Read [rules](../.claude/rules/api.md).\n');
+  return root;
+}
+
+test('file-scoped rule check passes when every scoped rule reaches Copilot and Codex', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await checkFileScopedRules(root), []);
+});
+
+test('file-scoped rule check rejects a scoped rule no nested AGENTS.md references', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, 'src/AGENTS.md', 'No rule links here.\n');
+  const errors = await checkFileScopedRules(root);
+  assert.ok(errors.some((error) => error.includes('.claude/rules/api.md') && error.includes('AGENTS.md')));
+});
+
+test('file-scoped rule check rejects a scoped rule no Copilot instruction references', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await rm(join(root, '.github/instructions/api.instructions.md'));
+  const errors = await checkFileScopedRules(root);
+  assert.ok(errors.some((error) => error.includes('.claude/rules/api.md') && error.includes('.github/instructions')));
+});
+
+test('MCP check reads quoted, commented, and indented Codex server tables', async (context) => {
+  const root = await createMcpFixture(['context7', 'my.server']);
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(
+    root,
+    '.codex/config.toml',
+    '  [mcp_servers.context7] # docs\ncommand = "npx"\n\n[mcp_servers."my.server"]\ncommand = "npx"\n\n[mcp_servers.context7.env]\nA = "1"\n',
+  );
+  assert.deepEqual(await checkMcpServers(root), []);
+});
+
+test('MCP check names the file whose JSON is invalid', async (context) => {
+  const root = await createMcpFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, '.vscode/mcp.json', '{ not json');
+  const errors = await checkMcpServers(root);
+  assert.ok(errors.some((error) => error.includes('Invalid .vscode/mcp.json')));
+});
+
+test('MCP check rejects configs that declare no servers at all', async (context) => {
+  const root = await createMcpFixture([]);
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const errors = await checkMcpServers(root);
+  assert.ok(errors.some((error) => error.includes('no MCP servers')));
+});
+
+test('file-scoped rule check requires the link in the AGENTS.md of every directory the rule covers', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, 'src/AGENTS.md', 'No rule links here.\n');
+  await writeFixture(root, 'test/AGENTS.md', 'Read [rules](../.claude/rules/api.md).\n');
+  const errors = await checkFileScopedRules(root);
+  assert.ok(errors.some((error) => error.includes('.claude/rules/api.md') && error.includes('src/AGENTS.md')));
+});
+
+test('file-scoped rule check ignores paths: outside the frontmatter and reads CRLF frontmatter', async (context) => {
+  const root = await createRulesFixture();
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFixture(root, '.claude/rules/body-only.md', '---\ndescription: x\n---\n\npaths: not frontmatter\n');
+  await writeFixture(root, '.claude/rules/crlf.md', "---\r\npaths:\r\n  - 'prisma/**/*'\r\n---\r\n\r\nRule\r\n");
+  const errors = await checkFileScopedRules(root);
+  assert.ok(!errors.some((error) => error.includes('body-only.md')));
+  assert.ok(errors.some((error) => error.includes('.claude/rules/crlf.md') && error.includes('prisma/AGENTS.md')));
 });

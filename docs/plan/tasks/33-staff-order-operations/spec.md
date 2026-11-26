@@ -5,13 +5,14 @@ blocked-by:
   - 27-inventory-availability
   - 32-ghn-fulfillment
   - 17-access-admin-api
+  - 41-migrate-inventory
 ---
 
 # Nghiệp vụ Staff xử lý đơn
 
 **What to build:** Staff có thể điều hành danh sách Đơn hàng, xác nhận, đóng gói, bàn giao, xử lý Cờ và huỷ hoặc hoàn tất các tình huống giao hàng hợp lệ.
 
-**Blocked by:** 27-inventory-availability, 32-ghn-fulfillment, 17-access-admin-api
+**Blocked by:** 27-inventory-availability, 32-ghn-fulfillment, 17-access-admin-api, 41-migrate-inventory
 
 **Status:** ready-for-agent
 

@@ -17,9 +17,9 @@ npm run db:seed
 npm run start:dev
 ```
 
-- API: <http://localhost:3000/api>
-- Swagger: <http://localhost:3000/docs>
-- Metrics: <http://localhost:3000/metrics>
+- API: <http://localhost:8080/api>
+- Swagger: <http://localhost:8080/docs>
+- Metrics: <http://localhost:8080/metrics>
 
 Chạy toàn bộ bằng Docker: `docker compose up --build`.
 

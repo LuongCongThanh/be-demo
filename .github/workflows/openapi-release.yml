@@ -1,7 +1,9 @@
 name: OpenAPI release
 
-# Pushing an `openapi-v*` tag creates a GitHub Release with the docs/openapi/openapi.json
-# from that tagged commit. The frontend pins the tagged asset URL through OPENAPI_URL:
+# Publishes a GitHub Release with the docs/openapi/openapi.json of a tagged commit.
+# openapi-version.yml calls it after tagging a new Contract Version on dev; pushing an
+# `openapi-v*` tag by hand or running it manually still works.
+# The CMS and Storefront pin the tagged asset URL:
 #   https://github.com/<owner>/<repo>/releases/download/<tag>/openapi.json
 on:
   push:
@@ -11,6 +13,12 @@ on:
       tag:
         description: Existing tag to release again (for example, openapi-v1.0.0)
         required: true
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag to release
+        type: string
+        required: true
 
 permissions:
   contents: write
@@ -19,12 +27,12 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      TAG: ${{ inputs.tag || github.ref_name }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.ref }}
       - name: Check the contract file exists
         run: test -s docs/openapi/openapi.json
       - name: Create or update the release

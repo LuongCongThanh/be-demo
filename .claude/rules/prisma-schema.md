@@ -24,7 +24,7 @@ This condensed guide lists rules for agents creating or editing schemas and Pris
 
 ## Prisma Client trong NestJS
 
-- Use one module per domain and inject the shared global `PrismaService`. Do not create a separate `PrismaService`; a Repository layer is unnecessary at the project's current scale.
+- Use one module per domain and inject the shared global `PrismaService`. Do not create a separate `PrismaService`; a Repository layer is unnecessary at the project's current scale. In modules covered by [module architecture](module-architecture.md) (new modules and migrated modules), follow that rule instead. There, only Prisma adapters in `infrastructure/` use `PrismaService`, and transactions use the `TransactionRunner` port.
 - For atomic business operations (for example, checkout), use an interactive `prisma.$transaction(async (tx) => {...})`; every query in it must use `tx.`, not `this.prisma.`. Errors inside the transaction roll back all changes.
 - Update quantities with atomic operators (for example, `{ decrement: n }`) instead of manual read-then-write logic to avoid race conditions.
 - Avoid N+1 queries: use `include`/`select` to fetch related data in one query instead of looping over database calls. Temporarily enable `log: ['query']` to investigate suspected N+1 queries.

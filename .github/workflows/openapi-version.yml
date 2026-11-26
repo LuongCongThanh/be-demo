@@ -1,0 +1,63 @@
+name: OpenAPI version
+
+# Tags a new Contract Version whenever docs/openapi/openapi.json changes on dev, then
+# publishes it through openapi-release.yml. scripts/next-contract-version.sh picks the
+# number: a breaking change (oasdiff) bumps the minor, anything else the patch.
+# The release runs in this workflow because a tag pushed with GITHUB_TOKEN does not
+# trigger other workflows.
+on:
+  push:
+    branches: [dev]
+    paths: ['docs/openapi/openapi.json']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: openapi-version
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.next.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install oasdiff
+        env:
+          OASDIFF_VERSION: 1.39.0
+          OASDIFF_SHA256: 71a85930728f367a2086077b7ae1411319421549d18473a3e8258b6451520433
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          archive="oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
+          cd "$RUNNER_TEMP"
+          gh release download "v$OASDIFF_VERSION" --repo oasdiff/oasdiff --pattern "$archive"
+          echo "$OASDIFF_SHA256  $archive" | sha256sum --check -
+          tar xzf "$archive" oasdiff
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Pick the next version
+        id: next
+        run: |
+          tag=$(scripts/next-contract-version.sh)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Push the tag
+        if: steps.next.outputs.tag != ''
+        env:
+          TAG: ${{ steps.next.outputs.tag }}
+        run: |
+          git tag "$TAG"
+          git push origin "refs/tags/$TAG"
+
+  release:
+    needs: tag
+    if: needs.tag.outputs.tag != ''
+    permissions:
+      contents: write
+    uses: ./.github/workflows/openapi-release.yml
+    with:
+      tag: ${{ needs.tag.outputs.tag }}

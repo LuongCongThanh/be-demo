@@ -104,7 +104,7 @@ Cần kiểm chủ sở hữu? → có → thêm OwnershipGuard + @OwnedResource
 
 ### R8. Swagger / OpenAPI
 
-Swagger UI: `http://localhost:3000/docs`; spec: `/docs-json` (ADR 0002). Cấu hình ở `src/bootstrap/openapi.ts`; tắt bằng `SWAGGER_ENABLED=false` (mặc định tắt khi `NODE_ENV=production`).
+Swagger UI: `http://localhost:8080/docs`; spec: `/docs-json` (ADR 0002). Cấu hình ở `src/bootstrap/openapi.ts`; tắt bằng `SWAGGER_ENABLED=false` (mặc định tắt khi `NODE_ENV=production`).
 
 - **`@ApiOperation({ summary })` cho mọi route** — câu mệnh lệnh mô tả đúng hành vi, không lặp tên method (`"Create a new category"`, không phải `"Create"`).
 - **`@ApiTags()` đủ nghĩa** khi path là viết tắt (`@ApiTags('Authentication & Authorization')` cho `@Controller('auth')`); path số nhiều tự rõ (`'categories'`) thì giữ nguyên.

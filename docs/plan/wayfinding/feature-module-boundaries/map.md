@@ -29,3 +29,4 @@ An agreed, implementation-ready refactoring specification for the existing `be-d
 ## Out of scope
 
 - Designing modules that do not yet exist under `src/modules` (for example, future cart, inventory, or ordering modules).
+- Cart, inventory and checkout now exist; extending these boundaries to them (and unifying the conventions across all of `src/modules`) continues in the [src-wide architecture standard map](../src-wide-architecture-standard/map.md).

@@ -6,37 +6,41 @@
 # legitimately has no useful example), so this only injects a reminder via
 # additionalContext — it never exits non-zero, never blocks the tool call.
 
+HOOK_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$HOOK_DIR/../.." && pwd)"
 INPUT=$(cat)
-FILE_PATH=$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write(JSON.parse(d).tool_response?.filePath||JSON.parse(d).tool_input?.file_path||"")}catch{}})' <<< "$INPUT")
-
-FILE_PATH="${FILE_PATH//\\//}"
-BASENAME="${FILE_PATH##*/}"
-
-[[ -f "$FILE_PATH" ]] || exit 0
 
 emit_reminder() {
   local message="$1"
   node -e 'let m=process.argv[1];console.log(JSON.stringify({additionalContext:m,hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:m}}))' "$message"
 }
 
-if [[ "$BASENAME" == *.controller.ts ]]; then
-  routes=$(grep -cE '^[[:space:]]*@(Get|Post|Put|Patch|Delete)\(' "$FILE_PATH")
-  ops=$(grep -cE '^[[:space:]]*@ApiOperation\(' "$FILE_PATH")
-  if [[ "$routes" -gt 0 && "$ops" -lt "$routes" ]]; then
-    missing=$((routes - ops))
-    emit_reminder "Reminder (docs/convention/api-rules.md §R8): $FILE_PATH has $routes route(s) but only $ops @ApiOperation({ summary: '...' }) — $missing route(s) may be missing a Swagger summary. Add one per endpoint so Swagger UI explains what it does without reading the code."
-  fi
-  exit 0
-fi
+# Codex apply_patch can touch several files; check each one.
+while IFS= read -r FILE_PATH; do
+  FILE_PATH="${FILE_PATH//\\//}"
+  [[ "$FILE_PATH" == /* ]] || FILE_PATH="$REPO_ROOT/$FILE_PATH"
+  [[ -f "$FILE_PATH" ]] || continue
+  BASENAME="${FILE_PATH##*/}"
 
-if [[ "$BASENAME" == create-*.dto.ts || "$BASENAME" == update-*.dto.ts ]]; then
-  props=$(grep -cE '^[[:space:]]*@ApiProperty(Optional)?\(' "$FILE_PATH")
-  examples=$(grep -cE 'example[[:space:]]*:' "$FILE_PATH")
-  if [[ "$props" -gt 0 && "$examples" -lt "$props" ]]; then
-    missing=$((props - examples))
-    emit_reminder "Reminder (docs/convention/api-rules.md §R1): $FILE_PATH has $props @ApiProperty field(s) but only $examples with example data — $missing field(s) may be missing 'example:' for Swagger. Add a realistic example for fields the client sends."
+  if [[ "$BASENAME" == *.controller.ts ]]; then
+    routes=$(grep -cE '^[[:space:]]*@(Get|Post|Put|Patch|Delete)\(' "$FILE_PATH")
+    ops=$(grep -cE '^[[:space:]]*@ApiOperation\(' "$FILE_PATH")
+    if [[ "$routes" -gt 0 && "$ops" -lt "$routes" ]]; then
+      missing=$((routes - ops))
+      emit_reminder "Reminder (docs/convention/api-rules.md §R8): $FILE_PATH has $routes route(s) but only $ops @ApiOperation({ summary: '...' }) — $missing route(s) may be missing a Swagger summary. Add one per endpoint so Swagger UI explains what it does without reading the code."
+    fi
+    continue
   fi
-  exit 0
-fi
+
+  if [[ "$BASENAME" == create-*.dto.ts || "$BASENAME" == update-*.dto.ts ]]; then
+    props=$(grep -cE '^[[:space:]]*@ApiProperty(Optional)?\(' "$FILE_PATH")
+    examples=$(grep -cE 'example[[:space:]]*:' "$FILE_PATH")
+    if [[ "$props" -gt 0 && "$examples" -lt "$props" ]]; then
+      missing=$((props - examples))
+      emit_reminder "Reminder (docs/convention/api-rules.md §R1): $FILE_PATH has $props @ApiProperty field(s) but only $examples with example data — $missing field(s) may be missing 'example:' for Swagger. Add a realistic example for fields the client sends."
+    fi
+    continue
+  fi
+done < <(node "$REPO_ROOT/scripts/hooks/read-tool-paths.js" <<< "$INPUT")
 
 exit 0

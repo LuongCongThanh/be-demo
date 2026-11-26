@@ -115,7 +115,7 @@ describe('Copilot-compatible command hooks', () => {
     try {
       writeFileSync(bodyPath, body);
       const result = runHook(
-        '.github/hooks/scripts/enforce-pr-template.sh',
+        '.claude/hooks/enforce-pr-template.sh',
         copilotPayload(`gh pr create --base dev --title "docs: test" --body-file "${bodyPath}"`),
       );
 
@@ -175,6 +175,9 @@ describe('Copilot-compatible command hooks', () => {
       const result = spawnSync('bash', ['-c', command ?? ''], {
         cwd: tempDir,
         encoding: 'utf8',
+        // A git hook (e.g. pre-push from a linked worktree) exports GIT_DIR, which
+        // would make `git rev-parse` succeed outside any repository.
+        env: Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'))),
         input: JSON.stringify(copilotPayload('gh pr create --body-file -')),
       });
 

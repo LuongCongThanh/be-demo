@@ -12,15 +12,9 @@ export const MIRROR_GROUPS = [
     roots: ['.claude/hooks', '.codex/hooks'],
   },
   {
-    name: 'Codex/Copilot project skills',
+    name: 'Project skills',
     source: '.agents/skills',
-    roots: ['.agents/skills', '.github/skills', 'agent/skills'],
-  },
-  {
-    name: 'Claude Prisma skills',
-    source: '.agents/skills',
-    roots: ['.agents/skills', '.claude/skills'],
-    include: (path) => path.startsWith('prisma-'),
+    roots: ['.agents/skills', '.github/skills', '.claude/skills'],
   },
 ];
 
@@ -29,14 +23,7 @@ const REQUIRED_HOOKS = {
   postToolUse: ['after-pr-create.sh', 'check-swagger-completeness.sh'],
 };
 
-const SHARED_WORKFLOW_ENTRYPOINTS = [
-  '.claude/commands/feature.md',
-  '.claude/commands/ship.md',
-  '.agents/skills/feature/SKILL.md',
-  '.agents/skills/ship/SKILL.md',
-  '.github/skills/feature/SKILL.md',
-  '.github/skills/ship/SKILL.md',
-];
+const SHARED_FLOWS = ['feature', 'ship'];
 
 const HOOK_CONFIGS = [
   {
@@ -50,12 +37,6 @@ const HOOK_CONFIGS = [
     scriptRoot: '.codex/hooks',
     events: { PreToolUse: 'preToolUse', PostToolUse: 'postToolUse' },
     getScript: (hook) => hook.command,
-  },
-  {
-    path: '.github/hooks/hooks.json',
-    scriptRoot: '.github/hooks/scripts',
-    events: { preToolUse: 'preToolUse', postToolUse: 'postToolUse' },
-    getScript: (hook) => hook.bash,
   },
 ];
 
@@ -402,21 +383,164 @@ export async function checkHookRegistrations(root = REPO_ROOT) {
   return errors;
 }
 
-export async function checkSharedWorkflowEntrypoints(root = REPO_ROOT) {
+// Copilot in VS Code already runs the hooks in `.claude/settings.json` through its
+// Claude-compatible events, so any `.github/hooks/*.json` registration would run
+// the same checks twice. ADR 0014: one registry per harness.
+export async function checkCopilotHookSource(root = REPO_ROOT) {
+  let entries;
+  try {
+    entries = await readdir(resolve(root, '.github/hooks'));
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+  return entries
+    .filter((name) => name.endsWith('.json'))
+    .map(
+      (name) =>
+        `.github/hooks/${name} duplicates hooks Copilot already runs from .claude/settings.json; register hooks there instead`,
+    );
+}
+
+// Codex config is TOML; the repository has no TOML parser, so read only the
+// `[mcp_servers.<name>]` table headers (bare or quoted names; sub-tables such as
+// `[mcp_servers.<name>.env]` are not separate servers).
+function codexMcpServerNames(text) {
+  const header = /^\s*\[mcp_servers\.(?:"([^"]+)"|([A-Za-z0-9_-]+))\]\s*(?:#.*)?$/gm;
+  return [...text.matchAll(header)].map((match) => match[1] ?? match[2]);
+}
+
+const MCP_CONFIGS = [
+  { path: '.mcp.json', serverNames: (text) => Object.keys(JSON.parse(text).mcpServers ?? {}) },
+  { path: '.vscode/mcp.json', serverNames: (text) => Object.keys(JSON.parse(text).servers ?? {}) },
+  { path: '.codex/config.toml', serverNames: codexMcpServerNames },
+];
+
+// Every agent gets the same project MCP servers; each file keeps its native format,
+// so only the server names are compared.
+export async function checkMcpServers(root = REPO_ROOT) {
   const errors = [];
-  for (const path of SHARED_WORKFLOW_ENTRYPOINTS) {
-    let content;
-    try {
-      content = await readFile(resolve(root, path), 'utf8');
-    } catch (error) {
-      if (error.code === 'ENOENT') {
-        errors.push(`Missing workflow entrypoint: ${path}`);
-        continue;
-      }
-      throw error;
+  const serversByConfig = [];
+  for (const config of MCP_CONFIGS) {
+    const text = await readOptional(resolve(root, config.path));
+    if (text === null) {
+      errors.push(`Missing MCP config: ${config.path}`);
+      continue;
     }
-    if (!content.includes('docs/agents/execution-workflow.md')) {
-      errors.push(`${path} must reference docs/agents/execution-workflow.md`);
+    try {
+      serversByConfig.push({ path: config.path, servers: new Set(config.serverNames(text)) });
+    } catch (error) {
+      errors.push(`Invalid ${config.path}: ${error.message}`);
+    }
+  }
+  const allServers = new Set(serversByConfig.flatMap(({ servers }) => [...servers]));
+  if (serversByConfig.length && allServers.size === 0) {
+    errors.push('The agent MCP configs declare no MCP servers at all');
+  }
+  for (const { path, servers } of serversByConfig) {
+    const missing = [...allServers].filter((name) => !servers.has(name)).sort();
+    if (missing.length) errors.push(`${path} is missing MCP server(s) other agents configure: ${missing.join(', ')}`);
+  }
+  return errors;
+}
+
+async function readMarkdownFiles(directory) {
+  let names;
+  try {
+    names = (await readdir(directory)).filter((name) => name.endsWith('.md')).sort();
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+  return Promise.all(
+    names.map(async (name) => ({ name, text: (await readFile(join(directory, name), 'utf8')).replace(/\r\n/g, '\n') })),
+  );
+}
+
+// Top-level directories a rule's frontmatter `paths:` globs cover, e.g. `src/**/*.ts` -> `src`.
+function ruleScopeDirectories(rule) {
+  const frontmatter = rule.match(/^---\n([\s\S]*?)\n---(?:\n|$)/)?.[1];
+  const block = frontmatter?.match(/^paths:\s*\n((?:[ \t]+-.*\n?)+)/m)?.[1];
+  if (!block) return [];
+  const globs = [...block.matchAll(/-\s*['"]?([^'"\n]+)['"]?/g)].map((match) => match[1].trim());
+  return [...new Set(globs.map((glob) => glob.split('/')[0]))].sort();
+}
+
+// A Claude rule scoped with `paths:` must also reach Copilot (a `.github/instructions/`
+// file) and Codex (the `AGENTS.md` of every top-level directory the rule covers),
+// each linking the same rule file. Nested AGENTS.md files live one level deep.
+export async function checkFileScopedRules(root = REPO_ROOT) {
+  const errors = [];
+  const instructions = await readMarkdownFiles(resolve(root, '.github/instructions'));
+  for (const { name, text } of await readMarkdownFiles(resolve(root, '.claude/rules'))) {
+    const directories = ruleScopeDirectories(text);
+    if (directories.length === 0) continue;
+    const link = `.claude/rules/${name}`;
+    if (!instructions.some((instruction) => instruction.text.includes(link))) {
+      errors.push(`${link} is not referenced by any .github/instructions/*.instructions.md (Copilot)`);
+    }
+    for (const directory of directories) {
+      const agentsPath = `${directory}/AGENTS.md`;
+      const agents = await readOptional(resolve(root, agentsPath));
+      if (agents === null || !agents.includes(link)) {
+        errors.push(`${link} covers ${directory}/ but ${agentsPath} does not link it (Codex)`);
+      }
+    }
+  }
+  return errors;
+}
+
+async function readOptional(path) {
+  try {
+    return await readFile(path, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+function flowSkills(content) {
+  const frontmatter = content.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
+  const list = frontmatter.match(/^skills:\s*\[([^\]]*)\]/m)?.[1] ?? '';
+  return list
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+export async function checkSharedFlows(root = REPO_ROOT) {
+  const errors = [];
+  for (const name of SHARED_FLOWS) {
+    const flowPath = `docs/agents/flows/${name}.md`;
+    const flow = await readOptional(resolve(root, flowPath));
+    if (flow === null) {
+      errors.push(`Missing shared flow: ${flowPath}`);
+    } else {
+      if (!flow.includes('docs/agents/execution-workflow.md')) {
+        errors.push(`${flowPath} must reference docs/agents/execution-workflow.md`);
+      }
+      const skills = flowSkills(flow);
+      if (skills.length === 0) {
+        errors.push(`${flowPath} must declare its skills in an inline \`skills: [...]\` frontmatter list`);
+      }
+      for (const skill of skills) {
+        if (!(await fileState(resolve(root, '.agents/skills', skill, 'SKILL.md')))) {
+          errors.push(`${flowPath} names skill ${skill}, which is not vendored in .agents/skills/`);
+        }
+      }
+    }
+
+    const entryPath = `.agents/skills/${name}/SKILL.md`;
+    const entry = await readOptional(resolve(root, entryPath));
+    if (entry === null) {
+      errors.push(`Missing flow entry skill: ${entryPath}`);
+    } else if (!entry.includes(flowPath)) {
+      errors.push(`${entryPath} must reference ${flowPath}`);
+    }
+
+    const commandPath = `.claude/commands/${name}.md`;
+    if (await fileState(resolve(root, commandPath))) {
+      errors.push(`${commandPath} shadows the shared ${name} skill; remove the Claude-only command`);
     }
   }
   return errors;
@@ -426,14 +550,19 @@ async function runCheck(root) {
   const errors = [
     ...(await checkMirrors(root)),
     ...(await checkHookRegistrations(root)),
-    ...(await checkSharedWorkflowEntrypoints(root)),
+    ...(await checkCopilotHookSource(root)),
+    ...(await checkMcpServers(root)),
+    ...(await checkFileScopedRules(root)),
+    ...(await checkSharedFlows(root)),
   ];
   if (errors.length) {
     console.error(`Agent configuration drift detected:\n- ${errors.join('\n- ')}`);
     process.exitCode = 1;
     return;
   }
-  console.log('Agent configuration mirrors, hook registrations, and workflow entrypoints are consistent.');
+  console.log(
+    'Agent configuration mirrors, hook registrations, shared flows, MCP servers, and file-scoped rules are consistent.',
+  );
 }
 
 function usage() {
