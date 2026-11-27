@@ -54,20 +54,22 @@ Các mục dưới đây là quy tắc; code mẫu tương ứng ở [api-crud-w
 
 ### R2. Service / Use Case
 
+> Các mục kiến trúc dưới đây (R2 lỗi chung, R3, R4, R7) áp dụng **với module mới hoặc đã chuyển đổi (xem Migration status)** của [rule agent](../../.claude/rules/module-architecture.md); `src/common/errors/` và `TransactionRunner` có từ task 39.
+
 - Service không phụ thuộc `Request`/`Response` của Express — logic thuần, dễ test.
 - Tên method: CRUD dùng `create/findAll/findOne/update/remove`; API nghiệp vụ dùng tên hành vi (`checkout()`, `cancelOrder()`).
 - Đọc env qua `ConfigService`, không `process.env` — xem [config-environment-conventions.md](config-environment-conventions.md).
-- **Lỗi nghiệp vụ đã biết trước ném rõ ở service** bằng bộ lỗi chung `src/common/errors/` (`NotFoundError`, `ConflictError`, `InvalidInputError`, `UnprocessableError`, `UnauthenticatedError`, `ForbiddenError`... kèm message nghiệp vụ cụ thể), không phó mặc cho exception filter (message generic) và không ném HTTP exception của `@nestjs/common` ở `domain/`/`application/`. Filter đổi lỗi sang HTTP ở một chỗ duy nhất (R6). Chỉ tầng HTTP (controller, guard, strategy) được ném HTTP exception của NestJS. Xem [module-architecture-conventions.md §5](module-architecture-conventions.md#5-xử-lý-lỗi).
+- **Lỗi nghiệp vụ đã biết trước ném rõ ở service** bằng bộ lỗi chung `src/common/errors/` (có từ task 39; `NotFoundError`, `ConflictError`, `InvalidInputError`, `UnprocessableError`, `UnauthenticatedError`, `ForbiddenError`... kèm message nghiệp vụ cụ thể), không phó mặc cho exception filter (message generic) và không ném HTTP exception của `@nestjs/common` ở `domain/`/`application/`. Filter đổi lỗi sang HTTP ở một chỗ duy nhất (R6). Chỉ tầng HTTP (controller, guard, strategy) được ném HTTP exception của NestJS. Xem [module-architecture-conventions.md §5](module-architecture-conventions.md#5-xử-lý-lỗi).
 - **Không pre-fetch chỉ để xác nhận tồn tại** trước `update`/`delete` — filter đã map `P2025` → 404. Chỉ pre-fetch khi cần chính record đó để kiểm tra business rule (ownership, status, đếm record con...).
 - **Pre-check không thay thế constraint ở DB.** Kiểm tra unique/đếm FK trước khi ghi chỉ là **UX layer** (message đẹp); vẫn có race giữa check và write. Unique/FK constraint ở DB + `AllExceptionsFilter` là lớp bảo vệ cuối — bắt buộc giữ.
 
 ### R3. Data access: Persistence Port
 
-Service **không** dùng `PrismaService` hay `#src/generated/**`. Mọi truy cập DB đi qua Persistence Port (mặc định một port mỗi feature, `abstract class` làm token) với adapter Prisma ở `infrastructure/`, kể cả CRUD đơn giản. Adapter chuyển kiểu Prisma sang Domain Model; Prisma type không đi qua Port. Chi tiết: [module-architecture-conventions.md §4](module-architecture-conventions.md#4-port-và-di). Module chưa chuyển đổi giữ cấu trúc hiện tại cho đến khi có task refactor riêng (mục _Migration status_ của [rule agent](../../.claude/rules/module-architecture.md)).
+Với module mới hoặc đã chuyển đổi (xem Migration status), service **không** dùng `PrismaService` hay `#src/generated/**`. Mọi truy cập DB đi qua Persistence Port (mặc định một port mỗi feature, `abstract class` làm token) với adapter Prisma ở `infrastructure/`, kể cả CRUD đơn giản. Adapter chuyển kiểu Prisma sang Domain Model; Prisma type không đi qua Port. Chi tiết: [module-architecture-conventions.md §4](module-architecture-conventions.md#4-port-và-di). Module chưa chuyển đổi giữ cấu trúc hiện tại cho đến khi có task refactor riêng (mục _Migration status_ của [rule agent](../../.claude/rules/module-architecture.md)).
 
 ### R4. Transaction
 
-- Không phải "cứ ≥2 write là cần transaction" — mở giao dịch bằng `transactionRunner.run(async () => { ... })` khi **cả business operation phải thành công/thất bại như 1 đơn vị** (vd. `Order` + `OrderItem` + trừ tồn kho). Nhiều write độc lập có thể không cần; 1 write kèm `read → check` lại có thể cần transaction/lock (§05).
+- Không phải "cứ ≥2 write là cần transaction" — với module mới hoặc đã chuyển đổi (xem Migration status), mở giao dịch bằng `transactionRunner.run(async () => { ... })` khi **cả business operation phải thành công/thất bại như 1 đơn vị** (vd. `Order` + `OrderItem` + trừ tồn kho). Nhiều write độc lập có thể không cần; 1 write kèm `read → check` lại có thể cần transaction/lock (§05).
 - Hợp đồng transaction (không `tx` qua port, không `@Transactional()` ở service, giao dịch lồng nhập vào giao dịch ngoài, khoá dòng bằng `{ lockForUpdate: true }`): [module-architecture-conventions.md §6](module-architecture-conventions.md#6-transaction).
 - Điều kiện trạng thái đặt **trong `WHERE`** của conditional atomic update (`updateMany({ where: { id, status: 'PENDING' } })` + kiểm tra `count === 0` → 409), không tách "đọc status rồi update".
 - **External call (payment gateway, email...) không đặt trong `run()`** — giữ lock/connection lâu, và không có gì tự đồng bộ nếu một bên thành công một bên rollback. Gọi ngoài transaction, ghi kết quả vào DB ở bước riêng; khi thật sự cần → outbox/saga qua ADR.
@@ -87,11 +89,11 @@ Cần kiểm chủ sở hữu? → có → thêm OwnershipGuard + @OwnedResource
 
 ### R6. Exception mapping
 
-`AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) đã xử lý `HttpException`, các Prisma error được hỗ trợ và lỗi không lường trước. Không viết filter riêng cho resource. Filter là **safety net**, không thay thế domain error ở service (R2). Filter cũng đổi bộ lỗi chung `src/common/errors/` sang HTTP (cùng mã, `message` và shape response). Mapping và response shape hiện hành: [error-logging-conventions.md](error-logging-conventions.md).
+`AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) đã xử lý `HttpException`, các Prisma error được hỗ trợ và lỗi không lường trước. Không viết filter riêng cho resource. Filter là **safety net**, không thay thế domain error ở service (R2). Filter cũng đổi bộ lỗi chung `src/common/errors/` (có từ task 39) sang HTTP (cùng mã, `message` và shape response). Mapping và response shape hiện hành: [error-logging-conventions.md](error-logging-conventions.md).
 
 ### R7. Response DTO / Serialization
 
-**Database Model ≠ API Response Contract.**
+**Database Model ≠ API Response Contract.** Với module mới hoặc đã chuyển đổi (xem Migration status), luồng dữ liệu dưới đây là bắt buộc.
 
 - Prisma type **không** đi qua Port và không trả thẳng ra API: adapter chuyển sang Domain Model, service trả Application Result, controller gọi mapper tạo Response DTO ([module-architecture-conventions.md §3](module-architecture-conventions.md#bốn-dạng-dữ-liệu)).
 - Response DTO là **allow-list** (map thủ công, field mới không tự lộ ra), đặc biệt khi model có field nhạy cảm (`User.passwordHash`, các `tokenHash`) hoặc hay thêm field (`User`, `Order`).
@@ -167,9 +169,9 @@ API chỉ hoàn tất khi business rule và authorization đã rõ, contract/doc
 - [ ] Scaffold bằng `nest g resource` (REST, Yes CRUD entry points); xoá `entities/` và `*.spec.ts` mẫu
 - [ ] DTO: validator + `@ApiProperty` + `example:`; `PartialType` từ `@nestjs/swagger` (R1)
 - [ ] Param id dùng đúng pipe theo kiểu id (R1)
-- [ ] Lỗi nghiệp vụ ném từ bộ lỗi chung ở service với message nghiệp vụ; không pre-fetch chỉ để check tồn tại (R2)
+- [ ] Lỗi nghiệp vụ ném từ bộ lỗi chung ở service (module mới hoặc đã chuyển đổi, xem Migration status) với message nghiệp vụ; không pre-fetch chỉ để check tồn tại (R2)
 - [ ] Service unit test nếu có business logic; e2e cho endpoint public/quan trọng (R10)
-- [ ] Response DTO allow-list, Prisma type không ra API (R7)
+- [ ] Response DTO allow-list, Prisma type không ra API (R7; luồng mapper với module mới hoặc đã chuyển đổi, xem Migration status)
 - [ ] Swagger: `type:`, `@ApiOperation`, `@ApiTags(API_TAGS.X.name)` (R8)
 - [ ] Pagination + `@Max(limit)` + `orderBy` tie-breaker cho mọi `findAll()` (R9)
 - [ ] Đã qua Authorization checkpoint (R5)
@@ -180,6 +182,6 @@ API chỉ hoàn tất khi business rule và authorization đã rõ, contract/doc
 - [ ] Requirement + Business Rules viết rõ trước khi động vào DB/code
 - [ ] Đã trả lời Idempotency + Concurrency (§05)
 - [ ] Method service đặt tên theo hành vi
-- [ ] Atomic: conditional atomic update thay vì "check rồi update"; external call **ngoài** transaction (R4)
+- [ ] Atomic: conditional atomic update thay vì "check rồi update"; external call **ngoài** transaction (R4; `TransactionRunner` với module mới hoặc đã chuyển đổi, xem Migration status)
 - [ ] Authorization rõ — public-facing chưa có auth là **blocking**
 - [ ] Đã cân nhắc audit log / business event log (§16)

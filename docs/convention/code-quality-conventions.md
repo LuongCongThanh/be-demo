@@ -123,7 +123,7 @@ Giới hạn kích thước file (150/200 dòng, miễn trừ): [module-architec
 
 ## 13. Automated quality gate
 
-Ưu tiên script và công cụ đã có trong repo: format (`npm run format:check`), lint (oxlint), type-check (`npm run typecheck`), unit/e2e (Vitest), build, `agents:check`, CI. Dependency boundary tự động hoá bằng luật lint ở [module-architecture-conventions.md §9](module-architecture-conventions.md#9-bộ-luật-lint).
+Ưu tiên script và công cụ đã có trong repo: format (`npm run format:check`), lint (oxlint), type-check (`npm run typecheck`), unit/e2e (Vitest), build, `agents:check`, CI. Dependency boundary tự động hoá bằng luật lint ở [module-architecture-conventions.md §9](module-architecture-conventions.md#9-bộ-luật-lint) (script sinh và `max-lines` có từ task 40; trước đó review thủ công).
 
 1. Không cài thêm công cụ chỉ để làm đẹp danh sách khi không có lợi ích rõ ràng.
 2. Kiểm tra bắt buộc phải nằm trong package script/CI.
@@ -135,7 +135,7 @@ Giới hạn kích thước file (150/200 dòng, miễn trừ): [module-architec
 
 Chỉ áp dụng nhóm liên quan đến phạm vi thay đổi.
 
-**Architecture**
+**Architecture** (với module mới hoặc đã chuyển đổi, xem Migration status; `TransactionRunner` và `src/common/errors/` có từ task 39, `max-lines` có từ task 40)
 
 - [ ] File nằm đúng tầng và thư mục theo [module-architecture-conventions.md](module-architecture-conventions.md); không có dependency ngược.
 - [ ] Mọi truy cập DB đi qua Persistence Port; không Prisma/`nestjs-cls` ngoài `infrastructure/`.

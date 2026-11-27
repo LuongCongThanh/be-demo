@@ -29,8 +29,8 @@ blocked-by:
 3. **Transaction:**
    - Cài `nestjs-cls`, `@nestjs-cls/transactional`, `@nestjs-cls/transactional-adapter-prisma` (bản đã kiểm: 7.0.2 / 4.0.2 / 2.0.2 hoặc mới hơn cùng major).
    - Đăng ký `ClsModule` với `ClsPluginTransactional` + `TransactionalAdapterPrisma<PrismaService>` (ghi rõ generic vì client sinh ở `src/generated/prisma`). Đặt middleware của Cls **trước** request-id middleware như bản đã kiểm; nếu đổi thứ tự thì kiểm lại `requestId` trong log.
-   - Port `src/infrastructure/database/transaction-runner.port.ts`: `export abstract class TransactionRunner { abstract run<T>(work: () => Promise<T>): Promise<T>; }`.
-   - Adapter `src/infrastructure/database/cls-transaction-runner.ts` dùng `TransactionHost.withTransaction` (propagation mặc định Required = lồng nhau nhập vào giao dịch ngoài). Bind `{ provide: TransactionRunner, useExisting: ClsTransactionRunner }` trong module database, export ra toàn app.
+   - Port `src/infrastructure/database/transaction-runner.port.ts`: `export abstract class TransactionRunner { abstract run<T>(work: () => Promise<T>, opts?: { isolationLevel?: Prisma.TransactionIsolationLevel; timeout?: number; maxWait?: number }): Promise<T>; }` (import kiểu Prisma ở đây được phép).
+   - Adapter `src/infrastructure/database/cls-transaction-runner.ts` dùng `TransactionHost.withTransaction` (truyền `opts` vào đó; propagation mặc định Required = lồng nhau nhập vào giao dịch ngoài). Bind `{ provide: TransactionRunner, useExisting: ClsTransactionRunner }` trong module database, export ra toàn app.
    - Cung cấp cách để adapter Prisma lấy client hiện hành: inject `TransactionHost<TransactionalAdapterPrisma<PrismaService>>` và dùng `txHost.tx` (tự là client thường khi không có giao dịch). Chỉ code trong `infrastructure/` được dùng.
 4. **Port dùng chung** (abstract class, cạnh code hạ tầng, class hiện có trở thành adapter cài đặt port):
    - `src/infrastructure/mail/mail.port.ts` (theo các method `MailService` đang được gọi).
@@ -51,6 +51,7 @@ blocked-by:
 - [ ] `npm run build`, `typecheck`, `lint`, `test`, `test:e2e` đạt; Swagger diff rỗng.
 - [ ] Ném thử từng lớp trong bộ lỗi chung qua filter cho đúng status/message (test nhỏ hoặc e2e tạm trong PR).
 - [ ] `TransactionRunner.run()` commit, rollback khi throw, và lồng nhau dùng chung giao dịch (test nhỏ).
+- [ ] Test xác nhận `opts.isolationLevel` (và `timeout`) được áp dụng cho giao dịch ngoài cùng.
 - [ ] `requestId` vẫn đúng trong log và response lỗi khi có request đồng thời.
 - [ ] Ghi chú trong `.claude/rules/module-architecture.md` rằng `src/common/errors/` và `TransactionRunner` đã có; `npm run agents:check` đạt.
 - [ ] `report.md`: phiên bản thư viện, có cần SWC không, chữ ký từng port.

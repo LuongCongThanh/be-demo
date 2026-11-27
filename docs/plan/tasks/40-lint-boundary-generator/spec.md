@@ -33,7 +33,7 @@ blocked-by:
    3. `**/domain/**`, `**/application/**` cấm `importNames` các HTTP exception của `@nestjs/common` (`NotFoundException`, `ConflictException`, `BadRequestException`, `UnauthorizedException`, `ForbiddenException`, `UnprocessableEntityException`, `HttpException`). Nếu oxlint không hỗ trợ `importNames` kèm pattern như mong muốn thì ghi rõ trong `report.md` và dùng cách thay thế rẻ nhất (grep trong CI).
    4. `**/admin/**`, `**/storefront/**`, `**/presentation/**` cấm `PrismaService`, `#src/generated/**`.
    5. `src/modules/<a>/**` cấm `#src/modules/*/**` trừ chính `<a>`, `#src/modules/<b>/<b>.module.js` và `#src/modules/<b>/application/<b>.service.js` của từng module khác (liệt kê tường minh theo tên module, không dùng regex lookahead).
-   6. Feature X trong cùng module cấm import feature Y trừ `domain/` và `presentation/`.
+   6. Feature X trong cùng module cấm import feature Y trừ `domain/`, `presentation/` và đúng file `application/<y>.service.js`.
    7. `max-lines` 200, `skipBlankLines`, `skipComments`; bỏ qua `src/generated/**`, `**/*.spec.ts`, `**/*.e2e-spec.ts` và file trong danh sách tạm. Cấm import tương đối (`./**`, `../**`) trong `src/**` trừ `src/generated/**`.
 5. Thêm `npm run lint:boundaries:check` vào job lint của `.github/workflows/ci.yml`.
 6. Viết probe nhỏ (fixture trong thư mục test của script, không trong `src/`) chứng minh mỗi luật bắt đúng một vi phạm và không bắt import hợp lệ.

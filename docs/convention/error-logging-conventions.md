@@ -7,7 +7,7 @@ Tài liệu này dành cho **dev trong team tự đọc và tự viết code**. 
 ## 1. Kiến trúc tổng quan
 
 ```
-Lỗi nghiệp vụ đã biết trước → domain/application ném lỗi từ bộ lỗi chung `src/common/errors/`;
+Lỗi nghiệp vụ đã biết trước → domain/application ném lỗi từ bộ lỗi chung `src/common/errors/` (có từ task 39; module chưa chuyển đổi giữ mẫu hiện tại);
                               AllExceptionsFilter đổi sang HTTP (tầng HTTP vẫn được ném HTTP exception)
 Prisma error được hỗ trợ    → AllExceptionsFilter tự map sang HTTP status tương ứng
 Lỗi không lường trước       → AllExceptionsFilter bắt, trả 500 generic, log stack
@@ -51,7 +51,7 @@ Mỗi request HTTP được gắn 1 `requestId` (UUID) ngay từ `RequestIdMiddl
 
 ## 5. Khi nào tự ném lỗi ở service (không dựa vào filter)
 
-Nếu lỗi nghiệp vụ đã biết trước (trùng field unique, còn record con tham chiếu, sai business rule...), ném rõ ràng ở service kèm message cụ thể bằng bộ lỗi chung `src/common/errors/`: `NotFoundError` (404), `ConflictError` (409), `InvalidInputError` (400), `UnprocessableError` (422), `UnauthenticatedError` (401), `ForbiddenError` (403), hoặc lớp con của chúng. `domain/` và `application/` không import HTTP exception của `@nestjs/common`; `AllExceptionsFilter` đổi lỗi chung sang HTTP ở **một chỗ duy nhất** (cùng mã, `message` và shape response). Không để rơi xuống filter với message Prisma generic. Pre-check (unique, FK) vẫn không thay thế constraint ở DB — filter là lớp bảo vệ cuối cùng, không phải lớp duy nhất.
+Nếu lỗi nghiệp vụ đã biết trước (trùng field unique, còn record con tham chiếu, sai business rule...), ném rõ ràng ở service kèm message cụ thể bằng bộ lỗi chung `src/common/errors/` (có từ task 39; áp dụng cho module mới hoặc đã chuyển đổi, xem Migration status): `NotFoundError` (404), `ConflictError` (409), `InvalidInputError` (400), `UnprocessableError` (422), `UnauthenticatedError` (401), `ForbiddenError` (403), hoặc lớp con của chúng. `domain/` và `application/` không import HTTP exception của `@nestjs/common`; `AllExceptionsFilter` đổi lỗi chung sang HTTP ở **một chỗ duy nhất** (cùng mã, `message` và shape response). Không để rơi xuống filter với message Prisma generic. Pre-check (unique, FK) vẫn không thay thế constraint ở DB — filter là lớp bảo vệ cuối cùng, không phải lớp duy nhất.
 
 Tầng HTTP (controller, guard, strategy trong `admin/`, `storefront/`, `presentation/`) vẫn được ném HTTP exception của NestJS. Chi tiết: [module-architecture-conventions.md §5](module-architecture-conventions.md#5-xử-lý-lỗi).
 

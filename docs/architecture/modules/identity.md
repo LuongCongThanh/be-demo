@@ -26,12 +26,14 @@ Hồ sơ Khách hàng và địa chỉ thuộc module `customer` trong tương l
 
 ## 3. Interface cho module khác (thiết kế mục tiêu)
 
-| Hàm                                                                               | Dùng bởi                                |
-| --------------------------------------------------------------------------------- | --------------------------------------- |
-| `getActor(request)` → `{ kind: guest                                              | customer                                | staff | admin, userId?, guestOrderId? }` | Guard của mọi module |
-| `findVerifiedUserByEmail(email)`                                                  | `ordering` (gắn đơn lúc đặt, BR-ORD-08) |
-| `issueGuestOrderSession(orderId, tx)` / `verifyGuestOrderSession(token, orderId)` | `ordering`                              |
-| `getLocale(userId)`                                                               | `notifications`                         |
+Hàm không nhận `tx`: caller bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của module này tự nhập vào giao dịch đang mở ([module-architecture-conventions.md §6](../../convention/module-architecture-conventions.md#6-transaction)).
+
+| Hàm                                                                           | Dùng bởi                                |
+| ----------------------------------------------------------------------------- | --------------------------------------- |
+| `getActor(request)` → `{ kind: guest                                          | customer                                | staff | admin, userId?, guestOrderId? }` | Guard của mọi module |
+| `findVerifiedUserByEmail(email)`                                              | `ordering` (gắn đơn lúc đặt, BR-ORD-08) |
+| `issueGuestOrderSession(orderId)` / `verifyGuestOrderSession(token, orderId)` | `ordering`                              |
+| `getLocale(userId)`                                                           | `notifications`                         |
 
 Các interface trong bảng là hợp đồng mục tiêu, không phải toàn bộ API hiện có; xem §10 để biết hiện trạng.
 

@@ -25,3 +25,16 @@
 - `api-crud-walkthrough.md`: code mẫu service/test vẫn gọi `PrismaService` và ném `NotFoundException`. Đã thêm ghi chú đầu file, chưa viết lại mẫu; nên giao cho task chuyển module hoặc task 49.
 - `docs/architecture/02-modules.md` §4.1/§4.2 vẫn vẽ cây cũ (`controllers/storefront`, `services/...`) và liệt kê "mỗi module export đúng một service public" kèm `CartService`...; cây đích sẽ đúng khi từng module được chuyển (quy tắc cập nhật cùng PR).
 - `npm run format:check` toàn repo báo 7 file `.ts` trong `src/` (ví dụ `cart.controller.ts`) lệch format từ trước, không thuộc task này; tất cả markdown đã sửa đều đạt `prettier --check`.
+
+## Sửa theo code review
+
+1. Đánh dấu trạng thái đích: `module-architecture-conventions.md` có mục "Trạng thái triển khai" ở đầu và marker "(có từ task 39)" / "(có từ task 40)" cho `src/common/errors/`, `TransactionRunner`, `nestjs-cls`, script sinh lint và `max-lines`; cùng marker ở api-rules R2/R4, error-logging §5, code-quality §13–14 và prisma-conventions §4.1.
+2. `docs/architecture/modules/*.md`: bỏ tham số `tx` khỏi mọi chữ ký công khai (`inventory`, `cart`, `pricing`, `identity`, `catalog`, `compliance`, `fulfillment`, `payments`, `refunds-returns`, `admin-config`, `ordering`) và các sơ đồ tuần tự; thêm câu giải thích caller bọc lời gọi trong `TransactionRunner.run()` và adapter của module chủ bảng tự nhập vào giao dịch. Giữ nguyên `AuditLogService.record(tx, entry)` ở `02-modules.md` và `11-database.md` vì đó mô tả file hiện có (as-built); port Audit mới do task 39 định hình.
+3. Đặt tên rõ file port: `src/infrastructure/database/transaction-runner.port.ts`.
+4. Giới hạn phạm vi: api-rules R2/R3/R4/R7 và các mục kiến trúc trong checklist, cùng code-quality §14, có qualifier "với module mới hoặc đã chuyển đổi (xem Migration status)".
+5. Chưa đụng (chờ quyết định người dùng): §7 gọi chéo feature cùng module, và tuỳ chọn isolation level/timeout của `TransactionRunner.run()`.
+
+### Quyết định bổ sung 2026-11-27
+
+- Cross-feature (§7, luật lint 6): feature được import thêm đúng `application/<feature>.service.ts` của feature khác trong cùng module. Cập nhật convention §7/§9, rule agent, spec task 40, ticket 02.
+- `TransactionRunner.run(work, opts?)` có `isolationLevel`/`timeout`/`maxWait`; service chọn isolation, nơi mở giao dịch retry `P2034`. Cập nhật convention §6, prisma §4.1, spec task 39 (chữ ký port, adapter truyền `opts` vào `withTransaction`), ticket 05.

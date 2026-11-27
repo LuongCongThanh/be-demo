@@ -20,12 +20,14 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.9](../11-database
 
 ## 3. Interface public
 
+Hàm không nhận `tx`: caller bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của module này tự nhập vào giao dịch đang mở ([module-architecture-conventions.md §6](../../convention/module-architecture-conventions.md#6-transaction)).
+
 | Hàm                                                            | Gọi bởi                                                | Ghi chú                                                                                                                                             |
 | -------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `quoteShippingFee(address, weightGrams, subtotalAfterVoucher)` | `ordering` (Tính thử, đặt đơn)                         | Trả `{ fee, isFallback }`; GHN lỗi/timeout hoặc phường chưa ánh xạ → 35.000đ, `isFallback` để `ordering` gắn Cờ `shipping_fee_fallback` (BR-SHP-02) |
-| `requestHandover(tx, orderId)`                                 | `ordering` (Staff bàn giao)                            | Upsert `shipments` `creating`, ghi outbox `fulfillment.handover-requested`                                                                          |
+| `requestHandover(orderId)`                                     | `ordering` (Staff bàn giao)                            | Upsert `shipments` `creating`, ghi outbox `fulfillment.handover-requested`                                                                          |
 | `hasPendingCreation(orderId)`                                  | `ordering` (guard T9)                                  | `true` khi `creating`/`creation_unknown` (business/05 §4.5)                                                                                         |
-| `cancelShipment(tx, orderId)`                                  | `ordering` (T14, hoặc Vận đơn tạo xong cho đơn đã huỷ) |                                                                                                                                                     |
+| `cancelShipment(orderId)`                                      | `ordering` (T14, hoặc Vận đơn tạo xong cho đơn đã huỷ) |                                                                                                                                                     |
 
 ## 4. API
 
@@ -50,7 +52,7 @@ sequenceDiagram
     participant G as GHN
 
     S->>O: POST /admin/orders/:id/hand-over
-    O->>F: requestHandover(tx) → shipments creating + outbox
+    O->>F: requestHandover(orderId) → shipments creating + outbox
     W->>F: consume fulfillment.handover-requested
     F->>G: create order (client_order_code = Mã đơn, COD = Tổng tiền)
     alt thành công

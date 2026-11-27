@@ -6,6 +6,13 @@
 
 **Trạng thái áp dụng.** Quy tắc áp dụng đầy đủ cho module mới, feature mới và module đã chuyển đổi. Module chưa chuyển đổi giữ cấu trúc hiện tại khi sửa nhỏ, không chuyển đổi nửa chừng; danh sách module đã chuyển đổi nằm ở mục _Migration status_ của rule agent, và mỗi PR refactor cập nhật danh sách đó.
 
+**Trạng thái triển khai.** Tài liệu này mô tả **trạng thái đích**. Các thành phần dùng chung sau chưa có trong repo và được giao ở task sau; đến khi đó module chưa chuyển đổi giữ mẫu hiện tại (xem `.claude/rules/module-architecture.md`):
+
+- Task 39 ([nền móng dùng chung](../plan/tasks/39-shared-architecture-foundations/spec.md)): bộ lỗi `src/common/errors/`, `TransactionRunner` (`src/infrastructure/database/transaction-runner.port.ts`) cùng `nestjs-cls`, các port dùng chung (Idempotency, Mail, Storage, Audit).
+- Task 40 ([bộ sinh luật lint](../plan/tasks/40-lint-boundary-generator/spec.md)): `scripts/generate-oxlint-boundaries.ts` và việc `max-lines`/`no-restricted-imports` chặn thật.
+
+Marker "(có từ task 39)" / "(có từ task 40)" bên dưới đánh dấu từng điểm này.
+
 ## 1. Nguyên tắc
 
 1. Domain thuần; service ở `application/` gọi Port; mọi truy cập DB đi qua Persistence Port, adapter Prisma ở `infrastructure/`; wiring DI ở file module.
@@ -78,9 +85,9 @@ constructor(private readonly carts: CartRepository) {}
 
 ## 5. Xử lý lỗi
 
-- Bộ lỗi nghiệp vụ dùng chung ở `src/common/errors/`, cùng kế thừa một lớp gốc: `NotFoundError` (404), `ConflictError` (409), `InvalidInputError` (400), `UnprocessableError` (422), `UnauthenticatedError` (401), `ForbiddenError` (403).
+- Bộ lỗi nghiệp vụ dùng chung ở `src/common/errors/` (có từ task 39), cùng kế thừa một lớp gốc: `NotFoundError` (404), `ConflictError` (409), `InvalidInputError` (400), `UnprocessableError` (422), `UnauthenticatedError` (401), `ForbiddenError` (403).
 - `domain/` và `application/` chỉ ném lỗi từ bộ này (hoặc lớp con, ví dụ `CategorySlugConflictError extends ConflictError`); **không** import HTTP exception của `@nestjs/common`.
-- `AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`) đổi lỗi sang HTTP ở **một chỗ duy nhất**, giữ nguyên mã HTTP, `message` và shape `{ statusCode, message, requestId }`. Không viết filter/interceptor ánh xạ theo module.
+- `AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`; nhánh đổi lỗi chung có từ task 39) đổi lỗi sang HTTP ở **một chỗ duy nhất**, giữ nguyên mã HTTP, `message` và shape `{ statusCode, message, requestId }`. Không viết filter/interceptor ánh xạ theo module.
 - Filter vẫn đổi lỗi Prisma (`P2002`, `P2003`, `P2011`, `P2014`, `P2025`) làm lưới an toàn. Adapter chỉ tự bắt lỗi Prisma khi cần message nghiệp vụ cụ thể (ví dụ trùng slug) và đổi sang lỗi chung.
 - Tầng HTTP (guard, strategy, controller trong `presentation/`, `admin/`, `storefront/`) vẫn được ném HTTP exception của NestJS.
 - Response, log level và request-id: [error-logging-conventions.md](error-logging-conventions.md).
@@ -90,12 +97,13 @@ constructor(private readonly carts: CartRepository) {}
 Một cách duy nhất cho toàn app: "hộp giao dịch" dựa trên `AsyncLocalStorage`.
 
 - Service mở giao dịch bằng `await this.transactionRunner.run(async () => { ... })` rồi gọi port/service công khai như bình thường. Adapter Prisma tự dùng client của giao dịch đang mở (nếu có), không thì dùng client thường.
-- `TransactionRunner` là `abstract class` (port dùng chung, đặt cạnh `src/infrastructure/database/`), cài đặt bằng `TransactionHost` của `@nestjs-cls/transactional` (kèm `nestjs-cls` và adapter Prisma). **Chỉ** code trong `infrastructure/` được import thư viện. Đổi thư viện sau này chỉ sửa tầng `infrastructure/`.
+- `TransactionRunner.run<T>(work: () => Promise<T>, opts?: { isolationLevel?: Prisma.TransactionIsolationLevel; timeout?: number; maxWait?: number }): Promise<T>`: service chọn mức cô lập khi mở giao dịch (mặc định `Read Committed`); adapter nhập vào giao dịch không tự đặt isolation. Nơi gọi `run` sở hữu việc retry khi gặp `P2034`. Chỉ giao dịch ngoài cùng áp dụng `opts`.
+- `TransactionRunner` (có từ task 39) là `abstract class` ở `src/infrastructure/database/transaction-runner.port.ts` (port dùng chung, khớp mẫu `*.port.js` của luật lint 2), cài đặt bằng `TransactionHost` của `@nestjs-cls/transactional` (kèm `nestjs-cls` và adapter Prisma). **Chỉ** code trong `infrastructure/` được import thư viện. Đổi thư viện sau này chỉ sửa tầng `infrastructure/`.
 - **Không** truyền `tx` qua port; **không** dùng `@Transactional()` trong service (gắn `application/` vào thư viện).
 - Giao dịch lồng nhau nhập vào giao dịch ngoài (propagation Required): một service công khai dùng được cả khi gọi riêng lẫn bên trong giao dịch của checkout. Không dùng `Nested`/`RequiresNew` khi chưa có quyết định riêng.
 - **Không gọi ra ngoài trong `run()`:** không gửi mail, upload, gọi Google/provider. Làm sau khi giao dịch xong hoặc qua outbox ([ADR 0003](../adr/0003-inventory-reservations-and-transactional-outbox.md)). Giữ giao dịch ngắn (Prisma hủy sau 5 s mặc định).
 - **Transaction xuyên module** chạy qua service công khai của từng module; không module nào ghi bảng của module khác.
-- **Khoá dòng** (`SELECT ... FOR UPDATE`) và `isolationLevel` nằm ở adapter của module chủ bảng; caller yêu cầu bằng `{ lockForUpdate: true }`. Thứ tự khoá và quy tắc từng luồng: [04-data-consistency.md](../architecture/04-data-consistency.md). Cú pháp Prisma: [prisma-conventions.md §4](prisma-conventions.md#4-prisma-client-trong-nestjs).
+- **Khoá dòng** (`SELECT ... FOR UPDATE`) nằm ở adapter của module chủ bảng; caller yêu cầu bằng `{ lockForUpdate: true }`. Thứ tự khoá và quy tắc từng luồng: [04-data-consistency.md](../architecture/04-data-consistency.md). Cú pháp Prisma: [prisma-conventions.md §4](prisma-conventions.md#4-prisma-client-trong-nestjs).
 
 ## 7. Ranh giới module và feature
 
@@ -114,24 +122,26 @@ Một cách duy nhất cho toàn app: "hộp giao dịch" dựa trên `AsyncLoca
 
   Consumer hỏi thẳng module sở hữu dữ liệu, không nhờ module trung gian hỏi hộ. Khi module dưới cần báo ngược lên, dùng domain event qua outbox ([07-async-events-jobs.md](../architecture/07-async-events-jobs.md)).
 
-- **Giữa các feature cùng module:** feature X chỉ import `domain/` và `presentation/` của feature Y; không import `application/`, `ports/`, `infrastructure/` của Y. Cần dữ liệu của Y thì gọi service của Y.
+- **Giữa các feature cùng module:** feature X chỉ được import `domain/`, `presentation/` và **đúng một file** `application/<y>.service.ts` của feature Y (service công khai của Y); không import `ports/`, `infrastructure/` hay file `application/` nào khác của Y. Cần dữ liệu của Y thì gọi service đó.
 - Checkout tạm sở hữu `checkout_quotes`, `orders`, `order_items` đến khi có module `ordering`.
 
 ## 8. Giới hạn kích thước file
 
-- Mục tiêu khoảng **150** dòng, giới hạn cứng **200** dòng mỗi file (không đếm dòng trống và comment); `max-lines` chặn. Vượt thì tách theo trách nhiệm, không tách chỉ để đạt con số.
+- Mục tiêu khoảng **150** dòng, giới hạn cứng **200** dòng mỗi file (không đếm dòng trống và comment); `max-lines` chặn (có từ task 40). Vượt thì tách theo trách nhiệm, không tách chỉ để đạt con số.
 - **Miễn:** code sinh tự động (`src/generated/`) và file test (`*.spec.ts`, `*.e2e-spec.ts`). Ngoại lệ cho một file cụ thể chỉ khi có comment giải thích lý do ngay trong file.
 
 ## 9. Bộ luật lint
 
-Cấu hình bằng `no-restricted-imports` và `max-lines` của oxlint, sinh bởi `scripts/generate-oxlint-boundaries.ts` (không sửa tay phần sinh trong `oxlint.json`).
+> Trạng thái đích: script sinh và các luật bên dưới được giao ở task 40; hiện chưa có trong repo, review thủ công theo các luật này.
+
+Cấu hình bằng `no-restricted-imports` và `max-lines` của oxlint, sinh bởi `scripts/generate-oxlint-boundaries.ts` (có từ task 40; không sửa tay phần sinh trong `oxlint.json`).
 
 1. `domain/` không import `@nestjs/**`, `#src/infrastructure/**`, `#src/generated/**`.
 2. `application/` không import `#src/generated/**`, `PrismaService`, `nestjs-cls`/`@nestjs-cls/**`, adapter trong `infrastructure/`; chỉ được import port dùng chung `#src/infrastructure/**/*.port.js`.
 3. `domain/` và `application/` không import HTTP exception của `@nestjs/common`.
 4. `admin/`, `storefront/`, `presentation/` không import `PrismaService` hay `#src/generated/**`.
 5. Module A chỉ import của module B hai file nêu ở §7.
-6. Trong cùng module, feature X chỉ import `domain/` và `presentation/` của feature Y.
+6. Trong cùng module, feature X chỉ import `domain/`, `presentation/` và `application/<y>.service.js` của feature Y; cấm `ports/`, `infrastructure/` và các file `application/` khác.
 7. `max-lines` 200 (bỏ dòng trống và comment; miễn `src/generated/**` và file test); cấm import tương đối `./`, `../` trong `src/` (trừ `src/generated/`) để không lách được luật 5 và 6.
 
 **Lộ trình:** luật 1–6 mức `error` cho từng module ngay trong PR refactor module đó (script giữ danh sách module đã chuyển đổi); không dùng mức warning. Luật 7 `max-lines` mức `error` ngay, kèm danh sách tạm các file đang vượt; mỗi PR tách file xoá file khỏi danh sách. Cấm import tương đối: `error` ngay. Điều công cụ không biểu đạt được (ví dụ một Port có phải "gom nhóm use case liên quan") chỉ kiểm bằng review.

@@ -49,7 +49,7 @@ Migrated modules: _none yet_ (each refactor PR adds its module here and to the l
 - Only the owning module writes or reads its tables (ownership matrix: `docs/architecture/02-modules.md` §2).
 - Module A may import from module B only `#src/modules/<b>/<b>.module.js` and B's single public class `#src/modules/<b>/application/<b>.service.js`. Public classes contain only methods other modules need, return plain types, and are the only provider B exports for business use.
 - Allowed call direction: checkout → catalog, inventory, voucher, identity; cart → catalog, inventory, identity; catalog → inventory; inventory and voucher call no business module.
-- Inside one module, feature X may import only `domain/` and `presentation/` of feature Y; for Y's data, call Y's service.
+- Inside one module, feature X may import only `domain/`, `presentation/` and `application/<y>.service.ts` (Y's public service) of feature Y; never Y's `ports/`, `infrastructure/` or other `application/` files.
 - `common/`, `infrastructure/`, and `security/` never import `modules/`.
 
 ## File size

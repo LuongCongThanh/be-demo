@@ -20,18 +20,18 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.5](../11-database
 
 ## 3. Interface cho module khác
 
-Mọi hàm nhận `tx` của module gọi; khoá `inventory_levels` theo `variant_id` tăng dần.
+Hàm không nhận `tx`: module gọi bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của `inventory` tự nhập vào giao dịch đang mở; khoá `inventory_levels` theo `variant_id` tăng dần.
 
-| Hàm                                               | Gọi ở                                                                                                                  |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `getSellable(variantIds)`                         | `catalog`, `cart`, `ordering` (Tính thử)                                                                               |
-| `reserve(orderId, lines, tx)`                     | T1 (online) — thiếu → lỗi kèm số còn (BR-INV-06)                                                                       |
-| `decrementToAwaitingDispatch(orderId, lines, tx)` | T2 (COD, BR-INV-04)                                                                                                    |
-| `consumeReservation(orderId, tx)`                 | T3 — `on_hand -= q`, `reserved -= q`, tạo Hàng chờ xuất; Giữ hàng đã quá hạn thì giữ lại nếu còn đủ (business/05 §4.1) |
-| `releaseReservation(orderId, tx)`                 | T4, T5                                                                                                                 |
-| `returnAwaitingDispatch(orderId, tx)`             | T7, T9 (BR-INV-07)                                                                                                     |
-| `clearAwaitingDispatch(orderId, tx)`              | T10                                                                                                                    |
-| `restockReturned(orderId                          | returnId, lines, tx)`                                                                                                  | Staff xác nhận hàng về Kho (BR-INV-08): theo `orderId` (Hoàn hàng T12) → movement `return_to_sender`; theo `returnId` (Đổi trả, gọi khi Staff `decide`, không phải khi `receive`) → movement `return_restock` |
+| Hàm                                           | Gọi ở                                                                                                                  |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `getSellable(variantIds)`                     | `catalog`, `cart`, `ordering` (Tính thử)                                                                               |
+| `reserve(orderId, lines)`                     | T1 (online) — thiếu → lỗi kèm số còn (BR-INV-06)                                                                       |
+| `decrementToAwaitingDispatch(orderId, lines)` | T2 (COD, BR-INV-04)                                                                                                    |
+| `consumeReservation(orderId)`                 | T3 — `on_hand -= q`, `reserved -= q`, tạo Hàng chờ xuất; Giữ hàng đã quá hạn thì giữ lại nếu còn đủ (business/05 §4.1) |
+| `releaseReservation(orderId)`                 | T4, T5                                                                                                                 |
+| `returnAwaitingDispatch(orderId)`             | T7, T9 (BR-INV-07)                                                                                                     |
+| `clearAwaitingDispatch(orderId)`              | T10                                                                                                                    |
+| `restockReturned(orderId                      | returnId, lines)`                                                                                                      | Staff xác nhận hàng về Kho (BR-INV-08): theo `orderId` (Hoàn hàng T12) → movement `return_to_sender`; theo `returnId` (Đổi trả, gọi khi Staff `decide`, không phải khi `receive`) → movement `return_restock` |
 
 ## 4. API
 
@@ -62,7 +62,7 @@ stateDiagram-v2
 
 ## 6. Sự kiện
 
-Không phát; mọi thay đổi được gọi đồng bộ trong transaction của module điều phối.
+Không phát; mọi thay đổi được gọi đồng bộ trong `TransactionRunner.run()` của module điều phối.
 
 ## 7. Job
 

@@ -17,10 +17,12 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.12](../11-databas
 
 ## 3. Interface cho module khác
 
+Hàm không nhận `tx`: caller bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của module này tự nhập vào giao dịch đang mở ([module-architecture-conventions.md §6](../../convention/module-architecture-conventions.md#6-transaction)).
+
 | Hàm                                              | Dùng bởi                                                                                                                                                               |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `getSetting(key)` (cache ngắn, nguồn PostgreSQL) | `ordering` (hạn mức COD), `fulfillment` (phí dự phòng, ngưỡng miễn phí)                                                                                                |
-| `audit(entry, tx)`                               | Mọi thao tác **ghi** của module back-office, `identity` (CLI, `actor_user_id = null`). Lượt xem dữ liệu cá nhân không ghi ở đây mà ở `data_access_logs` (`compliance`) |
+| `audit(entry)`                                   | Mọi thao tác **ghi** của module back-office, `identity` (CLI, `actor_user_id = null`). Lượt xem dữ liệu cá nhân không ghi ở đây mà ở `data_access_logs` (`compliance`) |
 
 ## 4. API
 

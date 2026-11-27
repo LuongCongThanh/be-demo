@@ -50,3 +50,7 @@ Chốt qua grilling ngày 2026-11-24 (người dùng đồng ý toàn bộ khuy�
 
 Minh họa cây đích của `catalog`: [assets/02-catalog-target-tree.md](../assets/02-catalog-target-tree.md).
 Minh họa cây đích của toàn `src/modules`: [assets/02-src-modules-target-tree.md](../assets/02-src-modules-target-tree.md).
+
+### Bổ sung 2026-11-27
+
+Quy tắc 7: feature X được import đúng một file của feature Y cùng module là `application/<y>.service.ts`; vẫn cấm `ports/`, `infrastructure/` và file `application/` khác, và luật lint 6 chỉ cho phép đúng file đó.
