@@ -1,7 +1,12 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ClsModule } from 'nestjs-cls';
+import { ClsPluginTransactional } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
+import { IdempotencyModule } from '#src/infrastructure/idempotency/idempotency.module.js';
 import { PrismaModule } from '#src/infrastructure/database/prisma.module.js';
 import { IdentityModule } from '#src/modules/identity/identity.module.js';
 import { HealthModule } from '#src/infrastructure/observability/health/health.module.js';
@@ -21,7 +26,23 @@ import { InventoryModule } from '#src/modules/inventory/inventory.module.js';
     // Default cho mọi route không khai @Throttle() riêng — 20 request/phút/IP
     // (quyết định #11, docs/auth-playbook/00-overview.md).
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 20 }]),
+    // Phải đứng trước RequestIdMiddleware: middleware của Cls mở ngữ cảnh trước,
+    // rồi RequestContext.run (ALS riêng) bọc tiếp. Hai ALS độc lập nhau.
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+      plugins: [
+        new ClsPluginTransactional({
+          imports: [PrismaModule],
+          adapter: new TransactionalAdapterPrisma<PrismaService>({
+            prismaInjectionToken: PrismaService,
+            sqlFlavor: 'postgresql',
+          }),
+        }),
+      ],
+    }),
     PrismaModule,
+    IdempotencyModule,
     IdentityModule,
     HealthModule,
     MetricsModule,

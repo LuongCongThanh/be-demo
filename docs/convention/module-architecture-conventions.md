@@ -6,9 +6,8 @@
 
 **Trạng thái áp dụng.** Quy tắc áp dụng đầy đủ cho module mới, feature mới và module đã chuyển đổi. Module chưa chuyển đổi giữ cấu trúc hiện tại khi sửa nhỏ, không chuyển đổi nửa chừng; danh sách module đã chuyển đổi nằm ở mục _Migration status_ của rule agent, và mỗi PR refactor cập nhật danh sách đó.
 
-**Trạng thái triển khai.** Tài liệu này mô tả **trạng thái đích**. Các thành phần dùng chung sau chưa có trong repo và được giao ở task sau; đến khi đó module chưa chuyển đổi giữ mẫu hiện tại (xem `.claude/rules/module-architecture.md`):
+**Trạng thái triển khai.** Tài liệu này mô tả **trạng thái đích**. Các thành phần dùng chung của task 39 ([nền móng dùng chung](../plan/tasks/39-shared-architecture-foundations/spec.md)) **đã có trong repo**: bộ lỗi `src/common/errors/`, `TransactionRunner` (`src/infrastructure/database/transaction-runner.port.ts`) cùng `nestjs-cls`, và các port dùng chung (Idempotency, Mail, Storage, Audit). Chưa module nghiệp vụ nào dùng chúng; module chưa chuyển đổi giữ mẫu hiện tại cho đến task chuyển module (xem `.claude/rules/module-architecture.md`). Còn lại:
 
-- Task 39 ([nền móng dùng chung](../plan/tasks/39-shared-architecture-foundations/spec.md)): bộ lỗi `src/common/errors/`, `TransactionRunner` (`src/infrastructure/database/transaction-runner.port.ts`) cùng `nestjs-cls`, các port dùng chung (Idempotency, Mail, Storage, Audit).
 - Task 40 ([bộ sinh luật lint](../plan/tasks/40-lint-boundary-generator/spec.md)): `scripts/generate-oxlint-boundaries.ts` và việc `max-lines`/`no-restricted-imports` chặn thật.
 
 Marker "(có từ task 39)" / "(có từ task 40)" bên dưới đánh dấu từng điểm này.
