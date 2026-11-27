@@ -17,6 +17,7 @@ export class AdminInventoryService {
 
   async adjust(variantId: string, actorUserId: string, dto: { delta: number; reason: string }) {
     if (!Number.isInteger(dto.delta) || dto.delta === 0) {
+      // 409 is kept on purpose to preserve the existing status (refactor-only).
       throw new ConflictError('Delta must be a non-zero integer');
     }
     return this.transactionRunner.run(async () => {

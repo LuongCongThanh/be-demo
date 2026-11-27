@@ -29,3 +29,15 @@
 
 - Hai route `GET /admin/inventory/:variantId` và `POST .../adjust|counts` không dùng `ParseUUIDPipe`; id không phải UUID chạm DB và ra lỗi Prisma (hành vi cũ, giữ nguyên).
 - `GET /admin/inventory/:variantId` và các route khác dùng `@ApiTags('Inventory')` chuỗi thô thay vì `API_TAGS` như module khác (giữ vì Swagger không được đổi).
+
+## Sửa theo code review
+
+- `getAvailability(..., { lockForUpdate: true })` ngoài giao dịch nay ném `Error` thường (kiểm tra `isTransactionActive()` nằm ở adapter, `application/` không import nestjs-cls).
+- `commitStockForOrder` từ chối `quantity` không phải số nguyên dương và `variantId` trùng bằng `InvalidInputError`; đường thiếu hàng giữ nguyên. Không thêm ghi `inventory_movements` (checkout hiện không ghi; chờ quyết định của người dùng).
+- JSDoc của `InventoryService` nêu rõ: thiếu dòng tồn kho trả 0/0/0, `availableQuantity` chặn dưới 0, `lockForUpdate` chỉ dùng trong `TransactionRunner.run()`, khoá theo `variant_id` tăng dần. `AdminInventoryService` có chú thích vì sao `delta` sai vẫn trả 409.
+
+### Ghi nhận, không sửa
+
+- Race có sẵn trong `confirmCount`: đọc count và kiểm tra `confirmedAt` diễn ra trước khi khoá dòng tồn kho, hai lần confirm đồng thời có thể áp dụng hai lần; nên làm task sửa riêng.
+- Thiếu `ParseUUIDPipe` và `@ApiTags('Inventory')` chuỗi thô: sửa sẽ đổi hành vi/Swagger nên giữ nguyên.
+- Chưa có test cho `InventoryService` công khai và `PrismaInventoryRepository` (giai đoạn test được hoãn).

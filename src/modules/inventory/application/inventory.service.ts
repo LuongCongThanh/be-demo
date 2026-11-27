@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ConflictError } from '#src/common/errors/business-errors.js';
+import { ConflictError, InvalidInputError } from '#src/common/errors/business-errors.js';
 import { TransactionRunner } from '#src/infrastructure/database/transaction-runner.port.js';
 import { InventoryRepository } from '#src/modules/inventory/application/ports/inventory.repository.js';
 import type { StockLine } from '#src/modules/inventory/domain/inventory.model.js';
@@ -20,8 +20,11 @@ export class InventoryService {
   ) {}
 
   /**
-   * Trả một phần tử cho mỗi variant, theo thứ tự `variantIds`; variant chưa có dòng tồn kho tính là 0.
-   * `lockForUpdate` khoá dòng theo `variant_id` tăng dần và chỉ có tác dụng trong `TransactionRunner.run()`.
+   * Trả một phần tử cho mỗi variant, theo thứ tự `variantIds`.
+   * - Variant chưa có dòng `inventory` trả `quantity`/`reservedQuantity`/`availableQuantity` = 0/0/0.
+   * - `availableQuantity = max(0, quantity - reservedQuantity)` (không bao giờ âm).
+   * - `lockForUpdate` chỉ dùng trong `TransactionRunner.run()`; ngoài giao dịch sẽ ném lỗi (lỗi lập trình).
+   *   Các dòng được khoá theo `variant_id` tăng dần để tránh deadlock.
    */
   async getAvailability(variantIds: string[], options?: { lockForUpdate?: boolean }): Promise<VariantAvailability[]> {
     const levels = await this.inventory.findLevels(variantIds, options);
@@ -33,8 +36,20 @@ export class InventoryService {
     });
   }
 
-  /** Trừ tồn có điều kiện đủ hàng rồi ghi hàng chờ xuất của đơn; thiếu hàng ném `ConflictError`. */
+  /**
+   * Trừ tồn có điều kiện đủ hàng rồi ghi hàng chờ xuất của đơn, trong một giao dịch.
+   * Khoá các dòng theo `variant_id` tăng dần. Thiếu hàng ném `ConflictError`; `quantity` không phải
+   * số nguyên dương hoặc `variantId` trùng trong `lines` ném `InvalidInputError`.
+   */
   async commitStockForOrder(orderId: string, lines: StockLine[]): Promise<void> {
+    const seen = new Set<string>();
+    for (const line of lines) {
+      if (!Number.isInteger(line.quantity) || line.quantity <= 0) {
+        throw new InvalidInputError(`Quantity must be a positive integer for variant ${line.variantId}`);
+      }
+      if (seen.has(line.variantId)) throw new InvalidInputError(`Duplicate variant ${line.variantId} in lines`);
+      seen.add(line.variantId);
+    }
     await this.transactionRunner.run(async () => {
       const levels = await this.inventory.findLevels(
         lines.map((line) => line.variantId),

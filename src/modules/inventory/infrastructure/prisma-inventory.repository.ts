@@ -22,6 +22,9 @@ export class PrismaInventoryRepository extends InventoryRepository {
     if (variantIds.length === 0) return [];
     const { tx } = this.txHost;
     if (options?.lockForUpdate) {
+      if (!this.txHost.isTransactionActive()) {
+        throw new Error('lockForUpdate requires an active transaction: call it inside TransactionRunner.run()');
+      }
       await tx.$queryRaw`
         SELECT variant_id FROM inventory
         WHERE variant_id IN (${Prisma.join(variantIds.map((id) => Prisma.sql`${id}::uuid`))})
