@@ -1,5 +1,5 @@
 import { OmitType, PartialType } from '@nestjs/swagger';
-import { CreateVoucherDto } from '#src/modules/voucher/dto/admin/create-voucher.dto.js';
+import { CreateVoucherDto } from '#src/modules/voucher/admin/dto/create-voucher.dto.js';
 
 /**
  * Mã không đổi. Chưa ai dùng: sửa mọi trường còn lại. Đã có lượt dùng: chỉ `endsAt`, `totalLimit`

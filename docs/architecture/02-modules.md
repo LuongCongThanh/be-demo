@@ -128,7 +128,12 @@ src/
     │   ├── application/     # admin-inventory.service.ts (không export), inventory.service.ts (public), ports/inventory.repository.ts
     │   ├── infrastructure/prisma-inventory.repository.ts
     │   └── admin/           # controllers/inventory.controller.ts, dto/inventory.dto.ts
-    └── voucher/
+    └── voucher/             # đã chuyển sang kiến trúc chung (task 42)
+        ├── voucher.module.ts
+        ├── domain/          # voucher.model.ts, voucher-status.ts, voucher-rules.ts
+        ├── application/     # admin-voucher.service.ts (không export), voucher.service.ts (public), ports/voucher.repository.ts
+        ├── infrastructure/  # prisma-voucher.repository.ts, voucher-status-where.ts
+        └── admin/           # controllers/admin-voucher.controller.ts, dto/*.dto.ts
 ```
 
 ### 4.2 Cây kiến trúc mục tiêu
@@ -252,12 +257,12 @@ modules/identity/
     ├── services/admin/
     └── dto/admin/
 
-modules/voucher/
+modules/voucher/          # đã chuyển đổi (task 42), xem §4.1
 ├── voucher.module.ts
-├── controllers/admin/
-├── services/admin/
 ├── domain/
-└── dto/admin/
+├── application/          # + ports/
+├── infrastructure/
+└── admin/                # controllers/ + dto/
 ```
 
 Trong module có API cho cả Storefront và Admin CMS, nhóm controller và DTO theo `storefront/` hoặc `admin/`; service/mapper riêng cho một phía cũng theo nhóm tương ứng. Logic hoặc DTO dùng chung nằm trong `shared/`; domain thuần nằm trong `domain/`. Chỉ tạo nhóm thực sự có file, không để thư mục rỗng. Swagger dùng tag riêng có tiền tố `Storefront —` hoặc `Admin CMS —`. Test `*.spec.ts` đặt cạnh file được test trong nhóm tương ứng.

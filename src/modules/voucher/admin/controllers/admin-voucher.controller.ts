@@ -6,12 +6,12 @@ import type { JwtPayload } from '#src/security/contracts/jwt-payload.js';
 import { Permission } from '#src/security/contracts/permission.enum.js';
 import { ApiErrorResponses } from '#src/common/swagger/api-error-responses.decorator.js';
 import { API_TAGS } from '#src/common/swagger/api-tags.js';
-import { AdminVoucherService } from '#src/modules/voucher/services/admin/admin-voucher.service.js';
-import { CreateVoucherDto } from '#src/modules/voucher/dto/admin/create-voucher.dto.js';
-import { ListVouchersQueryDto } from '#src/modules/voucher/dto/admin/list-vouchers-query.dto.js';
-import { PaginatedVoucherResponseDto } from '#src/modules/voucher/dto/admin/paginated-voucher-response.dto.js';
-import { UpdateVoucherDto } from '#src/modules/voucher/dto/admin/update-voucher.dto.js';
-import { VoucherResponseDto } from '#src/modules/voucher/dto/admin/voucher-response.dto.js';
+import { AdminVoucherService } from '#src/modules/voucher/application/admin-voucher.service.js';
+import { CreateVoucherDto } from '#src/modules/voucher/admin/dto/create-voucher.dto.js';
+import { ListVouchersQueryDto } from '#src/modules/voucher/admin/dto/list-vouchers-query.dto.js';
+import { PaginatedVoucherResponseDto } from '#src/modules/voucher/admin/dto/paginated-voucher-response.dto.js';
+import { UpdateVoucherDto } from '#src/modules/voucher/admin/dto/update-voucher.dto.js';
+import { VoucherResponseDto } from '#src/modules/voucher/admin/dto/voucher-response.dto.js';
 
 const NOT_FOUND: [404, string] = [404, 'Voucher not found'];
 

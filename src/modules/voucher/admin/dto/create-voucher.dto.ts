@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsDate, IsEnum, IsInt, IsOptional, Matches, Max, Min, ValidateIf } from 'class-validator';
-import { VoucherType } from '#src/generated/prisma/enums.js';
+import { VoucherType } from '#src/modules/voucher/domain/voucher.model.js';
 
 /** Voucher mới (US-901 AC1). Kiểm chéo (% ≤ 100, mức tối đa chỉ cho %, thời gian) ở service. */
 export class CreateVoucherDto {
