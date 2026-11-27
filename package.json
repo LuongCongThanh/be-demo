@@ -21,6 +21,8 @@
     "start:prod": "node dist/main",
     "cli": "node dist/cli",
     "lint": "oxlint -c oxlint.json src/ test/",
+    "lint:boundaries": "tsx scripts/generate-oxlint-boundaries.ts",
+    "lint:boundaries:check": "tsx scripts/generate-oxlint-boundaries.ts --check",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
