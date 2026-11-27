@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { VoucherType } from '#src/generated/prisma/enums.js';
+import { VoucherType } from '#src/modules/voucher/domain/voucher.model.js';
 import { VOUCHER_STATUSES, type VoucherStatus } from '#src/modules/voucher/domain/voucher-status.js';
 
 export class VoucherResponseDto {

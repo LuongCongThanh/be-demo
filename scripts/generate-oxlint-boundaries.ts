@@ -12,7 +12,7 @@ import { format, resolveConfig } from 'prettier';
 // ---- Inputs (edit these) ----------------------------------------------------------------------
 
 /** Modules whose layer and boundary rules (1-6) are enforced. Each module-refactor PR adds its module. */
-export const MIGRATED_MODULES: string[] = ['inventory'];
+export const MIGRATED_MODULES: string[] = ['inventory', 'voucher'];
 
 /** Features of the multi-feature modules (each repeats the layout inside `src/modules/<module>/<feature>/`). */
 export const MODULE_FEATURES: Record<string, string[]> = {
