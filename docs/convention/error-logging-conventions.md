@@ -61,7 +61,7 @@ Tầng HTTP (controller, guard, strategy trong `admin/`, `storefront/`, `present
 
 **Có** dùng `try/catch` khi:
 
-- **Dịch lỗi tầng dưới thành lỗi nghiệp vụ cụ thể** (vd. adapter bắt `Prisma.PrismaClientKnownRequestError` mã `P2002` để ném `ConflictError` với message rõ nghĩa nghiệp vụ — xem [§5](#5-khi-nào-tự-ném-exception-ở-service-không-dựa-vào-filter)).
+- **Dịch lỗi tầng dưới thành lỗi nghiệp vụ cụ thể** (vd. adapter bắt `Prisma.PrismaClientKnownRequestError` mã `P2002` để ném `ConflictError` với message rõ nghĩa nghiệp vụ — xem [§5](#5-khi-nào-tự-ném-lỗi-ở-service-không-dựa-vào-filter)).
 - **Side-effect không quan trọng bằng luồng chính, cho phép fail mà không làm hỏng cả request** (best-effort — vd. gửi email xác thực thất bại không nên làm `register()` trả lỗi cho user). Trường hợp này **phải tự log lỗi rõ ràng** trước khi nuốt nó — nuốt lỗi mà không log nghĩa là không ai biết side-effect đó từng thất bại (filter không thấy lỗi vì bạn đã bắt nó).
 
 ## Checklist khi thêm endpoint mới
