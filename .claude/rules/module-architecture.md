@@ -12,7 +12,7 @@ Every module in `src/modules` uses one Hexagonal architecture. No module is exem
 
 Apply the full rule set to **new modules, new features, and modules listed as migrated**. In a module not yet migrated, keep small fixes consistent with that module's current structure and do not migrate it partially; its refactor happens in a dedicated task from `docs/plan/tasks/`.
 
-Migrated modules: _none yet_ (each refactor PR adds its module here and to the lint boundary list).
+Migrated modules: `inventory` (each refactor PR adds its module here and to the lint boundary list).
 
 ## Folder layout (create a folder only when it has a file)
 

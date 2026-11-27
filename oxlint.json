@@ -75,6 +75,359 @@
       }
     },
     {
+      "files": ["src/modules/inventory/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "#src/security/authorization/permissions/permissions.guard.js",
+                "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+              },
+              {
+                "name": "#src/security/authorization/permissions/permissions.decorator.js",
+                "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^\\.{1,2}(/|$)",
+                "message": "Luật 7: không import tương đối; dùng alias #src/... (nếu không luật 5 và 6 bị lách)."
+              },
+              {
+                "group": [
+                  "#src/modules/cart/**",
+                  "!#src/modules/cart/cart.module.js",
+                  "!#src/modules/cart/application/cart.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import cart.module.js và application/cart.service.js của module cart."
+              },
+              {
+                "group": [
+                  "#src/modules/catalog/**",
+                  "!#src/modules/catalog/catalog.module.js",
+                  "!#src/modules/catalog/application/catalog.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import catalog.module.js và application/catalog.service.js của module catalog."
+              },
+              {
+                "group": [
+                  "#src/modules/checkout/**",
+                  "!#src/modules/checkout/checkout.module.js",
+                  "!#src/modules/checkout/application/checkout.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import checkout.module.js và application/checkout.service.js của module checkout."
+              },
+              {
+                "group": [
+                  "#src/modules/identity/**",
+                  "!#src/modules/identity/identity.module.js",
+                  "!#src/modules/identity/application/identity.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import identity.module.js và application/identity.service.js của module identity."
+              },
+              {
+                "group": [
+                  "#src/modules/voucher/**",
+                  "!#src/modules/voucher/voucher.module.js",
+                  "!#src/modules/voucher/application/voucher.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import voucher.module.js và application/voucher.service.js của module voucher."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/modules/inventory/domain/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "#src/security/authorization/permissions/permissions.guard.js",
+                "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+              },
+              {
+                "name": "#src/security/authorization/permissions/permissions.decorator.js",
+                "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+              },
+              {
+                "name": "@nestjs/common",
+                "importNames": [
+                  "HttpException",
+                  "BadGatewayException",
+                  "BadRequestException",
+                  "ConflictException",
+                  "ForbiddenException",
+                  "GatewayTimeoutException",
+                  "GoneException",
+                  "HttpVersionNotSupportedException",
+                  "ImATeapotException",
+                  "InternalServerErrorException",
+                  "MethodNotAllowedException",
+                  "MisdirectedException",
+                  "NotAcceptableException",
+                  "NotFoundException",
+                  "NotImplementedException",
+                  "PayloadTooLargeException",
+                  "PreconditionFailedException",
+                  "RequestTimeoutException",
+                  "ServiceUnavailableException",
+                  "UnauthorizedException",
+                  "UnprocessableEntityException",
+                  "UnsupportedMediaTypeException"
+                ],
+                "message": "Luật 3: domain/ và application/ ném lỗi nghiệp vụ từ #src/common/errors, không ném HTTP exception."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^\\.{1,2}(/|$)",
+                "message": "Luật 7: không import tương đối; dùng alias #src/... (nếu không luật 5 và 6 bị lách)."
+              },
+              {
+                "group": [
+                  "#src/modules/cart/**",
+                  "!#src/modules/cart/cart.module.js",
+                  "!#src/modules/cart/application/cart.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import cart.module.js và application/cart.service.js của module cart."
+              },
+              {
+                "group": [
+                  "#src/modules/catalog/**",
+                  "!#src/modules/catalog/catalog.module.js",
+                  "!#src/modules/catalog/application/catalog.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import catalog.module.js và application/catalog.service.js của module catalog."
+              },
+              {
+                "group": [
+                  "#src/modules/checkout/**",
+                  "!#src/modules/checkout/checkout.module.js",
+                  "!#src/modules/checkout/application/checkout.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import checkout.module.js và application/checkout.service.js của module checkout."
+              },
+              {
+                "group": [
+                  "#src/modules/identity/**",
+                  "!#src/modules/identity/identity.module.js",
+                  "!#src/modules/identity/application/identity.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import identity.module.js và application/identity.service.js của module identity."
+              },
+              {
+                "group": [
+                  "#src/modules/voucher/**",
+                  "!#src/modules/voucher/voucher.module.js",
+                  "!#src/modules/voucher/application/voucher.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import voucher.module.js và application/voucher.service.js của module voucher."
+              },
+              {
+                "group": ["@nestjs/**", "#src/infrastructure/**", "#src/generated/**"],
+                "message": "Luật 1: domain/ thuần, không import @nestjs, infrastructure hay generated."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/modules/inventory/application/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "#src/security/authorization/permissions/permissions.guard.js",
+                "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+              },
+              {
+                "name": "#src/security/authorization/permissions/permissions.decorator.js",
+                "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+              },
+              {
+                "name": "#src/infrastructure/database/prisma.service.js",
+                "message": "Luật 2: application/ không import PrismaService; đi qua Port."
+              },
+              {
+                "name": "@nestjs/common",
+                "importNames": [
+                  "HttpException",
+                  "BadGatewayException",
+                  "BadRequestException",
+                  "ConflictException",
+                  "ForbiddenException",
+                  "GatewayTimeoutException",
+                  "GoneException",
+                  "HttpVersionNotSupportedException",
+                  "ImATeapotException",
+                  "InternalServerErrorException",
+                  "MethodNotAllowedException",
+                  "MisdirectedException",
+                  "NotAcceptableException",
+                  "NotFoundException",
+                  "NotImplementedException",
+                  "PayloadTooLargeException",
+                  "PreconditionFailedException",
+                  "RequestTimeoutException",
+                  "ServiceUnavailableException",
+                  "UnauthorizedException",
+                  "UnprocessableEntityException",
+                  "UnsupportedMediaTypeException"
+                ],
+                "message": "Luật 3: domain/ và application/ ném lỗi nghiệp vụ từ #src/common/errors, không ném HTTP exception."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^\\.{1,2}(/|$)",
+                "message": "Luật 7: không import tương đối; dùng alias #src/... (nếu không luật 5 và 6 bị lách)."
+              },
+              {
+                "group": [
+                  "#src/modules/cart/**",
+                  "!#src/modules/cart/cart.module.js",
+                  "!#src/modules/cart/application/cart.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import cart.module.js và application/cart.service.js của module cart."
+              },
+              {
+                "group": [
+                  "#src/modules/catalog/**",
+                  "!#src/modules/catalog/catalog.module.js",
+                  "!#src/modules/catalog/application/catalog.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import catalog.module.js và application/catalog.service.js của module catalog."
+              },
+              {
+                "group": [
+                  "#src/modules/checkout/**",
+                  "!#src/modules/checkout/checkout.module.js",
+                  "!#src/modules/checkout/application/checkout.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import checkout.module.js và application/checkout.service.js của module checkout."
+              },
+              {
+                "group": [
+                  "#src/modules/identity/**",
+                  "!#src/modules/identity/identity.module.js",
+                  "!#src/modules/identity/application/identity.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import identity.module.js và application/identity.service.js của module identity."
+              },
+              {
+                "group": [
+                  "#src/modules/voucher/**",
+                  "!#src/modules/voucher/voucher.module.js",
+                  "!#src/modules/voucher/application/voucher.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import voucher.module.js và application/voucher.service.js của module voucher."
+              },
+              {
+                "group": ["#src/generated/**", "nestjs-cls", "@nestjs-cls/**"],
+                "message": "Luật 2: application/ không import Prisma generated hay nestjs-cls; đi qua Port."
+              },
+              {
+                "group": [
+                  "#src/infrastructure/**",
+                  "!#src/infrastructure/**/*.port.js",
+                  "#src/modules/inventory/infrastructure/**",
+                  "!#src/modules/inventory/infrastructure/**/*.port.js"
+                ],
+                "message": "Luật 2: application/ chỉ import port dùng chung (*.port.js) từ infrastructure/, không import adapter."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/modules/inventory/admin/**",
+        "src/modules/inventory/storefront/**",
+        "src/modules/inventory/presentation/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "#src/security/authorization/permissions/permissions.guard.js",
+                "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+              },
+              {
+                "name": "#src/security/authorization/permissions/permissions.decorator.js",
+                "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+              },
+              {
+                "name": "#src/infrastructure/database/prisma.service.js",
+                "message": "Luật 4: admin/, storefront/, presentation/ không import PrismaService."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^\\.{1,2}(/|$)",
+                "message": "Luật 7: không import tương đối; dùng alias #src/... (nếu không luật 5 và 6 bị lách)."
+              },
+              {
+                "group": [
+                  "#src/modules/cart/**",
+                  "!#src/modules/cart/cart.module.js",
+                  "!#src/modules/cart/application/cart.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import cart.module.js và application/cart.service.js của module cart."
+              },
+              {
+                "group": [
+                  "#src/modules/catalog/**",
+                  "!#src/modules/catalog/catalog.module.js",
+                  "!#src/modules/catalog/application/catalog.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import catalog.module.js và application/catalog.service.js của module catalog."
+              },
+              {
+                "group": [
+                  "#src/modules/checkout/**",
+                  "!#src/modules/checkout/checkout.module.js",
+                  "!#src/modules/checkout/application/checkout.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import checkout.module.js và application/checkout.service.js của module checkout."
+              },
+              {
+                "group": [
+                  "#src/modules/identity/**",
+                  "!#src/modules/identity/identity.module.js",
+                  "!#src/modules/identity/application/identity.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import identity.module.js và application/identity.service.js của module identity."
+              },
+              {
+                "group": [
+                  "#src/modules/voucher/**",
+                  "!#src/modules/voucher/voucher.module.js",
+                  "!#src/modules/voucher/application/voucher.service.js"
+                ],
+                "message": "Luật 5: inventory chỉ import voucher.module.js và application/voucher.service.js của module voucher."
+              },
+              {
+                "group": ["#src/generated/**"],
+                "message": "Luật 4: admin/, storefront/, presentation/ không import Prisma generated."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": [
         "src/generated/**",
         "**/*.spec.ts",

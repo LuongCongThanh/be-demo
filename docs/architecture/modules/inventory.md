@@ -33,6 +33,17 @@ Hàm không nhận `tx`: module gọi bọc lời gọi trong `TransactionRunner
 | `clearAwaitingDispatch(orderId)`              | T10                                                                                                                    |
 | `restockReturned(orderId                      | returnId, lines)`                                                                                                      | Staff xác nhận hàng về Kho (BR-INV-08): theo `orderId` (Hoàn hàng T12) → movement `return_to_sender`; theo `returnId` (Đổi trả, gọi khi Staff `decide`, không phải khi `receive`) → movement `return_restock` |
 
+### 3.1. Đã triển khai (task 41)
+
+`InventoryModule` export duy nhất `InventoryService` (`src/modules/inventory/application/inventory.service.ts`), hiện gồm:
+
+| Hàm                                               | Ý nghĩa                                                                                                                                                                                                                             |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getAvailability(variantIds, { lockForUpdate? })` | Mỗi variant: `quantity`, `reservedQuantity`, `availableQuantity` (không âm); variant chưa có dòng tồn kho tính 0. `lockForUpdate` khoá dòng `inventory` theo `variant_id` tăng dần, chỉ có tác dụng trong `TransactionRunner.run()` |
+| `commitStockForOrder(orderId, lines)`             | Trừ tồn có điều kiện đủ hàng (`quantity >= số lượng + giữ hàng`) và tạo `awaiting_dispatch_items`; thiếu hàng ném `ConflictError` `Insufficient stock for variant <id>`                                                             |
+
+Các hàm còn lại trong bảng trên chưa có. Checkout, cart và product chưa gọi hai hàm này (task 44-46).
+
 ## 4. API
 
 | Method | Path                                           | Actor | Ghi chú                                                                                                   |
@@ -42,6 +53,10 @@ Hàm không nhận `tx`: module gọi bọc lời gọi trong `TransactionRunner
 | `POST` | `/admin/inventory/adjustments`                 | staff | Lý do bắt buộc; giảm ≤ Số lượng bán được (BR-INV-11)                                                      |
 | `POST` | `/admin/inventory/stock-counts` (+ `/preview`) | staff | Kiểm kê (US-703)                                                                                          |
 | `GET`  | `/admin/inventory/:variantId/movements`        | staff | Lịch sử                                                                                                   |
+
+### 4.1. Cấu trúc source
+
+`src/modules/inventory/`: `inventory.module.ts`; `domain/inventory.model.ts` (type thuần); `application/` (`admin-inventory.service.ts` cho Back-office, không export; `inventory.service.ts` công khai; `ports/inventory.repository.ts` là `abstract class` cho `inventory`, `inventory_movements`, `inventory_stock_counts`, `awaiting_dispatch_items`); `infrastructure/prisma-inventory.repository.ts` (dùng `TransactionHost`, chứa khoá `FOR UPDATE`); `admin/controllers/inventory.controller.ts` (`/admin/inventory`) và `admin/dto/inventory.dto.ts`. Giao dịch mở bằng `TransactionRunner.run()`, lỗi ném `NotFoundError`/`ConflictError`.
 
 ## 5. Luồng
 
