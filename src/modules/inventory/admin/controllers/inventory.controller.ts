@@ -4,13 +4,13 @@ import { Authorize } from '#src/security/authorization/permissions/authorize.dec
 import { Permission } from '#src/security/contracts/permission.enum.js';
 import { CurrentUser } from '#src/security/authentication/current-user.decorator.js';
 import type { JwtPayload } from '#src/security/contracts/jwt-payload.js';
-import { InventoryService } from '#src/modules/inventory/inventory.service.js';
-import { AdjustInventoryDto, CreateStockCountDto } from '#src/modules/inventory/dto/inventory.dto.js';
+import { AdminInventoryService } from '#src/modules/inventory/application/admin-inventory.service.js';
+import { AdjustInventoryDto, CreateStockCountDto } from '#src/modules/inventory/admin/dto/inventory.dto.js';
 
 @ApiTags('Inventory')
 @Controller('admin/inventory')
 export class InventoryController {
-  constructor(private readonly service: InventoryService) {}
+  constructor(private readonly service: AdminInventoryService) {}
 
   @Get(':variantId')
   @Authorize(Permission.CATALOG_PRODUCT_VIEW)
@@ -22,11 +22,7 @@ export class InventoryController {
   @Post(':variantId/adjust')
   @Authorize(Permission.CATALOG_PRODUCT_MANAGE)
   @ApiOperation({ summary: 'Adjust variant inventory with an auditable movement' })
-  adjust(
-    @Param('variantId') variantId: string,
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: AdjustInventoryDto,
-  ) {
+  adjust(@Param('variantId') variantId: string, @CurrentUser() user: JwtPayload, @Body() dto: AdjustInventoryDto) {
     return this.service.adjust(variantId, user.sub, dto);
   }
 
