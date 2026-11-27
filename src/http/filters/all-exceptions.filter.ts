@@ -1,8 +1,26 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { Response } from 'express';
+import {
+  BusinessError,
+  ConflictError,
+  ForbiddenError,
+  InvalidInputError,
+  NotFoundError,
+  UnauthenticatedError,
+  UnprocessableError,
+} from '#src/common/errors/business-errors.js';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { getUniqueConstraintTarget } from '#src/infrastructure/database/prisma-error.util.js';
 import { RequestContext } from '#src/infrastructure/observability/logging/request-context.js';
+
+const BUSINESS_ERROR_STATUS: [abstract new (...args: never[]) => BusinessError, number][] = [
+  [NotFoundError, HttpStatus.NOT_FOUND],
+  [ConflictError, HttpStatus.CONFLICT],
+  [InvalidInputError, HttpStatus.BAD_REQUEST],
+  [UnprocessableError, HttpStatus.UNPROCESSABLE_ENTITY],
+  [UnauthenticatedError, HttpStatus.UNAUTHORIZED],
+  [ForbiddenError, HttpStatus.FORBIDDEN],
+];
 
 interface ResolvedError {
   status: number;
@@ -33,6 +51,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private resolve(exception: unknown): ResolvedError {
+    if (exception instanceof BusinessError) {
+      const match = BUSINESS_ERROR_STATUS.find(([type]) => exception instanceof type);
+      // Lỗi nghiệp vụ chưa được ánh xạ là lỗi lập trình: 500 + message chung,
+      // message thật chỉ vào log (qua stack ở `catch`).
+      if (!match) return { status: HttpStatus.INTERNAL_SERVER_ERROR, message: 'Internal server error' };
+      return { status: match[1], message: exception.message };
+    }
+
     if (exception instanceof HttpException) {
       const body = exception.getResponse();
       const message =

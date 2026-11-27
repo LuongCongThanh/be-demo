@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { validate } from '#src/config/env.validation.js';
+import { createClsModule } from '#src/infrastructure/database/cls.config.js';
 import { PrismaModule } from '#src/infrastructure/database/prisma.module.js';
 import { IdentityModule } from '#src/modules/identity/identity.module.js';
 import { CreateAdminCommand } from '#src/cli/create-admin.command.js';
@@ -8,7 +9,13 @@ import { PasswordPrompt } from '#src/cli/password-prompt.js';
 
 /** Application context cho `src/cli.ts` — không mở HTTP server. */
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true, validate }), PrismaModule, IdentityModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, validate }),
+    // Không mount middleware (không có HTTP); `src/cli.ts` bọc lệnh trong `ClsService.run`.
+    createClsModule({ mountMiddleware: false }),
+    PrismaModule,
+    IdentityModule,
+  ],
   providers: [CreateAdminCommand, PasswordPrompt],
 })
 export class CliModule {}

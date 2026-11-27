@@ -2,6 +2,8 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { createClsModule } from '#src/infrastructure/database/cls.config.js';
+import { IdempotencyModule } from '#src/infrastructure/idempotency/idempotency.module.js';
 import { PrismaModule } from '#src/infrastructure/database/prisma.module.js';
 import { IdentityModule } from '#src/modules/identity/identity.module.js';
 import { HealthModule } from '#src/infrastructure/observability/health/health.module.js';
@@ -21,7 +23,12 @@ import { InventoryModule } from '#src/modules/inventory/inventory.module.js';
     // Default cho mọi route không khai @Throttle() riêng — 20 request/phút/IP
     // (quyết định #11, docs/auth-playbook/00-overview.md).
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 20 }]),
+    // Middleware của Cls mở ngữ cảnh CLS cho mỗi request HTTP (cần cho
+    // `TransactionHost`). Không dựa vào thứ tự mount so với RequestIdMiddleware:
+    // `RequestContext` dùng AsyncLocalStorage riêng, độc lập với CLS.
+    createClsModule({ mountMiddleware: true }),
     PrismaModule,
+    IdempotencyModule,
     IdentityModule,
     HealthModule,
     MetricsModule,

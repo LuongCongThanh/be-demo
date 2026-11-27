@@ -1,6 +1,6 @@
 ---
-status: todo
-pr:
+status: done
+pr: #142
 blocked-by:
   - 38-architecture-standard-docs
 ---
@@ -36,7 +36,7 @@ blocked-by:
    - `src/infrastructure/mail/mail.port.ts` (theo các method `MailService` đang được gọi).
    - `src/infrastructure/storage/storage.port.ts` (theo các method `CloudinaryClient` đang được product và Category gọi; đọc cả `category-image.storage.ts` để gộp nhu cầu).
    - `src/infrastructure/audit/audit-log.port.ts` (theo `AuditLogService`).
-   - `src/infrastructure/idempotency/idempotency.port.ts` + adapter Prisma trên bảng `idempotency_keys`: `find(scope, key)`, `start(scope, key, requestHash)`, `complete(scope, key, status, response)`; adapter dùng `txHost.tx` để tham gia giao dịch. Chưa đổi checkout dùng nó (để task 46).
+   - `src/infrastructure/idempotency/idempotency.port.ts` + adapter Prisma trên bảng `idempotency_keys`: `find(scope, key)`, `start(scope, key, requestHash): Promise<boolean>`, `complete(scope, key, status, response)`; adapter dùng `txHost.tx` để tham gia giao dịch. Chưa đổi checkout dùng nó (để task 46).
    - Chỉ khai báo method đang thật sự được dùng.
 5. **Kiểm DI trong vitest:** viết một unit test nhỏ (được phép, vì là kiểm hạ tầng mới) dựng `Test.createTestingModule` inject port abstract class và `TransactionRunner`, chạy commit/rollback bằng giả lập hoặc DB test. Nếu vitest không có decorator metadata thì thêm `unplugin-swc` vào `vitest.config.ts` và `vitest.config.e2e.ts`; ghi kết quả vào `report.md`.
 

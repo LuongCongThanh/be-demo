@@ -1,19 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-
-/** Bộ tham số để trình duyệt gửi form POST thẳng lên kho ảnh (cùng dạng presigned POST của S3). */
-export interface SignedUpload {
-  uploadUrl: string;
-  fields: Record<string, string>;
-  expiresAt: Date;
-}
-
-export interface StoredImage {
-  bytes: number;
-  /** Định dạng do Cloudinary nhận diện từ nội dung file: `jpg`, `png`, `webp`, … */
-  format: string;
-}
+import { ImageStorage, type SignedUpload, type StoredImage } from '#src/infrastructure/storage/storage.port.js';
 
 interface Credentials {
   cloudName: string;
@@ -34,18 +22,20 @@ const SIGNATURE_TTL_SECONDS = 3600;
  * `publicUrl` trả null.
  */
 @Injectable()
-export class CloudinaryClient {
+export class CloudinaryClient extends ImageStorage {
   private readonly logger = new Logger(CloudinaryClient.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService) {
+    super();
+  }
 
-  publicUrl(storageKey: string): string | null {
+  override publicUrl(storageKey: string): string | null {
     const cloudName = this.config.get<string>('CLOUDINARY_CLOUD_NAME');
     return cloudName ? `https://res.cloudinary.com/${cloudName}/image/upload/${encodeKey(storageKey)}` : null;
   }
 
   /** `overwrite=false`: chữ ký còn hạn cũng không ghi đè được ảnh đã kiểm ở bước gắn. */
-  signUpload(storageKey: string, allowedFormats: readonly string[]): SignedUpload {
+  override signUpload(storageKey: string, allowedFormats: readonly string[]): SignedUpload {
     const { cloudName, apiKey, apiSecret } = this.credentials();
     const timestamp = Math.floor(Date.now() / 1000);
     const params = {
@@ -62,7 +52,7 @@ export class CloudinaryClient {
   }
 
   /** null khi chưa có file với key này. */
-  async findImage(storageKey: string): Promise<StoredImage | null> {
+  override async findImage(storageKey: string): Promise<StoredImage | null> {
     const { cloudName, apiKey, apiSecret } = this.credentials();
     const res = await this.call(
       `https://api.cloudinary.com/v1_1/${cloudName}/resources/image/upload/${encodeKey(storageKey)}`,
@@ -74,7 +64,7 @@ export class CloudinaryClient {
     return { bytes: body.bytes, format: body.format };
   }
 
-  async destroy(storageKey: string): Promise<void> {
+  override async destroy(storageKey: string): Promise<void> {
     const { cloudName, apiKey, apiSecret } = this.credentials();
     const params = { invalidate: 'true', public_id: storageKey, timestamp: String(Math.floor(Date.now() / 1000)) };
     const res = await this.call(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {

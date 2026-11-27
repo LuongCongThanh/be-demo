@@ -6,9 +6,8 @@
 
 **Trạng thái áp dụng.** Quy tắc áp dụng đầy đủ cho module mới, feature mới và module đã chuyển đổi. Module chưa chuyển đổi giữ cấu trúc hiện tại khi sửa nhỏ, không chuyển đổi nửa chừng; danh sách module đã chuyển đổi nằm ở mục _Migration status_ của rule agent, và mỗi PR refactor cập nhật danh sách đó.
 
-**Trạng thái triển khai.** Tài liệu này mô tả **trạng thái đích**. Các thành phần dùng chung sau chưa có trong repo và được giao ở task sau; đến khi đó module chưa chuyển đổi giữ mẫu hiện tại (xem `.claude/rules/module-architecture.md`):
+**Trạng thái triển khai.** Tài liệu này mô tả **trạng thái đích**. Các thành phần dùng chung của task 39 ([nền móng dùng chung](../plan/tasks/39-shared-architecture-foundations/spec.md)) **đã có trong repo**: bộ lỗi `src/common/errors/`, `TransactionRunner` (`src/infrastructure/database/transaction-runner.port.ts`) cùng `nestjs-cls`, và các port dùng chung (Idempotency, Mail, Storage, Audit). Chưa module nghiệp vụ nào dùng chúng; module chưa chuyển đổi giữ mẫu hiện tại cho đến task chuyển module (xem `.claude/rules/module-architecture.md`). Còn lại:
 
-- Task 39 ([nền móng dùng chung](../plan/tasks/39-shared-architecture-foundations/spec.md)): bộ lỗi `src/common/errors/`, `TransactionRunner` (`src/infrastructure/database/transaction-runner.port.ts`) cùng `nestjs-cls`, các port dùng chung (Idempotency, Mail, Storage, Audit).
 - Task 40 ([bộ sinh luật lint](../plan/tasks/40-lint-boundary-generator/spec.md)): `scripts/generate-oxlint-boundaries.ts` và việc `max-lines`/`no-restricted-imports` chặn thật.
 
 Marker "(có từ task 39)" / "(có từ task 40)" bên dưới đánh dấu từng điểm này.
@@ -77,7 +76,7 @@ constructor(private readonly carts: CartRepository) {}
 { provide: CartRepository, useExisting: PrismaCartRepository }
 ```
 
-- **Port dùng chung:** Mail, Storage, AuditLog, Idempotency mỗi thứ có **một** port đặt cạnh code hạ tầng (`src/infrastructure/**/*.port.ts`, ví dụ `src/infrastructure/mail/mail.port.ts`); module không bọc lại. Prisma không có port dùng chung (chỉ adapter dùng).
+- **Port dùng chung:** Mail, Storage, AuditLog, Idempotency mỗi thứ có **một** port đặt cạnh code hạ tầng (`src/infrastructure/**/*.port.ts`, ví dụ `src/infrastructure/mail/mail.port.ts`); module không bọc lại. `IdempotencyStore.start` trả `boolean` (`false` = khoá đã tồn tại, không ném P2002). Prisma không có port dùng chung (chỉ adapter dùng).
 - **Port riêng của module:** I/O chỉ một module dùng (Google `OAuth2Client` của identity, Translation của Category) có port trong `application/ports/` của module đó. Đặt tên theo khả năng, không gắn tên nhà cung cấp.
 - **Không port** cho thư viện thuần, deterministic, không I/O (`JwtService` ký token) và cho logic nội bộ không có outbound I/O.
 - Binding Port → adapter nằm ở file module sở hữu Port; không bind cùng Port ở hai nơi. Với `useExisting`, adapter phải được đăng ký và export từ module được import.

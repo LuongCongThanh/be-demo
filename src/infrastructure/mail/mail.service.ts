@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { MailSender } from '#src/infrastructure/mail/mail.port.js';
 import nodemailer, { type Transporter } from 'nodemailer';
 
 /**
@@ -10,12 +11,13 @@ import nodemailer, { type Transporter } from 'nodemailer';
  * relay production).
  */
 @Injectable()
-export class MailService {
+export class MailService extends MailSender {
   private readonly logger = new Logger(MailService.name);
   private readonly transporter: Transporter | null;
   private readonly from: string;
 
   constructor(private readonly config: ConfigService) {
+    super();
     const host = this.config.get<string>('SMTP_HOST');
     const port = this.config.get<string>('SMTP_PORT');
     const user = this.config.get<string>('SMTP_USER');
@@ -40,7 +42,7 @@ export class MailService {
     }
   }
 
-  async sendVerificationEmail(to: string, code: string): Promise<void> {
+  override async sendVerificationEmail(to: string, code: string): Promise<void> {
     await this.send(to, `[DEV] Would send verification email to ${to}`, {
       subject: 'Verify your email address',
       html: `<p>Your email verification code is:</p><p style="font-size:24px;font-weight:bold">${code}</p><p>This code expires in 10 minutes.</p>`,
@@ -48,7 +50,7 @@ export class MailService {
     });
   }
 
-  async sendPasswordResetEmail(to: string, rawToken: string): Promise<void> {
+  override async sendPasswordResetEmail(to: string, rawToken: string): Promise<void> {
     const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
     const resetLink = `${frontendUrl}/reset-password?token=${rawToken}`;
 
