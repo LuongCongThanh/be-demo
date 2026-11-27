@@ -46,14 +46,13 @@ export function safeAmount(value: number): number {
 }
 
 /** Voucher còn áp dụng được cho `subtotal` tại `now` (đang bật, trong thời hạn, đủ tối thiểu, còn lượt). */
-export function isApplicable(voucher: Voucher | null, subtotal: number, now: Date): voucher is Voucher {
-  return !(
-    !voucher ||
-    !voucher.isActive ||
-    voucher.startsAt > now ||
-    voucher.endsAt <= now ||
-    subtotal < voucher.minSubtotal ||
-    (voucher.totalLimit !== null && voucher.usedCount >= voucher.totalLimit)
+export function isApplicable(voucher: Voucher, subtotal: number, now: Date): boolean {
+  return (
+    voucher.isActive &&
+    voucher.startsAt <= now &&
+    voucher.endsAt > now &&
+    subtotal >= voucher.minSubtotal &&
+    (voucher.totalLimit === null || voucher.usedCount < voucher.totalLimit)
   );
 }
 

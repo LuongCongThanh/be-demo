@@ -25,7 +25,12 @@ export abstract class VoucherRepository {
   abstract delete(id: string): Promise<void>;
   /** Số lượt dùng của người mua (khớp theo số điện thoại hoặc tài khoản). */
   abstract countUsages(voucherId: string, buyer: VoucherBuyer): Promise<number>;
-  abstract incrementUsedCount(voucherId: string): Promise<void>;
+  /**
+   * Tăng `usedCount` thêm 1 chỉ khi `totalLimit` là `null` hoặc `usedCount < totalLimit`; trả `false`
+   * khi không có dòng nào được tăng (hết lượt hoặc không có Voucher). Caller nên khoá dòng bằng
+   * `findByCode(code, { lockForUpdate: true })` trong cùng `TransactionRunner.run()`.
+   */
+  abstract incrementUsedCount(voucherId: string): Promise<boolean>;
   abstract addUsage(usage: {
     voucherId: string;
     orderId: string;

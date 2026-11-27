@@ -104,8 +104,11 @@ export class PrismaVoucherRepository extends VoucherRepository {
     });
   }
 
-  async incrementUsedCount(voucherId: string): Promise<void> {
-    await this.txHost.tx.voucher.update({ where: { id: voucherId }, data: { usedCount: { increment: 1 } } });
+  async incrementUsedCount(voucherId: string): Promise<boolean> {
+    const updated = await this.txHost.tx.$executeRaw`
+      UPDATE vouchers SET used_count = used_count + 1
+      WHERE id = ${voucherId}::uuid AND (total_limit IS NULL OR used_count < total_limit)`;
+    return updated > 0;
   }
 
   async addUsage(usage: { voucherId: string; orderId: string; buyer: VoucherBuyer; discount: number }): Promise<void> {

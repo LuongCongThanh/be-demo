@@ -32,3 +32,15 @@
 
 - Checkout tự có `findVoucher`/`lockVoucher`/ghi lượt dùng riêng, trùng với `VoucherService`; task 46 sẽ chuyển sang gọi service, hiện chưa đổi.
 - `evaluate` đọc `usedCount` và đếm lượt dùng không kèm khoá nếu gọi không có `lockForUpdate`; caller phải khoá khi đặt đơn (giống checkout hiện tại).
+
+## Sửa theo code review
+
+### Đã sửa
+
+- `isApplicable` (`domain/voucher-rules.ts`) trả `boolean` thường, nhận `Voucher` không null; `VoucherService.evaluate` tự xử lý trường hợp không tìm thấy (`!voucher`) trước khi gọi.
+- `incrementUsedCount` chạy `UPDATE ... WHERE id = ... AND (total_limit IS NULL OR used_count < total_limit)` qua `$executeRaw` (`txHost.tx`) và trả `boolean` (có dòng được tăng hay không). `VoucherService.recordUsage` ném `ConflictError('Voucher "<code>" is unavailable or does not meet its conditions')` khi trả `false` và không tạo dòng `voucher_usages`. JSDoc nhắc caller vẫn `evaluate(..., { lockForUpdate: true })` trong cùng `TransactionRunner.run()`. Chữ ký `recordUsage` giữ nguyên; mã Voucher lấy bằng `findById` chỉ khi lỗi.
+
+### Ghi nhận, không sửa
+
+- `safeAmount` giữ nguyên thông điệp của checkout vì `evaluate` phải khớp thông điệp checkout; task 46 có thể xem lại.
+- Chưa có test cho `VoucherService` và `PrismaVoucherRepository` (giai đoạn test được hoãn); cần có trước khi task 46 chuyển checkout sang dùng service này.

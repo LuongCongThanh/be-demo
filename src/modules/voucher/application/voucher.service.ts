@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { InvalidInputError } from '#src/common/errors/business-errors.js';
+import { ConflictError, InvalidInputError } from '#src/common/errors/business-errors.js';
 import { VoucherRepository } from '#src/modules/voucher/application/ports/voucher.repository.js';
 import { isApplicable, toSnapshot } from '#src/modules/voucher/domain/voucher-rules.js';
 import type { VoucherBuyer, VoucherSnapshot } from '#src/modules/voucher/domain/voucher.model.js';
@@ -26,7 +26,7 @@ export class VoucherService {
     options?: { lockForUpdate?: boolean; now?: Date },
   ): Promise<VoucherSnapshot> {
     const voucher = await this.vouchers.findByCode(code, { lockForUpdate: options?.lockForUpdate });
-    if (!isApplicable(voucher, subtotal, options?.now ?? new Date())) {
+    if (!voucher || !isApplicable(voucher, subtotal, options?.now ?? new Date())) {
       throw new InvalidInputError(`Voucher "${code}" is unavailable or does not meet its conditions`);
     }
     if (voucher.perBuyerLimit !== null) {
@@ -40,10 +40,16 @@ export class VoucherService {
 
   /**
    * Ghi một lượt dùng: tăng `usedCount` và tạo `voucher_usages`. Gọi trong cùng giao dịch tạo đơn
-   * sau khi `evaluate(..., { lockForUpdate: true })` để hai việc không lệch nhau.
+   * sau khi `evaluate(..., { lockForUpdate: true })` để hai việc không lệch nhau; không khoá thì
+   * `evaluate` và `recordUsage` có thể lệch nhau dưới tải song song.
+   * Tăng `usedCount` có điều kiện (còn dưới `totalLimit`): Voucher đã hết lượt thì ném `ConflictError`
+   * `Voucher "<code>" is unavailable or does not meet its conditions` và không tạo lượt dùng.
    */
   async recordUsage(voucherId: string, orderId: string, buyer: VoucherBuyer, discount: number): Promise<void> {
-    await this.vouchers.incrementUsedCount(voucherId);
+    if (!(await this.vouchers.incrementUsedCount(voucherId))) {
+      const voucher = await this.vouchers.findById(voucherId);
+      throw new ConflictError(`Voucher "${voucher?.code ?? voucherId}" is unavailable or does not meet its conditions`);
+    }
     await this.vouchers.addUsage({ voucherId, orderId, buyer, discount });
   }
 }
