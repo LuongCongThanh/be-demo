@@ -58,6 +58,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run lint:boundaries:check
 
   typecheck:
     runs-on: ubuntu-latest

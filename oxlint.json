@@ -24,9 +24,71 @@
   },
   "overrides": [
     {
+      "files": ["src/**"],
+      "excludeFiles": ["src/generated/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "#src/security/authorization/permissions/permissions.guard.js",
+                "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+              },
+              {
+                "name": "#src/security/authorization/permissions/permissions.decorator.js",
+                "message": "Dùng @Authorize(...) từ #src/security/authorization/permissions/authorize.decorator.js thay vì RequirePermissions/PermissionsGuard trực tiếp."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^\\.{1,2}(/|$)",
+                "message": "Luật 7: không import tương đối; dùng alias #src/... (nếu không luật 5 và 6 bị lách)."
+              }
+            ]
+          }
+        ],
+        "max-lines": [
+          "error",
+          {
+            "max": 200,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ]
+      }
+    },
+    {
       "files": ["src/security/authorization/**"],
       "rules": {
-        "no-restricted-imports": "off"
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^\\.{1,2}(/|$)",
+                "message": "Luật 7: không import tương đối; dùng alias #src/... (nếu không luật 5 và 6 bị lách)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/generated/**",
+        "**/*.spec.ts",
+        "**/*.e2e-spec.ts",
+        "src/modules/checkout/services/storefront/checkout.service.ts",
+        "src/modules/identity/access.service.ts",
+        "src/modules/identity/auth/services/storefront/session.service.ts",
+        "src/modules/catalog/category/infrastructure/persistence/relational/adapters/prisma-category.repository.ts",
+        "src/modules/catalog/category/infrastructure/persistence/relational/adapters/prisma-category-translation.persistence.ts",
+        "src/modules/catalog/product/services/admin/admin-product.service.ts",
+        "src/modules/cart/cart.service.ts"
+      ],
+      "rules": {
+        "max-lines": "off"
       }
     }
   ]

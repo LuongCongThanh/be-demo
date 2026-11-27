@@ -6,9 +6,7 @@
 
 **Trạng thái áp dụng.** Quy tắc áp dụng đầy đủ cho module mới, feature mới và module đã chuyển đổi. Module chưa chuyển đổi giữ cấu trúc hiện tại khi sửa nhỏ, không chuyển đổi nửa chừng; danh sách module đã chuyển đổi nằm ở mục _Migration status_ của rule agent, và mỗi PR refactor cập nhật danh sách đó.
 
-**Trạng thái triển khai.** Tài liệu này mô tả **trạng thái đích**. Các thành phần dùng chung của task 39 ([nền móng dùng chung](../plan/tasks/39-shared-architecture-foundations/spec.md)) **đã có trong repo**: bộ lỗi `src/common/errors/`, `TransactionRunner` (`src/infrastructure/database/transaction-runner.port.ts`) cùng `nestjs-cls`, và các port dùng chung (Idempotency, Mail, Storage, Audit). Chưa module nghiệp vụ nào dùng chúng; module chưa chuyển đổi giữ mẫu hiện tại cho đến task chuyển module (xem `.claude/rules/module-architecture.md`). Còn lại:
-
-- Task 40 ([bộ sinh luật lint](../plan/tasks/40-lint-boundary-generator/spec.md)): `scripts/generate-oxlint-boundaries.ts` và việc `max-lines`/`no-restricted-imports` chặn thật.
+**Trạng thái triển khai.** Tài liệu này mô tả **trạng thái đích**. Các thành phần dùng chung của task 39 ([nền móng dùng chung](../plan/tasks/39-shared-architecture-foundations/spec.md)) và bộ sinh luật lint của task 40 ([bộ sinh luật lint](../plan/tasks/40-lint-boundary-generator/spec.md)) **đã có trong repo**: bộ lỗi `src/common/errors/`, `TransactionRunner` (`src/infrastructure/database/transaction-runner.port.ts`) cùng `nestjs-cls`, và các port dùng chung (Idempotency, Mail, Storage, Audit). Chưa module nghiệp vụ nào dùng chúng; module chưa chuyển đổi giữ mẫu hiện tại cho đến task chuyển module (xem `.claude/rules/module-architecture.md`). Luật 7 (`max-lines`, cấm import tương đối) đã chặn thật trên toàn `src/`; luật 1–6 chỉ chặn module nằm trong `MIGRATED_MODULES` của script lint, hiện rỗng.
 
 Marker "(có từ task 39)" / "(có từ task 40)" bên dưới đánh dấu từng điểm này.
 
@@ -131,7 +129,7 @@ Một cách duy nhất cho toàn app: "hộp giao dịch" dựa trên `AsyncLoca
 
 ## 9. Bộ luật lint
 
-> Trạng thái đích: script sinh và các luật bên dưới được giao ở task 40; hiện chưa có trong repo, review thủ công theo các luật này.
+> Script sinh đã có từ task 40. Luật 1–6 chỉ chặn thật với module trong `MIGRATED_MODULES`; module chưa chuyển đổi vẫn review thủ công theo các luật này.
 
 Cấu hình bằng `no-restricted-imports` và `max-lines` của oxlint, sinh bởi `scripts/generate-oxlint-boundaries.ts` (có từ task 40; không sửa tay phần sinh trong `oxlint.json`).
 
