@@ -1,6 +1,6 @@
 ---
-status: todo
-pr:
+status: done
+pr: #145
 blocked-by:
   - 41-migrate-inventory
 ---
