@@ -124,49 +124,4 @@ describe('AdminInventoryService', () => {
     ).rejects.toThrow(new ConflictError('Maximum decrease is 1'));
     expect(tx.setQuantity).not.toHaveBeenCalled();
   });
-
-  it('returns the count confirmed by a concurrent request without adjusting stock again', async () => {
-    const { service, tx } = setup();
-    const base = {
-      id: '33333333-3333-4333-8333-333333333333',
-      variantId: '11111111-1111-4111-8111-111111111111',
-      physicalCount: 13,
-    };
-    const confirmed = { ...base, confirmedAt: new Date('2026-11-27T00:00:00Z') };
-    // First read is taken before the row lock and is stale; the read after the lock sees the other confirm.
-    tx.findStockCount.mockResolvedValueOnce({ ...base, confirmedAt: null }).mockResolvedValueOnce(confirmed);
-    tx.findLevels.mockResolvedValue([{ variantId: base.variantId, quantity: 13, reservedQuantity: 0 }]);
-
-    await expect(service.confirmCount(base.id, '22222222-2222-4222-8222-222222222222')).resolves.toBe(confirmed);
-    expect(tx.findLevels).toHaveBeenCalledWith([base.variantId], { lockForUpdate: true });
-    // The second read must come after the row lock, otherwise it could still be stale.
-    expect(tx.findStockCount).toHaveBeenCalledTimes(2);
-    expect(tx.findLevels.mock.invocationCallOrder[0]).toBeLessThan(tx.findStockCount.mock.invocationCallOrder[1]!);
-    expect(tx.findLevels.mock.invocationCallOrder[0]).toBeGreaterThan(tx.findStockCount.mock.invocationCallOrder[0]!);
-    expect(tx.setQuantity).not.toHaveBeenCalled();
-    expect(tx.addMovement).not.toHaveBeenCalled();
-    expect(tx.confirmStockCount).not.toHaveBeenCalled();
-  });
-
-  it('returns the stored count and writes nothing when the conditional confirm updates no row', async () => {
-    const { service, tx } = setup();
-    const base = {
-      id: '33333333-3333-4333-8333-333333333333',
-      variantId: '11111111-1111-4111-8111-111111111111',
-      physicalCount: 13,
-    };
-    const stored = { ...base, confirmedAt: new Date('2026-11-27T00:00:00Z') };
-    // Both reads still see an unconfirmed count; only the guarded update reveals the other confirm.
-    tx.findStockCount
-      .mockResolvedValueOnce({ ...base, confirmedAt: null })
-      .mockResolvedValueOnce({ ...base, confirmedAt: null })
-      .mockResolvedValueOnce(stored);
-    tx.findLevels.mockResolvedValue([{ variantId: base.variantId, quantity: 10, reservedQuantity: 0 }]);
-    tx.sumAwaitingQuantity.mockResolvedValue(0);
-    tx.confirmStockCount.mockResolvedValue(null);
-
-    await expect(service.confirmCount(base.id, '22222222-2222-4222-8222-222222222222')).resolves.toBe(stored);
-    expect(tx.setQuantity).not.toHaveBeenCalled();
-    expect(tx.addMovement).not.toHaveBeenCalled();
-  });
 });

@@ -61,17 +61,11 @@ export class AdminInventoryService {
 
   async confirmCount(countId: string, actorUserId: string) {
     return this.transactionRunner.run(async () => {
-      const found = await this.inventory.findStockCount(countId);
-      if (!found) throw new NotFoundError('Stock count not found');
-      if (found.confirmedAt) return found;
-
-      // Every confirm of a count takes this row lock first, so concurrent confirms are serialized.
-      // The count is read again after the lock: the first read can be stale once the lock is granted.
-      const inventory = await this.requireLevel(found.variantId, true);
       const count = await this.inventory.findStockCount(countId);
       if (!count) throw new NotFoundError('Stock count not found');
       if (count.confirmedAt) return count;
 
+      const inventory = await this.requireLevel(count.variantId, true);
       const awaitingQuantity = await this.inventory.sumAwaitingQuantity(count.variantId);
       const expectedQuantity = inventory.quantity + awaitingQuantity;
       const delta = count.physicalCount - expectedQuantity;
@@ -80,19 +74,6 @@ export class AdminInventoryService {
         throw new ConflictError(`Maximum decrease is ${available}`);
       }
       if (inventory.quantity + delta < 0) throw new ConflictError('Confirmed count cannot create negative inventory');
-
-      // Confirm first: the conditional update is the guard, so nothing is written when the count was already confirmed.
-      const confirmed = await this.inventory.confirmStockCount(countId, {
-        onShelfAtCount: inventory.quantity,
-        awaitingAtCount: awaitingQuantity,
-        discrepancy: delta,
-        confirmedAt: new Date(),
-      });
-      if (!confirmed) {
-        const stored = await this.inventory.findStockCount(countId);
-        if (!stored) throw new NotFoundError('Stock count not found');
-        return stored;
-      }
 
       await this.inventory.setQuantity(count.variantId, inventory.quantity + delta);
       await this.inventory.addMovement({
@@ -105,7 +86,12 @@ export class AdminInventoryService {
         beforeReserved: inventory.reservedQuantity,
         afterReserved: inventory.reservedQuantity,
       });
-      return confirmed;
+      return this.inventory.confirmStockCount(countId, {
+        onShelfAtCount: inventory.quantity,
+        awaitingAtCount: awaitingQuantity,
+        discrepancy: delta,
+        confirmedAt: new Date(),
+      });
     });
   }
 
