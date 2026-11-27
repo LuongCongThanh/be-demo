@@ -18,3 +18,7 @@ Chốt qua grilling ngày 2026-11-24, có kiểm chứng ở [Thư viện transa
 5. **Không gọi ra ngoài trong giao dịch:** không gửi mail, upload, gọi Google/provider bên trong `run()`; làm sau khi giao dịch xong hoặc qua outbox (ADR-0003). Giữ giao dịch ngắn (Prisma hủy sau 5 s mặc định). Row lock (`SELECT ... FOR UPDATE`) và `isolationLevel` vẫn dùng được trong adapter.
 6. **Thay thế:** cách `transaction(work: (ops) => ...)` của Category; phần "truyền `Prisma.TransactionClient` qua public service" trong quyết định 04 của map `feature-module-boundaries`; đặc tả `TransactionPort` + "nested bị từ chối" của doc 01 v1.6 (doc này sẽ bị xóa theo ticket 01).
 7. **Kiểm chứng khi triển khai:** DI theo kiểu (abstract class token, `TransactionHost`) trong vitest phải chạy được với cấu hình test thật của repo; nếu không, thêm SWC cho vitest hoặc dùng `@Inject(...)` tường minh.
+
+### Bổ sung 2026-11-27
+
+`TransactionRunner.run<T>(work, opts?)` nhận `opts { isolationLevel?, timeout?, maxWait? }`: service chọn mức cô lập khi mở giao dịch, adapter nhập vào giao dịch không đặt isolation, và nơi gọi `run` sở hữu việc retry khi gặp `P2034`.

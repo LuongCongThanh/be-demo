@@ -4,9 +4,9 @@ paths:
   - 'src/infrastructure/**/*.port.ts'
 ---
 
-# Module architecture (condensed — decision: docs/adr/0015-one-layered-architecture-for-every-module.md; decisions and rationale: docs/plan/wayfinding/src-wide-architecture-standard/map.md)
+# Module architecture (condensed — canonical standard: docs/convention/module-architecture-conventions.md; code quality: docs/convention/code-quality-conventions.md; decision: docs/adr/0015-one-layered-architecture-for-every-module.md)
 
-Every module in `src/modules` uses one Hexagonal architecture. No module is exempt.
+Every module in `src/modules` uses one Hexagonal architecture. No module is exempt. This file is the short form for agents; when it and the convention documents differ, the convention documents win, so fix this file.
 
 ## Migration status
 
@@ -49,7 +49,7 @@ Migrated modules: _none yet_ (each refactor PR adds its module here and to the l
 - Only the owning module writes or reads its tables (ownership matrix: `docs/architecture/02-modules.md` §2).
 - Module A may import from module B only `#src/modules/<b>/<b>.module.js` and B's single public class `#src/modules/<b>/application/<b>.service.js`. Public classes contain only methods other modules need, return plain types, and are the only provider B exports for business use.
 - Allowed call direction: checkout → catalog, inventory, voucher, identity; cart → catalog, inventory, identity; catalog → inventory; inventory and voucher call no business module.
-- Inside one module, feature X may import only `domain/` and `presentation/` of feature Y; for Y's data, call Y's service.
+- Inside one module, feature X may import only `domain/`, `presentation/` and `application/<y>.service.ts` (Y's public service) of feature Y; never Y's `ports/`, `infrastructure/` or other `application/` files.
 - `common/`, `infrastructure/`, and `security/` never import `modules/`.
 
 ## File size

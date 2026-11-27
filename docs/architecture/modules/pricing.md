@@ -21,7 +21,7 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.3](../11-database
 | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | `getEffectivePrices(variantIds, at)` → Giá bán, Giá áp dụng, mức giảm (BR-PRC-03, BR-PRC-04) | `cart`, `catalog`, `ordering`                                |
 | `evaluateVoucher(code, subtotal, buyer{userId?, phone})` → `D` hoặc lý do từ chối            | `ordering` (Tính thử)                                        |
-| `recordUsage(voucherId, orderId, buyer, tx)` / `releaseUsage(orderId, tx)`                   | `ordering` (T1/T2; T4/T5/T7/T9 — không gọi ở T14, BR-VCH-08) |
+| `recordUsage(voucherId, orderId, buyer)` / `releaseUsage(orderId)`                           | `ordering` (T1/T2; T4/T5/T7/T9 — không gọi ở T14, BR-VCH-08) |
 | `assertPriceChangeAllowed(variantId, newPrice)`                                              | `catalog` (BR-PRC-05)                                        |
 
 ## 4. API
@@ -47,7 +47,7 @@ Trong transaction đặt đơn: `SELECT … FOR UPDATE` dòng `vouchers` → ki�
 
 ## 6. Sự kiện
 
-Không phát; được gọi đồng bộ trong transaction của `ordering`.
+Không phát; được gọi đồng bộ trong `TransactionRunner.run()` của `ordering`; adapter của `pricing` nhập vào giao dịch đó.
 
 ## 7. Job
 

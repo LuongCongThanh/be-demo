@@ -19,12 +19,14 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.7](../11-database
 
 ## 3. Interface public
 
-| Hàm                                                                  | Gọi bởi                             | Ghi chú                                              |
-| -------------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------- |
-| `createPending(tx, order)`                                           | `ordering` (T1)                     | Ghi nhận đơn online chờ thanh toán; chưa tạo link    |
-| `createCodReceivable(tx, order)`                                     | `ordering` (T2)                     | Tạo `cod_collections` `pending`                      |
-| `markCodCollected(tx, orderId)` / `cancelCodReceivable(tx, orderId)` | `ordering` (T11 / T7, T9, T12, T14) |                                                      |
-| `capturedPaymentsOf(orderId)`                                        | `refunds-returns`                   | Thanh toán đã nhận tiền để gắn Hoàn tiền (BR-REF-01) |
+Hàm không nhận `tx`: caller bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của module này tự nhập vào giao dịch đang mở ([module-architecture-conventions.md §6](../../convention/module-architecture-conventions.md#6-transaction)).
+
+| Hàm                                                          | Gọi bởi                             | Ghi chú                                              |
+| ------------------------------------------------------------ | ----------------------------------- | ---------------------------------------------------- |
+| `createPending(order)`                                       | `ordering` (T1)                     | Ghi nhận đơn online chờ thanh toán; chưa tạo link    |
+| `createCodReceivable(order)`                                 | `ordering` (T2)                     | Tạo `cod_collections` `pending`                      |
+| `markCodCollected(orderId)` / `cancelCodReceivable(orderId)` | `ordering` (T11 / T7, T9, T12, T14) |                                                      |
+| `capturedPaymentsOf(orderId)`                                | `refunds-returns`                   | Thanh toán đã nhận tiền để gắn Hoàn tiền (BR-REF-01) |
 
 ## 4. API
 
@@ -65,7 +67,7 @@ sequenceDiagram
     else captured, số tiền khác tổng
         P->>R: requestRefund(amount_captured, reason=amount_mismatch) + Cờ amount_mismatch
     else captured, khớp
-        P->>O: onPaymentSucceeded(tx, paymentId)
+        P->>O: onPaymentSucceeded(paymentId)
         alt đơn còn PENDING_PAYMENT (hoặc quá hạn nhưng còn hàng)
             O->>O: T3
         else đơn đã huỷ / đã PLACED bởi lần trả khác

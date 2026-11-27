@@ -20,11 +20,13 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.2](../11-database
 
 ## 3. Interface cho module khác
 
-| Hàm                                                                                  | Dùng bởi                                      |
-| ------------------------------------------------------------------------------------ | --------------------------------------------- |
-| `getSellableVariants(ids, tx?)` → tên, SKU, size, màu, Giá bán, cân nặng, trạng thái | `cart`, `ordering` (bản chụp), `pricing`      |
-| `assertVariantSellable(id)`                                                          | `cart` (US-202 AC2)                           |
-| `markSkuLocked(variantIds, tx)`                                                      | `ordering` khi tạo đơn đầu tiên chứa Biến thể |
+Hàm không nhận `tx`: caller bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của module này tự nhập vào giao dịch đang mở ([module-architecture-conventions.md §6](../../convention/module-architecture-conventions.md#6-transaction)).
+
+| Hàm                                                                             | Dùng bởi                                      |
+| ------------------------------------------------------------------------------- | --------------------------------------------- |
+| `getSellableVariants(ids)` → tên, SKU, size, màu, Giá bán, cân nặng, trạng thái | `cart`, `ordering` (bản chụp), `pricing`      |
+| `assertVariantSellable(id)`                                                     | `cart` (US-202 AC2)                           |
+| `markSkuLocked(variantIds)`                                                     | `ordering` khi tạo đơn đầu tiên chứa Biến thể |
 
 ## 4. API
 

@@ -16,11 +16,13 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.4](../11-database
 
 ## 3. Interface cho module khác
 
-| Hàm                                      | Dùng bởi                                                                                  |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `lockActiveCart(owner, tx)` → giỏ + dòng | `ordering` (đặt đơn, [ADR 0009](../../adr/0009-cart-row-lock-over-optimistic-version.md)) |
-| `markCheckedOut(cartId, tx)`             | `ordering`                                                                                |
-| `mergeGuestCart(guestToken, userId)`     | `identity` sau đăng nhập                                                                  |
+Hàm không nhận `tx`: caller bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của module này tự nhập vào giao dịch đang mở ([module-architecture-conventions.md §6](../../convention/module-architecture-conventions.md#6-transaction)).
+
+| Hàm                                  | Dùng bởi                                                                                  |
+| ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `lockActiveCart(owner)` → giỏ + dòng | `ordering` (đặt đơn, [ADR 0009](../../adr/0009-cart-row-lock-over-optimistic-version.md)) |
+| `markCheckedOut(cartId)`             | `ordering`                                                                                |
+| `mergeGuestCart(guestToken, userId)` | `identity` sau đăng nhập                                                                  |
 
 ## 4. API
 

@@ -34,63 +34,37 @@ Class bên trong file dùng PascalCase khớp tên file (`token.service.ts` → 
 
 ## 2. Cấu trúc thư mục theo module
 
-Cây source hiện tại, cây kiến trúc mục tiêu và danh sách module nằm ở [02-modules.md §4](../architecture/02-modules.md#4-cấu-trúc-thư-mục). Phần này là **quy tắc** để biết 1 file mới phải đặt ở đâu.
+Kiến trúc, bộ khung thư mục và ranh giới module là một chuẩn duy nhất cho mọi module: [module-architecture-conventions.md](module-architecture-conventions.md). Cây source hiện tại và danh sách module nằm ở [02-modules.md §4](../architecture/02-modules.md#4-cấu-trúc-thư-mục). Phần này chỉ giữ quy tắc đặt tên và nhóm file để biết 1 file mới phải đặt ở đâu.
 
 ### 2.1 Gốc module và feature folder theo thực thể
 
-Thông thường, gốc `modules/<module>/` chứa `<module>.module.ts` làm composition root và các **feature folder theo thực thể**; feature folder không mặc nhiên là một Nest module riêng. Module chỉ có một thực thể có thể đặt các thư mục vai trò trực tiếp cạnh `<module>.module.ts`; module có nhiều thực thể tách theo thư mục thực thể. Chỉ tạo thư mục module khi bắt đầu có implementation, không dựng trước cây thư mục rỗng theo kiến trúc mục tiêu. `Category` là ngoại lệ, có surface module và composition root riêng theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
+Gốc `modules/<module>/` chứa `<module>.module.ts` làm composition root và bộ khung `domain/`, `application/`, `infrastructure/`, `presentation/`, `admin/`, `storefront/`. Module có nhiều thực thể (`catalog`) tách theo thư mục thực thể và lặp cùng bộ khung trong mỗi feature; feature folder không mặc nhiên là một Nest module riêng (chỉ Category tách Core/Admin/Storefront theo quy tắc có điều kiện ở module-architecture §2). Chỉ tạo thư mục khi có file thật, không dựng trước cây rỗng.
 
 ### 2.2 Feature folder theo thực thể, file nhóm theo vai trò
 
-Trong module nhiều thực thể, mỗi thực thể là một thư mục kebab-case **số ít**, trùng tên resource trên URL ở dạng số ít: `product/`, `category/`, `product-option/`, `pricing/`. Bên trong từng thực thể, nhóm file theo vai trò:
+Mỗi thực thể là một thư mục kebab-case **số ít**, trùng tên resource trên URL ở dạng số ít: `product/`, `category/`, `product-option/`, `pricing/`. Bên trong, file nhóm theo tầng và bề mặt theo bảng ở [module-architecture-conventions.md §2](module-architecture-conventions.md#2-bộ-khung-thư-mục); không tạo thư mục `controllers/storefront|admin`, `services/storefront|admin` hay `mappers/shared` như bố cục cũ. Trong thư mục bề mặt (`admin/`, `storefront/`) nhóm tiếp theo vai trò:
 
-```text
-modules/catalog/product/
-├── controllers/
-│   ├── storefront/product.controller.ts
-│   └── admin/admin-product.controller.ts
-├── services/
-│   ├── storefront/product.service.ts
-│   └── admin/admin-product.service.ts
-├── mappers/shared/
-├── domain/
-└── dto/
-    ├── storefront/
-    ├── admin/
-    └── shared/
-```
-
-Quy tắc nhóm vai trò áp dụng cho mọi module, kể cả module nhỏ. Chỉ tạo thư mục có file thực tế, không tạo thư mục rỗng. Các vai trò thường dùng:
-
-- `controllers/`, `services/`, `clients/`, `mappers/`, `dto/`
-- `domain/` cho luật nghiệp vụ, hằng số, enum và helper thuần
-- `decorators/`, `guards/`, `strategies/`, `utils/` khi module có các loại file đó
-
-Khi cùng một thực thể có API cho Storefront và Admin CMS:
-
-- Controller và DTO request/response riêng đặt tại `controllers/storefront|admin/` và `dto/storefront|admin/`.
-- Service/mapper riêng theo use case có thể đặt tại `services/storefront|admin/` và `mappers/storefront|admin/`.
-- Thành phần được dùng bởi cả hai phía đặt trong `shared/`; domain rule và client không phụ thuộc giao diện tiếp tục ở thư mục vai trò chung.
-- Module chỉ phục vụ một phía chỉ tạo nhóm tương ứng. Không nhân đôi file dùng chung chỉ để cây thư mục cân đối.
+- `controllers/`, `dto/`, `mappers/` và guard riêng của bề mặt; service nằm ở `application/`, không nằm trong thư mục bề mặt.
+- `domain/` cho luật nghiệp vụ, hằng số, enum, Domain Model và helper thuần; `decorators/`, `guards/`, `strategies/`, `utils/` chỉ khi module có loại file đó (strategy, interceptor dùng chung ở `presentation/`).
+- Thành phần dùng cho cả hai bề mặt đặt ở `presentation/`; không nhân đôi file chỉ để cây cân đối. Module chỉ phục vụ một bề mặt vẫn giữ thư mục bề mặt đó.
 
 Swagger dùng tag riêng có tiền tố `Storefront —` hoặc `Admin CMS —` để tìm endpoint theo người dùng.
 
-Test `*.spec.ts` đặt cạnh file được test trong thư mục vai trò tương ứng. Cây hiện tại của `catalog/`, `identity/` và `voucher/` nằm tại [02-modules.md §4](../architecture/02-modules.md#4-cấu-trúc-thư-mục).
+Test `*.spec.ts` đặt cạnh file được test. Cây hiện tại của `catalog/`, `identity/` và `voucher/` nằm tại [02-modules.md §4](../architecture/02-modules.md#4-cấu-trúc-thư-mục).
 
-`controllers/admin/` và `controllers/storefront/` là nhánh phân loại audience chính; tương tự với DTO và service riêng cho từng phía. Giữ tiền tố `admin-` trong tên file Admin như một tín hiệu bổ trợ để tìm nhanh file và giữ tên class/`operationId` ổn định. Không suy ra route chỉ từ folder hoặc tên file: route do decorator của Controller quyết định, còn quyền được khai báo rõ bằng `@Authorize(Permission...)`.
+`admin/` là bề mặt **Back-office**, không phải Vai trò Admin; giữ tiền tố `admin-` trong tên file của bề mặt này để tìm nhanh và giữ tên class/`operationId` ổn định. Không suy ra route chỉ từ folder hoặc tên file: route do decorator của Controller quyết định, còn quyền được khai báo rõ bằng `@Authorize(Permission...)`.
 
 Tên file bên trong vẫn đầy đủ (không rút gọn vì đã có thư mục cha) để tìm file bằng tên (Ctrl+P) không bị trùng: `product.service.ts`, không phải `service.ts`.
 
-Thứ tự ưu tiên khi phân vân hậu tố: có decorator Nest (`@Injectable`) → `.service.ts`; có decorator class-validator/Swagger → `dto/*.dto.ts`; hàm thuần không I/O → không hậu tố nếu là luật nghiệp vụ (`category-tree.ts`, `order-state-machine.ts`), `.mapper.ts` nếu chỉ đổi hình dạng dữ liệu.
+Thứ tự ưu tiên khi phân vân hậu tố: có decorator Nest (`@Injectable`) → `.service.ts`; có decorator class-validator/Swagger → `dto/*.dto.ts`; hàm thuần không I/O → không hậu tố nếu là luật nghiệp vụ (`category-tree.ts`, `order-state-machine.ts`), `.mapper.ts` nếu chỉ đổi hình dạng dữ liệu; Persistence Port → `<tên>.repository.ts`, adapter → `prisma-<tên>.repository.ts`; port I/O khác → `<tên>.port.ts`.
 
 ### 2.3 Ranh giới giữa module
 
-- Cửa ngõ của module là mảng `exports` trong `<module>.module.ts`. Chỉ export API/provider cần cho consumer, không export implementation nội bộ; không áp đặt số lượng export giống nhau cho mọi module. Module khác import module cung cấp và **không** import file ruột theo đường dẫn.
-- Với module thông thường, interface + token DI chỉ khi có ≥ 2 implementation thật (`PaymentGateway`); một adapter inject class trực tiếp. Riêng Category áp dụng quy tắc Port/adapter/DI của Category v1.6 cho dependency outbound cần được đảo chiều.
-- Với Category, module composition, provider visibility, Port/adapter binding và transaction theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
-- Transaction xuyên module ở các module generic theo transaction conventions trong [prisma-conventions.md](prisma-conventions.md); không để controller quản lý transaction.
+- Cửa ngõ của module là `<module>.module.ts` và **một** class công khai `application/<module>.service.ts`; module khác chỉ import hai file đó, không import file ruột theo đường dẫn. Chi tiết và luật lint: [module-architecture-conventions.md §7](module-architecture-conventions.md#7-ranh-giới-module-và-feature).
+- Port/DI: `abstract class` làm token, một Persistence Port mỗi feature; không dùng `Symbol` + `@Inject`. Xem module-architecture §4.
+- Transaction xuyên module chạy qua `TransactionRunner` và service công khai của từng module ([module-architecture-conventions.md §6](module-architecture-conventions.md#6-transaction)); không để controller quản lý transaction.
 - `common/` không import `http/`, `security/`, `infrastructure/` hoặc `modules/`; quy tắc chi tiết về các thư mục dùng chung cấp ứng dụng ở §2.5.
-- Giữ `CatalogModule` làm composition root bên ngoài cho Catalog; Category là ngoại lệ có `CategoryModule` riêng theo convention v1.6, được import bởi `CatalogModule`. Giữ `IdentityModule` làm composition root hiện tại. Các feature folder còn lại không cần Nest module riêng chỉ để cây thư mục đồng đều. Chỉ cân nhắc tách thêm feature Nest module khi có nhu cầu độc lập về ownership, lifecycle, kiểm thử hoặc export service; trước khi tách phải xác nhận dependency một chiều, không có vòng import và chỉ export API cần thiết. Không dùng số file/dòng làm ngưỡng tự động.
+- Giữ `CatalogModule` làm composition root bên ngoài cho Catalog (import `CategoryModule`, module duy nhất đang tách Core/Admin/Storefront) và `IdentityModule` làm composition root hiện tại. Các feature folder còn lại không cần Nest module riêng chỉ để cây thư mục đồng đều. Chỉ cân nhắc tách thêm khi có nhu cầu độc lập về ownership, lifecycle, kiểm thử hoặc export service; trước khi tách phải xác nhận dependency một chiều, không có vòng import và chỉ export API cần thiết.
 
 ### 2.4 Test
 
@@ -139,29 +113,9 @@ infrastructure/
 
 `bootstrap/` chỉ lắp ráp cấu hình ứng dụng (ValidationPipe, versioning, Swagger), `config/` xác thực biến môi trường lúc khởi động, còn `cli.ts` là entry point riêng cho ứng dụng trong `cli/`. Không chuyển implementation HTTP/security vào `bootstrap/` hoặc tạo thư mục con rỗng chỉ để cây cân đối.
 
-### 2.6 Ví dụ hoàn chỉnh: `modules/identity/`
+### 2.6 Ví dụ hoàn chỉnh
 
-```text
-identity/
-├── identity.module.ts            # exports: PassportModule, InternalAccountService, AccessService
-├── auth/                         # đăng ký, đăng nhập, phiên, mật khẩu, me
-│   ├── controllers/storefront/
-│   ├── dto/storefront/
-│   ├── guards/
-│   ├── services/
-│   │   ├── shared/
-│   │   └── storefront/
-│   ├── strategies/
-│   └── utils/
-├── internal-account/             # Staff/Admin; bất biến luôn còn ≥ 1 Admin active
-│   ├── controllers/admin/
-│   ├── dto/admin/
-│   └── services/admin/
-└── access/                       # Role, Permission, gán role
-    ├── controllers/admin/
-    ├── dto/admin/
-    └── services/admin/
-```
+Ví dụ cấu trúc đầy đủ theo bộ khung: [`src/modules/catalog/category/`](../../src/modules/catalog/category/). Cây as-built của `identity/`, `voucher/` và các module khác ở [02-modules.md §4](../architecture/02-modules.md#4-cấu-trúc-thư-mục); module nào chưa chuyển đổi thì cây đó có thể chưa theo bộ khung (xem mục _Migration status_ của [rule agent](../../.claude/rules/module-architecture.md)).
 
 ## 3. Barrel file (`index.ts`) — **cấm**
 
@@ -217,13 +171,13 @@ Package ngoài (`@nestjs/*`, thư viện npm khác) đứng trước import nộ
 
 ## 7. Khi nào tách file
 
-Không có ngưỡng dòng cứng, nhưng nếu 1 service/controller vượt quá **~250 dòng** (vd. `auth.service.ts` từng ~480 dòng, đã được tách thành bốn service theo use case ở task 08), cân nhắc tách theo use-case (vd. tách riêng use-case đăng ký/đăng nhập/reset-password thành các service nhỏ hơn nếu chúng đủ độc lập) thay vì để 1 class ôm hết. Đây là gợi ý, không phải rule chặn PR — không tách chỉ vì "đủ số dòng" nếu logic thực sự gắn chặt với nhau.
+Mục tiêu khoảng **150 dòng**, giới hạn cứng **200 dòng** mỗi file (không đếm dòng trống và comment; `max-lines` chặn). Vượt 200 thì tách theo trách nhiệm (ví dụ tách theo use case: đăng ký, đăng nhập, reset-password thành các service nhỏ), không tách chỉ để đạt con số khi logic gắn chặt. Miễn: code sinh tự động (`src/generated/`) và file test; ngoại lệ cho một file cụ thể chỉ khi có comment giải thích lý do ngay trong file. Chi tiết: [module-architecture-conventions.md §8](module-architecture-conventions.md#8-giới-hạn-kích-thước-file).
 
 ## Checklist khi thêm file mới
 
 - [ ] Tên file kebab-case, đúng hậu tố theo vai trò ([§1](#1-đặt-tên-file))
 - [ ] File nằm trong module/thực thể và đúng thư mục vai trò; chỉ tạo thư mục có file thực tế ([§2.2](#22-feature-folder-theo-thực-thể-file-nhóm-theo-vai-trò))
-- [ ] Không import file ruột của module khác; chỉ dùng service được `exports` ([§2.3](#23-ranh-giới-giữa-module))
+- [ ] Không import file ruột của module khác; chỉ import `<module>.module.ts` và `application/<module>.service.ts` ([§2.3](#23-ranh-giới-giữa-module))
 - [ ] Không tạo `index.ts` barrel file
 - [ ] Import tới file trong `src/` dùng `#src/...` — không dùng relative, kể cả trong cùng thư mục và trong test
 - [ ] Không thêm `any` mới trừ khi thực sự cần thiết (lint sẽ warn)

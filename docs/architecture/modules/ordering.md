@@ -6,7 +6,7 @@
 
 - Sở hữu: Tính thử (`checkout_quotes`), Đơn hàng (`orders`), Dòng đơn hàng bản chụp (`order_items`), lịch sử trạng thái, Cờ cần xử lý trên đơn (`order_flags`).
 - Không sở hữu nhưng điều phối: lượt dùng Voucher (`voucher_usages`, thuộc `pricing` — gọi `pricing.recordUsage`/`releaseUsage`), phiên truy cập đơn của Khách vãng lai (`guest_order_sessions`, thuộc `identity` — gọi `identity.issueGuestOrderSession`/`verifyGuestOrderSession`).
-- Điều phối checkout: gọi `catalog` (giá áp dụng), `cart`, `inventory` (giữ/trừ), `pricing` (Voucher), `fulfillment` (phí GHN), `payments` (tạo Thanh toán) — **qua interface của module đó, trong cùng transaction DB**, không truy cập bảng của module khác trực tiếp ([../02-modules.md](../02-modules.md)).
+- Điều phối checkout: gọi `catalog` (giá áp dụng), `cart`, `inventory` (giữ/trừ), `pricing` (Voucher), `fulfillment` (phí GHN), `payments` (tạo Thanh toán) — **qua interface của module đó, trong cùng transaction DB** (`ordering` mở `TransactionRunner.run()` một lần; adapter của module chủ bảng tự nhập vào giao dịch đó, không truyền `tx`), không truy cập bảng của module khác trực tiếp ([../02-modules.md](../02-modules.md)).
 - Không sở hữu: Thanh toán (`payments`), Hoàn tiền (`refunds-returns`), Vận đơn (`fulfillment`), Đổi trả (`refunds-returns`), Tồn kho (`inventory`). Các module đó báo kết quả về bằng lệnh chuyển trạng thái của `ordering`.
 
 ## 2. Mô hình
@@ -76,7 +76,7 @@ Hai bước theo BR-ORD-07 và [ADR 0013](../../adr/0013-checkout-must-match-con
    5. Sinh `orders.code`; tạo `orders` + `order_items` bản chụp, phân bổ Voucher (§6 dưới).
    6. Giữ hàng (online, T1) hoặc trừ Tồn kho → Hàng chờ xuất (COD, T2), khoá Biến thể theo `variant_id` tăng dần; thiếu → rollback, `409 OUT_OF_STOCK` + danh sách (BR-INV-06).
    7. Gọi `payments.createPending` (online) / `payments.createCodReceivable` (`cod_collections` `pending`).
-   8. Giỏ `active → checked_out` qua `cart.markCheckedOut`; ghi history + outbox; với guest gọi `identity.issueGuestOrderSession(orderId, tx)` → `guest_order_sessions` 30 phút (`origin = checkout`).
+   8. Giỏ `active → checked_out` qua `cart.markCheckedOut`; ghi history + outbox; với guest gọi `identity.issueGuestOrderSession(orderId)` → `guest_order_sessions` 30 phút (`origin = checkout`).
    9. Commit; lưu response vào bản ghi idempotency.
 3. Online: client gọi `payments` để lấy link VNPay/MoMo (hạn phút 10, không cấp mới từ phút 7 — BR-INV-05).
 

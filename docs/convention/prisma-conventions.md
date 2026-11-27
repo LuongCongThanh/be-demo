@@ -2,7 +2,7 @@
 
 Quy tắc chung khi viết `schema.prisma`, tạo migration và gọi Prisma Client trong NestJS. Tài liệu này **không** mô tả schema — nguồn sự thật về bảng, cột, quan hệ, index, CHECK là [`../architecture/11-database.md`](../architecture/11-database.md). Khi hai tài liệu mâu thuẫn, `11-database.md` thắng.
 
-Quy tắc phạm vi module: trong `Category`, Prisma chỉ được dùng tại Infrastructure adapter. Domain/Application không import Prisma Client, Prisma Model, `Prisma.TransactionClient` hoặc Persistence Record; outbound dependency đi qua Application Port và transaction boundary theo [`../architecture/refactor/01-category-folder-structure-convention-v1.6.md`](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
+Quy tắc phạm vi module: Prisma chỉ được dùng trong adapter ở `infrastructure/`. `domain/`, `application/`, `admin/`, `storefront/`, `presentation/` không import Prisma Client, Prisma Model, `Prisma.TransactionClient` hoặc Persistence Record; mọi truy cập DB đi qua Persistence Port và transaction đi qua `TransactionRunner` theo [module-architecture-conventions.md](module-architecture-conventions.md). Module chưa chuyển đổi xem mục _Migration status_ của [rule agent](../../.claude/rules/module-architecture.md).
 
 ## 1. Vị trí file
 
@@ -81,7 +81,7 @@ Thay đổi an toàn khi đã có dữ liệu thật:
 
 ## 4. Prisma Client trong NestJS
 
-- `PrismaModule` là `@Global()` → service generic có thể inject thẳng `PrismaService`, không tạo client riêng, không thêm Repository layer. Phạm vi Category được nêu ở đầu tài liệu.
+- `PrismaModule` là `@Global()`: chỉ adapter Prisma trong `infrastructure/` inject `PrismaService` (không tạo client riêng); service không inject trực tiếp mà gọi Persistence Port.
 - Chỉ lấy đủ cột cần: `select` khi trả response (tránh lộ `passwordHash`...), `include` khi cần cả quan hệ.
 
 ```ts
@@ -96,7 +96,9 @@ return this.prisma.product.findUnique({
 
 ### 4.1. Transaction
 
-Khi business operation cần atomicity, dùng interactive transaction; bên trong callback chỉ dùng `tx`, không dùng `this.prisma`:
+> `TransactionRunner` (`src/infrastructure/database/transaction-runner.port.ts`) có từ task 39; module chưa chuyển đổi giữ cách hiện tại.
+
+Service mở giao dịch bằng `transactionRunner.run(...)` và gọi port như bình thường; không truyền `tx` qua port ([module-architecture-conventions.md §6](module-architecture-conventions.md#6-transaction)). Ví dụ dưới là cách **adapter/`TransactionRunner` trong `infrastructure/`** biểu diễn một interactive transaction của Prisma (bên trong callback chỉ dùng `tx`, không dùng `this.prisma`); khoá dòng đặt ở adapter của module chủ bảng:
 
 ```ts
 await this.prisma.$transaction(async (tx) => {
@@ -108,8 +110,8 @@ await this.prisma.$transaction(async (tx) => {
 ```
 
 - Mặc định `Read Committed`. Chống race condition ưu tiên **row lock** (`SELECT ... FOR UPDATE` qua `$queryRaw`) và **update có điều kiện** (`updateMany({ where: { id, usedCount: { lt: limit } }, data: { usedCount: { increment: 1 } } })`, kiểm `count`) — thứ tự khoá, quy tắc từng luồng: [`../architecture/04-data-consistency.md`](../architecture/04-data-consistency.md).
-- `{ isolationLevel: 'Serializable' }` chỉ khi thực sự cần, kèm retry khi gặp `P2034`.
-- Không gọi I/O ngoài (HTTP, email) trong transaction — dùng outbox (`07-async-events-jobs.md`).
+- `transactionRunner.run(work, { isolationLevel: 'Serializable' })` chỉ khi thực sự cần: service mở giao dịch chọn mức cô lập và sở hữu retry khi gặp `P2034`; adapter nhập vào giao dịch không đặt isolation ([module-architecture-conventions.md §6](module-architecture-conventions.md#6-transaction)).
+- Không gọi I/O ngoài (HTTP, email, upload) trong `run()`/transaction — dùng outbox (`07-async-events-jobs.md`).
 - Tăng/giảm số đếm dùng atomic operator (`{ increment: n }`/`{ decrement: n }`), không đọc-rồi-ghi.
 
 ### 4.2. Lọc theo quan hệ

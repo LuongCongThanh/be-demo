@@ -7,7 +7,7 @@ An agreed, implementation-ready refactoring specification for the existing `be-d
 ## Notes
 
 - Scope: all existing modules under `src/modules`, with deeper attention to `catalog`.
-- Consult [Category folder-structure convention v1.6](../../../architecture/refactor/01-category-folder-structure-convention-v1.6.md), [Category clean-code quality convention v1.6](../../../architecture/refactor/02-category-clean-code-quality-convention-v1.6.md), and [module architecture](../../../architecture/02-modules.md).
+- Consult Category folder-structure convention v1.6 (`01-category-folder-structure-convention-v1.6.md`, đã xoá; thay bằng `docs/convention/module-architecture-conventions.md`), Category clean-code quality convention v1.6 (`02-category-clean-code-quality-convention-v1.6.md`, đã xoá; thay bằng `docs/convention/module-architecture-conventions.md`), and [module architecture](../../../architecture/02-modules.md).
 - Avoid splitting solely for folder symmetry or file count; preserve behavior unless a later implementation decision explicitly changes it.
 - The prior [Catalog consolidation decision](../../tasks/06-catalog-module/spec.md) is relevant context and must be reconciled with the current goal.
 

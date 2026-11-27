@@ -4,7 +4,7 @@
 
 Dùng placeholder **`Resource`/`resource`** — class và feature folder dùng số ít (`Product`, `product/`), route dùng số nhiều (`/products`). Business rule cụ thể của resource sống ở `../architecture/modules/<module>.md`.
 
-Các ví dụ trong file này dành cho resource CRUD generic, không áp dụng cho `Category`; kiến trúc Category có nguồn chuẩn riêng tại [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
+Các ví dụ trong file này minh họa **trình tự các bước** cho resource CRUD generic. Code mẫu ở service/test (B5, phần test, phụ lục) đang gọi `PrismaService` trực tiếp và ném HTTP exception theo cách cũ; với module mới và module đã chuyển đổi, service phải gọi Persistence Port, ném lỗi từ `src/common/errors/` và mở giao dịch bằng `TransactionRunner` theo [module-architecture-conventions.md](module-architecture-conventions.md). Phần code mẫu sẽ được cập nhật khi các module được chuyển đổi.
 
 ## B0. Requirement / Contract (rút gọn cho CRUD)
 

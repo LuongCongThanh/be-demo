@@ -1,6 +1,6 @@
 # Convention: quy tắc phát triển API (NestJS)
 
-> 📖 Xem [README.md](README.md) để biết vị trí file này trong bộ convention. Đây là nguồn quy tắc API; [api-crud-walkthrough.md](api-crud-walkthrough.md) chỉ minh họa trình tự và code mẫu. Shape API (prefix, versioning, envelope lỗi, phân nhóm route) do [`../architecture/03-api.md`](../architecture/03-api.md) định nghĩa. Riêng kiến trúc Category theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
+> 📖 Xem [README.md](README.md) để biết vị trí file này trong bộ convention. Đây là nguồn quy tắc API; [api-crud-walkthrough.md](api-crud-walkthrough.md) chỉ minh họa trình tự và code mẫu. Shape API (prefix, versioning, envelope lỗi, phân nhóm route) do [`../architecture/03-api.md`](../architecture/03-api.md) định nghĩa. Kiến trúc module (tầng, Port, lỗi, transaction, ranh giới) theo [module-architecture-conventions.md](module-architecture-conventions.md); chất lượng code theo [code-quality-conventions.md](code-quality-conventions.md).
 
 Tài liệu cho **dev tự đọc và tự viết code**, không phải ngữ cảnh để agent tự sinh code. Đây là convention **generic** — business rule và trạng thái implement thật của từng resource sống ở `../architecture/modules/<module>.md`.
 
@@ -54,26 +54,25 @@ Các mục dưới đây là quy tắc; code mẫu tương ứng ở [api-crud-w
 
 ### R2. Service / Use Case
 
+> Các mục kiến trúc dưới đây (R2 lỗi chung, R3, R4, R7) áp dụng **với module mới hoặc đã chuyển đổi (xem Migration status)** của [rule agent](../../.claude/rules/module-architecture.md); `src/common/errors/` và `TransactionRunner` có từ task 39.
+
 - Service không phụ thuộc `Request`/`Response` của Express — logic thuần, dễ test.
 - Tên method: CRUD dùng `create/findAll/findOne/update/remove`; API nghiệp vụ dùng tên hành vi (`checkout()`, `cancelOrder()`).
 - Đọc env qua `ConfigService`, không `process.env` — xem [config-environment-conventions.md](config-environment-conventions.md).
-- **Domain error đã biết trước ném rõ ở service** (`NotFoundException`, `ConflictException`, `ForbiddenException`... kèm message nghiệp vụ cụ thể), không phó mặc cho exception filter (message generic).
-- Category là ngoại lệ theo tầng: giữ lỗi nghiệp vụ trong Domain/Application và ánh xạ ở HTTP boundary theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
+- **Lỗi nghiệp vụ đã biết trước ném rõ ở service** bằng bộ lỗi chung `src/common/errors/` (có từ task 39; `NotFoundError`, `ConflictError`, `InvalidInputError`, `UnprocessableError`, `UnauthenticatedError`, `ForbiddenError`... kèm message nghiệp vụ cụ thể), không phó mặc cho exception filter (message generic) và không ném HTTP exception của `@nestjs/common` ở `domain/`/`application/`. Filter đổi lỗi sang HTTP ở một chỗ duy nhất (R6). Chỉ tầng HTTP (controller, guard, strategy) được ném HTTP exception của NestJS. Xem [module-architecture-conventions.md §5](module-architecture-conventions.md#5-xử-lý-lỗi).
 - **Không pre-fetch chỉ để xác nhận tồn tại** trước `update`/`delete` — filter đã map `P2025` → 404. Chỉ pre-fetch khi cần chính record đó để kiểm tra business rule (ownership, status, đếm record con...).
 - **Pre-check không thay thế constraint ở DB.** Kiểm tra unique/đếm FK trước khi ghi chỉ là **UX layer** (message đẹp); vẫn có race giữa check và write. Unique/FK constraint ở DB + `AllExceptionsFilter` là lớp bảo vệ cuối — bắt buộc giữ.
 
-### R3. Data access — Repository hay không?
+### R3. Data access: Persistence Port
 
-CRUD đơn giản gọi Prisma thẳng từ service, **không** tạo `XxxRepository` bọc lại. Chỉ tách Repository khi có: query phức tạp tái dùng nhiều nơi, nhiều aggregate trong 1 nghiệp vụ, transaction lớn, hoặc cần cô lập ORM khỏi business logic.
-
-Ngoại lệ: Category tuân theo Port/adapter boundary ở [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md); không áp dụng hướng dẫn gọi Prisma trực tiếp từ service cho module đó.
+Với module mới hoặc đã chuyển đổi (xem Migration status), service **không** dùng `PrismaService` hay `#src/generated/**`. Mọi truy cập DB đi qua Persistence Port (mặc định một port mỗi feature, `abstract class` làm token) với adapter Prisma ở `infrastructure/`, kể cả CRUD đơn giản. Adapter chuyển kiểu Prisma sang Domain Model; Prisma type không đi qua Port. Chi tiết: [module-architecture-conventions.md §4](module-architecture-conventions.md#4-port-và-di). Module chưa chuyển đổi giữ cấu trúc hiện tại cho đến khi có task refactor riêng (mục _Migration status_ của [rule agent](../../.claude/rules/module-architecture.md)).
 
 ### R4. Transaction
 
-- Không phải "cứ ≥2 write là cần transaction" — dùng `prisma.$transaction` khi **cả business operation phải thành công/thất bại như 1 đơn vị** (vd. `Order` + `OrderItem` + trừ tồn kho). Nhiều write độc lập có thể không cần; 1 write kèm `read → check` lại có thể cần transaction/lock (§05).
-- Với Category, transaction boundary theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
+- Không phải "cứ ≥2 write là cần transaction" — với module mới hoặc đã chuyển đổi (xem Migration status), mở giao dịch bằng `transactionRunner.run(async () => { ... })` khi **cả business operation phải thành công/thất bại như 1 đơn vị** (vd. `Order` + `OrderItem` + trừ tồn kho). Nhiều write độc lập có thể không cần; 1 write kèm `read → check` lại có thể cần transaction/lock (§05).
+- Hợp đồng transaction (không `tx` qua port, không `@Transactional()` ở service, giao dịch lồng nhập vào giao dịch ngoài, khoá dòng bằng `{ lockForUpdate: true }`): [module-architecture-conventions.md §6](module-architecture-conventions.md#6-transaction).
 - Điều kiện trạng thái đặt **trong `WHERE`** của conditional atomic update (`updateMany({ where: { id, status: 'PENDING' } })` + kiểm tra `count === 0` → 409), không tách "đọc status rồi update".
-- **External call (payment gateway, email...) không đặt trong `$transaction`** — giữ lock/connection lâu, và không có gì tự đồng bộ nếu một bên thành công một bên rollback. Gọi ngoài transaction, ghi kết quả vào DB ở bước riêng; khi thật sự cần → outbox/saga qua ADR.
+- **External call (payment gateway, email...) không đặt trong `run()`** — giữ lock/connection lâu, và không có gì tự đồng bộ nếu một bên thành công một bên rollback. Gọi ngoài transaction, ghi kết quả vào DB ở bước riêng; khi thật sự cần → outbox/saga qua ADR.
 
 ### R5. Authorization checkpoint
 
@@ -90,17 +89,16 @@ Cần kiểm chủ sở hữu? → có → thêm OwnershipGuard + @OwnedResource
 
 ### R6. Exception mapping
 
-`AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) đã xử lý `HttpException`, các Prisma error được hỗ trợ và lỗi không lường trước. Không viết filter riêng cho resource. Filter là **safety net**, không thay thế domain error ở service (R2). Riêng Category ánh xạ lỗi nghiệp vụ tại HTTP boundary theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md). Mapping và response shape hiện hành: [error-logging-conventions.md](error-logging-conventions.md).
+`AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`, đăng ký global qua `APP_FILTER` trong `app.module.ts`) đã xử lý `HttpException`, các Prisma error được hỗ trợ và lỗi không lường trước. Không viết filter riêng cho resource. Filter là **safety net**, không thay thế domain error ở service (R2). Filter cũng đổi bộ lỗi chung `src/common/errors/` (có từ task 39) sang HTTP (cùng mã, `message` và shape response). Mapping và response shape hiện hành: [error-logging-conventions.md](error-logging-conventions.md).
 
 ### R7. Response DTO / Serialization
 
-**Database Model ≠ API Response Contract.**
+**Database Model ≠ API Response Contract.** Với module mới hoặc đã chuyển đổi (xem Migration status), luồng dữ liệu dưới đây là bắt buộc.
 
-- Model không có field nhạy cảm: trả thẳng Prisma type được (resource nhỏ, ổn định).
-- Model có field nhạy cảm (`User.passwordHash`, các `tokenHash`) hoặc hay thêm field (`User`, `Order`): **allow-list** — Response DTO riêng, map thủ công (field mới không tự lộ ra).
-- Blacklist (`ClassSerializerInterceptor` + `@Exclude()`) chỉ chấp nhận cho resource nhỏ ổn định — field mới mặc định bị lộ.
+- Prisma type **không** đi qua Port và không trả thẳng ra API: adapter chuyển sang Domain Model, service trả Application Result, controller gọi mapper tạo Response DTO ([module-architecture-conventions.md §3](module-architecture-conventions.md#bốn-dạng-dữ-liệu)).
+- Response DTO là **allow-list** (map thủ công, field mới không tự lộ ra), đặc biệt khi model có field nhạy cảm (`User.passwordHash`, các `tokenHash`) hoặc hay thêm field (`User`, `Order`).
+- Không dùng blacklist (`ClassSerializerInterceptor` + `@Exclude()`): field mới mặc định bị lộ.
 - Không dùng thư mục `entities/` do `nest g resource` sinh.
-- Riêng Category, Application Result và Presentation Mapper tuân theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
 
 ### R8. Swagger / OpenAPI
 
@@ -111,7 +109,7 @@ Swagger UI: `http://localhost:8080/docs`; spec: `/docs-json` (ADR 0002). Cấu h
 - **Mọi module khai tag trong `src/common/swagger/api-tags.ts`** (`name` + `description` 1 câu: quản lý gì, ràng buộc quyền đáng chú ý); controller dùng `@ApiTags(API_TAGS.X.name)`, `openapi.ts` tự `addTag` từ đó — không gõ chuỗi tag tay.
 - **Ngoại lệ — endpoint hạ tầng** không dành cho client (vd. `/metrics` cho Prometheus): ẩn bằng `@ApiExcludeController()`, không cần tag.
 - **Response lỗi**: dùng `@ApiErrorResponses(...)` (`src/common/swagger/api-error-responses.decorator.ts`) — body `ErrorResponseDto` khớp `AllExceptionsFilter`. Khai đúng các status route thực sự trả (400 khi có body/query/`ParseUUIDPipe`; 401+403 khi có guard; 404/409 theo service), `[status, 'mô tả']` khi cần ghi rõ nguyên nhân. **Không khai 429** ở route — `openapi.ts` tự thêm cho mọi route vì `ThrottlerGuard` là guard toàn cục.
-- Khai **response `type:`** (`@ApiOkResponse({ type })`, `@ApiCreatedResponse({ type })`), không chỉ `description`. Nếu trả Prisma type, `type:` trỏ vào class khai lại field cho Swagger.
+- Khai **response `type:`** (`@ApiOkResponse({ type })`, `@ApiCreatedResponse({ type })`), không chỉ `description`. `type:` trỏ vào Response DTO.
 - **Postman**: không sửa tay collection. Sau khi thêm/sửa API: `npm run start:dev` rồi `npm run postman:sync` (cần `POSTMAN_API_KEY`, `POSTMAN_COLLECTION_ID` trong `.env`). Script ghi đè toàn bộ collection.
 
 ### R9. Pagination
@@ -130,7 +128,7 @@ Vitest (`vitest.config.ts` unit, `vitest.config.e2e.ts` e2e) + `supertest`.
 | API e2e test         | **Bắt buộc** cho endpoint public/quan trọng (checkout, auth, payment); khuyến nghị cho mọi CRUD                      |
 | Controller unit test | **Optional** — controller mỏng chỉ xác nhận "có gọi service"; e2e mới cover route/pipe/validation/status/filter thật |
 
-- Unit test mock dependency ở boundary của đơn vị cần kiểm tra, không kết nối DB; Category test mock Port theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md).
+- Unit test mock dependency ở boundary của đơn vị cần kiểm tra, không kết nối DB; service unit test mock Port (Persistence Port, `TransactionRunner`) thay vì `PrismaService`.
 - e2e gọi `configureApp(app)` — **không duplicate bootstrap config** giữa `main.ts` và e2e (lệch config → test pass nhưng app thật khác).
 - Token ADMIN cho e2e: login 1 lần trong `beforeAll` bằng tài khoản seed (`npm run db:seed`), dùng chung cả file.
 - Chạy: `npm run test` · `npm run test:e2e` · `npm run test:cov`.
@@ -171,9 +169,9 @@ API chỉ hoàn tất khi business rule và authorization đã rõ, contract/doc
 - [ ] Scaffold bằng `nest g resource` (REST, Yes CRUD entry points); xoá `entities/` và `*.spec.ts` mẫu
 - [ ] DTO: validator + `@ApiProperty` + `example:`; `PartialType` từ `@nestjs/swagger` (R1)
 - [ ] Param id dùng đúng pipe theo kiểu id (R1)
-- [ ] Domain error ném ở service với message nghiệp vụ; không pre-fetch chỉ để check tồn tại (R2)
+- [ ] Lỗi nghiệp vụ ném từ bộ lỗi chung ở service (module mới hoặc đã chuyển đổi, xem Migration status) với message nghiệp vụ; không pre-fetch chỉ để check tồn tại (R2)
 - [ ] Service unit test nếu có business logic; e2e cho endpoint public/quan trọng (R10)
-- [ ] Response DTO allow-list nếu model có field nhạy cảm (R7)
+- [ ] Response DTO allow-list, Prisma type không ra API (R7; luồng mapper với module mới hoặc đã chuyển đổi, xem Migration status)
 - [ ] Swagger: `type:`, `@ApiOperation`, `@ApiTags(API_TAGS.X.name)` (R8)
 - [ ] Pagination + `@Max(limit)` + `orderBy` tie-breaker cho mọi `findAll()` (R9)
 - [ ] Đã qua Authorization checkpoint (R5)
@@ -184,6 +182,6 @@ API chỉ hoàn tất khi business rule và authorization đã rõ, contract/doc
 - [ ] Requirement + Business Rules viết rõ trước khi động vào DB/code
 - [ ] Đã trả lời Idempotency + Concurrency (§05)
 - [ ] Method service đặt tên theo hành vi
-- [ ] Atomic: conditional atomic update thay vì "check rồi update"; external call **ngoài** transaction (R4)
+- [ ] Atomic: conditional atomic update thay vì "check rồi update"; external call **ngoài** transaction (R4; `TransactionRunner` với module mới hoặc đã chuyển đổi, xem Migration status)
 - [ ] Authorization rõ — public-facing chưa có auth là **blocking**
 - [ ] Đã cân nhắc audit log / business event log (§16)

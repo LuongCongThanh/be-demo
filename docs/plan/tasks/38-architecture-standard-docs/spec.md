@@ -1,6 +1,6 @@
 ---
-status: todo
-pr:
+status: done
+pr: #141
 blocked-by: []
 ---
 
@@ -33,7 +33,7 @@ blocked-by: []
    - Giới hạn 150/200 dòng và các miễn trừ.
    - Danh sách 7 luật lint (ticket 08).
 2. Đưa phần riêng của doc 02 v1.6 (TypeScript, async, concurrency, logging, bảo mật, checklist review PR, Definition of Done) vào file convention phù hợp hoặc một file `docs/convention/code-quality-conventions.md`; bỏ phần lặp với `api-rules.md`, `error-logging-conventions.md`, `coding-style-conventions.md`.
-3. **Xoá** `docs/architecture/refactor/01-category-folder-structure-convention-v1.6.md` và `02-category-clean-code-quality-convention-v1.6.md`; sửa mọi link trỏ tới chúng (`grep -rn "refactor/0[12]-category" docs src .claude .github AGENTS.md` → rỗng).
+3. **Xoá** hai file `01-category-folder-structure-convention-v1.6.md` và `02-category-clean-code-quality-convention-v1.6.md` trong `docs/architecture/refactor/`; sửa mọi link trỏ tới chúng (`grep -rn "refactor/0[12]-category" docs src .claude .github AGENTS.md` → rỗng).
 4. Bỏ mọi câu "Category là ngoại lệ" trong `docs/convention/README.md`, `coding-style-conventions.md` §2.1–§2.3, `api-rules.md` R2/R3/R6/R7, `prisma-conventions.md` §4; thay bố cục `controllers/admin`, `services/storefront` ở coding-style §2.2 bằng bộ khung A'. Sửa R7 ("trả thẳng Prisma type"): không còn hợp lệ. Sửa câu ngưỡng dòng trong `02-modules.md` và coding-style.
 5. Sửa `docs/architecture/02-modules.md` §2 đoạn cuối và `docs/architecture/04-data-consistency.md`: bỏ "truyền `Prisma.TransactionClient`", thay bằng `TransactionRunner`.
 6. Thêm `module-architecture-conventions.md` vào bảng thứ tự đọc của `docs/convention/README.md`.
