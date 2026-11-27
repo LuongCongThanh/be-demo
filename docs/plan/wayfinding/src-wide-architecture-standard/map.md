@@ -8,7 +8,7 @@ Một bộ chuẩn kiến trúc và chất lượng code thống nhất cho toà
 
 - Mỗi ticket grilling: gọi Skill `grilling` và `domain-modeling`. Đọc `docs/agents/domain.md`, `docs/agents/issue-tracker.md`, `GLOSSARY.md` trước khi làm.
 - Các quyết định của map [Refactoring boundaries in `src/modules`](../feature-module-boundaries/map.md) (ticket 01–06) là **tiền đề có hiệu lực**. Chỉ mở lại một quyết định khi code hoặc yêu cầu mới mâu thuẫn trực tiếp với nó, và mỗi mâu thuẫn là một ticket riêng.
-- Tài liệu liên quan: [01 Category folder structure v1.6](../../../architecture/refactor/01-category-folder-structure-convention-v1.6.md), [02 Category clean code v1.6](../../../architecture/refactor/02-category-clean-code-quality-convention-v1.6.md), [02-modules.md](../../../architecture/02-modules.md), [`.claude/rules/prisma-schema.md`](../../../../.claude/rules/prisma-schema.md).
+- Tài liệu liên quan: 01 Category folder structure v1.6 (`01-category-folder-structure-convention-v1.6.md`, đã xoá; thay bằng `docs/convention/module-architecture-conventions.md`), 02 Category clean code v1.6 (`02-category-clean-code-quality-convention-v1.6.md`, đã xoá; thay bằng `docs/convention/module-architecture-conventions.md`), [02-modules.md](../../../architecture/02-modules.md), [`.claude/rules/prisma-schema.md`](../../../../.claude/rules/prisma-schema.md).
 - Một kiến trúc cho mọi module, không ngoại lệ (ADR 0015); thư mục chỉ tạo khi có file.
 - Mỗi file tối đa 200 dòng (mục tiêu 150), trừ code sinh tự động và file test.
 - Rule cho agent: `.claude/rules/module-architecture.md` (Claude Code), `.github/instructions/module-architecture.instructions.md` (Copilot), `src/AGENTS.md` (Codex); mỗi PR refactor cập nhật mục "Migrated modules" của rule.

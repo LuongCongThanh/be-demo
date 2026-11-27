@@ -4,9 +4,9 @@ paths:
   - 'src/infrastructure/**/*.port.ts'
 ---
 
-# Module architecture (condensed — decision: docs/adr/0015-one-layered-architecture-for-every-module.md; decisions and rationale: docs/plan/wayfinding/src-wide-architecture-standard/map.md)
+# Module architecture (condensed — canonical standard: docs/convention/module-architecture-conventions.md; code quality: docs/convention/code-quality-conventions.md; decision: docs/adr/0015-one-layered-architecture-for-every-module.md)
 
-Every module in `src/modules` uses one Hexagonal architecture. No module is exempt.
+Every module in `src/modules` uses one Hexagonal architecture. No module is exempt. This file is the short form for agents; when it and the convention documents differ, the convention documents win, so fix this file.
 
 ## Migration status
 

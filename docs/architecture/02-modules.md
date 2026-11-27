@@ -48,7 +48,7 @@ Chỉ module sở hữu được **ghi** vào bảng của nó; module khác g�
 
 Chi tiết bảng: [./11-database.md](./11-database.md).
 
-Một use case cần ghi nhiều module (ví dụ checkout: `ordering` + `cart` + `inventory` + `voucher` + `payment`) chạy trong **một transaction** do module điều phối (`ordering`) mở; `Prisma.TransactionClient` được truyền vào service của module khác ([04-data-consistency.md](./04-data-consistency.md)).
+Một use case cần ghi nhiều module (ví dụ checkout: `ordering` + `cart` + `inventory` + `voucher` + `payment`) chạy trong **một transaction** do module điều phối (`ordering`) mở bằng `TransactionRunner.run()`; module điều phối gọi service công khai của từng module khác, các adapter tự nhập vào giao dịch đang mở nên không có `tx` nào đi qua service hay Port, và không module nào ghi bảng của module khác ([module-architecture-conventions.md §6](../convention/module-architecture-conventions.md#6-transaction), [04-data-consistency.md](./04-data-consistency.md)).
 
 ## 3. Quy tắc phụ thuộc
 
@@ -75,13 +75,13 @@ flowchart TB
 - Phụ thuộc một chiều, không vòng. Khi module dưới cần báo ngược lên (ví dụ `payment` báo thanh toán thành công cho `ordering`, `fulfillment` báo đã giao), dùng **domain event** qua outbox — không import ngược ([07-async-events-jobs.md](./07-async-events-jobs.md)).
 - `notification`, `administration` chỉ được gọi tới hoặc lắng nghe event; không module nghiệp vụ nào phụ thuộc vào chúng để hoàn thành transaction.
 - **Cửa ngõ module là `exports` trong `<module>.module.ts`.** Mỗi module export đúng một service public (`InventoryService`, `CartService`, `VoucherService`, `PaymentService`, `FulfillmentService`, `OrderingService`, `CatalogService`, `CustomerService`; `identity` export `InternalAccountService` và `AccessService`). Service ruột không export. Module khác `imports: [XModule]` và inject service đó, không import file ruột theo đường dẫn. `CategoryModule` là feature module nội bộ của Catalog: `CatalogModule` import module này để sở hữu Category endpoints và composition, không export provider nghiệp vụ ra ngoài Catalog. Category dùng `CategoryCoreModule` cho persistence/Port binding và `AdminCategoryModule` / `StorefrontCategoryModule` cho controllers/providers; chỉ surface mới import Core trực tiếp. Không có file facade riêng.
-- Interface + token DI chỉ khi có ≥ 2 implementation thật (`PaymentGateway`: VNPay, MoMo), ngoại trừ các Port outbound bắt buộc theo Category v1.6. Một adapter (Cloudinary, GHN, SMTP) thường inject class trực tiếp.
+- Mọi truy cập DB đi qua Persistence Port (`abstract class` làm token); I/O ngoài DB dùng port dùng chung (`src/infrastructure/**/*.port.ts`) hoặc port riêng của module. Thư viện thuần không I/O không cần port. Xem [module-architecture-conventions.md §4](../convention/module-architecture-conventions.md#4-port-và-di).
 - `common/` là tầng dùng chung ít phụ thuộc: không import `http/`, `security/`, `infrastructure/` hoặc `modules/`. `http/` và `security/` được phép dùng `common/` và adapter cần thiết từ `infrastructure/`, nhưng không import `modules/`. `infrastructure/` có thể dùng thành phần dùng chung từ `common/`, không import `modules/`. Hợp đồng `Permission` và `JwtPayload` dùng chung giữa authentication/authorization nằm ở `security/contracts/` để tránh phụ thuộc vòng giữa hai nhánh.
-- Các feature Catalog khác giữ flow hiện tại Controller → Service → Prisma, không thêm repository mặc định. Riêng Category tuân thủ hai convention v1.6: Controller → Application → Port ← Infrastructure Adapter, với DI wiring tại `CategoryModule`.
+- Mọi module (kể cả các feature Catalog) theo một flow: Controller → Application → Port ← Infrastructure Adapter, wiring DI tại file module ([ADR 0015](../adr/0015-one-layered-architecture-for-every-module.md), [module-architecture-conventions.md](../convention/module-architecture-conventions.md)). Module chưa chuyển đổi giữ cấu trúc hiện tại đến khi có task refactor riêng (mục _Migration status_ của [rule agent](../../.claude/rules/module-architecture.md)).
 
 ### 3.1 Composition root và Nest feature modules
 
-`CatalogModule` vẫn là composition root bên ngoài cho Catalog và import `CategoryModule` theo Category v1.6; `IdentityModule` vẫn là composition root cho Identity; `VoucherModule` tiếp tục là module độc lập. Không tạo `product.module.ts` hoặc Nest feature module con khác chỉ để mỗi folder có một module file.
+`CatalogModule` vẫn là composition root bên ngoài cho Catalog và import `CategoryModule` (module duy nhất tách Core/Admin/Storefront Nest module); `IdentityModule` vẫn là composition root cho Identity; `VoucherModule` tiếp tục là module độc lập. Không tạo `product.module.ts` hoặc Nest feature module con khác chỉ để mỗi folder có một module file.
 
 Chỉ xem xét tách Nest feature module khi có nhu cầu độc lập thực tế về ownership, lifecycle, kiểm thử hoặc export service. Trước khi tách, lập dependency graph giữa các feature, giữ hướng phụ thuộc một chiều, tránh vòng import và chỉ export API mà feature khác cần. Không dùng số file hay số dòng làm ngưỡng tự động.
 
@@ -189,7 +189,7 @@ modules/catalog/
 │       ├── storefront/
 │       ├── admin/
 │       └── shared/
-├── category/                              # Category v1.6; own Nest composition root
+├── category/                              # multi-layer example; own Nest composition root
 │   ├── category.module.ts
 │   ├── domain/
 │   │   ├── models/
@@ -256,7 +256,7 @@ modules/voucher/
 
 Trong module có API cho cả Storefront và Admin CMS, nhóm controller và DTO theo `storefront/` hoặc `admin/`; service/mapper riêng cho một phía cũng theo nhóm tương ứng. Logic hoặc DTO dùng chung nằm trong `shared/`; domain thuần nằm trong `domain/`. Chỉ tạo nhóm thực sự có file, không để thư mục rỗng. Swagger dùng tag riêng có tiền tố `Storefront —` hoặc `Admin CMS —`. Test `*.spec.ts` đặt cạnh file được test trong nhóm tương ứng.
 
-Riêng `category/`, tuân thủ [`refactor/01-category-folder-structure-convention-v1.6.md`](./refactor/01-category-folder-structure-convention-v1.6.md) và [`refactor/02-category-clean-code-quality-convention-v1.6.md`](./refactor/02-category-clean-code-quality-convention-v1.6.md). `CategoryModule` là composition root cho Category và được `CatalogModule` import; các port outbound thuộc Application, adapter công nghệ thuộc Infrastructure. Các module khác không mặc nhiên áp dụng cùng cấu trúc này. Transaction callback giữ một context nội bộ để phối hợp thao tác category/translation theo revision/generation; không làm lộ Prisma transaction client. Tách file theo trách nhiệm, không áp dụng ngưỡng dòng cứng.
+Mọi module tuân thủ [module-architecture-conventions.md](../convention/module-architecture-conventions.md) (bộ khung `domain/`, `application/`, `infrastructure/`, `presentation/`, `admin/`, `storefront/`); `category/` là ví dụ cấu trúc đầy đủ và được `CatalogModule` import qua `CategoryModule`. Các port outbound thuộc Application, adapter công nghệ thuộc Infrastructure. Tách file theo trách nhiệm: mục tiêu khoảng 150 dòng, giới hạn cứng 200 dòng mỗi file (miễn code sinh tự động và file test). Cây ở §4.1 là as-built nên có thể chưa theo bộ khung ở module chưa chuyển đổi; mỗi PR đổi cấu trúc phải cập nhật cây này trong cùng PR.
 
 ## 5. As-built inventory — shared/runtime
 

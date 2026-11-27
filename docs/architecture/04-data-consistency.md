@@ -6,6 +6,7 @@
 
 - PostgreSQL là nguồn dữ liệu duy nhất cho trạng thái thương mại (Order, Tồn kho, Giữ hàng, Thanh toán, Hoàn tiền, Voucher). Redis chỉ là cache/rate-limit/queue ([ADR 0008](../adr/0008-redis-outage-degrades-not-unready.md)).
 - Mỗi chuyển trạng thái nghiệp vụ là **một transaction**: thay đổi aggregate + bộ đếm Tồn kho + bản ghi lịch sử (BR-INV-09, audit back-office) + dòng outbox ([ADR 0003](../adr/0003-inventory-reservations-and-transactional-outbox.md)). Side effect bên ngoài (email, GHN, Cổng thanh toán) chỉ chạy sau commit, qua outbox ([07-async-events-jobs.md](./07-async-events-jobs.md) mục 2).
+- Transaction mở bằng `TransactionRunner.run()` ở service điều phối; adapter tự nhập vào giao dịch đang mở nên không truyền `tx` qua Port hay service công khai. Transaction xuyên module chạy qua service công khai của từng module chủ bảng; khoá dòng (`SELECT ... FOR UPDATE`) đặt ở adapter của module đó, caller yêu cầu bằng `{ lockForUpdate: true }`. Hợp đồng đầy đủ: [module-architecture-conventions.md §6](../convention/module-architecture-conventions.md#6-transaction).
 - Ưu tiên **conditional update một câu lệnh** (`UPDATE ... WHERE <điều kiện> RETURNING`) thay cho đọc-rồi-ghi; 0 dòng bị ảnh hưởng nghĩa là thua cuộc đua → từ chối hoặc đi nhánh xử lý riêng.
 - Số tiền là số nguyên VND; không dùng số thực (BR-CAT-04, BR-VCH-10).
 - Thời điểm so hạn dùng `clock_timestamp()`, không dùng `now()` (cố định từ đầu transaction, sai khi phải chờ lock).

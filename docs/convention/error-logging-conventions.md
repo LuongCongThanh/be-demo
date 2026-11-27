@@ -7,8 +7,8 @@ Tài liệu này dành cho **dev trong team tự đọc và tự viết code**. 
 ## 1. Kiến trúc tổng quan
 
 ```
-Lỗi nghiệp vụ đã biết trước → module thông thường ném HTTP exception ở service;
-                              Category ánh xạ lỗi Domain/Application tại HTTP boundary
+Lỗi nghiệp vụ đã biết trước → domain/application ném lỗi từ bộ lỗi chung `src/common/errors/`;
+                              AllExceptionsFilter đổi sang HTTP (tầng HTTP vẫn được ném HTTP exception)
 Prisma error được hỗ trợ    → AllExceptionsFilter tự map sang HTTP status tương ứng
 Lỗi không lường trước       → AllExceptionsFilter bắt, trả 500 generic, log stack
 ```
@@ -49,11 +49,11 @@ Mỗi request HTTP được gắn 1 `requestId` (UUID) ngay từ `RequestIdMiddl
 
 > Viết code service mới **không cần** tự thêm request-id vào message — cứ `this.logger.log('...')` như bình thường, `AppLogger` tự lo phần còn lại.
 
-## 5. Khi nào tự ném exception ở service (không dựa vào filter)
+## 5. Khi nào tự ném lỗi ở service (không dựa vào filter)
 
-Với module thông thường, nếu lỗi nghiệp vụ đã biết trước (trùng field unique, còn record con tham chiếu, sai business rule...), ném rõ ràng bằng `NotFoundException`/`ConflictException`/... **ở service**, kèm message cụ thể — không để rơi xuống `AllExceptionsFilter` (message Prisma generic, không nói rõ nghiệp vụ gì). Pre-check (unique, FK) vẫn không thay thế constraint ở DB — filter là lớp bảo vệ cuối cùng, không phải lớp duy nhất.
+Nếu lỗi nghiệp vụ đã biết trước (trùng field unique, còn record con tham chiếu, sai business rule...), ném rõ ràng ở service kèm message cụ thể bằng bộ lỗi chung `src/common/errors/`: `NotFoundError` (404), `ConflictError` (409), `InvalidInputError` (400), `UnprocessableError` (422), `UnauthenticatedError` (401), `ForbiddenError` (403), hoặc lớp con của chúng. `domain/` và `application/` không import HTTP exception của `@nestjs/common`; `AllExceptionsFilter` đổi lỗi chung sang HTTP ở **một chỗ duy nhất** (cùng mã, `message` và shape response). Không để rơi xuống filter với message Prisma generic. Pre-check (unique, FK) vẫn không thay thế constraint ở DB — filter là lớp bảo vệ cuối cùng, không phải lớp duy nhất.
 
-`Category` giữ lỗi nghiệp vụ trong Domain/Application và ánh xạ chúng tại HTTP boundary theo [Category Folder Structure Convention v1.6](../architecture/refactor/01-category-folder-structure-convention-v1.6.md); không đưa NestJS exception vào Domain/Application.
+Tầng HTTP (controller, guard, strategy trong `admin/`, `storefront/`, `presentation/`) vẫn được ném HTTP exception của NestJS. Chi tiết: [module-architecture-conventions.md §5](module-architecture-conventions.md#5-xử-lý-lỗi).
 
 ## 6. Khi nào tự `try/catch` trong service
 
@@ -61,12 +61,12 @@ Với module thông thường, nếu lỗi nghiệp vụ đã biết trước (t
 
 **Có** dùng `try/catch` khi:
 
-- **Dịch lỗi tầng dưới thành domain exception cụ thể** (vd. bắt `Prisma.PrismaClientKnownRequestError` mã `P2002` để ném `ConflictException` với message rõ nghĩa nghiệp vụ — xem [§5](#5-khi-nào-tự-ném-exception-ở-service-không-dựa-vào-filter)).
+- **Dịch lỗi tầng dưới thành lỗi nghiệp vụ cụ thể** (vd. adapter bắt `Prisma.PrismaClientKnownRequestError` mã `P2002` để ném `ConflictError` với message rõ nghĩa nghiệp vụ — xem [§5](#5-khi-nào-tự-ném-exception-ở-service-không-dựa-vào-filter)).
 - **Side-effect không quan trọng bằng luồng chính, cho phép fail mà không làm hỏng cả request** (best-effort — vd. gửi email xác thực thất bại không nên làm `register()` trả lỗi cho user). Trường hợp này **phải tự log lỗi rõ ràng** trước khi nuốt nó — nuốt lỗi mà không log nghĩa là không ai biết side-effect đó từng thất bại (filter không thấy lỗi vì bạn đã bắt nó).
 
 ## Checklist khi thêm endpoint mới
 
-- [ ] Domain error đã biết trước ném rõ ràng ở service, không phó mặc cho `AllExceptionsFilter`
+- [ ] Lỗi nghiệp vụ đã biết trước ném rõ ràng ở service từ bộ lỗi chung, không phó mặc cho `AllExceptionsFilter`
 - [ ] Không log secret (password, token, header `Authorization`) trong bất kỳ message log nào
 - [ ] Business event quan trọng (nếu có) log ở mức `.log()`, không cần tự thêm request-id
 - [ ] Không tự bắt exception rồi nuốt lỗi im lặng — nếu nuốt (best-effort side-effect), phải tự log rõ ràng (xem [§6](#6-khi-nào-tự-trycatch-trong-service))
