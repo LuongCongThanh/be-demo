@@ -81,6 +81,19 @@ export class AdminInventoryService {
       }
       if (inventory.quantity + delta < 0) throw new ConflictError('Confirmed count cannot create negative inventory');
 
+      // Confirm first: the conditional update is the guard, so nothing is written when the count was already confirmed.
+      const confirmed = await this.inventory.confirmStockCount(countId, {
+        onShelfAtCount: inventory.quantity,
+        awaitingAtCount: awaitingQuantity,
+        discrepancy: delta,
+        confirmedAt: new Date(),
+      });
+      if (!confirmed) {
+        const stored = await this.inventory.findStockCount(countId);
+        if (!stored) throw new NotFoundError('Stock count not found');
+        return stored;
+      }
+
       await this.inventory.setQuantity(count.variantId, inventory.quantity + delta);
       await this.inventory.addMovement({
         variantId: count.variantId,
@@ -92,12 +105,7 @@ export class AdminInventoryService {
         beforeReserved: inventory.reservedQuantity,
         afterReserved: inventory.reservedQuantity,
       });
-      return this.inventory.confirmStockCount(countId, {
-        onShelfAtCount: inventory.quantity,
-        awaitingAtCount: awaitingQuantity,
-        discrepancy: delta,
-        confirmedAt: new Date(),
-      });
+      return confirmed;
     });
   }
 

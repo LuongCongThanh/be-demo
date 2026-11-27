@@ -19,5 +19,6 @@ export abstract class InventoryRepository {
   abstract addAwaitingDispatch(orderId: string, lines: StockLine[]): Promise<void>;
   abstract createStockCount(count: NewStockCount): Promise<StockCount>;
   abstract findStockCount(id: string): Promise<StockCount | null>;
-  abstract confirmStockCount(id: string, confirmation: StockCountConfirmation): Promise<StockCount>;
+  /** Xác nhận phiếu nếu còn `confirmedAt IS NULL`; trả `null` khi phiếu đã được xác nhận trước đó. */
+  abstract confirmStockCount(id: string, confirmation: StockCountConfirmation): Promise<StockCount | null>;
 }

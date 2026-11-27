@@ -43,19 +43,30 @@ describe('Stock count confirmation on PostgreSQL (e2e)', () => {
     await prisma.inventory.create({ data: { variantId, quantity: 10 } });
   });
 
-  afterAll(async () => {
+  // Each test starts from its own known state: quantity set here, no movements, no counts.
+  async function resetStock(quantity: number): Promise<void> {
     await prisma.inventoryMovement.deleteMany({ where: { variantId } });
     await prisma.inventoryStockCount.deleteMany({ where: { variantId } });
-    await prisma.productVariant.deleteMany({ where: { id: variantId } });
-    await prisma.product.deleteMany({ where: { id: productId } });
-    await prisma.size.deleteMany({ where: { id: sizeId } });
-    await prisma.color.deleteMany({ where: { id: colorId } });
-    await prisma.category.deleteMany({ where: { id: categoryId } });
-    await prisma.$executeRaw`DELETE FROM users WHERE id = ${userId}::uuid`;
-    await app.close();
+    await prisma.inventory.update({ where: { variantId }, data: { quantity, reservedQuantity: 0 } });
+  }
+
+  afterAll(async () => {
+    try {
+      await prisma.inventoryMovement.deleteMany({ where: { variantId } });
+      await prisma.inventoryStockCount.deleteMany({ where: { variantId } });
+      await prisma.productVariant.deleteMany({ where: { id: variantId } });
+      await prisma.product.deleteMany({ where: { id: productId } });
+      await prisma.size.deleteMany({ where: { id: sizeId } });
+      await prisma.color.deleteMany({ where: { id: colorId } });
+      await prisma.category.deleteMany({ where: { id: categoryId } });
+      await prisma.$executeRaw`DELETE FROM users WHERE id = ${userId}::uuid`;
+    } finally {
+      await app.close();
+    }
   });
 
   it('applies the delta and writes one movement when two confirms of one count run concurrently', async () => {
+    await resetStock(10);
     const count = await service.createCount(variantId, userId, { physicalCount: 13 });
 
     const [first, second] = await Promise.all([
@@ -71,10 +82,12 @@ describe('Stock count confirmation on PostgreSQL (e2e)', () => {
   });
 
   it('returns the already confirmed count on a sequential second confirm', async () => {
+    await resetStock(20);
     const count = await service.createCount(variantId, userId, { physicalCount: 12 });
     const confirmed = await service.confirmCount(count.id, userId);
 
     await expect(service.confirmCount(count.id, userId)).resolves.toEqual(confirmed);
     await expect(prisma.inventory.findUnique({ where: { variantId } })).resolves.toMatchObject({ quantity: 12 });
+    await expect(prisma.inventoryMovement.count({ where: { variantId } })).resolves.toBe(1);
   });
 });
