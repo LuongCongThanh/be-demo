@@ -70,7 +70,7 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 38  | [Viết tài liệu chuẩn kiến trúc module](./tasks/38-architecture-standard-docs/spec.md)                                                   | done       | —                                                                                        | #141      |
 | 39  | [Nền móng dùng chung cho kiến trúc mới](./tasks/39-shared-architecture-foundations/spec.md)                                             | done       | 38-architecture-standard-docs                                                            | #142      |
 | 40  | [Script sinh luật lint ranh giới](./tasks/40-lint-boundary-generator/spec.md)                                                           | done       | 39-shared-architecture-foundations                                                       | #143      |
-| 41  | [Chuyển module inventory sang kiến trúc chung](./tasks/41-migrate-inventory/spec.md)                                                    | todo       | 40-lint-boundary-generator                                                               |           |
+| 41  | [Chuyển module inventory sang kiến trúc chung](./tasks/41-migrate-inventory/spec.md)                                                    | done       | 40-lint-boundary-generator                                                               | #144      |
 | 42  | [Chuyển module voucher sang kiến trúc chung](./tasks/42-migrate-voucher/spec.md)                                                        | todo       | 40-lint-boundary-generator                                                               |           |
 | 43  | [Chuyển feature catalog/category sang kiến trúc chung](./tasks/43-migrate-catalog-category/spec.md)                                     | todo       | 40-lint-boundary-generator                                                               |           |
 | 44  | [Chuyển catalog/product, product-option, pricing và tạo CatalogService](./tasks/44-migrate-catalog-product-option-pricing/spec.md)      | todo       | 41-migrate-inventory, 43-migrate-catalog-category                                        |           |
@@ -79,6 +79,8 @@ Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-cata
 | 47  | [Chuyển identity/access và identity/internal-account sang kiến trúc chung](./tasks/47-migrate-identity-access-internal-account/spec.md) | todo       | 40-lint-boundary-generator                                                               |           |
 | 48  | [Chuyển identity/auth sang kiến trúc chung](./tasks/48-migrate-identity-auth/spec.md)                                                   | todo       | 47-migrate-identity-access-internal-account                                              |           |
 | 49  | [Hoàn tất chuyển đổi kiến trúc](./tasks/49-finalize-architecture-migration/spec.md)                                                     | todo       | 45-migrate-cart, 46-migrate-checkout, 48-migrate-identity-auth                           |           |
+| 50  | [Sửa race khi xác nhận phiếu kiểm kê](./tasks/50-fix-stock-count-confirm-race/spec.md)                                                  | todo       | 41-migrate-inventory                                                                     |           |
+| 51  | [Ghi movement khi trừ kho cho đơn hàng](./tasks/51-order-stock-movements/spec.md)                                                       | todo       | 46-migrate-checkout                                                                      |           |
 
 Các đầu việc thuộc Giai đoạn B của [Hoàn thiện hợp đồng danh mục cho CMS và cửa hàng](./tasks/24-category-content/issues/README.md) nằm trong nhiệm vụ cha; trạng thái và các mối phụ thuộc được theo dõi tại danh sách đó.
 
@@ -86,7 +88,7 @@ Nhiệm vụ 17 đã hoàn tất closure: PR #83 đã hợp nhất phần API RB
 
 ## Thứ tự tiếp tục công việc
 
-**Chuyển đổi kiến trúc (task 38–49)** theo map [Chuẩn kiến trúc thống nhất cho toàn `src/modules`](./wayfinding/src-wide-architecture-standard/map.md) và [ADR 0015](../adr/0015-one-layered-architecture-for-every-module.md): làm trước các task tính năng đụng tới module đó (task 29 chờ 46, task 33 chờ 41). Thứ tự: 38 → 39 → 40 → (41, 42, 43, 47 song song) → 44 → (45, 46, 48) → 49.
+**Chuyển đổi kiến trúc (task 38–49)** theo map [Chuẩn kiến trúc thống nhất cho toàn `src/modules`](./wayfinding/src-wide-architecture-standard/map.md) và [ADR 0015](../adr/0015-one-layered-architecture-for-every-module.md): làm trước các task tính năng đụng tới module đó (task 29 chờ 46, task 33 chờ 41). Thứ tự: 38 → 39 → 40 → (41, 42, 43, 47 song song) → 44 → (45, 46, 48) → 49. Task sửa theo review: 50 (race xác nhận kiểm kê) làm ngay sau 41, trước 42; 51 (movement khi trừ kho cho đơn) sau 46.
 
 Đối chiếu theo báo cáo nhiệm vụ và các PR hiện tại vào ngày 2026-11-22:
 
