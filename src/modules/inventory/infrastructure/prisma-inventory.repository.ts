@@ -73,7 +73,13 @@ export class PrismaInventoryRepository extends InventoryRepository {
     return this.txHost.tx.inventoryStockCount.findUnique({ where: { id } });
   }
 
-  confirmStockCount(id: string, confirmation: StockCountConfirmation): Promise<StockCount> {
-    return this.txHost.tx.inventoryStockCount.update({ where: { id }, data: confirmation });
+  async confirmStockCount(id: string, confirmation: StockCountConfirmation): Promise<StockCount | null> {
+    // Conditional on confirmedAt IS NULL so a count can never be confirmed twice, even without the row lock.
+    const { count } = await this.txHost.tx.inventoryStockCount.updateMany({
+      where: { id, confirmedAt: null },
+      data: confirmation,
+    });
+    if (count === 0) return null;
+    return this.txHost.tx.inventoryStockCount.findUniqueOrThrow({ where: { id } });
   }
 }

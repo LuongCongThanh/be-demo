@@ -20,7 +20,7 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.5](../11-database
 
 ## 3. Interface cho module khác
 
-Hàm không nhận `tx`: module gọi bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của `inventory` tự nhập vào giao dịch đang mở; khoá `inventory_levels` theo `variant_id` tăng dần.
+Hàm không nhận `tx`: module gọi bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của `inventory` tự nhập vào giao dịch đang mở; khoá `inventory` theo `variant_id` tăng dần.
 
 | Hàm                                           | Gọi ở                                                                                                                  |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -64,7 +64,7 @@ Các hàm còn lại trong bảng trên chưa có. Checkout, cart và product ch
 
 Mỗi thay đổi Tồn kho ghi một dòng `inventory_movements` với `type` ∈ `receipt`/`adjustment`/`stock_count`/`sale`/`cancel_restock`/`return_restock`/`return_to_sender`.
 
-Preview không khoá. Xác nhận: khoá dòng `inventory_levels` → chênh lệch = số đếm − (`on_hand` + Hàng chờ xuất của Biến thể) tính **lúc xác nhận** → nếu giảm vượt Số lượng bán được thì `422` kèm số tối đa → cập nhật `on_hand`, ghi `stock_counts` và movement `stock_count`.
+Preview không khoá. Xác nhận: khoá dòng `inventory` → đọc lại phiếu sau khoá (phiếu đã xác nhận, kể cả do request song song vừa xác nhận, thì trả phiếu đó, không điều chỉnh lần hai) → chênh lệch = số đếm − (`quantity` + Hàng chờ xuất của Biến thể) tính **lúc xác nhận** → nếu giảm vượt Số lượng bán được thì `409` (`ConflictError`) kèm số tối đa → xác nhận phiếu có điều kiện `confirmed_at IS NULL` (không cập nhật được dòng nào thì phiếu đã xác nhận, trả phiếu đó) → cập nhật `quantity`, ghi `inventory_stock_counts` và movement `stock_count`.
 
 ```mermaid
 stateDiagram-v2
