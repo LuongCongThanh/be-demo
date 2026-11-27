@@ -122,6 +122,12 @@ src/
     │   ├── access/
     │   ├── auth/
     │   └── internal-account/
+    ├── inventory/           # đã chuyển sang kiến trúc chung (task 41)
+    │   ├── inventory.module.ts
+    │   ├── domain/inventory.model.ts
+    │   ├── application/     # admin-inventory.service.ts (không export), inventory.service.ts (public), ports/inventory.repository.ts
+    │   ├── infrastructure/prisma-inventory.repository.ts
+    │   └── admin/           # controllers/inventory.controller.ts, dto/inventory.dto.ts
     └── voucher/
 ```
 
@@ -160,7 +166,7 @@ src/
     ├── customer/             # planned
     ├── media/                # planned
     ├── cart/                 # planned
-    ├── inventory/            # planned
+    ├── inventory/            # đã triển khai: xem §4.1
     ├── ordering/             # planned
     ├── payment/              # planned
     ├── fulfillment/          # planned
