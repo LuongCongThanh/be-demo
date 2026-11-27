@@ -61,11 +61,17 @@ export class AdminInventoryService {
 
   async confirmCount(countId: string, actorUserId: string) {
     return this.transactionRunner.run(async () => {
+      const found = await this.inventory.findStockCount(countId);
+      if (!found) throw new NotFoundError('Stock count not found');
+      if (found.confirmedAt) return found;
+
+      // Every confirm of a count takes this row lock first, so concurrent confirms are serialized.
+      // The count is read again after the lock: the first read can be stale once the lock is granted.
+      const inventory = await this.requireLevel(found.variantId, true);
       const count = await this.inventory.findStockCount(countId);
       if (!count) throw new NotFoundError('Stock count not found');
       if (count.confirmedAt) return count;
 
-      const inventory = await this.requireLevel(count.variantId, true);
       const awaitingQuantity = await this.inventory.sumAwaitingQuantity(count.variantId);
       const expectedQuantity = inventory.quantity + awaitingQuantity;
       const delta = count.physicalCount - expectedQuantity;
