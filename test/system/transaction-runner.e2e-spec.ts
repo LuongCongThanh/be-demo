@@ -66,6 +66,24 @@ describe('TransactionRunner on PostgreSQL (e2e)', () => {
     await expect(store.find(SCOPE, 'nested')).resolves.toBeNull();
   });
 
+  it('start() returns false on a duplicate key without aborting the transaction', async () => {
+    await expect(
+      runner.run(async () => {
+        const first = await store.start(SCOPE, 'dup', 'a'.repeat(64));
+        const second = await store.start(SCOPE, 'dup', 'b'.repeat(64));
+        const found = await store.find(SCOPE, 'dup');
+        return { first, second, hash: found?.requestHash };
+      }),
+    ).resolves.toEqual({ first: true, second: false, hash: 'a'.repeat(64) });
+  });
+
+  it('complete() stores a top-level null and rejects a key that was never started', async () => {
+    await store.start(SCOPE, 'null-body', 'h'.repeat(64));
+    await store.complete(SCOPE, 'null-body', 204, null);
+    await expect(store.find(SCOPE, 'null-body')).resolves.toMatchObject({ responseStatus: 204, response: null });
+    await expect(store.complete(SCOPE, 'missing', 201, { ok: true })).rejects.toThrow(/not started/);
+  });
+
   it('applies opts.isolationLevel to the outermost transaction only', async () => {
     const level = () =>
       host.tx.$queryRaw<{ level: string }[]>`SELECT current_setting('transaction_isolation') AS level`.then(

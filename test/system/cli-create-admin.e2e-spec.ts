@@ -1,4 +1,5 @@
 import { TestingModule, Test } from '@nestjs/testing';
+import { ClsService } from 'nestjs-cls';
 import { PrismaService } from '#src/infrastructure/database/prisma.service.js';
 import { CliModule } from '#src/cli/cli.module.js';
 import { CreateAdminCommand } from '#src/cli/create-admin.command.js';
@@ -41,7 +42,11 @@ describe('CLI — create-admin (application context, prompt stubbed)', () => {
 
   const uniqueEmail = () => `admin${Date.now()}${Math.random().toString(36).slice(2)}${TEST_EMAIL_DOMAIN}`;
   const run = (args: string[]) =>
-    moduleRef.get(CreateAdminCommand).run(args, { log: (m) => output.push(m), error: (m) => output.push(m) });
+    moduleRef
+      .get(ClsService)
+      .run(() =>
+        moduleRef.get(CreateAdminCommand).run(args, { log: (m) => output.push(m), error: (m) => output.push(m) }),
+      );
 
   it('creates and audits an Admin when no active Admin exists', async () => {
     const activeAdmins = await prisma.user.findMany({

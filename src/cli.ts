@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { ClsService } from 'nestjs-cls';
 import { CliModule } from '#src/cli/cli.module.js';
 import { CreateAdminCommand } from '#src/cli/create-admin.command.js';
 
@@ -14,7 +15,8 @@ async function main(): Promise<number> {
 
   const app = await NestFactory.createApplicationContext(CliModule, { logger: ['error', 'warn'] });
   try {
-    return await app.get(command).run(args);
+    // Ngữ cảnh CLS để `TransactionHost.tx` hoạt động ngoài HTTP.
+    return await app.get(ClsService).run(() => app.get(command).run(args));
   } finally {
     await app.close();
   }

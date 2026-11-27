@@ -76,7 +76,7 @@ constructor(private readonly carts: CartRepository) {}
 { provide: CartRepository, useExisting: PrismaCartRepository }
 ```
 
-- **Port dùng chung:** Mail, Storage, AuditLog, Idempotency mỗi thứ có **một** port đặt cạnh code hạ tầng (`src/infrastructure/**/*.port.ts`, ví dụ `src/infrastructure/mail/mail.port.ts`); module không bọc lại. Prisma không có port dùng chung (chỉ adapter dùng).
+- **Port dùng chung:** Mail, Storage, AuditLog, Idempotency mỗi thứ có **một** port đặt cạnh code hạ tầng (`src/infrastructure/**/*.port.ts`, ví dụ `src/infrastructure/mail/mail.port.ts`); module không bọc lại. `IdempotencyStore.start` trả `boolean` (`false` = khoá đã tồn tại, không ném P2002). Prisma không có port dùng chung (chỉ adapter dùng).
 - **Port riêng của module:** I/O chỉ một module dùng (Google `OAuth2Client` của identity, Translation của Category) có port trong `application/ports/` của module đó. Đặt tên theo khả năng, không gắn tên nhà cung cấp.
 - **Không port** cho thư viện thuần, deterministic, không I/O (`JwtService` ký token) và cho logic nội bộ không có outbound I/O.
 - Binding Port → adapter nằm ở file module sở hữu Port; không bind cùng Port ở hai nơi. Với `useExisting`, adapter phải được đăng ký và export từ module được import.

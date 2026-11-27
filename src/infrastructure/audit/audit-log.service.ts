@@ -25,10 +25,12 @@ export class AuditLogService extends AuditLog {
   override record(entry: AuditEntry): Promise<void>;
   record(tx: Prisma.TransactionClient, entry: LegacyAuditEntry): Promise<void>;
   async record(first: AuditEntry | Prisma.TransactionClient, second?: LegacyAuditEntry): Promise<void> {
-    const tx = second ? (first as Prisma.TransactionClient) : this.txHost.tx;
-    const entry = (second ?? first) as LegacyAuditEntry;
-    await tx.auditLog.create({
-      data: { ...entry, requestId: RequestContext.getRequestId() },
-    });
+    // Phân biệt bằng thuộc tính thật: client giao dịch có delegate `auditLog`, `AuditEntry` thì không.
+    const [tx, entry] = isTransactionClient(first) ? [first, second!] : [this.txHost.tx, first];
+    await tx.auditLog.create({ data: { ...entry, requestId: RequestContext.getRequestId() } });
   }
+}
+
+function isTransactionClient(value: AuditEntry | Prisma.TransactionClient): value is Prisma.TransactionClient {
+  return 'auditLog' in value;
 }

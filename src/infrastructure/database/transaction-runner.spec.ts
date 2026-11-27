@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Logger, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { ClsPluginTransactional, TransactionHost } from '@nestjs-cls/transactional';
@@ -102,6 +102,19 @@ describe('TransactionRunner (ClsTransactionRunner)', () => {
     const opts = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 9000, maxWait: 3000 };
     await runner.run(() => runner.run(async () => undefined), opts);
     expect(calls).toEqual([expect.objectContaining(opts)]);
+  });
+
+  it('warns when opts are given to a run() that joins an outer transaction', async () => {
+    const { moduleRef } = await setup();
+    const runner = moduleRef.get(TransactionRunner);
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const opts = { timeout: 1000 };
+    await runner.run(() => runner.run(async () => undefined, opts));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('opts ignored'));
+    warn.mockClear();
+    await runner.run(async () => undefined, opts);
+    expect(warn).not.toHaveBeenCalled(); // cả cảnh báo của thư viện
+    warn.mockRestore();
   });
 
   it('uses the plain client outside a transaction', async () => {

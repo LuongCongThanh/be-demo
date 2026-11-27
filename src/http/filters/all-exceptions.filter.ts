@@ -53,7 +53,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private resolve(exception: unknown): ResolvedError {
     if (exception instanceof BusinessError) {
       const match = BUSINESS_ERROR_STATUS.find(([type]) => exception instanceof type);
-      return { status: match?.[1] ?? HttpStatus.INTERNAL_SERVER_ERROR, message: exception.message };
+      // Lỗi nghiệp vụ chưa được ánh xạ là lỗi lập trình: 500 + message chung,
+      // message thật chỉ vào log (qua stack ở `catch`).
+      if (!match) return { status: HttpStatus.INTERNAL_SERVER_ERROR, message: 'Internal server error' };
+      return { status: match[1], message: exception.message };
     }
 
     if (exception instanceof HttpException) {

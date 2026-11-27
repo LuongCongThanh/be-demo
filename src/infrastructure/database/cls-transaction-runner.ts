@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import type { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import type { PrismaService } from '#src/infrastructure/database/prisma.service.js';
@@ -6,14 +6,19 @@ import { TransactionRunner, type TransactionOptions } from '#src/infrastructure/
 
 export type PrismaTransactionHost = TransactionHost<TransactionalAdapterPrisma<PrismaService>>;
 
-/** Adapter `TransactionRunner` bằng `@nestjs-cls/transactional` (propagation mặc định Required). */
+/** Adapter `TransactionRunner` bằng `@nestjs-cls/transactional` (propagation mặc định Required). Không tự retry P2034: caller tự chịu trách nhiệm. */
 @Injectable()
 export class ClsTransactionRunner extends TransactionRunner {
+  private readonly logger = new Logger(ClsTransactionRunner.name);
+
   constructor(@Inject(TransactionHost) private readonly txHost: PrismaTransactionHost) {
     super();
   }
 
   run<T>(work: () => Promise<T>, opts?: TransactionOptions): Promise<T> {
+    if (opts && this.txHost.isTransactionActive()) {
+      this.logger.warn('TransactionRunner.run: opts ignored because the call joins the outer transaction');
+    }
     return opts ? this.txHost.withTransaction(opts, work) : this.txHost.withTransaction(work);
   }
 }

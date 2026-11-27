@@ -39,6 +39,13 @@ describe('AllExceptionsFilter business errors', () => {
     expect(run(new HttpException('teapot', 418)).body.message).toBe('teapot');
   });
 
+  it('unmapped BusinessError returns 500 with the generic message, not its own', () => {
+    class UnmappedError extends BusinessError {}
+    const { status, body } = run(new UnmappedError('secret detail'));
+    expect(status).toBe(500);
+    expect(body).toEqual({ statusCode: 500, message: 'Internal server error', requestId: 'req-1' });
+  });
+
   it('subclasses of a business error map like their parent', () => {
     class SlugTakenError extends ConflictError {}
     expect(run(new SlugTakenError('slug')).status).toBe(409);
