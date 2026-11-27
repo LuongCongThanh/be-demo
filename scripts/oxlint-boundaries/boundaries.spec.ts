@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
-import { buildOxlintConfig } from '../generate-oxlint-boundaries.js';
+import { buildOxlintConfig, checkMaxLinesExemptions } from '../generate-oxlint-boundaries.js';
 
 const OXLINT = join(dirname(fileURLToPath(import.meta.url)), '../../node_modules/.bin/oxlint');
 const work = mkdtempSync(join(tmpdir(), 'oxlint-boundary-probe-'));
@@ -66,6 +66,14 @@ describe('rule 2: application/ goes through ports', () => {
     '#src/infrastructure/mail/smtp-mail.adapter.js',
     '#src/modules/alpha/infrastructure/prisma-alpha.repository.js',
   ])('rejects %s', (spec) => expect(one('src/modules/alpha/application/s.ts', imp(spec))).toContain('L2'));
+  it('does not let a port allowance re-include another module or feature (rules 5 and 6 stay on)', () => {
+    expect(one('src/modules/alpha/application/s.ts', imp('#src/modules/beta/infrastructure/beta.port.js'))).toContain(
+      'L5',
+    );
+    expect(
+      one('src/modules/shop/cat/application/s.ts', imp('#src/modules/shop/prod/infrastructure/x.port.js')),
+    ).toContain('L6');
+  });
   it('allows shared *.port.js and its own ports', () => {
     const code =
       imp('#src/infrastructure/database/transaction-runner.port.js') + imp('#src/modules/alpha/application/ports/p.js');
@@ -77,6 +85,9 @@ describe('rule 3: no HTTP exceptions in domain/ and application/', () => {
   it.each(['domain', 'application'])('rejects NotFoundException in %s', (layer) => {
     const path = `src/modules/alpha/${layer}/a.ts`;
     expect(one(path, imp('@nestjs/common', 'NotFoundException'))).toContain('L3');
+  });
+  it.each(['GoneException', 'ServiceUnavailableException', 'MisdirectedException'])('rejects %s', (name) => {
+    expect(one('src/modules/alpha/domain/a.ts', imp('@nestjs/common', name))).toContain('L3');
   });
   it('allows other @nestjs/common names in application/', () => {
     expect(one('src/modules/alpha/application/a.ts', imp('@nestjs/common', 'Injectable'))).toEqual([]);
@@ -185,5 +196,20 @@ describe('overlapping groups keep every rule', () => {
   it('permissions stay enforced in unmigrated modules and only src/security/authorization may import the guard', () => {
     expect(one('src/modules/gamma/s.ts', imp(guard))).toEqual(['permissions']);
     expect(one('src/security/authorization/a.ts', imp(guard))).toEqual([]);
+  });
+});
+
+describe('max-lines exemption guard', () => {
+  const code = (n: number) => Array.from({ length: n }, (_, i) => `export const a${i} = 1;`).join('\n') + '\n';
+  it('reports a missing file and a file at or below 200 counted lines, ignoring blanks and comments', () => {
+    const root = join(work, 'guard');
+    mkdirSync(join(root, 'src'), { recursive: true });
+    writeFileSync(join(root, 'src/big.ts'), code(201));
+    writeFileSync(join(root, 'src/small.ts'), code(200) + '\n\n// note\n/* block\n more */\n');
+    const problems = checkMaxLinesExemptions(['src/big.ts', 'src/small.ts', 'src/gone.ts'], root);
+    expect(problems).toHaveLength(2);
+    expect(problems.join('\n')).toContain('src/small.ts');
+    expect(problems.join('\n')).toContain('drop it from MAX_LINES_TEMPORARY_EXEMPT');
+    expect(problems.join('\n')).toContain('src/gone.ts');
   });
 });

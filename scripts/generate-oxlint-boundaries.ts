@@ -39,14 +39,30 @@ export const MAX_LINES_TEMPORARY_EXEMPT: string[] = [
 const MAX_LINES = { max: 200, skipBlankLines: true, skipComments: true };
 
 const PRISMA_SERVICE = '#src/infrastructure/database/prisma.service.js';
+// Every HttpException subclass exported by @nestjs/common/exceptions (IntrinsicException is not one), plus the base class.
 const HTTP_EXCEPTIONS = [
-  'NotFoundException',
-  'ConflictException',
-  'BadRequestException',
-  'UnauthorizedException',
-  'ForbiddenException',
-  'UnprocessableEntityException',
   'HttpException',
+  'BadGatewayException',
+  'BadRequestException',
+  'ConflictException',
+  'ForbiddenException',
+  'GatewayTimeoutException',
+  'GoneException',
+  'HttpVersionNotSupportedException',
+  'ImATeapotException',
+  'InternalServerErrorException',
+  'MethodNotAllowedException',
+  'MisdirectedException',
+  'NotAcceptableException',
+  'NotFoundException',
+  'NotImplementedException',
+  'PayloadTooLargeException',
+  'PreconditionFailedException',
+  'RequestTimeoutException',
+  'ServiceUnavailableException',
+  'UnauthorizedException',
+  'UnprocessableEntityException',
+  'UnsupportedMediaTypeException',
 ];
 
 type PathRestriction = { name: string; message: string; importNames?: string[] };
@@ -95,24 +111,27 @@ const DOMAIN_RULES: Restrictions = merge({
   ],
 });
 
-const APPLICATION_RULES: Restrictions = merge({
-  paths: [{ name: PRISMA_SERVICE, message: 'Luật 2: application/ không import PrismaService; đi qua Port.' }],
-  patterns: [
-    {
-      group: ['#src/generated/**', 'nestjs-cls', '@nestjs-cls/**'],
-      message: 'Luật 2: application/ không import Prisma generated hay nestjs-cls; đi qua Port.',
-    },
-    {
-      group: [
-        '#src/infrastructure/**',
-        '#src/modules/**/infrastructure/**',
-        '!#src/infrastructure/**/*.port.js',
-        '!#src/modules/**/infrastructure/**/*.port.js',
-      ],
-      message: 'Luật 2: application/ chỉ import port dùng chung (*.port.js) từ infrastructure/, không import adapter.',
-    },
-  ],
-});
+// Rule 2 names only the shared infrastructure and the scope's OWN infrastructure folder. Its `!*.port.js`
+// negations share one gitignore matcher with the patterns of rules 5 and 6, so a broad
+// `#src/modules/**/infrastructure/**` negation would re-include another module's or feature's port and hide it
+// from those rules. Other modules/features are rules 5/6's job.
+const applicationRules = (dir: string): Restrictions => {
+  const own = `#${dir}/infrastructure`;
+  return merge({
+    paths: [{ name: PRISMA_SERVICE, message: 'Luật 2: application/ không import PrismaService; đi qua Port.' }],
+    patterns: [
+      {
+        group: ['#src/generated/**', 'nestjs-cls', '@nestjs-cls/**'],
+        message: 'Luật 2: application/ không import Prisma generated hay nestjs-cls; đi qua Port.',
+      },
+      {
+        group: ['#src/infrastructure/**', '!#src/infrastructure/**/*.port.js', `${own}/**`, `!${own}/**/*.port.js`],
+        message:
+          'Luật 2: application/ chỉ import port dùng chung (*.port.js) từ infrastructure/, không import adapter.',
+      },
+    ],
+  });
+};
 
 const HTTP_EXCEPTION_RULES: Restrictions = merge({
   paths: [
@@ -212,7 +231,9 @@ export function buildOxlintConfig(input: GeneratorInput) {
       const scoped = merge(BASE, cross, crossFeature);
       if (feature) overrides.push(importOverride([`${dir}/**`], scoped));
       overrides.push(importOverride([`${dir}/domain/**`], merge(scoped, DOMAIN_RULES, HTTP_EXCEPTION_RULES)));
-      overrides.push(importOverride([`${dir}/application/**`], merge(scoped, APPLICATION_RULES, HTTP_EXCEPTION_RULES)));
+      overrides.push(
+        importOverride([`${dir}/application/**`], merge(scoped, applicationRules(dir), HTTP_EXCEPTION_RULES)),
+      );
       overrides.push(
         importOverride(
           [`${dir}/admin/**`, `${dir}/storefront/**`, `${dir}/presentation/**`],
@@ -240,6 +261,52 @@ export function buildOxlintConfig(input: GeneratorInput) {
   };
 }
 
+/** Counts lines the max-lines rule counts: skips blank lines and `//` / block comment lines. */
+function countCodeLines(text: string): number {
+  let inBlock = false;
+  let count = 0;
+  for (const raw of text.split('\n')) {
+    let line = raw.trim();
+    if (inBlock) {
+      const end = line.indexOf('*/');
+      if (end === -1) continue;
+      inBlock = false;
+      line = line.slice(end + 2).trim();
+    }
+    while (line.startsWith('/*')) {
+      const end = line.indexOf('*/', 2);
+      if (end === -1) {
+        inBlock = true;
+        line = '';
+        break;
+      }
+      line = line.slice(end + 2).trim();
+    }
+    if (line === '' || line.startsWith('//')) continue;
+    count++;
+  }
+  return count;
+}
+
+/** Problems with the temporary exemption list: files that are gone or no longer exceed the limit. */
+export function checkMaxLinesExemptions(exempt: string[], root: string): string[] {
+  const problems: string[] = [];
+  for (const file of exempt) {
+    const path = join(root, file);
+    if (!existsSync(path)) {
+      problems.push(`max-lines exemption points to a missing file: ${file}`);
+      continue;
+    }
+    const lines = countCodeLines(readFileSync(path, 'utf8'));
+    if (lines <= MAX_LINES.max) {
+      problems.push(
+        `${file} has ${lines} counted lines (limit ${MAX_LINES.max}): drop it from MAX_LINES_TEMPORARY_EXEMPT.`,
+      );
+    }
+  }
+  return problems;
+}
+
 // ---- CLI --------------------------------------------------------------------------------------
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -265,8 +332,10 @@ async function main(): Promise<void> {
     features: MODULE_FEATURES,
     maxLinesExempt: MAX_LINES_TEMPORARY_EXEMPT,
   };
-  for (const file of MAX_LINES_TEMPORARY_EXEMPT) {
-    if (!existsSync(join(ROOT, file))) throw new Error(`max-lines exemption points to a missing file: ${file}`);
+  const problems = checkMaxLinesExemptions(MAX_LINES_TEMPORARY_EXEMPT, ROOT);
+  if (problems.length > 0) {
+    console.error(problems.join('\n'));
+    process.exit(1);
   }
   const target = join(ROOT, 'oxlint.json');
   const expected = await render(input);
