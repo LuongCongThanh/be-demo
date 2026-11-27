@@ -1,6 +1,6 @@
 ---
-status: todo
-pr:
+status: done
+pr: #146
 blocked-by:
   - 40-lint-boundary-generator
 ---
