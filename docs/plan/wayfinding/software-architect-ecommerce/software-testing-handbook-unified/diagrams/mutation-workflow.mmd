@@ -1,0 +1,10 @@
+flowchart TD
+  N0["Chạy test baseline"]
+  N1["Tạo mutant hợp lệ"]
+  N2["Chạy test với mutant"]
+  N3["Phân tích killed / survived"]
+  N4["Bổ sung test hoặc giải thích mutant"]
+  N0 --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4

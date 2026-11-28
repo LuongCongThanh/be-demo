@@ -1,0 +1,12 @@
+flowchart TD
+  N0["Pull Request"]
+  N1["Lint / Type Check / Unit"]
+  N2["Integration / API / Build"]
+  N3["Critical E2E / Security / Review"]
+  N4["Staging / Migration / Smoke"]
+  N5["Deploy / Monitor / Recovery"]
+  N0 --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
