@@ -1,5 +1,7 @@
 # Security, performance, resilience và vận hành
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 | Nhóm             | Kịch bản                                                                                         | Bằng chứng                                              |
 | ---------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
 | Security         | BOLA/IDOR, RBAC, XSS, injection, CSRF khi dùng cookie, SSRF, upload, mass assignment, rate limit | Negative API, scan và review                            |

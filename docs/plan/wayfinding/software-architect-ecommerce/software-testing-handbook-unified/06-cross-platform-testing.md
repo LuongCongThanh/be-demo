@@ -1,5 +1,7 @@
 # Áp dụng testing cho mọi loại phần mềm
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 | Loại hệ thống  | Rủi ro ưu tiên                        | Test phù hợp                           |
 | -------------- | ------------------------------------- | -------------------------------------- |
 | Library/SDK    | Sai thuật toán, API breaking change   | Unit, property, fuzz, compatibility    |

@@ -1,5 +1,7 @@
 # CI/CD Quality Gates & Definition of Done
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 PR → lint/type check → unit/coverage → integration/API → production build → critical E2E → security scan → code/test review → staging/migration/smoke → canary hoặc rolling deployment → production monitoring → rollback/recovery nếu cần.
 
 Mutation, full regression, load/security chuyên sâu có thể chạy nightly hoặc trước release theo risk. Theo dõi Sentry, OpenTelemetry, Grafana; alert, structured logs, RCA. Khi bug xuất hiện, tái hiện bằng test fail trước fix và pass sau fix khi khả thi.

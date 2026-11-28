@@ -1,5 +1,7 @@
 # High-Quality Testing Guidelines for AGENTS.md / CLAUDE.md
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Write production-grade tests that detect real defects. Never write tests solely to increase coverage.
 
 ## Before implementation

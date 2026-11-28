@@ -1,5 +1,7 @@
 # E-commerce Testing Handbook — Production-ready Edition
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Tài liệu độc lập framework, bổ trợ Unified Handbook. 138 scenario theo 11 nhóm nghiệp vụ, 5 sơ đồ có PNG/SVG/Mermaid/DOT. Các ví dụ là đề xuất chưa chạy trên repository thực tế. Mở Markdown Preview trong VS Code sau giải nén.
 
 ## Mục lục

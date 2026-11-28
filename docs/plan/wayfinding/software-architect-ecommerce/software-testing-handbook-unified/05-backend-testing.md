@@ -1,5 +1,7 @@
 # Backend Testing
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 FE bảo vệ hành vi người dùng, UI, state và trải nghiệm. BE bảo vệ nghiệp vụ, dữ liệu, API, bảo mật, đồng thời và phục hồi. Full-stack bảo vệ tích hợp và hành trình hoàn chỉnh. Áp dụng độc lập công nghệ.
 
 ## BE: ưu tiên và kiến trúc

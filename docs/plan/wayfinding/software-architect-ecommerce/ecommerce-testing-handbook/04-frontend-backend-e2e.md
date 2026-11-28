@@ -1,5 +1,7 @@
 # Trách nhiệm FE, BE và E2E
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 | Scenario         | FE                       | BE                            | E2E                    |
 | ---------------- | ------------------------ | ----------------------------- | ---------------------- |
 | Form địa chỉ     | Validation, focus, error | Schema, vùng phục vụ          | Checkout hợp lệ        |

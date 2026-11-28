@@ -1,5 +1,7 @@
 # Test Code Examples (TypeScript/Jest)
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ## Coverage không đủ
 
 ```ts

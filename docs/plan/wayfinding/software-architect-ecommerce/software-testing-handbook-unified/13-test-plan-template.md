@@ -1,5 +1,7 @@
 # Test Plan & Traceability Template
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Feature: ... | Owner: ... | Spec version: ... | Risk: ...
 
 ## Business rules minh họa: Create Order

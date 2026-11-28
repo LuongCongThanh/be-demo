@@ -1,5 +1,7 @@
 # Software Testing Handbook — Unified Edition
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Một bộ tài liệu duy nhất, độc lập công nghệ. Áp dụng cho web, mobile, desktop, API, CLI, SDK, embedded, data pipeline và distributed systems.
 
 ## Mục lục

@@ -1,5 +1,7 @@
 # Testing Handbook — FE/BE, Optimization & Quality Assessment
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Bộ tài liệu bổ sung độc lập công nghệ từ ba câu trả lời gần nhất. Nội dung được diễn đạt lại và nén về Markdown; không phải transcript nguyên văn. Các widget tương tác được chuyển thành checklist, bảng hoặc mô tả tĩnh. Ví dụ, tỷ lệ, trọng số và ngưỡng chỉ mang tính minh họa; chưa audit hay chạy test trên repository thực tế.
 
 - [Frontend & Backend Testing](01-frontend-backend-testing.md)

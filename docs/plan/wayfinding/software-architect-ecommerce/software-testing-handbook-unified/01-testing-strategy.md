@@ -1,5 +1,7 @@
 # Testing Strategy
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ## Vì sao coverage 100% vẫn có bug?
 
 Coverage đo code được thực thi (statement, line, function, branch), không đo đầy đủ input, yêu cầu, assertion hay mọi tổ hợp trạng thái. E2E pass toàn bộ kịch bản đã viết không có nghĩa là mọi hành vi đã được kiểm tra.

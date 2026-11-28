@@ -1,5 +1,7 @@
 # Nghiên cứu 01: Kiến trúc ecommerce và vai trò Software Architect
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Ngày: 2026-11-28  
 Phạm vi: dự án Fashion Store trong backend `be-demo`; chỉ kết luận từ tài liệu business/architecture/ADR, source hiện có và chuẩn chính thức.
 
@@ -53,7 +55,7 @@ Kiến trúc mục tiêu liệt kê **13 module nghiệp vụ**: `identity`, `cu
 
 Chỉ module sở hữu mới được ghi bảng; module khác dùng service public đã export hoặc domain event qua outbox. Một use case ghi nhiều module phải chạy trong một transaction do module điều phối mở. Dependency ngược được tránh: module dưới không import module trên. [Nguồn: [Module & ranh giới §2–3](../../../../../docs/architecture/02-modules.md), [Data consistency](../../../../../docs/architecture/04-data-consistency.md)]
 
-Hiện trạng source không khớp hoàn toàn với inventory trong `02-modules.md`: composition root thực tế đăng ký `identity`, `catalog`, `voucher`, `checkout`, `cart` và `inventory`; `CheckoutModule` lắp thêm `PaymentModule`. `customer`, `media`, `ordering`, `fulfillment`, `returns-refunds`, `notification` và `administration` chưa phải các module độc lập đã được xác minh trong `AppModule`. `pricing` là feature trong `catalog`, còn `checkout` đang hiện diện trong source dù tên này không phải module trong danh sách mục tiêu. Do đó cần phân biệt tên/ranh giới đang có với tên/ranh giới mục tiêu, rồi đồng bộ inventory trong một công việc tài liệu riêng. [Nguồn: [AppModule](../../../../../src/app.module.ts), [CheckoutModule](../../../../../src/modules/checkout/checkout.module.ts), [PaymentModule](../../../../../src/modules/payment/payment.module.ts), [Module & ranh giới §1, §4](../../../../../docs/architecture/02-modules.md)]
+Hiện trạng source không khớp hoàn toàn với inventory trong `02-modules.md`: composition root thực tế đăng ký `identity`, `catalog`, `voucher`, `checkout`, `cart` và `inventory`; `CheckoutModule` lắp thêm `PaymentModule`. `customer`, `media`, `ordering`, `fulfillment`, `returns-refunds`, `notification` và `administration` chưa phải các module độc lập đã được xác minh trong `AppModule`. `pricing` là feature trong `catalog`, còn `checkout` đang hiện diện trong source dù tên này không phải module trong danh sách mục tiêu. Do đó cần phân biệt tên/ranh giới đang có với tên/ranh giới mục tiêu, rồi đồng bộ inventory trong một công việc tài liệu riêng. [Nguồn: [AppModule](../../../../../src/app.module.ts), [CheckoutModule](../../../../../src/modules/checkout/checkout.module.ts), `PaymentModule` (`src/modules/payment/payment.module.ts`, hiện có trên nhánh của PR #129), [Module & ranh giới §1, §4](../../../../../docs/architecture/02-modules.md)]
 
 ### 2.4 Số service triển khai và deployed topology
 
@@ -69,7 +71,7 @@ PostgreSQL là nguồn sự thật thương mại; Redis không thay thế datab
 
 Compose local khai báo `api`, `postgres`, `redis` và `mailpit`; source hiện tại không cho thấy Worker entrypoint. Vì vậy sơ đồ API + Worker là kiến trúc mục tiêu, không phải hiện trạng đã triển khai.
 
-Tuy vậy, một phần việc nền **đã chạy, nhưng chạy trong tiến trình API**: `AppModule` nạp `ScheduleModule`, và `PaymentService` có hai `@Cron` — đối soát thanh toán đang chờ (mỗi 5 phút) và huỷ đơn quá hạn giữ hàng (mỗi phút). `PaymentService` cũng đã **ghi** `OutboxEvent` trong transaction, nhưng source chưa có dispatcher nào **đọc** và gửi các event đó. Hệ quả: scale API ra nhiều replica sẽ chạy trùng các cron này, và event outbox tích lại mà chưa có side effect tương ứng. [Nguồn: [AppModule](../../../../../src/app.module.ts), [PaymentService](../../../../../src/modules/payment/payment.service.ts), [Prisma schema `OutboxEvent`](../../../../../prisma/schema/schema.prisma), [Async events & jobs](../../../../../docs/architecture/07-async-events-jobs.md)] [Nguồn: [docker-compose.yml](../../../../../docker-compose.yml), [Tài liệu deployment §2](../../../../../docs/architecture/09-deployment.md), [AppModule](../../../../../src/app.module.ts)]
+Tuy vậy, một phần việc nền **đã chạy, nhưng chạy trong tiến trình API**: `AppModule` nạp `ScheduleModule`, và `PaymentService` có hai `@Cron` — đối soát thanh toán đang chờ (mỗi 5 phút) và huỷ đơn quá hạn giữ hàng (mỗi phút). `PaymentService` cũng đã **ghi** `OutboxEvent` trong transaction, nhưng source chưa có dispatcher nào **đọc** và gửi các event đó. Hệ quả: scale API ra nhiều replica sẽ chạy trùng các cron này, và event outbox tích lại mà chưa có side effect tương ứng. [Nguồn: [AppModule](../../../../../src/app.module.ts), `PaymentService` (`src/modules/payment/payment.service.ts`, hiện có trên nhánh của PR #129), [Prisma schema `OutboxEvent`](../../../../../prisma/schema/schema.prisma), [Async events & jobs](../../../../../docs/architecture/07-async-events-jobs.md)] [Nguồn: [docker-compose.yml](../../../../../docker-compose.yml), [Tài liệu deployment §2](../../../../../docs/architecture/09-deployment.md), [AppModule](../../../../../src/app.module.ts)]
 
 ### 2.5 Hai sơ đồ: hiện trạng và kiến trúc mục tiêu
 
@@ -299,7 +301,7 @@ Tài liệu tham khảo để học từ nguồn sở hữu:
 - [Execution workflow](../../../../../docs/agents/execution-workflow.md)
 - [Plan và danh sách nhiệm vụ](../../../../../docs/plan/README.md)
 - [Composition root `AppModule`](../../../../../src/app.module.ts)
-- [CheckoutModule](../../../../../src/modules/checkout/checkout.module.ts) và [PaymentModule](../../../../../src/modules/payment/payment.module.ts)
+- [CheckoutModule](../../../../../src/modules/checkout/checkout.module.ts) và `PaymentModule` (`src/modules/payment/payment.module.ts`, hiện có trên nhánh của PR #129)
 - [Quy tắc migration module](../../../../../.claude/rules/module-architecture.md)
 - [Runtime HTTP `main.ts`](../../../../../src/main.ts)
 - [Docker Compose local](../../../../../docker-compose.yml)

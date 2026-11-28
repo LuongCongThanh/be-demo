@@ -1,5 +1,7 @@
 # Ví dụ và bảng tham chiếu bổ sung từ các trao đổi
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ## Coverage 100% nhưng bug vẫn tồn tại
 
 | Input giá, giảm giá | Output công thức | Đánh giá theo spec giá không âm, discount 0–100 |

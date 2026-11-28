@@ -1,5 +1,7 @@
 # Thanh toán và hoàn tiền
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ![payment-state](diagrams/payment-state.png)
 
 [Mã Mermaid](diagrams/payment-state.mmd) · [SVG](diagrams/payment-state.svg)

@@ -1,5 +1,7 @@
 # Test design và ví dụ
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ## Decision table: voucher (giả định không stacking)
 
 | Active | Đủ min spend | Còn quota | Kết quả |

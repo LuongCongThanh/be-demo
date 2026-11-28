@@ -1,5 +1,7 @@
 # Master High-Quality Testing Checklist
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Đánh dấu [x] khi có bằng chứng; N/A kèm lý do.
 
 ## 1. Requirement Analysis

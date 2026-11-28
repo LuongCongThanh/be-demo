@@ -1,5 +1,7 @@
 # Tìm kiếm, review và notification
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ## Test inventory
 
 Mỗi dòng là một scenario cần xác định expected result theo policy đã duyệt, không phải yêu cầu chạy ở mọi tầng.

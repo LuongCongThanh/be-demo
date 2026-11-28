@@ -1,5 +1,7 @@
 # Quality Measurement & Mutation Testing
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Code coverage đo phạm vi thực thi. Mutation testing thay đổi code có chủ đích để đánh giá test phát hiện sai lệch. Dùng StrykerJS cho JS/TS. Phân tích surviving mutants: thiếu test, assertion yếu, mutant tương đương hoặc ngoài phạm vi. Không tối ưu score bằng test vô nghĩa.
 
 | Metric                             | Minimum tham khảo | Target |

@@ -1,5 +1,7 @@
 # Templates và AI agent
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ## Requirement traceability
 
 | Requirement ID | Rule                                   | Risk | Test ID      | Layer               | Evidence  | Status       |

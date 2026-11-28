@@ -1,5 +1,7 @@
 # Test Design Techniques
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 | Kỹ thuật              | Cách áp dụng                                                               |
 | --------------------- | -------------------------------------------------------------------------- |
 | Happy path            | Checkout hợp lệ                                                            |

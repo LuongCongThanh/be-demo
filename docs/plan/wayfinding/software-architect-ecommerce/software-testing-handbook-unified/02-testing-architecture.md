@@ -1,5 +1,7 @@
 # Testing Architecture
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 | Layer                   | Mục đích                        | Công cụ                     |
 | ----------------------- | ------------------------------- | --------------------------- |
 | Unit                    | Logic độc lập                   | Jest/Vitest                 |

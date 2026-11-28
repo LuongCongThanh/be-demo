@@ -1,5 +1,7 @@
 # Checkout và đơn hàng
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ![order-state](diagrams/order-state.png)
 
 [Mã Mermaid](diagrams/order-state.mmd) · [SVG](diagrams/order-state.svg)

@@ -1,5 +1,7 @@
 # Software Testing Quality Assessment
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 5 mục tiêu: correctness, fault detection, reliability, maintainability, efficiency. Không chỉ dựa vào số lượng test, coverage hoặc CI xanh.
 
 ## 15 tiêu chí và checklist (trọng số đề xuất)
