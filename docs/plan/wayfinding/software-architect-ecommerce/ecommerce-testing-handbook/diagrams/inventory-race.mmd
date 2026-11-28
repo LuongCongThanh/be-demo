@@ -1,0 +1,12 @@
+flowchart TD
+  A["Buyer A"]
+  B["Buyer B"]
+  C["Atomic reservation / transaction"]
+  D["One unit available"]
+  E["One succeeds"]
+  F["Other rejected"]
+  A --> C
+  B --> C
+  C --> D
+  D --> E
+  D --> F

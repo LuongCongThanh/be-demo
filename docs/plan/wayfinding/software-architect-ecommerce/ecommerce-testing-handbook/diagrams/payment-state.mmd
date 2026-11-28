@@ -1,0 +1,16 @@
+flowchart TD
+  A["Pending"]
+  B["Succeeded"]
+  C["Failed"]
+  D["Expired"]
+  E["Partially refunded"]
+  F["Refunded"]
+  G["Reconciliation"]
+  A -->|Verified provider event| B
+  A --> C
+  A --> D
+  B --> E
+  B --> F
+  E --> F
+  D -->|Late success| G
+  C -->|Conflicting event| G

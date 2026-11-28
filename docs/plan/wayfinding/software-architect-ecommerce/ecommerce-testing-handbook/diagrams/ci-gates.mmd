@@ -1,0 +1,12 @@
+flowchart TD
+  A["Local: fast tests"]
+  B["PR: unit + integration + critical E2E"]
+  C["Release: regression + risk gates"]
+  D["Deploy: smoke + monitoring"]
+  E["Stop / investigate / rollback"]
+  A -->|Pass| B
+  B -->|Pass| C
+  C -->|Pass| D
+  B -->|Fail| E
+  C -->|Fail| E
+  D -->|Incident| E

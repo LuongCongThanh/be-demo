@@ -1,0 +1,13 @@
+digraph G { graph [rankdir=TB,bgcolor="white",pad="0.25"]; node [shape=box,style="rounded,filled",fillcolor="#e8f1fa",color="#547493",fontname="DejaVu Sans"]; edge [color="#547493",fontname="DejaVu Sans"];
+A [label="Local: fast tests"];
+B [label="PR: unit + integration + critical E2E"];
+C [label="Release: regression + risk gates"];
+D [label="Deploy: smoke + monitoring"];
+E [label="Stop / investigate / rollback"];
+A -> B [label="Pass"];
+B -> C [label="Pass"];
+C -> D [label="Pass"];
+B -> E [label="Fail"];
+C -> E [label="Fail"];
+D -> E [label="Incident"];
+}

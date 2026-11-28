@@ -1,0 +1,17 @@
+flowchart TD
+  A["Pending payment"]
+  B["Confirmed"]
+  C["Processing"]
+  D["Shipped"]
+  E["Delivered"]
+  F["Cancelled"]
+  G["Return requested"]
+  H["Returned"]
+  A -->|Verified payment / COD policy| B
+  A -->|Expiry / cancel| F
+  B --> C
+  C --> D
+  D --> E
+  B -->|Allowed cancellation| F
+  E -->|Eligible| G
+  G -->|Approved / received| H

@@ -1,0 +1,19 @@
+flowchart TD
+  U["Customer"]
+  F["Storefront"]
+  C["CMS / Staff"]
+  A["Backend API"]
+  D["Database"]
+  Q["Queue / Cache"]
+  P["Payment provider"]
+  S["Shipping provider"]
+  M["Email / Observability"]
+  U --> F
+  F --> A
+  C --> A
+  A --> D
+  A --> Q
+  A --> P
+  P -->|Webhook| A
+  A --> S
+  A --> M
