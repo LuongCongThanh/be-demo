@@ -1,0 +1,20 @@
+digraph G { graph [rankdir=TB,bgcolor="white",pad="0.25"]; node [shape=box,style="rounded,filled",fillcolor="#e8f1fa",color="#547493",fontname="DejaVu Sans"]; edge [color="#547493",fontname="DejaVu Sans"];
+U [label="Customer"];
+F [label="Storefront"];
+C [label="CMS / Staff"];
+A [label="Backend API"];
+D [label="Database"];
+Q [label="Queue / Cache"];
+P [label="Payment provider"];
+S [label="Shipping provider"];
+M [label="Email / Observability"];
+U -> F [label=""];
+F -> A [label=""];
+C -> A [label=""];
+A -> D [label=""];
+A -> Q [label=""];
+A -> P [label=""];
+P -> A [label="Webhook"];
+A -> S [label=""];
+A -> M [label=""];
+}

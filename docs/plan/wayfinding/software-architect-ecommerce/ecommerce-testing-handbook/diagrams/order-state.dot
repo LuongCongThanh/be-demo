@@ -1,0 +1,18 @@
+digraph G { graph [rankdir=TB,bgcolor="white",pad="0.25"]; node [shape=box,style="rounded,filled",fillcolor="#e8f1fa",color="#547493",fontname="DejaVu Sans"]; edge [color="#547493",fontname="DejaVu Sans"];
+A [label="Pending payment"];
+B [label="Confirmed"];
+C [label="Processing"];
+D [label="Shipped"];
+E [label="Delivered"];
+F [label="Cancelled"];
+G [label="Return requested"];
+H [label="Returned"];
+A -> B [label="Verified payment / COD policy"];
+A -> F [label="Expiry / cancel"];
+B -> C [label=""];
+C -> D [label=""];
+D -> E [label=""];
+B -> F [label="Allowed cancellation"];
+E -> G [label="Eligible"];
+G -> H [label="Approved / received"];
+}

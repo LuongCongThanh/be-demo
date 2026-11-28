@@ -1,0 +1,13 @@
+digraph G { graph [rankdir=TB,bgcolor="white",pad="0.25"]; node [shape=box,style="rounded,filled",fillcolor="#e8f1fa",color="#547493",fontname="DejaVu Sans"]; edge [color="#547493",fontname="DejaVu Sans"];
+A [label="Buyer A"];
+B [label="Buyer B"];
+C [label="Atomic reservation / transaction"];
+D [label="One unit available"];
+E [label="One succeeds"];
+F [label="Other rejected"];
+A -> C [label=""];
+B -> C [label=""];
+C -> D [label=""];
+D -> E [label=""];
+D -> F [label=""];
+}

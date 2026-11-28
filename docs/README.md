@@ -9,7 +9,8 @@
 5. [`adr/`](./adr/) — các quyết định khó đảo ngược.
 6. [`convention/`](./convention/) — quy ước code, API, config, lỗi/log, Prisma, git.
 7. [`plan/`](./plan/README.md) — plan & task (spec, plan, hướng dẫn tự code, metric, report); nơi theo dõi công việc.
-8. [`ai/code-review.md`](./ai/code-review.md) — quy trình Shared AI Code Review, severity và định dạng báo cáo.
+8. [`testing/`](./testing/strategy.md) — chiến lược kiểm thử Backend và traceability luật → kịch bản → tầng test.
+9. [`ai/code-review.md`](./ai/code-review.md) — quy trình Shared AI Code Review, severity và định dạng báo cáo.
 
 ## Trạng thái tài liệu
 
