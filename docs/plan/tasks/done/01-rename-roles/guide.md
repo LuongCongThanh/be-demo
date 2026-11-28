@@ -33,7 +33,7 @@ Prisma sinh SQL drop/create sẽ **mất dữ liệu**. Viết tay theo thứ t�
 
 Sau đó `npx prisma migrate diff` (schema vs migrations) phải rỗng — nếu không, schema và SQL lệch nhau.
 
-Xem `docs/convention/prisma-conventions.md` (migration SQL tay, safe schema change).
+Xem `docs/conventions/prisma-conventions.md` (migration SQL tay, safe schema change).
 
 ## 3. Auth
 

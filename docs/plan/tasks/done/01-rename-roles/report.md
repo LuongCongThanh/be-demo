@@ -11,7 +11,7 @@
 
 ## Acceptance criteria
 
-Bằng chứng theo từng tiêu chí chưa được ghi trong báo cáo này. Kết quả tổng hợp của PR 1–5 được ghi tại [metrics](../../../realign-identity-catalog-metrics.md); không thay thế cho báo cáo nghiệm thu riêng của task 01.
+Bằng chứng theo từng tiêu chí chưa được ghi trong báo cáo này. Kết quả tổng hợp của PR 1–5 được ghi tại [metrics](../../../initiatives/realign-identity-catalog/metric.md); không thay thế cho báo cáo nghiệm thu riêng của task 01.
 
 | AC  | Kết quả | Bằng chứng (test) |
 | --- | ------- | ----------------- |

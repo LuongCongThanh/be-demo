@@ -6,7 +6,7 @@ blocked-by: []
 
 # Spec 01: Mô hình bốn vai trò (rename roles)
 
-Branch: `refactor/four-actor-roles` · Plan tổng: [PR 1](../../../realign-identity-catalog.md)
+Branch: `refactor/four-actor-roles` · Plan tổng: [PR 1](../../../initiatives/realign-identity-catalog/map.md)
 
 ## Problem Statement
 

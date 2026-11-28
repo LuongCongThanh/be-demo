@@ -64,7 +64,7 @@ Các skill sau đã có trong project. Dùng prompt tự nhiên theo chủ đề
 - **`codebase-design`** — Cung cấp từ vựng và nguyên tắc deep module để thiết kế interface, seam, adapter, testability, locality và khả năng điều hướng code.
 - **`improve-codebase-architecture`** — Quét codebase tìm cơ hội đào sâu module, trình bày ứng viên trong báo cáo HTML và phỏng vấn để chọn một cải tiến.
 - **`pr`** — Soạn PR body gồm Summary, Evidence và Merge Danger; chọn visual ngắn nhất giúp hiểu diff và đánh giá rủi ro/khả năng đảo ngược khi merge.
-- **`research`** — Giao background agent điều tra bằng nguồn tin cậy/primary sources, kiểm chứng claim và lưu báo cáo Markdown có trích dẫn trong hoặc cạnh repo.
+- **`docs/research`** — Giao background agent điều tra bằng nguồn tin cậy/primary sources, kiểm chứng claim và lưu báo cáo Markdown có trích dẫn trong hoặc cạnh repo.
 - **`wizard`** — Sinh Bash wizard tương tác đã kiểm chứng để hướng dẫn các bước cần con người làm như provisioning, credentials, dashboard, migration/cutover; không tự làm thay các bước đó.
 - **`setup-matt-pocock-skills`** — Cấu hình repo một lần cho các skill engineering: issue tracker, triage labels, bố cục tài liệu domain và quy ước agent skill.
 

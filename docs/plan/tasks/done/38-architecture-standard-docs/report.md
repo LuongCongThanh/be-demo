@@ -2,12 +2,12 @@
 
 ## Đã thay đổi
 
-- Tạo `docs/convention/module-architecture-conventions.md`: bộ khung A' dạng bảng, 4 dạng dữ liệu, Port/DI, lỗi chung, `TransactionRunner`, ranh giới module/feature, giới hạn 150/200 dòng, 7 luật lint và lộ trình bật.
-- Tạo `docs/convention/code-quality-conventions.md`: phần riêng của doc 02 v1.6 (nguyên tắc, TypeScript, async, concurrency, bảo mật, API tương thích ngược, kiểm thử, checklist review PR, Definition of Done). Phần trùng với `api-rules.md`, `error-logging-conventions.md`, `coding-style-conventions.md` chỉ dẫn chiếu.
-- Xoá hai doc Category v1.6 trong `docs/architecture/refactor/`; sửa mọi link (kể cả các tài liệu wayfinding lịch sử và `src/modules/catalog/README.md`). `grep -rn "refactor/0[12]-category" docs src .claude .github AGENTS.md` rỗng.
-- Bỏ các câu "Category là ngoại lệ" ở `docs/convention/README.md`, `coding-style-conventions.md` §2.1–§2.3, §2.6 và §7, `api-rules.md` R2/R3/R4/R6/R7/R10, `prisma-conventions.md` đầu file/§4/§4.1, `error-logging-conventions.md` §1/§5, `api-crud-walkthrough.md` đầu file.
+- Tạo `docs/conventions/module-architecture-conventions.md`: bộ khung A' dạng bảng, 4 dạng dữ liệu, Port/DI, lỗi chung, `TransactionRunner`, ranh giới module/feature, giới hạn 150/200 dòng, 7 luật lint và lộ trình bật.
+- Tạo `docs/conventions/code-quality-conventions.md`: phần riêng của doc 02 v1.6 (nguyên tắc, TypeScript, async, concurrency, bảo mật, API tương thích ngược, kiểm thử, checklist review PR, Definition of Done). Phần trùng với `api-rules.md`, `error-logging-conventions.md`, `coding-style-conventions.md` chỉ dẫn chiếu.
+- Xoá hai doc Category v1.6 trong `docs/archive/`; sửa mọi link (kể cả các tài liệu wayfinding lịch sử và `src/modules/catalog/README.md`). `grep -rn "refactor/0[12]-category" docs src .claude .github AGENTS.md` rỗng.
+- Bỏ các câu "Category là ngoại lệ" ở `docs/conventions/README.md`, `coding-style-conventions.md` §2.1–§2.3, §2.6 và §7, `api-rules.md` R2/R3/R4/R6/R7/R10, `prisma-conventions.md` đầu file/§4/§4.1, `error-logging-conventions.md` §1/§5, `api-crud-walkthrough.md` đầu file.
 - `docs/architecture/02-modules.md` (§2 đoạn cuối, §3, §3.1, §4 đoạn Category, comment cây) và `04-data-consistency.md` §1: `TransactionRunner` thay cho `Prisma.TransactionClient`.
-- `docs/convention/README.md`: thêm hai file mới vào bảng thứ tự đọc (đánh lại số thứ tự).
+- `docs/conventions/README.md`: thêm hai file mới vào bảng thứ tự đọc (đánh lại số thứ tự).
 - `.claude/rules/module-architecture.md`: đổi dẫn chiếu sang tài liệu mới; giữ nguyên Migration status. `npm run agents:check` đạt.
 
 ## Chỗ phải diễn giải thêm ngoài ticket

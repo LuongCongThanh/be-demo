@@ -12,7 +12,7 @@
 - Kiểm loại tài khoản tách khỏi Quyền: `@AuthorizeAccountType('CUSTOMER')` + `AccountTypeGuard` (`src/common/auth/`), dùng cho `GET /me`. Admin/Staff gọi `/me` vẫn 403 như trước.
 - Gán Quyền cho route theo bảng của task 15: catalog (products, categories, sizes, colors) và `admin/staff` (class `*_VIEW`, method ghi ghi đè `*_MANAGE`).
 - Swagger: `enumName` của `AuthUserResponseDto.role` đổi `Role` → `AccountType`; thêm enum `Permission` và `MeResponseDto`; mô tả 403 đổi thành "lacks the required permission or account type". `docs/openapi/openapi.json` đã sinh lại bằng `npm run openapi:write`.
-- Tài liệu: `docs/convention/api-rules.md`, `api-crud-walkthrough.md`, `docs/architecture/05-auth-security.md`, `03-api.md` cập nhật theo `@Authorize(Permission)`.
+- Tài liệu: `docs/conventions/api-rules.md`, `api-crud-walkthrough.md`, `docs/architecture/05-auth-security.md`, `03-api.md` cập nhật theo `@Authorize(Permission)`.
 
 ## Lệch so với spec (và vì sao)
 

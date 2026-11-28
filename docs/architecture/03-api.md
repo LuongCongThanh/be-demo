@@ -1,6 +1,6 @@
 # 03. API
 
-> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../README.md#trạng-thái-tài-liệu)). Quy trình viết một API theo [`../convention/api-rules.md`](../convention/api-rules.md) (code mẫu CRUD: [`api-crud-walkthrough.md`](../convention/api-crud-walkthrough.md)).
+> Trạng thái: **Bản nháp cho tái cấu trúc** ([quy ước](../README.md#trạng-thái-tài-liệu)). Quy trình viết một API theo [`../convention/api-rules.md`](../conventions/api-rules.md) (code mẫu CRUD: [`api-crud-walkthrough.md`](../conventions/api-crud-walkthrough.md)).
 
 ## 1. Request pipeline
 

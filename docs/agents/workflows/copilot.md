@@ -17,7 +17,7 @@ This is the Copilot-specific entrypoint. Follow [`../execution-workflow.md`](../
 - Every skill named by the shared flows is vendored in the repository, so Copilot can call it by name. [The Claude skill guide](../../../.claude/skill-guide/) is a user-global inventory reference; it does not mean other global skills or MCP servers are available in Copilot.
 - For code review, follow the [repository review policy](../../../AGENTS.md#shared-ai-code-review) and keep the review read-only.
 - When implementation is requested, complete it and verify it rather than stopping at a plan. Ask only for a consequential unresolved decision, blocker, or separately authorized operation.
-- Before GitHub writes or Git operations that publish or rewrite history, verify the intended account and follow `docs/convention/git-workflow.md`.
+- Before GitHub writes or Git operations that publish or rewrite history, verify the intended account and follow `CONTRIBUTING.md`.
 - The PR title/body workflows run in GitHub Actions; report their results only after CI returns them.
 
 ## Finish

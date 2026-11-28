@@ -7,8 +7,8 @@ Nơi theo dõi công việc của dự án (thay cho GitHub Issues).
 ```
 docs/plan/
 ├── README.md                     ← file này: bảng tổng hợp nhiệm vụ
-├── <plan-tổng>.md                ← kế hoạch cho nhiều nhiệm vụ, ví dụ realign-identity-catalog.md (đã hoàn thành cho 01–05)
-├── wayfinding/<effort>/          ← map quyết định (map.md + issues/), không phải hàng đợi triển khai; kết quả chốt đi vào docs/adr/ và sinh ra nhiệm vụ trong tasks/
+├── initiatives/<effort>/         ← map quyết định (map.md + issues/), không phải hàng đợi triển khai; kết quả chốt đi vào docs/adr/ và sinh ra nhiệm vụ trong tasks/
+│                                   ví dụ realign-identity-catalog/ (map.md + metric.md, đã hoàn thành cho 01–05)
 └── tasks/
     ├── todo/                     ← nhiệm vụ chưa hoàn tất (status todo hoặc in-progress)
     ├── done/                     ← nhiệm vụ đã hợp nhất (status done)
@@ -42,7 +42,7 @@ Quy ước:
 
 ## Danh sách nhiệm vụ
 
-Kế hoạch tổng thể: [realign-identity-catalog.md](./realign-identity-catalog.md)
+Kế hoạch tổng thể: [realign-identity-catalog.md](initiatives/realign-identity-catalog/map.md)
 
 ### Chưa hoàn tất (`tasks/todo/`)
 
@@ -116,7 +116,7 @@ Ghi chú:
 
 Cập nhật ngày 2026-11-28, theo `blocked-by` của từng nhiệm vụ và [ADR 0015](../adr/0015-one-layered-architecture-for-every-module.md): chuyển kiến trúc module trước, rồi mới làm tính năng đụng tới module đó.
 
-1. **Chuyển đổi kiến trúc (38–49)** theo map [Chuẩn kiến trúc thống nhất cho toàn `src/modules`](./wayfinding/src-wide-architecture-standard/map.md). Đã xong 38–42. Còn lại:
+1. **Chuyển đổi kiến trúc (38–49)** theo map [Chuẩn kiến trúc thống nhất cho toàn `src/modules`](initiatives/src-wide-architecture-standard/map.md). Đã xong 38–42. Còn lại:
    - 43 và 47 làm song song (chỉ cần 40).
    - 44 sau 43; 48 sau 47.
    - 45 và 46 sau 44 (cùng 41, 42 đã xong).

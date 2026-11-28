@@ -1,5 +1,5 @@
 #!/bin/bash
-# enforce-git-workflow.sh — enforce docs/convention/git-workflow.md hard rules on Bash tool calls
+# enforce-git-workflow.sh — enforce CONTRIBUTING.md hard rules on Bash tool calls
 
 HOOK_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$HOOK_DIR/../.." && pwd)"
@@ -25,7 +25,7 @@ fi
 
 # 1) Never `git push --force` — only --force-with-lease is allowed
 if [[ "$COMMAND" == *"git push"* ]] && [[ "$COMMAND" =~ (^|[[:space:]])--force([[:space:]]|=|$) ]] && [[ "$COMMAND" != *"--force-with-lease"* ]]; then
-  echo "Blocked: use --force-with-lease instead of --force (docs/convention/git-workflow.md §5/§13)" >&2
+  echo "Blocked: use --force-with-lease instead of --force (CONTRIBUTING.md §5/§13)" >&2
   exit 2
 fi
 
@@ -34,11 +34,11 @@ PROTECTED='main|master|dev'
 
 if [[ "$CURRENT_BRANCH" =~ ^($PROTECTED)$ ]]; then
   if [[ "$COMMAND" == *"git commit"* ]]; then
-    echo "Blocked: direct commit to protected branch '$CURRENT_BRANCH' is not allowed — create a feature/fix/chore/docs branch from dev (docs/convention/git-workflow.md §13)" >&2
+    echo "Blocked: direct commit to protected branch '$CURRENT_BRANCH' is not allowed — create a feature/fix/chore/docs branch from dev (CONTRIBUTING.md §13)" >&2
     exit 2
   fi
   if [[ "$COMMAND" == *"git push"* ]]; then
-    echo "Blocked: direct push to protected branch '$CURRENT_BRANCH' is not allowed — open a Pull Request instead (docs/convention/git-workflow.md §13)" >&2
+    echo "Blocked: direct push to protected branch '$CURRENT_BRANCH' is not allowed — open a Pull Request instead (CONTRIBUTING.md §13)" >&2
     exit 2
   fi
 fi
@@ -50,7 +50,7 @@ while IFS= read -r SEG; do
   [[ "$SEG" == *"git push"* ]] || continue
   if [[ "$SEG" =~ (origin|upstream)[[:space:]]+([^[:space:]]*:)?($PROTECTED)([[:space:]]|$) ]] \
     || [[ "$SEG" =~ [[:space:]][^[:space:]]*:(refs/heads/)?($PROTECTED)([[:space:]]|$) ]]; then
-    echo "Blocked: direct push to protected branch via explicit refspec is not allowed — open a Pull Request instead (docs/convention/git-workflow.md §13). Matched: \"${BASH_REMATCH[0]}\" in: $SEG" >&2
+    echo "Blocked: direct push to protected branch via explicit refspec is not allowed — open a Pull Request instead (CONTRIBUTING.md §13). Matched: \"${BASH_REMATCH[0]}\" in: $SEG" >&2
     exit 2
   fi
 done < <(sed -E 's/(&&|\|\||;|\|)/\n/g' <<< "$COMMAND")

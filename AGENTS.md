@@ -4,7 +4,7 @@
 
 Before `git commit`, `git push`, `git worktree`, or `gh pr create`, read:
 
-- `docs/convention/git-workflow.md`
+- `CONTRIBUTING.md`
 - `.github/pull_request_template.md`
 - Run `npm run git-policy:test`
 
@@ -49,27 +49,27 @@ Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/d
 
 ### Conventions (coding style, config, error handling, API, schema)
 
-Top-down index and reading order for all convention docs: `docs/convention`.
+Top-down index and reading order for all convention docs: `docs/conventions`.
 
 ### API conventions (NestJS)
 
-Two docs: `api-rules.md` (flow for any API — CRUD or business/use-case — plus rules, Definition of Done, checklists) and `api-crud-walkthrough.md` (step-by-step CRUD code using a placeholder `Resource` entity, CLI appendix). Written for devs to read and write the code themselves, not as agent context for autogenerating code. See `docs/convention`. Resource-specific business rules and real implementation status live in that resource's own plan doc (`docs/architecture/modules/<module>.md`), not in this convention doc.
+Two docs: `api-rules.md` (flow for any API — CRUD or business/use-case — plus rules, Definition of Done, checklists) and `api-crud-walkthrough.md` (step-by-step CRUD code using a placeholder `Resource` entity, CLI appendix). Written for devs to read and write the code themselves, not as agent context for autogenerating code. See `docs/conventions`. Resource-specific business rules and real implementation status live in that resource's own plan doc (`docs/architecture/modules/<module>.md`), not in this convention doc.
 
 ### Config & environment conventions
 
-Naming, required-vs-optional env vars, startup fail-fast validation (`src/config/env.validation.ts`), `.env.example` sync rule, and secrets handling. See `docs/convention`.
+Naming, required-vs-optional env vars, startup fail-fast validation (`src/config/env.validation.ts`), `.env.example` sync rule, and secrets handling. See `docs/conventions`.
 
 ### Coding style & naming conventions
 
-File/class naming, folder structure per module, barrel files banned, `#src/*` import alias (Node subpath imports) for every import into `src/` — never relative, never `@src/*` (see the doc for why), `no-explicit-any` lint rule, when to split large files. See `docs/convention`.
+File/class naming, folder structure per module, barrel files banned, `#src/*` import alias (Node subpath imports) for every import into `src/` — never relative, never `@src/*` (see the doc for why), `no-explicit-any` lint rule, when to split large files. See `docs/conventions`.
 
 ### Error handling & logging conventions
 
-Global `AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`) unifying HttpException/Prisma/unexpected-error responses, log-level policy (log 5xx only, never 4xx), request-id tracing via `AsyncLocalStorage` + `AppLogger` (auto-injected into every existing `Logger` call site, no code changes needed at call sites). See `docs/convention`.
+Global `AllExceptionsFilter` (`src/http/filters/all-exceptions.filter.ts`) unifying HttpException/Prisma/unexpected-error responses, log-level policy (log 5xx only, never 4xx), request-id tracing via `AsyncLocalStorage` + `AppLogger` (auto-injected into every existing `Logger` call site, no code changes needed at call sites). See `docs/conventions`.
 
 ### Prisma schema convention
 
-Schema/migration/Prisma Client rules (naming & mapping, hand-written SQL migrations, safe schema changes, transactions & row locks, pagination, N+1, seeding, testing) in `docs/convention/prisma-conventions.md`. Target schema itself lives in `docs/architecture/11-database.md`. See `docs/convention`.
+Schema/migration/Prisma Client rules (naming & mapping, hand-written SQL migrations, safe schema changes, transactions & row locks, pagination, N+1, seeding, testing) in `docs/conventions/prisma-conventions.md`. Target schema itself lives in `docs/architecture/11-database.md`. See `docs/conventions`.
 
 ### Docs layout
 
@@ -77,7 +77,7 @@ Index: `docs/README.md`. Business requirements (`docs/business/`) take priority 
 
 ## Agent configuration synchronization
 
-Shared repository policy lives in this file and `docs/agents/` / `docs/convention/`; platform files are entrypoints or adapters. Edit the shared source instead of duplicating a rule in a platform file.
+Shared repository policy lives in this file and `docs/agents/` / `docs/conventions/`; platform files are entrypoints or adapters. Edit the shared source instead of duplicating a rule in a platform file.
 
 - `.agents/skills/` is canonical for every project skill, mirrored byte-for-byte to `.github/skills/` (Copilot) and `.claude/skills/` (Claude Code); Codex reads `.agents/skills/` directly. Vendored skills are pinned in `skills-lock.json` and must not be edited locally.
 - `feature` and `ship` are defined once in `docs/agents/flows/`; their entry skills only point there. A shared flow may name only skills vendored in `.agents/skills/`, and no agent keeps a private copy of a flow (for example a Claude `.claude/commands/` file). See [ADR 0014](docs/adr/0014-shared-agent-flow-native-adapters.md).

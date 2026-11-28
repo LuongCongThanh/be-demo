@@ -1,6 +1,6 @@
 # `src/` conventions
 
-Codex entrypoint for file-scoped rules; the same rule files are applied by Claude Code (`.claude/rules/` `paths:`) and Copilot (`.github/instructions/` `applyTo`). Read the rules that match the files you change, then their canonical sources under `docs/convention/`.
+Codex entrypoint for file-scoped rules; the same rule files are applied by Claude Code (`.claude/rules/` `paths:`) and Copilot (`.github/instructions/` `applyTo`). Read the rules that match the files you change, then their canonical sources under `docs/conventions/`.
 
 | Files                                                                                                                         | Rule                                                             |
 | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |

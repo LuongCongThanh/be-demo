@@ -3,7 +3,7 @@ paths:
   - 'src/**/*.ts'
 ---
 
-# Config and environment (condensed — full rationale: docs/convention/config-environment-conventions.md)
+# Config and environment (condensed — full rationale: docs/conventions/config-environment-conventions.md)
 
 - **Never read `process.env.X` directly** in `src/`. Always use `ConfigService.get()`/`getOrThrow()`, including when a class extending another class needs a value before `super()` (pass it through the constructor; `this.config` is not available until after `super()`).
 - Name variables with `UPPER_SNAKE_CASE` and group prefixes (`JWT_*`, `SMTP_*`, etc.). Express durations as `ms`-compatible strings (`15m`, `7d`), not bare seconds or milliseconds.

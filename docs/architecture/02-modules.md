@@ -1,6 +1,6 @@
 # 02. Module và ranh giới
 
-> Trạng thái: **Đã chốt cho tái cấu trúc (2026-11-13)** ([quy ước](../README.md#trạng-thái-tài-liệu)). §4 phân biệt cây source đang triển khai với cây kiến trúc mục tiêu; không tạo thư mục placeholder cho phần chưa triển khai. Quy ước đặt tên và cấu trúc file: [`../convention/`](../convention/).
+> Trạng thái: **Đã chốt cho tái cấu trúc (2026-11-13)** ([quy ước](../README.md#trạng-thái-tài-liệu)). §4 phân biệt cây source đang triển khai với cây kiến trúc mục tiêu; không tạo thư mục placeholder cho phần chưa triển khai. Quy ước đặt tên và cấu trúc file: [`../convention/`](../conventions/).
 
 ## 1. Danh sách module mục tiêu
 
@@ -48,7 +48,7 @@ Chỉ module sở hữu được **ghi** vào bảng của nó; module khác g�
 
 Chi tiết bảng: [./11-database.md](./11-database.md).
 
-Một use case cần ghi nhiều module (ví dụ checkout: `ordering` + `cart` + `inventory` + `voucher` + `payment`) chạy trong **một transaction** do module điều phối (`ordering`) mở bằng `TransactionRunner.run()`; module điều phối gọi service công khai của từng module khác, các adapter tự nhập vào giao dịch đang mở nên không có `tx` nào đi qua service hay Port, và không module nào ghi bảng của module khác ([module-architecture-conventions.md §6](../convention/module-architecture-conventions.md#6-transaction), [04-data-consistency.md](./04-data-consistency.md)).
+Một use case cần ghi nhiều module (ví dụ checkout: `ordering` + `cart` + `inventory` + `voucher` + `payment`) chạy trong **một transaction** do module điều phối (`ordering`) mở bằng `TransactionRunner.run()`; module điều phối gọi service công khai của từng module khác, các adapter tự nhập vào giao dịch đang mở nên không có `tx` nào đi qua service hay Port, và không module nào ghi bảng của module khác ([module-architecture-conventions.md §6](../conventions/module-architecture-conventions.md#6-transaction), [04-data-consistency.md](./04-data-consistency.md)).
 
 ## 3. Quy tắc phụ thuộc
 
@@ -75,9 +75,9 @@ flowchart TB
 - Phụ thuộc một chiều, không vòng. Khi module dưới cần báo ngược lên (ví dụ `payment` báo thanh toán thành công cho `ordering`, `fulfillment` báo đã giao), dùng **domain event** qua outbox — không import ngược ([07-async-events-jobs.md](./07-async-events-jobs.md)).
 - `notification`, `administration` chỉ được gọi tới hoặc lắng nghe event; không module nghiệp vụ nào phụ thuộc vào chúng để hoàn thành transaction.
 - **Cửa ngõ module là `exports` trong `<module>.module.ts`.** Mỗi module export đúng một service public (`InventoryService`, `CartService`, `VoucherService`, `PaymentService`, `FulfillmentService`, `OrderingService`, `CatalogService`, `CustomerService`; `identity` export `InternalAccountService` và `AccessService`). Service ruột không export. Module khác `imports: [XModule]` và inject service đó, không import file ruột theo đường dẫn. `CategoryModule` là feature module nội bộ của Catalog: `CatalogModule` import module này để sở hữu Category endpoints và composition, không export provider nghiệp vụ ra ngoài Catalog. Category dùng `CategoryCoreModule` cho persistence/Port binding và `AdminCategoryModule` / `StorefrontCategoryModule` cho controllers/providers; chỉ surface mới import Core trực tiếp. Không có file facade riêng.
-- Mọi truy cập DB đi qua Persistence Port (`abstract class` làm token); I/O ngoài DB dùng port dùng chung (`src/infrastructure/**/*.port.ts`) hoặc port riêng của module. Thư viện thuần không I/O không cần port. Xem [module-architecture-conventions.md §4](../convention/module-architecture-conventions.md#4-port-và-di).
+- Mọi truy cập DB đi qua Persistence Port (`abstract class` làm token); I/O ngoài DB dùng port dùng chung (`src/infrastructure/**/*.port.ts`) hoặc port riêng của module. Thư viện thuần không I/O không cần port. Xem [module-architecture-conventions.md §4](../conventions/module-architecture-conventions.md#4-port-và-di).
 - `common/` là tầng dùng chung ít phụ thuộc: không import `http/`, `security/`, `infrastructure/` hoặc `modules/`. `http/` và `security/` được phép dùng `common/` và adapter cần thiết từ `infrastructure/`, nhưng không import `modules/`. `infrastructure/` có thể dùng thành phần dùng chung từ `common/`, không import `modules/`. Hợp đồng `Permission` và `JwtPayload` dùng chung giữa authentication/authorization nằm ở `security/contracts/` để tránh phụ thuộc vòng giữa hai nhánh.
-- Mọi module (kể cả các feature Catalog) theo một flow: Controller → Application → Port ← Infrastructure Adapter, wiring DI tại file module ([ADR 0015](../adr/0015-one-layered-architecture-for-every-module.md), [module-architecture-conventions.md](../convention/module-architecture-conventions.md)). Module chưa chuyển đổi giữ cấu trúc hiện tại đến khi có task refactor riêng (mục _Migration status_ của [rule agent](../../.claude/rules/module-architecture.md)).
+- Mọi module (kể cả các feature Catalog) theo một flow: Controller → Application → Port ← Infrastructure Adapter, wiring DI tại file module ([ADR 0015](../adr/0015-one-layered-architecture-for-every-module.md), [module-architecture-conventions.md](../conventions/module-architecture-conventions.md)). Module chưa chuyển đổi giữ cấu trúc hiện tại đến khi có task refactor riêng (mục _Migration status_ của [rule agent](../../.claude/rules/module-architecture.md)).
 
 ### 3.1 Composition root và Nest feature modules
 
@@ -87,7 +87,7 @@ Chỉ xem xét tách Nest feature module khi có nhu cầu độc lập thực t
 
 ## 4. Cấu trúc thư mục
 
-Đây là nơi duy nhất mô tả cây `src/` của repo này. §4.1 ghi cây đang tồn tại trong source; §4.2 ghi cây mục tiêu, bao gồm cả phần chưa triển khai. Quy tắc đặt tên, thư mục con, barrel file và alias: [coding-style-conventions.md](../convention/coding-style-conventions.md).
+Đây là nơi duy nhất mô tả cây `src/` của repo này. §4.1 ghi cây đang tồn tại trong source; §4.2 ghi cây mục tiêu, bao gồm cả phần chưa triển khai. Quy tắc đặt tên, thư mục con, barrel file và alias: [coding-style-conventions.md](../conventions/coding-style-conventions.md).
 
 ### 4.1 Cây source hiện đang triển khai
 
@@ -267,7 +267,7 @@ modules/voucher/          # đã chuyển đổi (task 42), xem §4.1
 
 Trong module có API cho cả Storefront và Admin CMS, nhóm controller và DTO theo `storefront/` hoặc `admin/`; service/mapper riêng cho một phía cũng theo nhóm tương ứng. Logic hoặc DTO dùng chung nằm trong `shared/`; domain thuần nằm trong `domain/`. Chỉ tạo nhóm thực sự có file, không để thư mục rỗng. Swagger dùng tag riêng có tiền tố `Storefront —` hoặc `Admin CMS —`. Test `*.spec.ts` đặt cạnh file được test trong nhóm tương ứng.
 
-Mọi module tuân thủ [module-architecture-conventions.md](../convention/module-architecture-conventions.md) (bộ khung `domain/`, `application/`, `infrastructure/`, `presentation/`, `admin/`, `storefront/`); `category/` là ví dụ cấu trúc đầy đủ và được `CatalogModule` import qua `CategoryModule`. Các port outbound thuộc Application, adapter công nghệ thuộc Infrastructure. Tách file theo trách nhiệm: mục tiêu khoảng 150 dòng, giới hạn cứng 200 dòng mỗi file (miễn code sinh tự động và file test). Cây ở §4.1 là as-built nên có thể chưa theo bộ khung ở module chưa chuyển đổi; mỗi PR đổi cấu trúc phải cập nhật cây này trong cùng PR.
+Mọi module tuân thủ [module-architecture-conventions.md](../conventions/module-architecture-conventions.md) (bộ khung `domain/`, `application/`, `infrastructure/`, `presentation/`, `admin/`, `storefront/`); `category/` là ví dụ cấu trúc đầy đủ và được `CatalogModule` import qua `CategoryModule`. Các port outbound thuộc Application, adapter công nghệ thuộc Infrastructure. Tách file theo trách nhiệm: mục tiêu khoảng 150 dòng, giới hạn cứng 200 dòng mỗi file (miễn code sinh tự động và file test). Cây ở §4.1 là as-built nên có thể chưa theo bộ khung ở module chưa chuyển đổi; mỗi PR đổi cấu trúc phải cập nhật cây này trong cùng PR.
 
 ## 5. As-built inventory — shared/runtime
 

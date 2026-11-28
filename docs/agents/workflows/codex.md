@@ -17,7 +17,7 @@ This is the Codex-specific entrypoint. Follow [`../execution-workflow.md`](../ex
 - Follow `AGENTS.md#agent-configuration-synchronization` when changing mirrored skills or hooks; run `npm run agents:watch` for live sync and `npm run agents:check` before finishing.
 - For a code review, follow the [repository review policy](../../../AGENTS.md#shared-ai-code-review) and keep the review read-only.
 - Continue through implementation and verification when implementation was requested. Stop only for a consequential unresolved decision, a blocker, or an operation that needs separate authorization.
-- Treat GitHub writes, commits, pushes, rebases, merges, and PR creation as separate actions: perform them only when requested and follow `docs/convention/git-workflow.md`.
+- Treat GitHub writes, commits, pushes, rebases, merges, and PR creation as separate actions: perform them only when requested and follow `CONTRIBUTING.md`.
 
 ## Finish
 

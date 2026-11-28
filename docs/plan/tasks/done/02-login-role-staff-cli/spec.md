@@ -6,7 +6,7 @@ blocked-by: [01-rename-roles]
 
 # Spec 02: Login trả role, quản lý Staff, CLI create-admin
 
-Branch: `feature/backoffice-login-and-staff-management` · Plan tổng: [PR 2](../../../realign-identity-catalog.md)
+Branch: `feature/backoffice-login-and-staff-management` · Plan tổng: [PR 2](../../../initiatives/realign-identity-catalog/map.md)
 
 ## Problem Statement
 

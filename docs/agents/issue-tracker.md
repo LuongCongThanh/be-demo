@@ -26,8 +26,8 @@ Tạo thư mục task mới trong `docs/plan/tasks/todo/` như trên.
 
 Used by `/wayfinder`. Wayfinder maps are decision maps; their child tickets resolve decisions and are separate from implementation tasks in `docs/plan/tasks/`.
 
-- **Map**: `docs/plan/wayfinding/<effort>/map.md`.
-- **Child ticket**: `docs/plan/wayfinding/<effort>/issues/NN-<slug>.md`, numbered from `01`. Each ticket has `Type: research|prototype|grilling|task`, `Status: open|claimed|resolved`, and an optional `Blocked by: NN, NN` line near the top.
+- **Map**: `docs/plan/initiatives/<effort>/map.md`.
+- **Child ticket**: `docs/plan/initiatives/<effort>/issues/NN-<slug>.md`, numbered from `01`. Each ticket has `Type: research|prototype|grilling|task`, `Status: open|claimed|resolved`, and an optional `Blocked by: NN, NN` line near the top.
 - **Blocking**: `Blocked by` lists child-ticket numbers. A ticket is unblocked when every listed ticket has `Status: resolved`.
 - **Frontier**: the open, unblocked, unclaimed child tickets; the lowest number goes first.
 - **Claim**: set `Status: claimed` and save before starting work.

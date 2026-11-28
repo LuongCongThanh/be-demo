@@ -11,19 +11,19 @@ blocked-by:
 
 **What to build:** Script sinh cấu hình oxlint chặn import sai ranh giới, bước kiểm tra trong CI, luật `max-lines` và cấm import tương đối. Lúc này **chưa có module nào trong danh sách đã chuyển đổi**, nên luật tầng/ranh giới chưa áp cho module nào.
 
-**Quyết định nguồn:** [Bộ luật lint bắt buộc và lộ trình bật](../../../wayfinding/src-wide-architecture-standard/issues/08-lint-boundary-rules.md), [Khả năng của oxlint để chặn import sai ranh giới](../../../wayfinding/src-wide-architecture-standard/issues/04-oxlint-boundary-capability.md) (đọc cả file research trên branch `docs/research-oxlint-boundary-capability` nếu cần config mẫu).
+**Quyết định nguồn:** [Bộ luật lint bắt buộc và lộ trình bật](../../../initiatives/src-wide-architecture-standard/issues/08-lint-boundary-rules.md), [Khả năng của oxlint để chặn import sai ranh giới](../../../initiatives/src-wide-architecture-standard/issues/04-oxlint-boundary-capability.md) (đọc cả file docs/research trên branch `docs/research-oxlint-boundary-capability` nếu cần config mẫu).
 
 ## Đọc trước khi làm (bắt buộc với mọi agent: Claude Code, Codex, Copilot)
 
 1. Rule kiến trúc: [`.claude/rules/module-architecture.md`](../../../../../.claude/rules/module-architecture.md) và quyết định [ADR 0015](../../../../adr/0015-one-layered-architecture-for-every-module.md).
-2. Map quyết định: [Chuẩn kiến trúc thống nhất cho toàn `src/modules`](../../../wayfinding/src-wide-architecture-standard/map.md) và các ticket được link trong spec này. Ticket là nguồn quyết định; spec này không được mâu thuẫn với ticket.
+2. Map quyết định: [Chuẩn kiến trúc thống nhất cho toàn `src/modules`](../../../initiatives/src-wide-architecture-standard/map.md) và các ticket được link trong spec này. Ticket là nguồn quyết định; spec này không được mâu thuẫn với ticket.
 3. **Đối chiếu code hiện tại trước khi sửa.** Nếu code khác với mô tả trong spec (file đã đổi tên, đã có người làm một phần...), dừng lại và hỏi người dùng, không tự suy diễn.
 4. Quy trình Git của repo: branch từ `dev`, Conventional Commit, PR vào `dev`, squash merge. **Không** ghi attribution AI/agent trong commit hay PR.
 
 ## Việc cần làm
 
 1. `scripts/generate-oxlint-boundaries.ts` (chạy bằng `tsx`), thêm npm script `lint:boundaries` (ghi `oxlint.json`) và `lint:boundaries:check` (so sánh, exit 1 nếu khác).
-2. Đầu vào trong script: danh sách module đã chuyển đổi (khởi đầu rỗng), danh sách feature của module nhiều feature (`catalog`: category, product, product-option, pricing; `identity`: auth, access, internal-account), danh sách tạm `max-lines` (13 file trong ticket [Chia việc triển khai thành task](../../../wayfinding/src-wide-architecture-standard/issues/09-implementation-task-breakdown.md)).
+2. Đầu vào trong script: danh sách module đã chuyển đổi (khởi đầu rỗng), danh sách feature của module nhiều feature (`catalog`: category, product, product-option, pricing; `identity`: auth, access, internal-account), danh sách tạm `max-lines` (13 file trong ticket [Chia việc triển khai thành task](../../../initiatives/src-wide-architecture-standard/issues/09-implementation-task-breakdown.md)).
 3. Script sinh override cho từng nhóm file, **mỗi override mang đủ bộ luật áp cho nhóm đó** (override thay thế, không gộp; override khớp sau cùng thắng). Luôn giữ luật permissions top-level hiện có; xử lý override `off` của `src/security/authorization/**` để không tắt luật mới ngoài ý muốn.
 4. 7 luật (chỉ áp luật 1–6 cho module trong danh sách đã chuyển đổi):
    1. `**/domain/**` cấm `@nestjs/**`, `#src/infrastructure/**`, `#src/generated/**` (dùng `**`, không dùng `*`).

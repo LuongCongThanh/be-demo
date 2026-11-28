@@ -6,7 +6,7 @@ blocked-by: [02-login-role-staff-cli]
 
 # Spec 03: Trạng thái sản phẩm & archive
 
-Branch: `refactor/product-status-and-archive` · Plan tổng: [PR 3](../../../realign-identity-catalog.md)
+Branch: `refactor/product-status-and-archive` · Plan tổng: [PR 3](../../../initiatives/realign-identity-catalog/map.md)
 
 ## Problem Statement
 

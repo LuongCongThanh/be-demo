@@ -11,7 +11,7 @@ done
 
 case "$branch" in
   main|dev|master)
-    echo "✖ Không push thẳng lên '$branch' — mở Pull Request (docs/convention/git-workflow.md)."
+    echo "✖ Không push thẳng lên '$branch' — mở Pull Request (CONTRIBUTING.md)."
     exit 1
     ;;
 esac

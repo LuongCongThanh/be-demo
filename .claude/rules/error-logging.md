@@ -3,7 +3,7 @@ paths:
   - 'src/**/*.ts'
 ---
 
-# Error handling and logging (condensed — full rationale: docs/convention/error-logging-conventions.md)
+# Error handling and logging (condensed — full rationale: docs/conventions/error-logging-conventions.md)
 
 - `AllExceptionsFilter` (global, `src/http/filters/all-exceptions.filter.ts`) is a **safety net for unexpected errors**, not the place to define domain errors. For known domain errors (duplicate unique values, referenced child records, business-rule violations, etc.), **throw explicitly in the service** using `NotFoundException`/`ConflictException`/etc. with a specific message; do not let them fall through to the filter. In modules covered by [module architecture](module-architecture.md) (new modules and migrated modules), follow that rule instead: `domain/` and `application/` throw the shared business errors from `src/common/errors/`.
 - Error responses always use `{ statusCode, message, requestId }`. Prisma mappings: `P2002` → 409, `P2003` → 409, `P2025` → 404, all others → 500.

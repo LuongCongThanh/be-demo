@@ -6,7 +6,7 @@ blocked-by: [03-product-status-archive]
 
 # Spec 04: Size/màu & quy tắc biến thể
 
-Branch: `feature/sizes-colors-and-variant-rules` · Plan tổng: [PR 4](../../../realign-identity-catalog.md)
+Branch: `feature/sizes-colors-and-variant-rules` · Plan tổng: [PR 4](../../../initiatives/realign-identity-catalog/map.md)
 
 ## Problem Statement
 

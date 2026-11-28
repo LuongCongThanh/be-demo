@@ -1,4 +1,4 @@
-# Git workflow (condensed — full process: docs/convention/git-workflow.md)
+# Git workflow (condensed — full process: CONTRIBUTING.md)
 
 - Branch from `dev` using `feature/*`, `fix/*`, `chore/*`, or `docs/*`; use kebab-case English names and omit task IDs (this personal project does not use a ticket tracker). Create `hotfix/*` from `main` only when production is live.
 - **Never commit or push directly to `main`, `master`, or `dev`**—submit all changes through a Pull Request from a dedicated branch.
