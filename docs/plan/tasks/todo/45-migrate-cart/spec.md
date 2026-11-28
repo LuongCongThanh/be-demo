@@ -12,14 +12,14 @@ blocked-by:
 
 **What to build:** Chuyển module cart sang kiến trúc chung: đưa module về bộ khung chung theo ADR 0015, giữ nguyên hành vi.
 
-**Quyết định nguồn:** [Bản đồ chuyển đổi cho từng module](../../../wayfinding/src-wide-architecture-standard/issues/02-layered-structure-criteria.md), [Chiến lược xử lý lỗi toàn src](../../../wayfinding/src-wide-architecture-standard/issues/03-error-handling-strategy.md), [Hợp đồng transaction trong và giữa các module](../../../wayfinding/src-wide-architecture-standard/issues/05-transaction-contract.md), [Ownership dữ liệu cho cart và checkout](../../../wayfinding/src-wide-architecture-standard/issues/06-cart-checkout-ownership.md)
+**Quyết định nguồn:** [Bản đồ chuyển đổi cho từng module](../../../initiatives/src-wide-architecture-standard/issues/02-layered-structure-criteria.md), [Chiến lược xử lý lỗi toàn src](../../../initiatives/src-wide-architecture-standard/issues/03-error-handling-strategy.md), [Hợp đồng transaction trong và giữa các module](../../../initiatives/src-wide-architecture-standard/issues/05-transaction-contract.md), [Ownership dữ liệu cho cart và checkout](../../../initiatives/src-wide-architecture-standard/issues/06-cart-checkout-ownership.md)
 
-**Hình đích minh họa:** [cây toàn `src/modules`](../../../wayfinding/src-wide-architecture-standard/assets/02-src-modules-target-tree.md). Đây là minh họa; tên file chính xác chốt theo code lúc làm.
+**Hình đích minh họa:** [cây toàn `src/modules`](../../../initiatives/src-wide-architecture-standard/assets/02-src-modules-target-tree.md). Đây là minh họa; tên file chính xác chốt theo code lúc làm.
 
 ## Đọc trước khi làm (bắt buộc với mọi agent: Claude Code, Codex, Copilot)
 
 1. Rule kiến trúc: [`.claude/rules/module-architecture.md`](../../../../../.claude/rules/module-architecture.md) và quyết định [ADR 0015](../../../../adr/0015-one-layered-architecture-for-every-module.md).
-2. Map quyết định: [Chuẩn kiến trúc thống nhất cho toàn `src/modules`](../../../wayfinding/src-wide-architecture-standard/map.md) và các ticket được link trong spec này. Ticket là nguồn quyết định; spec này không được mâu thuẫn với ticket.
+2. Map quyết định: [Chuẩn kiến trúc thống nhất cho toàn `src/modules`](../../../initiatives/src-wide-architecture-standard/map.md) và các ticket được link trong spec này. Ticket là nguồn quyết định; spec này không được mâu thuẫn với ticket.
 3. **Đối chiếu code hiện tại trước khi sửa.** Nếu code khác với mô tả trong spec (file đã đổi tên, đã có người làm một phần...), dừng lại và hỏi người dùng, không tự suy diễn.
 4. Quy trình Git của repo: branch từ `dev`, Conventional Commit, PR vào `dev`, squash merge. **Không** ghi attribution AI/agent trong commit hay PR.
 

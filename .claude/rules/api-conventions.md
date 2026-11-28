@@ -11,7 +11,7 @@ paths:
   - 'src/main.ts'
 ---
 
-# API conventions — agent-condensed (full rules: docs/convention/api-rules.md; step-by-step examples: docs/convention/api-crud-walkthrough.md)
+# API conventions — agent-condensed (full rules: docs/conventions/api-rules.md; step-by-step examples: docs/conventions/api-crud-walkthrough.md)
 
 This condensed guide lists actionable rules and common pitfalls for code-writing agents. Read the source documents for complete examples or resource-specific business rules in `docs/architecture/modules/<module>.md`.
 

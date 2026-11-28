@@ -80,7 +80,7 @@ Cấu trúc bên trong `src/` (hiện tại và mục tiêu): [`docs/architectur
 
 ## Tài liệu
 
-Mục lục ở [`docs/README.md`](docs/README.md). Thứ tự đọc: [`docs/business/`](docs/business/) (nghiệp vụ, nguồn ưu tiên) → [`GLOSSARY.md`](GLOSSARY.md) → [`docs/architecture/`](docs/architecture/) → [`docs/adr/`](docs/adr/) → [`docs/convention/`](docs/convention/).
+Mục lục ở [`docs/README.md`](docs/README.md). Thứ tự đọc: [`docs/business/`](docs/business/) (nghiệp vụ, nguồn ưu tiên) → [`GLOSSARY.md`](GLOSSARY.md) → [`docs/architecture/`](docs/architecture/) → [`docs/adr/`](docs/adr/) → [`docs/conventions/`](docs/conventions/).
 
 ## Quy trình đóng góp
 
@@ -89,4 +89,4 @@ Mục lục ở [`docs/README.md`](docs/README.md). Thứ tự đọc: [`docs/bu
 - Hook local: `pre-commit` (lint-staged) → `commit-msg` (commitlint) → `pre-push` (kiểm tra branch, typecheck, test).
 - PR vào `dev` dùng Squash and Merge; `dev` → `main` dùng Merge Commit.
 
-Chi tiết: [`docs/convention/git-workflow.md`](docs/convention/git-workflow.md).
+Chi tiết: [`CONTRIBUTING.md`](CONTRIBUTING.md).

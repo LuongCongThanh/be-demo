@@ -5,7 +5,7 @@ This is the Claude-specific entrypoint. Follow [`../execution-workflow.md`](../e
 ## Load the right context
 
 1. Follow root `CLAUDE.md` and `AGENTS.md`.
-2. Read the applicable files in `.claude/rules/` and their full source documents under `docs/convention/`.
+2. Read the applicable files in `.claude/rules/` and their full source documents under `docs/conventions/`.
 3. Read the relevant task, acceptance criteria, business rules, architecture docs, and ADRs before changing behavior.
 
 ## Choose the workflow

@@ -6,7 +6,7 @@ blocked-by: [04-sizes-colors-variants]
 
 # Spec 05: Danh mục nhiều cấp
 
-Branch: `feature/nested-categories` · Plan tổng: [PR 5](../../../realign-identity-catalog.md)
+Branch: `feature/nested-categories` · Plan tổng: [PR 5](../../../initiatives/realign-identity-catalog/map.md)
 
 ## Problem Statement
 

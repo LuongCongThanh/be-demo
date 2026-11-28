@@ -4,7 +4,7 @@ paths:
   - 'test/**/*.ts'
 ---
 
-# Coding style and naming (condensed — full rationale: docs/convention/coding-style-conventions.md)
+# Coding style and naming (condensed — full rationale: docs/conventions/coding-style-conventions.md)
 
 - File names use kebab-case with role-based suffixes: `.module.ts`, `.controller.ts`, `.service.ts`, `.dto.ts`, `.guard.ts`, `.decorator.ts`, `.strategy.ts`, `.spec.ts`, and `.e2e-spec.ts`. Classes use matching PascalCase names.
 - Split a module into subfolders (`dto/`, `guards/`, etc.) only when it has at least two files of the same role; keep small modules flat. Under [module architecture](module-architecture.md) (new and migrated modules), use its layer/surface layout instead, even for small modules.

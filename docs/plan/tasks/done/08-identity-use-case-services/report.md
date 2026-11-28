@@ -19,7 +19,7 @@ Chi tiết: [metric.md](./metric.md). Lint, typecheck, build, 240 unit test, 175
 - Branch tên `chore/identity-use-case-services` thay vì `refactor/...`: hook pre-push chỉ cho `feature|fix|chore|docs|hotfix`.
 - Logger context của `RegistrationService` và `PasswordResetService` đổi theo tên class (chỉ ảnh hưởng log). `SessionService` không còn logger vì không dùng.
 - `AccountProfileService` không có spec riêng cho `getCustomerProfile`; không thêm test mới theo quy tắc dựng lại. Spec của nó chỉ chứa khối `getMe`.
-- Sửa ví dụ layout trong `docs/convention/coding-style-conventions.md`.
+- Sửa ví dụ layout trong `docs/conventions/coding-style-conventions.md`.
 
 ## Bài học
 

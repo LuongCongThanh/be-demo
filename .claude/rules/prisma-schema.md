@@ -5,7 +5,7 @@ paths:
   - 'src/**/*.service.ts'
 ---
 
-# Prisma schema and client — agent-condensed (full conventions: docs/convention/prisma-conventions.md; target schema: docs/architecture/11-database.md)
+# Prisma schema and client — agent-condensed (full conventions: docs/conventions/prisma-conventions.md; target schema: docs/architecture/11-database.md)
 
 This condensed guide lists rules for agents creating or editing schemas and Prisma Client calls. Check `11-database.md` for specific tables, columns, and indexes.
 

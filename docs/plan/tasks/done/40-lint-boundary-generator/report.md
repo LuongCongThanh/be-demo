@@ -6,7 +6,7 @@
 - Đầu vào trong script: `MIGRATED_MODULES` (rỗng), `MODULE_FEATURES` (`catalog`, `identity`), `MAX_LINES_TEMPORARY_EXEMPT`. Danh sách module lấy từ `src/modules/*`.
 - CI: bước `npm run lint:boundaries:check` trong job `lint`.
 - Probe: `scripts/oxlint-boundaries/boundaries.spec.ts` (39 test, chạy bằng `vitest`). Fixture được ghi vào thư mục tạm khi chạy, không nằm trong `src/`; mỗi luật 1-7 có một ca vi phạm bị bắt và một import hợp lệ không bị bắt, kèm các ca file khớp nhiều nhóm.
-- Cập nhật mục Lint của `.claude/rules/module-architecture.md` và ghi chú "Trạng thái triển khai" + khung §9 của `docs/convention/module-architecture-conventions.md`.
+- Cập nhật mục Lint của `.claude/rules/module-architecture.md` và ghi chú "Trạng thái triển khai" + khung §9 của `docs/conventions/module-architecture-conventions.md`.
 
 ## Phát hiện về oxlint (quan trọng cho các task chuyển module)
 

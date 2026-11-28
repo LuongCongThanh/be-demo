@@ -31,7 +31,7 @@ Với Category: Controller → Application Service → Domain/Port → Infrastru
 
 ### `category/`
 
-`CategoryModule` là composition root riêng theo [module-architecture-conventions.md](../../../docs/convention/module-architecture-conventions.md) (Category tách Core/Admin/Storefront Nest module); `CatalogModule` chỉ import module này. Không có dependency từ Domain/Application tới Prisma, HTTP DTO, Cloudinary hoặc provider translation.
+`CategoryModule` là composition root riêng theo [module-architecture-conventions.md](../../../docs/conventions/module-architecture-conventions.md) (Category tách Core/Admin/Storefront Nest module); `CatalogModule` chỉ import module này. Không có dependency từ Domain/Application tới Prisma, HTTP DTO, Cloudinary hoặc provider translation.
 
 #### Domain
 

@@ -1,5 +1,5 @@
 // Generates oxlint.json: the permissions rule, the max-lines rule, the relative-import ban and the
-// per-module layer/boundary rules from docs/convention/module-architecture-conventions.md §9.
+// per-module layer/boundary rules from docs/conventions/module-architecture-conventions.md §9.
 //
 // oxlint overrides REPLACE (never merge) `no-restricted-imports`, and for a file matched by several
 // overrides only the last one counts. So every override below carries the complete rule set for its

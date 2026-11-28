@@ -6,7 +6,7 @@ skills: [code-review, verification-before-completion, finishing-a-development-br
 
 The single definition of the `ship` workflow for every agent (Claude Code, Codex, GitHub Copilot). Agent entrypoints (`.agents/skills/ship/SKILL.md` and its mirrors) only point here; they must not add, drop, or reorder steps. See [ADR 0014](../../adr/0014-shared-agent-flow-native-adapters.md).
 
-Follow [`docs/agents/execution-workflow.md`](../execution-workflow.md) and [`docs/convention/git-workflow.md`](../../convention/git-workflow.md).
+Follow [`docs/agents/execution-workflow.md`](../execution-workflow.md) and [`CONTRIBUTING.md`](../../../CONTRIBUTING.md).
 
 ## Authorization
 

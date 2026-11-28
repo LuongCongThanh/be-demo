@@ -49,7 +49,7 @@ import { InventoryModule } from '#src/modules/inventory/inventory.module.js';
     ThrottlerGuard,
     { provide: APP_GUARD, useExisting: ThrottlerGuard },
     // Cùng lý do `useExisting` như trên — APP_FILTER cũng là token multi:
-    // true (xem docs/convention/error-logging-conventions.md).
+    // true (xem docs/conventions/error-logging-conventions.md).
     AllExceptionsFilter,
     { provide: APP_FILTER, useExisting: AllExceptionsFilter },
   ],

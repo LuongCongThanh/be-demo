@@ -26,7 +26,7 @@ Hồ sơ Khách hàng và địa chỉ thuộc module `customer` trong tương l
 
 ## 3. Interface cho module khác (thiết kế mục tiêu)
 
-Hàm không nhận `tx`: caller bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của module này tự nhập vào giao dịch đang mở ([module-architecture-conventions.md §6](../../convention/module-architecture-conventions.md#6-transaction)).
+Hàm không nhận `tx`: caller bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của module này tự nhập vào giao dịch đang mở ([module-architecture-conventions.md §6](../../conventions/module-architecture-conventions.md#6-transaction)).
 
 | Hàm                                                                           | Dùng bởi                                |
 | ----------------------------------------------------------------------------- | --------------------------------------- |

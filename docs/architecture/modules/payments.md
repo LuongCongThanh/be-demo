@@ -19,7 +19,7 @@ Chi tiết cột, ràng buộc, enum: [`../11-database.md` §4.7](../11-database
 
 ## 3. Interface public
 
-Hàm không nhận `tx`: caller bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của module này tự nhập vào giao dịch đang mở ([module-architecture-conventions.md §6](../../convention/module-architecture-conventions.md#6-transaction)).
+Hàm không nhận `tx`: caller bọc lời gọi trong `TransactionRunner.run()` (có từ task 39) và adapter của module này tự nhập vào giao dịch đang mở ([module-architecture-conventions.md §6](../../conventions/module-architecture-conventions.md#6-transaction)).
 
 | Hàm                                                          | Gọi bởi                             | Ghi chú                                              |
 | ------------------------------------------------------------ | ----------------------------------- | ---------------------------------------------------- |

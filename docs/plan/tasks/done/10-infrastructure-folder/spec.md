@@ -45,7 +45,7 @@ Tạo `src/infrastructure/` và chuyển hạ tầng vào: `database/` (Prisma),
 - Giữ nguyên tên class Nest module/service (`PrismaModule`, `HealthModule`, `MetricsModule`, `MailModule`, `AuditModule`) — chỉ đổi đường dẫn. Không tạo module gộp `ObservabilityModule` (sẽ đổi interface; không cần).
 - `bootstrap/`, `cli/`, `config/`, `common/` (filters, middleware, pagination, swagger, utils, auth, validation) giữ ở gốc `src/`.
 - Một commit thuần `git mv` trước, commit sau sửa import, để `git log --follow` giữ lịch sử.
-- `docs/convention/*` và `docs/architecture/*` cập nhật đường dẫn trong cùng PR.
+- `docs/conventions/*` và `docs/architecture/*` cập nhật đường dẫn trong cùng PR.
 
 ## Testing Decisions
 

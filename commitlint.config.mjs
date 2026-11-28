@@ -1,4 +1,4 @@
-// Conventional Commits + chặn AI attribution (docs/convention/git-workflow.md).
+// Conventional Commits + chặn AI attribution (CONTRIBUTING.md).
 import { isDependabotCommit, validateCommitMessage } from './scripts/git-policy.mjs';
 
 export default {

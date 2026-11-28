@@ -28,7 +28,7 @@ Some vendored skills mention skills that are not vendored (for example `superpow
 
 ## Invariants
 
-1. Do not research what is already known, and do not plan obvious work.
+1. Do not docs/research what is already known, and do not plan obvious work.
 2. Do not code while a consequential ambiguity remains.
 3. Do not split one vertical behavior across agents by layer or file type.
 4. Do not claim completion without fresh verification evidence.
@@ -49,7 +49,7 @@ When the size is unclear, take the branch with the stronger verification. When i
 
 ## Step 1 — Discover: `grill-with-docs`
 
-Understand the task; do not change production code. Challenge business rules, API contracts, validation, database constraints, races, test seams, and error handling against `GLOSSARY.md`, `docs/adr/`, `docs/business/`, `docs/architecture/`, and `docs/convention/`. Use the agent's read-only exploration subagent for broad code searches when it has one.
+Understand the task; do not change production code. Challenge business rules, API contracts, validation, database constraints, races, test seams, and error handling against `GLOSSARY.md`, `docs/adr/`, `docs/business/`, `docs/architecture/`, and `docs/conventions/`. Use the agent's read-only exploration subagent for broad code searches when it has one.
 
 Exit when you know the current behavior, relevant code paths, conventions, constraints/ADRs, affected modules, and any unknowns that block planning. Ask about a blocking unknown before Step 2.
 
