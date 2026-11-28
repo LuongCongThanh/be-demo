@@ -4,22 +4,23 @@ Công việc của repo được theo dõi bằng file Markdown trong [`docs/pla
 
 ## Conventions
 
-- **Tạo task**: tạo thư mục `docs/plan/tasks/<NN>-<kebab-name>/` với `spec.md` (frontmatter `status: todo`, `pr:`, `blocked-by: []`), thêm một dòng vào bảng trong `docs/plan/README.md`.
+- **Tạo task**: tạo thư mục `docs/plan/tasks/todo/<NN>-<kebab-name>/` với `spec.md` (frontmatter `status: todo`, `pr:`, `blocked-by: []`), thêm một dòng vào bảng trong `docs/plan/README.md`.
+- **Vị trí theo tình trạng**: `tasks/todo/` cho task chưa hoàn tất (`todo`, `in-progress`), `tasks/done/` cho task đã hợp nhất, `tasks/wontfix/` cho task đã quyết định không làm (ghi lý do trong `spec.md`). Thư mục chỉ để điều hướng; `status` trong frontmatter vẫn là nguồn chuẩn.
 - **Đọc task**: đọc `spec.md`, `plan.md`, `guide.md`, `metric.md`, `report.md` trong thư mục task.
-- **Liệt kê task**: bảng trong `docs/plan/README.md`, hoặc `grep -l "status: todo" docs/plan/tasks/*/spec.md`.
+- **Liệt kê task**: bảng trong `docs/plan/README.md`, hoặc `grep -l "status: todo" docs/plan/tasks/todo/*/spec.md`.
 - **Cập nhật trạng thái**: sửa `status` trong frontmatter `spec.md` và cột Status trong bảng tổng cùng lúc.
-- **Đóng task**: `status: done`, ghi `pr: #NN`, viết `report.md`.
-- **Phụ thuộc**: `blocked-by` trong frontmatter (tên thư mục task). Task chỉ được làm khi mọi task chặn nó đã `done`.
+- **Đóng task**: `status: done`, ghi `pr: #NN`, viết `report.md`, rồi `git mv` cả thư mục từ `tasks/todo/` sang `tasks/done/` và sửa các link trỏ tới nó.
+- **Phụ thuộc**: `blocked-by` trong frontmatter (tên thư mục task, không kèm `todo/`/`done/`; tìm trong cả ba nhóm). Task chỉ được làm khi mọi task chặn nó đã `done`.
 
 Các file trong một task: xem [`docs/plan/README.md`](../plan/README.md#cấu-trúc).
 
 ## When a skill says "publish to the issue tracker"
 
-Tạo thư mục task mới trong `docs/plan/tasks/` như trên.
+Tạo thư mục task mới trong `docs/plan/tasks/todo/` như trên.
 
 ## When a skill says "fetch the relevant ticket"
 
-Đọc thư mục task tương ứng trong `docs/plan/tasks/`.
+Đọc thư mục task tương ứng trong `docs/plan/tasks/{todo,done,wontfix}/`.
 
 ## Wayfinding operations
 

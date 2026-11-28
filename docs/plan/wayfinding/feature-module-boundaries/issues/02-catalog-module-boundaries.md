@@ -8,7 +8,7 @@ Blocked by: 01
 
 Should `CatalogModule` remain the single NestJS module for Category, Product, Product Option, and Pricing, or should it compose smaller NestJS feature modules? If it should split, decide which capabilities merit their own module and which should remain together, based on responsibility, dependency direction, and independent change—not folder symmetry.
 
-Reconcile the current goal with the earlier [Catalog consolidation specification](../../../tasks/06-catalog-module/spec.md), which intentionally consolidated catalog into one module, and the later [Catalog flat-layout specification](../../../tasks/13-catalog-subfolders/spec.md). Preserve the distinction between an organizational folder and a NestJS module boundary.
+Reconcile the current goal with the earlier [Catalog consolidation specification](../../../tasks/done/06-catalog-module/spec.md), which intentionally consolidated catalog into one module, and the later [Catalog flat-layout specification](../../../tasks/done/13-catalog-subfolders/spec.md). Preserve the distinction between an organizational folder and a NestJS module boundary.
 
 ## Answer
 

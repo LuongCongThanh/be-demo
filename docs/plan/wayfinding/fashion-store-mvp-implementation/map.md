@@ -11,7 +11,7 @@ Một implementation plan có thứ tự và phụ thuộc cho các capability s
 - Ưu tiên critical path theo vertical slice của tính năng: catalog/identity, cart/checkout/order, tồn kho/thanh toán/giao hàng và các màn hình CMS/store cần thiết.
 - Giữ các yêu cầu security/tích hợp khi trực tiếp cần để tính năng hoạt động; không mở rộng thành audit compliance hoặc lập kế hoạch hạ tầng.
 - Tính đến task 17 và 24 để không tạo trùng lặp tính năng. Task 11 là deploy demo, ngoài phạm vi map tính năng này.
-- Phạm vi và các quy tắc xuyên luồng được định hướng trong [tài liệu umbrella MVP thương mại](../../tasks/25-mvp-commerce-end-to-end/spec.md); tiêu chí nghiệm thu và triển khai thuộc các nhiệm vụ 26–36. Dùng `research` cho dữ kiện còn thiếu và `grilling`/`domain-modeling` cho quyết định cần chủ dự án, nhưng không giao quyền sở hữu triển khai cho tài liệu umbrella.
+- Phạm vi và các quy tắc xuyên luồng được định hướng trong [tài liệu umbrella MVP thương mại](../../tasks/todo/25-mvp-commerce-end-to-end/spec.md); tiêu chí nghiệm thu và triển khai thuộc các nhiệm vụ 26–36. Dùng `research` cho dữ kiện còn thiếu và `grilling`/`domain-modeling` cho quyết định cần chủ dự án, nhưng không giao quyền sở hữu triển khai cho tài liệu umbrella.
 
 ## Decisions so far
 

@@ -223,7 +223,7 @@ Một người có thể đảm nhận nhiều phạm vi, nhất là trong nhóm
 
 Repo đã có thứ tự migrate kiến trúc riêng: chuẩn hoá tài liệu kiến trúc → nền móng dùng chung → luật lint → migrate từng module theo dependency → hoàn tất migration. Mục tiêu này phải đặt trước các task tính năng chạm module nếu ranh giới đang thay đổi. [Nguồn: [Danh sách plan](../../../../../docs/plan/README.md), [ADR 0015](../../../../../docs/adr/0015-one-layered-architecture-for-every-module.md)]
 
-Cho sản phẩm ecommerce end-to-end, thứ tự kỹ thuật nên dùng các slice đã track trong plan: identity/RBAC và catalog, cart, inventory, quote/COD, thanh toán online/đối soát, fulfillment GHN, state machine đơn, notification và returns/refunds. Không tự dịch `todo` thành code đang hoạt động; trạng thái hoàn tất được đối chiếu bằng PR/migration/test thực tế. [Nguồn: [Plan tổng thể](../../../../../docs/plan/README.md), [Spec MVP](../../../../../docs/plan/tasks/25-mvp-commerce-end-to-end/spec.md)]
+Cho sản phẩm ecommerce end-to-end, thứ tự kỹ thuật nên dùng các slice đã track trong plan: identity/RBAC và catalog, cart, inventory, quote/COD, thanh toán online/đối soát, fulfillment GHN, state machine đơn, notification và returns/refunds. Không tự dịch `todo` thành code đang hoạt động; trạng thái hoàn tất được đối chiếu bằng PR/migration/test thực tế. [Nguồn: [Plan tổng thể](../../../../../docs/plan/README.md), [Spec MVP](../../../tasks/todo/25-mvp-commerce-end-to-end/spec.md)]
 
 ### 4.3 Định nghĩa “hoàn tất”
 

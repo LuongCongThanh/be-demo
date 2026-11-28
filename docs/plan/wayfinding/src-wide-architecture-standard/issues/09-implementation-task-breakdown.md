@@ -13,20 +13,20 @@ Chốt qua grilling ngày 2026-11-24. Người dùng yêu cầu spec viết chi 
 
 **12 task, mỗi task một PR, giữ nguyên hành vi** (spec đầy đủ trong `docs/plan/tasks/`; `plan.md`/`guide.md` viết khi bắt đầu từng task sau khi đối chiếu code):
 
-| #   | Task                                                                                                                                 | Phụ thuộc  |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
-| 38  | [Viết tài liệu chuẩn kiến trúc module](../../../tasks/38-architecture-standard-docs/spec.md)                                         | —          |
-| 39  | [Nền móng dùng chung cho kiến trúc mới](../../../tasks/39-shared-architecture-foundations/spec.md)                                   | 38         |
-| 40  | [Script sinh luật lint ranh giới](../../../tasks/40-lint-boundary-generator/spec.md)                                                 | 39         |
-| 41  | [Chuyển module inventory](../../../tasks/41-migrate-inventory/spec.md)                                                               | 40         |
-| 42  | [Chuyển module voucher](../../../tasks/42-migrate-voucher/spec.md)                                                                   | 40         |
-| 43  | [Chuyển catalog/category](../../../tasks/43-migrate-catalog-category/spec.md)                                                        | 40         |
-| 44  | [Chuyển catalog/product, product-option, pricing + CatalogService](../../../tasks/44-migrate-catalog-product-option-pricing/spec.md) | 41, 43     |
-| 45  | [Chuyển module cart](../../../tasks/45-migrate-cart/spec.md)                                                                         | 41, 44     |
-| 46  | [Chuyển module checkout](../../../tasks/46-migrate-checkout/spec.md)                                                                 | 41, 42, 44 |
-| 47  | [Chuyển identity/access + internal-account](../../../tasks/47-migrate-identity-access-internal-account/spec.md)                      | 40         |
-| 48  | [Chuyển identity/auth](../../../tasks/48-migrate-identity-auth/spec.md)                                                              | 47         |
-| 49  | [Hoàn tất chuyển đổi kiến trúc](../../../tasks/49-finalize-architecture-migration/spec.md)                                           | 45, 46, 48 |
+| #   | Task                                                                                                                                      | Phụ thuộc  |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 38  | [Viết tài liệu chuẩn kiến trúc module](../../../tasks/done/38-architecture-standard-docs/spec.md)                                         | —          |
+| 39  | [Nền móng dùng chung cho kiến trúc mới](../../../tasks/done/39-shared-architecture-foundations/spec.md)                                   | 38         |
+| 40  | [Script sinh luật lint ranh giới](../../../tasks/done/40-lint-boundary-generator/spec.md)                                                 | 39         |
+| 41  | [Chuyển module inventory](../../../tasks/done/41-migrate-inventory/spec.md)                                                               | 40         |
+| 42  | [Chuyển module voucher](../../../tasks/done/42-migrate-voucher/spec.md)                                                                   | 40         |
+| 43  | [Chuyển catalog/category](../../../tasks/todo/43-migrate-catalog-category/spec.md)                                                        | 40         |
+| 44  | [Chuyển catalog/product, product-option, pricing + CatalogService](../../../tasks/todo/44-migrate-catalog-product-option-pricing/spec.md) | 41, 43     |
+| 45  | [Chuyển module cart](../../../tasks/todo/45-migrate-cart/spec.md)                                                                         | 41, 44     |
+| 46  | [Chuyển module checkout](../../../tasks/todo/46-migrate-checkout/spec.md)                                                                 | 41, 42, 44 |
+| 47  | [Chuyển identity/access + internal-account](../../../tasks/todo/47-migrate-identity-access-internal-account/spec.md)                      | 40         |
+| 48  | [Chuyển identity/auth](../../../tasks/todo/48-migrate-identity-auth/spec.md)                                                              | 47         |
+| 49  | [Hoàn tất chuyển đổi kiến trúc](../../../tasks/todo/49-finalize-architecture-migration/spec.md)                                           | 45, 46, 48 |
 
 - **Test:** E2E giữ nguyên và phải xanh; unit test hỏng vì bỏ `PrismaService` được sửa tối thiểu sang repository giả; không viết test mới, không skip/xoá test (riêng task 39 có test nhỏ cho hạ tầng mới).
 - **Thứ tự với task tính năng:** refactor trước; task 29 chờ 46, task 33 chờ 41.
