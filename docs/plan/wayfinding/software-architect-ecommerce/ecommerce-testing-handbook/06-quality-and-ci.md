@@ -1,5 +1,7 @@
 # Quality gates, audit và tối ưu
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ![ci-gates](diagrams/ci-gates.png)
 
 [Mã Mermaid](diagrams/ci-gates.mmd) · [SVG](diagrams/ci-gates.svg)

@@ -1,5 +1,7 @@
 # Tồn kho
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ![inventory-race](diagrams/inventory-race.png)
 
 [Mã Mermaid](diagrams/inventory-race.mmd) · [SVG](diagrams/inventory-race.svg)

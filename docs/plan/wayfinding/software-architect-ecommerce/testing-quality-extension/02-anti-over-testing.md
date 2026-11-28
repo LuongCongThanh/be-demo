@@ -1,5 +1,7 @@
 # Anti Over-testing & Test Optimization
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Nhiều test không đồng nghĩa chất lượng. Over-testing gây duplicate, CI chậm, maintenance cao, brittle/flaky, over-mocking, false confidence, giảm productivity, infrastructure cost, technical debt và over-engineering. Under-testing bỏ sót rủi ro; optimal testing cân bằng giá trị và chi phí; over-testing có lợi ích giảm dần. Không có số lượng test tối ưu cố định.
 
 ## Ví dụ login

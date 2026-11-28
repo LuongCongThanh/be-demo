@@ -1,0 +1,10 @@
+flowchart TD
+  N0["Integration Test Runner"]
+  N1["Controller / API Handler"]
+  N2["Application Service / Use Case"]
+  N3["Repository / Infrastructure"]
+  N4["Real test Database / Cache / Queue"]
+  N0 --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4

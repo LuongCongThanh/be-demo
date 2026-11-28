@@ -1,5 +1,7 @@
 # Chiến lược kiểm thử thương mại điện tử
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 ![architecture](diagrams/architecture.png)
 
 [Mã Mermaid](diagrams/architecture.mmd) · [SVG](diagrams/architecture.svg)

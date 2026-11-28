@@ -1,5 +1,7 @@
 # Software Testing Quality Audit
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Act as a Senior Software Engineer, Software Quality Architect, and Testing Specialist.
 Perform a comprehensive, technology-agnostic audit of the project's entire testing system.
 

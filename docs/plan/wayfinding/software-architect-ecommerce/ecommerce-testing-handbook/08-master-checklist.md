@@ -1,5 +1,7 @@
 # Master checklist theo module
 
+**Trạng thái:** Nháp (tài liệu tham khảo).
+
 Đánh dấu chỉ khi có evidence; N/A cần lý do. Các scenario dưới đây là inventory khởi đầu, không phải số lượng test bắt buộc.
 
 ## Tài khoản và phân quyền (P0)
