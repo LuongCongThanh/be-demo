@@ -1,8 +1,6 @@
 # Báo cáo triển khai BE category — 2026-11-19
 
-#
-
-# Trạng thái: PR #98 đã hợp nhất; task cha đã đóng cho phạm vi BE.
+**Trạng thái:** PR #98 đã hợp nhất; task cha đã đóng cho phạm vi BE.
 
 ## Kết quả
 
