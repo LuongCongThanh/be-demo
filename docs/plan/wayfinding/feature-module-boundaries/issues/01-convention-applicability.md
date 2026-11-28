@@ -7,7 +7,7 @@ Status: resolved
 
 Which rules in the Category v1.6 folder-structure and clean-code conventions should be treated as shared standards for all existing modules under `src/modules`, and which are Category-specific or need adaptation for other capabilities? Decide what principles should govern the refactoring specification without mechanically applying Category's exact folder tree everywhere.
 
-Relevant context: folder-structure convention (`01-category-folder-structure-convention-v1.6.md`, đã xoá; thay bằng `docs/convention/module-architecture-conventions.md`), clean-code convention (`02-category-clean-code-quality-convention-v1.6.md`, đã xoá; thay bằng `docs/convention/module-architecture-conventions.md`), [module architecture](../../../../architecture/02-modules.md), and the earlier [Catalog consolidation specification](../../../tasks/06-catalog-module/spec.md).
+Relevant context: folder-structure convention (`01-category-folder-structure-convention-v1.6.md`, đã xoá; thay bằng `docs/convention/module-architecture-conventions.md`), clean-code convention (`02-category-clean-code-quality-convention-v1.6.md`, đã xoá; thay bằng `docs/convention/module-architecture-conventions.md`), [module architecture](../../../../architecture/02-modules.md), and the earlier [Catalog consolidation specification](../../../tasks/done/06-catalog-module/spec.md).
 
 ## Answer
 

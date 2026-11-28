@@ -73,7 +73,7 @@ BR-CAT-01–13; US-101–104, US-801–803, US-805; ADR 0001.
 
 ## Category content — triển khai 2026-11-19
 
-[Spec và contract](../../plan/tasks/24-category-content/spec.md), [hướng dẫn consumer](../../plan/tasks/24-category-content/guide.md).
+[Spec và contract](../../plan/tasks/done/24-category-content/spec.md), [hướng dẫn consumer](../../plan/tasks/done/24-category-content/guide.md).
 
 - GET `/categories` và `/categories/:id` nhận `locale=vi|en`, default vi; name theo locale và giữ nameVi/nameEn; ảnh optional URL nullable. Slug không đổi khi rename/move/locale.
 - POST/PATCH admin category nhận nameEn tùy chọn để sửa tay; null yêu cầu dịch lại. GET admin trả tên Việt, trạng thái dịch và hai storage keys/URLs; không lộ version/lease.

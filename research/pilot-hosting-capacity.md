@@ -6,7 +6,7 @@
 
 ## Tóm tắt quyết định
 
-- **Task 11 chỉ là demo miễn phí**, không phải production. Spec ghi rõ ngoài phạm vi “production thật”; Render Free có thể ngủ/restart, không scale ngang, còn Render Free Postgres hết hạn sau 30 ngày và không hỗ trợ backup hay managed connection pool. Neon Free giới hạn 100 CU-hours và 1 GB Postgres/project, bắt buộc scale-to-zero. Không dùng các gói Free để cam kết pilot thương mại hay SLA. [Task 11 spec](../docs/plan/tasks/11-deploy-render-free/spec.md); [Render Free](https://render.com/docs/free); [Neon plans](https://neon.com/docs/introduction/plans).
+- **Task 11 chỉ là demo miễn phí**, không phải production. Spec ghi rõ ngoài phạm vi “production thật”; Render Free có thể ngủ/restart, không scale ngang, còn Render Free Postgres hết hạn sau 30 ngày và không hỗ trợ backup hay managed connection pool. Neon Free giới hạn 100 CU-hours và 1 GB Postgres/project, bắt buộc scale-to-zero. Không dùng các gói Free để cam kết pilot thương mại hay SLA. [Task 11 spec](../docs/plan/tasks/todo/11-deploy-render-free/spec.md); [Render Free](https://render.com/docs/free); [Neon plans](https://neon.com/docs/introduction/plans).
 - Với **500 đơn/ngày**, một lựa chọn pilot có trả phí, tiết kiệm và dễ nâng cấp là Render Pro workspace + 1–2 paid API replicas, một worker riêng, và Neon Launch. Có thể bắt đầu ở mức khoảng **$57/tháng** với 1 API, hoặc **$82/tháng** với 2 API replicas, _chưa gồm database_; sau đó cộng database Neon theo CU-hours/storage/transfer. Đây là ngân sách cấu hình tham khảo, không phải dự báo năng lực.
 - Với **5.000 đơn/ngày**, coi đó là nấc scale cần **đo trên staging trước khi mở tải**. Dựng 2 API replicas làm baseline, cấu hình autoscaling có giới hạn trên Render Pro, và bắt đầu database ở Neon Launch hoặc Scale tùy yêu cầu availability / SLA. Neon Scale có SLA cho compute endpoint, còn Render cam kết SLA uptime theo workspace trên Enterprise; không có lựa chọn nào trong hai phương án tạo ra SLA toàn ứng dụng chỉ nhờ nhà cung cấp.
 - **Chưa có benchmark của ứng dụng trong ticket này.** Các tải ở dưới được suy ra từ giả định NFR đang ở trạng thái nháp; không chứng minh code, DB schema hay gói dịch vụ nào đã đạt các mục tiêu hiệu năng.
@@ -28,7 +28,7 @@ Kiến trúc dự án mô tả modular monolith NestJS/PostgreSQL/Prisma, API st
 
 ## 2. Task 11 — demo miễn phí, không phải baseline production
 
-Wayfinder quy định pilot là 500 đơn/ngày và 5.000 đơn/ngày là nấc scale-up; đồng thời nêu rõ task 11 hiện hữu chỉ là demo Render/Neon miễn phí, không xem là production configuration. Đây là nội dung trong `docs/plan/wayfinding/fashion-store-mvp-implementation/map.md` của source checkout; thư mục Wayfinder đang untracked nên không được sao chép vào research branch. Task 11 spec nhắm đến URL HTTPS miễn phí cho demo và ghi “production thật” ngoài phạm vi. [Task 11 spec](../docs/plan/tasks/11-deploy-render-free/spec.md).
+Wayfinder quy định pilot là 500 đơn/ngày và 5.000 đơn/ngày là nấc scale-up; đồng thời nêu rõ task 11 hiện hữu chỉ là demo Render/Neon miễn phí, không xem là production configuration. Đây là nội dung trong `docs/plan/wayfinding/fashion-store-mvp-implementation/map.md` của source checkout; thư mục Wayfinder đang untracked nên không được sao chép vào research branch. Task 11 spec nhắm đến URL HTTPS miễn phí cho demo và ghi “production thật” ngoài phạm vi. [Task 11 spec](../docs/plan/tasks/todo/11-deploy-render-free/spec.md).
 
 Giới hạn hiện hành cần lưu ý:
 
@@ -40,7 +40,7 @@ Giới hạn hiện hành cần lưu ý:
 
 Nguồn: [Render Free services/databases](https://render.com/docs/free); [Neon plans](https://neon.com/docs/introduction/plans), truy cập 2026-11-21. Neon hiện mô tả compute phản hồi trở lại trong **vài trăm mili giây** sau truy vấn, nhưng con số này chỉ nói về reactivation của compute; không gồm cold start của Render API, TLS/network, Prisma connection setup, query warm-up hay latency tổng của request. [Neon scale-to-zero](https://neon.com/docs/introduction/scale-to-zero).
 
-Vì vậy, nội dung cũ trong Task 11 plan về Neon “~0,5 GB” và “~1 giây resume” không còn khớp với trang plans/scale-to-zero hiện tại: giới hạn là 1 GB/project và docs mới mô tả resume trong vài trăm mili giây. Đây là chỉnh lý thông tin, không đổi mục tiêu demo của Task 11. [Task 11 plan](../docs/plan/tasks/11-deploy-render-free/plan.md); [Neon plans](https://neon.com/docs/introduction/plans); [Neon scale-to-zero](https://neon.com/docs/introduction/scale-to-zero).
+Vì vậy, nội dung cũ trong Task 11 plan về Neon “~0,5 GB” và “~1 giây resume” không còn khớp với trang plans/scale-to-zero hiện tại: giới hạn là 1 GB/project và docs mới mô tả resume trong vài trăm mili giây. Đây là chỉnh lý thông tin, không đổi mục tiêu demo của Task 11. [Task 11 plan](../docs/plan/tasks/todo/11-deploy-render-free/plan.md); [Neon plans](https://neon.com/docs/introduction/plans); [Neon scale-to-zero](https://neon.com/docs/introduction/scale-to-zero).
 
 ## 3. Các phương án production và ngân sách tham khảo
 
@@ -120,7 +120,7 @@ NFR yêu cầu k6 trên **staging**; quy trình đề xuất dưới đây là k
 
 Tài liệu dưới đây là của nhà cung cấp/nguồn dự án, truy cập **2026-11-21**:
 
-1. Ticket pointer: `/home/thanhluongcong/Documents/fashion-store/be-demo/docs/plan/wayfinding/fashion-store-mvp-implementation/issues/07-pilot-hosting-capacity.md`. Wayfinder map và issue tree là untracked trong source checkout, nên không được sao chép sang research branch. Task 11 spec/plan: [spec](../docs/plan/tasks/11-deploy-render-free/spec.md); [plan](../docs/plan/tasks/11-deploy-render-free/plan.md).
+1. Ticket pointer: `/home/thanhluongcong/Documents/fashion-store/be-demo/docs/plan/wayfinding/fashion-store-mvp-implementation/issues/07-pilot-hosting-capacity.md`. Wayfinder map và issue tree là untracked trong source checkout, nên không được sao chép sang research branch. Task 11 spec/plan: [spec](../docs/plan/tasks/todo/11-deploy-render-free/spec.md); [plan](../docs/plan/tasks/todo/11-deploy-render-free/plan.md).
 2. Dự án, giả định tải, P95, availability/RPO/RTO và connection budget: [NFR §1–7](../docs/architecture/10-nfr.md); [Architecture overview](../docs/architecture/01-overview.md).
 3. Render Free services, Postgres and usage limits: https://render.com/docs/free.
 4. Render pricing / workspace and compute prices: https://render.com/pricing#compute ; https://render.com/pricing#postgresql ; compute specifications: https://render.com/docs/compute-plans.

@@ -18,7 +18,7 @@ Google login (US-502), hồ sơ khách hàng (name/phone/locale), guest cart/gue
 
 ---
 
-## PR 1 — `refactor/four-actor-roles` ([task 01](./tasks/01-rename-roles/spec.md))
+## PR 1 — `refactor/four-actor-roles` ([task 01](./tasks/done/01-rename-roles/spec.md))
 
 **Mục tiêu:** role khớp ADR 0005; quyền ghi catalog chỉ cho `ADMIN`.
 
@@ -43,7 +43,7 @@ Acceptance:
 
 ---
 
-## PR 2 — `feature/backoffice-login-and-staff-management` ([task 02](./tasks/02-login-role-staff-cli/spec.md))
+## PR 2 — `feature/backoffice-login-and-staff-management` ([task 02](./tasks/done/02-login-role-staff-cli/spec.md))
 
 **Mục tiêu:** login trả `role`; Admin tạo bằng CLI; Admin quản lý Staff (02-actors §1, §4).
 
@@ -73,7 +73,7 @@ Acceptance:
 
 ---
 
-## PR 3 — `refactor/product-status-and-archive` ([task 03](./tasks/03-product-status-archive/spec.md))
+## PR 3 — `refactor/product-status-and-archive` ([task 03](./tasks/done/03-product-status-archive/spec.md))
 
 **Mục tiêu:** BR-CAT-07, BR-CAT-09.
 
@@ -97,7 +97,7 @@ Acceptance:
 
 ---
 
-## PR 4 — `feature/sizes-colors-and-variant-rules` ([task 04](./tasks/04-sizes-colors-variants/spec.md))
+## PR 4 — `feature/sizes-colors-and-variant-rules` ([task 04](./tasks/done/04-sizes-colors-variants/spec.md))
 
 **Mục tiêu:** BR-CAT-02..06, BR-CAT-11. BR-CAT-03 chỉ cấm đổi SKU _sau khi có đơn_; PR này tạm chặn mọi lần đổi (chặt hơn) cho đến khi có ordering.
 
@@ -125,7 +125,7 @@ Acceptance:
 
 ---
 
-## PR 5 — `feature/nested-categories` ([task 05](./tasks/05-nested-categories/spec.md))
+## PR 5 — `feature/nested-categories` ([task 05](./tasks/done/05-nested-categories/spec.md))
 
 **Mục tiêu:** danh mục nhiều cấp (02-modules, ADR 0001).
 
